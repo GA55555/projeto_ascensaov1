@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mochila - Painel Mago</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #121214; color: #e1e1e6; max-width: 700px; margin: 40px auto; padding: 20px; }
+        .topo-painel { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        h1 { color: #9871f5; margin: 0; }
+        .btn-criar { background: #9871f5; color: #fff; font-weight: bold; text-decoration: none; padding: 12px 20px; border-radius: 4px; display: inline-block; }
+        .btn-criar:hover { background: #7f57df; }
+        .btn-voltar-menu { color: #8d8d99; text-decoration: none; font-size: 14px; }
+        .btn-voltar-menu:hover { color: #9871f5; }
+        .card-mago { background: #202024; padding: 20px; border-radius: 8px; border-left: 4px solid #9871f5; margin-bottom: 15px; position: relative; border-top: 1px solid #29292e; border-right: 1px solid #29292e; border-bottom: 1px solid #29292e; }
+        .acoes { display: flex; gap: 8px; margin-top: 15px; }
+        .btn-excluir { background: #29292e; border: 1px solid #f75a68; color: #f75a68; font-size: 12px; padding: 6px 12px; cursor: pointer; border-radius: 4px; }
+        .btn-excluir:hover { background: #f75a68; color: #fff; }
+        small { color: #8d8d99; display: block; margin-top: 5px; font-family: monospace; font-size: 11px; } 
+        .btn-evoluir { 
+            background: #9871f5; 
+            color: #fff; 
+            text-decoration: none; 
+            font-size: 12px; 
+            padding: 6px 12px; 
+            border-radius: 4px; 
+            font-weight: bold; 
+            display: inline-block;
+        }
+        .btn-evoluir:hover { background: #7f57df; }
+    </style>
+</head>
+<body>
+
+    <p><a href="/index.html" class="btn-voltar-menu">← Voltar para Seleção de Sistemas</a></p>
+
+    <div class="topo-painel">
+        <div>
+            <h1>🔮 Grimório de Fichas</h1>
+            <p style="color: #8d8d99; margin: 5px 0 0 0;">Mago: A Ascensão</p>
+        </div>
+        <a href="/mago.html" class="btn-criar">+ Despertar Novo Mago</a>
+    </div>
+
+    <h2>📜 Magos Registrados neste Servidor</h2>
+    <div id="lista-magos"></div>
+
+    <script>
+        // Carrega apenas os personagens salvos
+        async function carregarMagos() {
+    // 1. Recupera o token que você salvou no login
+    const token = localStorage.getItem('token_m20');
+    console.log("Token enviado:", token); 
+    if (!token) {
+        console.error("Token não encontrado! Você está logado?");
+        return;
+    }
+
+    // 2. Faz o fetch incluindo o cabeçalho de autorização
+    const resposta = await fetch('/personagens', {
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
+    });
+
+    // 3. Verifica se o servidor autorizou e respondeu ok
+    if (!resposta.ok) {
+        console.error("Erro ao carregar magos. Status:", resposta.status);
+        return; // Para a execução aqui se der erro
+    }
+
+    const magos = await resposta.json();
+    const lista = document.getElementById('lista-magos');
+    lista.innerHTML = '';
+
+    if (magos.length === 0) {
+        lista.innerHTML = '<p style="color: #8d8d99; text-align: center; margin-top: 40px;">Nenhum mago despertou nesta crônica ainda.</p>';
+        return;
+    }
+
+    // 4. Agora sim, percorre os dados com segurança
+    magos.forEach(mago => {
+        lista.innerHTML += `
+            <div class="card-mago">
+                <h3>${mago.nome}</h3>
+                <p><strong>Tradição/Afiliação:</strong> ${mago.tradicao} | <strong>Conceito:</strong> ${mago.conceito}</p>
+                <p><strong>Natureza:</strong> ${mago.natureza} | <strong>Comportamento:</strong> ${mago.comportamento}</p>
+                <p><strong>Arete:</strong> ${mago.arete}</p>
+                <small>ID Seguro (UUID): ${mago.id}</small>
+                <div class="acoes">
+                    <a href="/evoluir_mago.html?id=${mago.id}" class="btn-evoluir">Evoluir com EXP</a>
+                    <button class="btn-excluir" onclick="deletarMago('${mago.id}')">Excluir Ficha</button>
+                </div>
+            </div>
+        `;
+    });
+}
+
+        async function deletarMago(id) {
+            if (confirm("Deseja apagar permanentemente este Mago do Grimório?")) {
+                const resposta = await fetch(`/personagens/${id}`, { method: 'DELETE' });
+                if (resposta.ok) {
+                    carregarMagos();
+                } else {
+                    alert("Erro ao excluir ficha.");
+                }
+            }
+        }
+
+        carregarMagos();
+        
+    </script>
+</body>
+</html>

@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mochila do Aventureiro - Criador Mago M20</title>
+    <style>
+        :root {
+            --bg-principal: #121214;
+            --bg-card: #202024;
+            --roxo-mago: #9871f5;
+            --roxo-hover: #7f57df;
+            --texto-claro: #e1e1e6;
+            --texto-mutado: #8d8d99;
+            --borda: #29292e;
+            --erro: #f75a68;
+            --sucesso: #50fa7b;
+        }
+
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: var(--bg-principal); 
+            color: var(--texto-claro); 
+            max-width: 900px; 
+            margin: 40px auto; 
+            padding: 20px; 
+        }
+
+        h1, h2, h3, h4 { color: var(--roxo-mago); margin-bottom: 5px; margin-top: 0; }
+        p { margin: 5px 0; }
+
+        .stepper-header {
+            display: flex;
+            justify-content: space-between;
+            background: var(--bg-card);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            border: 1px solid var(--borda);
+        }
+
+        .passo-indicador {
+            font-size: 13px;
+            font-weight: bold;
+            color: var(--texto-mutado);
+            padding: 5px 10px;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .passo-indicador.ativo {
+            color: var(--roxo-mago);
+            border-bottom-color: var(--roxo-mago);
+        }
+
+        .passo-conteudo {
+            display: none; 
+            background: var(--bg-card);
+            padding: 25px;
+            border-radius: 8px;
+            border: 1px solid var(--borda);
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .passo-conteudo.ativo { display: flex; }
+
+        .grid-tres-colunas {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .coluna-bloco {
+            background: var(--bg-principal);
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid var(--borda);
+        }
+
+        .campo-texto {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            width: 100%;
+        }
+
+        label { font-size: 13px; font-weight: bold; color: var(--texto-claro); }
+        
+        input[type="text"], input[type="number"], select { 
+            padding: 10px; 
+            border-radius: 4px; 
+            border: 1px solid var(--borda); 
+            background: var(--bg-principal); 
+            color: #fff; 
+            outline: none;
+        }
+        
+        input[type="text"]:focus, select:focus { border-color: var(--roxo-mago); }
+
+        .controle-ponto {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 8px 0;
+            background: var(--bg-card);
+            padding: 6px 10px;
+            border-radius: 4px;
+        }
+
+        .botoes-mais-menos {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .val-contador { font-weight: bold; font-size: 14px; min-width: 15px; text-align: center; }
+
+        .btn-contador {
+            background: var(--borda);
+            color: #fff;
+            border: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .btn-contador:hover { background: var(--roxo-mago); }
+
+        .bloco-adicionar-dinamico {
+            display: flex;
+            gap: 12px;
+            background: var(--bg-principal);
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid var(--borda);
+            align-items: flex-end;
+            margin-bottom: 15px;
+        }
+
+        .btn-adicionar {
+            background: var(--roxo-mago);
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            height: 40px;
+        }
+        .btn-adicionar:hover { background: var(--roxo-hover); }
+        .btn-remover { background: transparent; color: var(--erro); border: none; cursor: pointer; font-size: 12px; }
+
+        .stepper-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+        }
+
+        .btn-navegacao { padding: 12px 24px; border-radius: 4px; font-weight: bold; cursor: pointer; border: none; transition: background 0.2s; }
+        .btn-proximo { background: var(--roxo-mago); color: #fff; }
+        .btn-proximo:hover { background: var(--roxo-hover); }
+        .btn-voltar { background: var(--borda); color: var(--texto-claro); }
+
+        .painel-pontos {
+            background: #29292e;
+            padding: 10px 15px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: bold;
+            text-align: center;
+            border: 1px solid var(--borda);
+        }
+        
+        .seletor-prioridade { margin-bottom: 15px; width: 100%; }
+        .custo-info { font-size: 11px; color: var(--texto-mutado); display: block; }
+    </style>
+</head>
+<body>
+
+    <p><a href="/painel_mago.html" style="color: var(--texto-mutado); text-decoration: none; font-size: 14px;">← Cancelar e Voltar ao Grimório</a></p>
+
+    <h1>🔮 Mochila do Aventureiro</h1>
+    <h2>Criação de Personagem: Mago a Ascensão (M20)</h2>
+
+    <div class="stepper-header">
+        <div class="passo-indicator ativo" id="ind-1">1. Cabeçalho</div>
+        <div class="passo-indicator" id="ind-2">2. Atributos</div>
+        <div class="passo-indicator" id="ind-3">3. Habilidades</div>
+        <div class="passo-indicator" id="ind-4">4. Despertar</div>
+        <div class="passo-indicator" id="ind-5">5. Bônus</div>
+    </div>
+
+    <form id="motor-ficha-mago">
+
+
+        <section class="passo-conteudo ativo" id="passo-1">
+            <h3>Fase 1: Identidade do Desperto</h3>
+            <div class="grid-tres-colunas">
+                <div class="campo-texto"><label>Nome do Mago</label><input type="text" id="cab-nome" required></div>
+                <div class="campo-texto"><label>Jogador</label><input type="text" id="cab-jogador"></div>
+                <div class="campo-texto"><label>Crônica</label><input type="text" id="cab-cronica"></div>
+                <div class="campo-texto"><label>Natureza</label><input type="text" id="cab-natureza" required></div>
+                <div class="campo-texto"><label>Comportamento</label><input type="text" id="cab-comportamento" required></div>
+                <div class="campo-texto"><label>Essência</label><input type="text" id="cab-essencia" required></div>
+                <div class="campo-texto"><label>Afiliação / Tradição</label><input type="text" id="cab-afiliacao" required></div>
+                <div class="campo-texto"><label>Seita / Facção</label><input type="text" id="cab-seita"></div>
+                <div class="campo-texto"><label>Conceito</label><input type="text" id="cab-conceito" required></div>
+            </div>
+        </section>
+
+        <section class="passo-conteudo" id="passo-2">
+            <h3>Fase 2: Atributos (Distribuição 7 / 5 / 3)</h3>
+            <div class="grid-tres-colunas">
+                <div class="coluna-bloco" id="bloco-fisicos">
+                    <h4>Físicos</h4>
+                    <select class="seletor-prioridade" id="prioridade-fisicos" onchange="gerenciarPrioridadesAtributos('fisicos')">
+                        <option value="">-- Escolha --</option><option value="7">Primário (7)</option><option value="5">Secundário (5)</option><option value="3">Terciário (3)</option>
+                    </select>
+                    <div class="controle-ponto"><label>Força</label><div class="botoes-mais-menos"><button type="button" class="btn-contador" onclick="alterarAtributo('fisicos', 'forca', -1)">-</button><span class="val-contador" id="txt-forca">1</span><button type="button" class="btn-contador" onclick="alterarAtributo('fisicos', 'forca', 1)">+</button></div></div>
+                    <div class="controle-ponto"><label>Destreza</label><div class="botoes-mais-menos"><button type="button" class="btn-contador" onclick="alterarAtributo('fisicos', 'destreza', -1)">-</button><span class="val-contador" id="txt-destreza">1</span><button type="button" class="btn-contador" onclick="alterarAtributo('fisicos', 'destreza', 1)">+</button></div></div>
+                    <div class="controle-ponto"><label>Vigor</label><div class="botoes-mais-menos"><button type="button" class="btn-contador" onclick="alterarAtributo('fisicos', 'vigor', -1)">-</button><span class="val-contador" id="txt-vigor">1</span><button type="button" class="btn-contador" onclick="alterarAtributo('fisicos', 'vigor', 1)">+</button></div></div>
+                </div>
+                <div class="coluna-bloco" id="bloco-sociais">
+                    <h4>Sociais</h4>
+                    <select class="seletor-prioridade" id="prioridade-sociais" onchange="gerenciarPrioridadesAtributos('sociais')">
+                        <option value="">-- Escolha --</option><option value="7">Primário (7)</option><option value="5">Secundário (5)</option><option value="3">Terciário (3)</option>
+                    </select>
+                    <div class="controle-ponto"><label>Carisma</label><div class="botoes-mais-menos"><button type="button" class="btn-contador" onclick="alterarAtributo('sociais', 'carisma', -1)">-</button><span class="val-contador" id="txt-carisma">1</span><button type="button" class="btn-contador" onclick="alterarAtributo('sociais', 'carisma', 1)">+</button></div></div>
+                    <div class="controle-ponto"><label>Manipulação</label><div class="botoes-mais-menos"><button type="button" class="btn-contador" onclick="alterarAtributo('sociais', 'manipulacao', -1)">-</button><span class="val-contador" id="txt-manipulacao">1</span><button type="button" class="btn-contador" onclick="alterarAtributo('sociais', 'manipulacao', 1)">+</button></div></div>
+                    <div class="controle-ponto"><label>Aparência</label><div class="botoes-mais-menos"><button type="button" class="btn-contador" onclick="alterarAtributo('sociais', 'aparencia', -1)">-</button><span class="val-contador" id="txt-aparencia">1</span><button type="button" class="btn-contador" onclick="alterarAtributo('sociais', 'aparencia', 1)">+</button></div></div>
+                </div>
+                <div class="coluna-bloco" id="bloco-mentais">
+                    <h4>Mentais</h4>
+                    <select class="seletor-prioridade" id="prioridade-mentais" onchange="gerenciarPrioridadesAtributos('mentais')">
+                        <option value="">-- Escolha --</option><option value="7">Primário (7)</option><option value="5">Secundário (5)</option><option value="3">Terciário (3)</option>
+                    </select>
+                    <div class="controle-ponto"><label>Percepção</label><div class="botoes-mais-menos"><button type="button" class="btn-contador" onclick="alterarAtributo('mentais', 'percepcao', -1)">-</button><span class="val-contador" id="txt-percepcao">1</span><button type="button" class="btn-contador" onclick="alterarAtributo('mentais', 'percepcao', 1)">+</button></div></div>
+                    <div class="controle-ponto"><label>Inteligência</label><div class="botoes-mais-menos"><button type="button" class="btn-contador" onclick="alterarAtributo('mentais', 'inteligencia', -1)">-</button><span class="val-contador" id="txt-inteligencia">1</span><button type="button" class="btn-contador" onclick="alterarAtributo('mentais', 'inteligencia', 1)">+</button></div></div>
+                    <div class="controle-ponto"><label>Raciocínio</label><div class="botoes-mais-menos"><button type="button" class="btn-contador" onclick="alterarAtributo('mentais', 'raciocinio', -1)">-</button><span class="val-contador" id="txt-raciocinio">1</span><button type="button" class="btn-contador" onclick="alterarAtributo('mentais', 'raciocinio', 1)">+</button></div></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="passo-conteudo" id="passo-3">
+            <h3>Fase 3: Habilidades (Distribuição 13 / 9 / 5)</h3>
+            <div class="grid-tres-colunas">
+                <div class="coluna-bloco"><h4>Talentos</h4><select class="seletor-prioridade" id="prioridade-talentos" onchange="gerenciarPrioridadesHabilidades('talentos')"><option value="">-- Escolha --</option><option value="13">Primário (13)</option><option value="9">Secundário (9)</option><option value="5">Terciário (5)</option></select><div id="lista-talentos"></div></div>
+                <div class="coluna-bloco"><h4>Perícias</h4><select class="seletor-prioridade" id="prioridade-pericias" onchange="gerenciarPrioridadesHabilidades('pericias')"><option value="">-- Escolha --</option><option value="13">Primário (13)</option><option value="9">Secundário (9)</option><option value="5">Terciário (5)</option></select><div id="lista-pericias"></div></div>
+                <div class="coluna-bloco"><h4>Conhecimentos</h4><select class="seletor-prioridade" id="prioridade-conhecimentos" onchange="gerenciarPrioridadesHabilidades('conhecimentos')"><option value="">-- Escolha --</option><option value="13">Primário (13)</option><option value="9">Secundário (9)</option><option value="5">Terciário (5)</option></select><div id="lista-conhecimentos"></div></div>
+            </div>
+        </section>
+
+        <section class="passo-conteudo" id="passo-4">
+            <h3>Fase 4: O Despertar (6 Esferas e 7 Antecedentes)</h3>
+            <div class="grid-tres-colunas">
+                <div class="coluna-bloco" style="grid-column: span 2;">
+                    <h4>1. Esferas de Magia</h4>
+                    <div class="campo-texto" style="margin-bottom:15px;">
+                        <label>Esfera de Afinidade (Afiliação):</label>
+                        <select id="esfera-afinidade" onchange="definirEsferaAfim()">
+                            <option value="">-- Escolha --</option><option value="correspondencia">Correspondência</option><option value="entropia">Entropia</option><option value="forcas">Forças</option><option value="materia">Matéria</option><option value="mente">Mente</option><option value="primordio">Primórdio</option><option value="espirito">Espírito</option><option value="tempo">Tempo</option><option value="vida">Vida</option>
+                        </select>
+                    </div>
+                    <div id="wrapper-esferas-fase4" class="grid-tres-colunas" style="gap:10px;"></div>
+                </div>
+                <div class="coluna-bloco">
+                    <h4>2. Antecedentes Iniciais</h4>
+                    <select id="select-lista-antecedentes" style="width:100%; margin-bottom:8px;"></select>
+                    <button type="button" class="btn-adicionar" style="width:100%; height:35px; padding:0;" onclick="adicionarAntecedenteNaLista()">+ Adicionar</button>
+                    <div id="wrapper-antecedentes-adicionados"></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="passo-conteudo" id="passo-5">
+            <h3>Fase 5: Gastos Finais (15 Pontos de Bônus)</h3>
+            
+            <div class="bloco-adicionar-dinamico" style="background: #1a1a1e; justify-content: flex-start; gap: 20px;">
+                <div class="campo-texto" style="width: 140px;">
+                    <label>Mín. Defeitos (Livro)</label>
+                    <input type="number" id="cfg-def-min" value="4" min="1" max="6" onchange="ajustarLimitesDefeitos()">
+                </div>
+                <div class="campo-texto" style="width: 140px;">
+                    <label>Teto Máx. Defeitos</label>
+                    <input type="number" id="cfg-def-max" value="7" min="4" max="9" onchange="ajustarLimitesDefeitos()">
+                </div>
+                <p style="font-size: 11px; color: var(--texto-mutado); align-self: center; margin: 0;">
+                    * Ajuste o teto de ganho extra por Defeitos para a crônica (Mínimo 4, Máximo 9).
+                </p>
+            </div>
+
+            <div class="grid-tres-colunas">
+                <div class="coluna-bloco" style="grid-column: span 3;">
+                    <h4>Adicionar Qualidades / Defeitos</h4>
+                    <div class="bloco-adicionar-dinamico">
+                        <div class="campo-texto"><label>Nome da Característica</label><input type="text" id="qd-nome" placeholder="Ex: Sorte Grande"></div>
+                        <div class="campo-texto">
+                            <label>Tipo</label>
+                            <select id="qd-tipo">
+                                <option value="Qualidade">Qualidade (Gasta Bônus)</option>
+                                <option value="Defeito">Defeito (Ganha Bônus)</option>
+                            </select>
+                        </div>
+                        <div class="campo-texto" style="width:120px;"><label>Valor (Pontos)</label><input type="number" id="qd-pontos" min="1" max="9" value="1"></div>
+                        <button type="button" class="btn-adicionar" onclick="adicionarQualidadeDefeito()">+ Inserir</button>
+                    </div>
+                    <div id="lista-qd-adicionados"></div>
+                </div>
+            </div>
+
+            <div class="grid-tres-colunas" style="margin-top: 10px;">
+                <div class="coluna-bloco" style="grid-column: span 3;">
+                    <h4>Adicionar Antecedente Extra (Gasto de Bônus)</h4>
+                    <div class="bloco-adicionar-dinamico">
+                        <div class="campo-texto" style="width: 70%;">
+                            <label>Escolha o Antecedente Adicional:</label>
+                            <select id="select-bonus-antecedentes"></select>
+                        </div>
+                        <button type="button" class="btn-adicionar" onclick="adicionarAntecedenteViaBonus()">+ Comprar com Bônus</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid-tres-colunas" style="margin-top: 10px;">
+                <div class="coluna-bloco">
+                    <h4>Mágica & Mente</h4>
+                    <div class="controle-ponto">
+                        <div><label>Arete</label><span class="custo-info">4 pts / nível</span></div>
+                        <div class="botoes-mais-menos">
+                            <button type="button" class="btn-contador" onclick="alterarAreteBonus(-1)">-</button>
+                            <span class="val-contador" id="bon-arete">1</span>
+                            <button type="button" class="btn-contador" onclick="alterarAreteBonus(1)">+</button>
+                        </div>
+                    </div>
+                    <div class="controle-ponto">
+                        <div><label>Força de Vontade</label><span class="custo-info">1 pt / nível</span></div>
+                        <div class="botoes-mais-menos">
+                            <button type="button" class="btn-contador" onclick="alterarForcaVontadeBonus(-1)">-</button>
+                            <span class="val-contador" id="bon-fv">5</span>
+                            <button type="button" class="btn-contador" onclick="alterarForcaVontadeBonus(1)">+</button>
+                        </div>
+                    </div>
+                    <div class="controle-ponto">
+                        <div><label>Quintessência</label><span class="custo-info">1 pt compra 4</span></div>
+                        <div class="botoes-mais-menos">
+                            <button type="button" class="btn-contador" onclick="alterarQuintessenciaBonus(-4)">-</button>
+                            <span class="val-contador" id="bon-quint">0</span>
+                            <button type="button" class="btn-contador" onclick="alterarQuintessenciaBonus(4)">+</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="coluna-bloco" style="grid-column: span 2;">
+                    <h4>Revisão Geral da Ficha (Gasto de Bônus Ativo)</h4>
+                    <div id="painel-revisao-geral" style="max-height:260px; overflow-y:auto; padding-right:5px;"></div>
+                </div>
+            </div>
+        </section>
+
+        <div class="stepper-footer">
+            <button type="button" class="btn-navegacao btn-voltar" id="btn-passo-voltar" style="visibility: hidden;">Voltar</button>
+            <div class="painel-pontos" id="painel-regras-passo">Preencha os campos obrigatórios</div>
+            <button type="button" class="btn-navegacao btn-proximo" id="btn-passo-proximo">Avançar</button>
+        </div>
+
+    </form>
+
+    <script>
+        
+        const fichaMagoM20 = {
+            ficha_mago_a_ascensao: {
+                cabecalho: { nome: "", jogador: "", cronica: "", natureza: "", comportamento: "", essencia: "", afiliacao: "", seita: "", conceito: "" },
+                atributos: {
+                    fisicos: { forca: 1, destreza: 1, vigor: 1 },
+                    sociais: { carisma: 1, manipulacao: 1, aparencia: 1 },
+                    mentais: { percepcao: 1, inteligencia: 1, raciocinio: 1 }
+                },
+                habilidades: {
+                    talentos: { prontidao: 0, arte: 0, esportes: 0, conciencia: 0, briga: 0, empatia: 0, expressao: 0, intimidacao: 0, lideranca: 0, manha: 0, labia: 0 },
+                    pericias: { oficios: 0, conducao: 0, etiqueta: 0, armas_de_fogo: 0, artes_marciais: 0, meditacao: 0, armas_brancas: 0, pesquisa: 0, furtividade: 0, sobrevivencia: 0, tecnologia: 0 },
+                    conhecimentos: { academicos: 0, computador: 0, cosmologia: 0, enigmas: 0, esoterismo: 0, investigacao: 0, direito: 0, medicina: 0, occultismo: 0, politica: 0, ciencia: 0 }
+                },
+                esferas: { correspondencia: 0, entropia: 0, forcas: 0, vida: 0, materia: 0, mente: 0, primordio: 0, espirito: 0, tempo: 0 },
+                vantagens: { antecedentes: [], arete: 1, forca_de_vontade: 5, paradoxo: 0, quintessencia: 0, tass: 0 },
+                qualidades_e_defeitos: [],
+                saude: { escoriado: false, machucado: false, ferido: false, ferido_gravemente: false, espancado: false, aleijado: false, incapacitado: false },
+                experience: 0
+            }
+        };
+
+        const listaOficialAntecedentes = ["Aliados (Allies)", "Apoio / Reforços (Backup)", "Aprimoramentos (Enhancement)", "Arcano / Ocultamento (Arcane / Cloaking)", "Armas Secretas (Secret Weapons)", "Avatar / Gênio (Avatar / Genius)", "Bênção (Blessing)", "Biblioteca (Library)", "Capela / Construto (Chantry / Construct)", "Certificação (Certification)", "Contatos (Contacts)", "Culto (Cult)", "Destino (Destiny)", "Domínio (Demesne)", "Espiões (Spies)", "Fama (Fame)", "Familiar / Companheiro (Familiar / Companion)", "Identidade Alternativa (Alternate Identity)", "Influência (Influence)", "Lacaios (Retainers)", "Lenda (Legend)", "Maravilha (Wonder)", "Mentor (Mentor)", "Nodo (Node)", "Patrono (Patron)", "Posto (Rank)", "Recursos (Resources)", "Requisições (Requisitions)", "Santuário / Laboratório (Sanctum / Laboratory)", "Sonho / Hiper-estudo (Dream / Hypercram)", "Status (Status)", "Totem (Totem)", "Vidas Passadas (Past Lives)"];
+
+        let passoAtual = 1;
+        let esferaAfimEscolhida = "";
+        
+        const carteiraAtributos = { fisicos: { total: 0, gastos: 0 }, sociais: { total: 0, gastos: 0 }, mentais: { total: 0, gastos: 0 } };
+        const carteiraHabilidades = { talentos: { total: 0, gastos: 0 }, pericias: { total: 0, gastos: 0 }, conhecimentos: { total: 0, gastos: 0 } };
+        const carteiraAntecedentes = { total: 7, gastos: 0 };
+        const carteiraEsferas = { total: 6, gastos: 0 };
+        
+        const carteiraBonus = { base: 15, ganhoDefeitos: 0, gastoTotal: 0, limiteMinDefeitos: 4, limiteMaxDefeitos: 9 };
+
+        const btnProximo = document.getElementById('btn-passo-proximo');
+        const btnVoltar = document.getElementById('btn-passo-voltar');
+        const painelRegras = document.getElementById('painel-regras-passo');
+
+        // --- SISTEMA DE PREENCHIMENTO DO SELECT DE ANTECEDENTES ---
+        function popularSelectAntecedentes() {
+            const sel = document.getElementById('select-lista-antecedentes'); 
+            sel.innerHTML = '';
+            listaOficialAntecedentes.forEach(ant => sel.innerHTML += `<option value="${ant}">${ant}</option>`);
+        }
+
+        function ajustarLimitesDefeitos() {
+            let min = parseInt(document.getElementById('cfg-def-min').value);
+            let max = parseInt(document.getElementById('cfg-def-max').value);
+            if (min < 4) { min = 4; document.getElementById('cfg-def-min').value = 4; }
+            if (max > 9) { max = 9; document.getElementById('cfg-def-max').value = 9; }
+            if (max < min) { max = min; document.getElementById('cfg-def-max').value = min; }
+            carteiraBonus.limiteMinDefeitos = min;
+            carteiraBonus.limiteMaxDefeitos = max;
+            atualizarBonusEFicha();
+        }
+
+        function obterSaldoBonus() {
+            const ganhoValido = Math.min(carteiraBonus.ganhoDefeitos, carteiraBonus.limiteMaxDefeitos);
+            return (carteiraBonus.base + ganhoValido) - carteiraBonus.gastoTotal;
+        }
+
+        function atualizarPainelBonus() {
+            const saldo = obterSaldoBonus();
+            if (saldo >= 0) {
+                painelRegras.innerHTML = `Pontos de Bônus Disponíveis: <span style="color: var(--sucesso)">${saldo}</span>`;
+                btnProximo.innerText = "Gravar Ficha Oficial";
+            } else {
+                painelRegras.innerHTML = `<span style="color: var(--erro)">Saldo Negativo! Regularize: ${saldo}</span>`;
+                btnProximo.innerText = "Ajustar Pontos";
+            }
+        }
+
+        function adicionarQualidadeDefeito() {
+            const nome = document.getElementById('qd-nome').value.trim();
+            const tipo = document.getElementById('qd-tipo').value;
+            const pontos = parseInt(document.getElementById('qd-pontos').value);
+            if (!nome) { alert("Dê um nome para o efeito!"); return; }
+
+            const lista = fichaMagoM20.ficha_mago_a_ascensao.qualidades_e_defeitos;
+            lista.push({ nome, tipo, custo_pontos: pontos });
+
+            if (tipo === "Qualidade") carteiraBonus.gastoTotal += pontos;
+            if (tipo === "Defeito") carteiraBonus.ganhoDefeitos += pontos;
+
+            document.getElementById('qd-nome').value = "";
+            atualizarBonusEFicha();
+        }
+
+        function removerQualidadeDefeito(index) {
+            const item = fichaMagoM20.ficha_mago_a_ascensao.qualidades_e_defeitos[index];
+            if (item.tipo === "Qualidade") carteiraBonus.gastoTotal -= item.custo_pontos;
+            if (item.tipo === "Defeito") carteiraBonus.ganhoDefeitos -= item.custo_pontos;
+            fichaMagoM20.ficha_mago_a_ascensao.qualidades_e_defeitos.splice(index, 1);
+            atualizarBonusEFicha();
+        }
+
+        function renderizarQualidadesDefeitos() {
+            const listContainer = document.getElementById('lista-qd-adicionados');
+            listContainer.innerHTML = '';
+            fichaMagoM20.ficha_mago_a_ascensao.qualidades_e_defeitos.forEach((item, idx) => {
+                const cor = item.tipo === "Qualidade" ? 'var(--roxo-mago)' : 'var(--erro)';
+                listContainer.innerHTML += `<div class="controle-ponto" style="border-left:3px solid ${cor}"><label>${item.nome} (${item.tipo})</label><div><span style="font-weight:bold; margin-right:15px;">${item.custo_pontos} Pts</span><button type="button" class="btn-remover" onclick="removerQualidadeDefeito(${idx})">✕</button></div></div>`;
+            });
+        }
+
+        function popularSelectBonusAntecedentes() {
+            const sel = document.getElementById('select-bonus-antecedentes'); sel.innerHTML = '';
+            listaOficialAntecedentes.forEach(ant => sel.innerHTML += `<option value="${ant}">${ant}</option>`);
+        }
+
+        function adicionarAntecedenteViaBonus() {
+            const name = document.getElementById('select-bonus-antecedentes').value;
+            const f = fichaMagoM20.ficha_mago_a_ascensao;
+            if (f.vantagens.antecedentes.some(a => a.nome_antecedente === name)) { alert("Este antecedente já existe!"); return; }
+
+            const dobro = name.includes("Aprimoramentos") || name.includes("Santuário") || name.includes("Totem");
+            const custo = dobro ? 2 : 1;
+
+            if (obterSaldoBonus() < custo) { alert("Saldo de bônus insuficiente!"); return; }
+            f.vantagens.antecedentes.push({ nome_antecedente: name, pontos: 1 });
+            carteiraBonus.gastoTotal += custo;
+            atualizarBonusEFicha();
+        }
+
+        function alterarAreteBonus(mod) {
+            const v = fichaMagoM20.ficha_mago_a_ascensao.vantagens;
+            const n = v.arete + mod;
+            if (n < 1 || n > 3) return;
+            carteiraBonus.gastoTotal += (mod * 4);
+            v.arete = n;
+            document.getElementById('bon-arete').innerText = n;
+            atualizarBonusEFicha();
+        }
+
+        function alterarForcaVontadeBonus(mod) {
+            const v = fichaMagoM20.ficha_mago_a_ascensao.vantagens;
+            const n = v.forca_de_vontade + mod;
+            if (n < 5 || n > 10) return;
+            carteiraBonus.gastoTotal += mod;
+            v.forca_de_vontade = n;
+            document.getElementById('bon-fv').innerText = n;
+            atualizarBonusEFicha(); 
+        }
+
+        function alterarQuintessenciaBonus(mod) {
+            const v = fichaMagoM20.ficha_mago_a_ascensao.vantagens;
+            const n = v.quintessencia + mod;
+            if (n < 0 || n > 20) return;
+            carteiraBonus.gastoTotal += (mod > 0 ? 1 : -1);
+            v.quintessencia = n;
+            document.getElementById('bon-quint').innerText = n;
+            atualizarBonusEFicha(); 
+        }
+
+        function renderizarPainelRevisao() {
+            const container = document.getElementById('painel-revisao-geral'); container.innerHTML = '';
+            const f = fichaMagoM20.ficha_mago_a_ascensao;
+
+            container.innerHTML += `<h5 style="color:var(--roxo-mago); margin:5px 0;">Atributos (+5 bônus / pt)</h5>`;
+            for (let cat in f.atributos) {
+                for (let attr in f.atributos[cat]) {
+                    container.innerHTML += `<div class="controle-ponto"><label>${attr.toUpperCase()}</label><div class="botoes-mais-menos"><button type="button" class="btn-contador" onclick="comprarTraitRetroativo('atributos', '${cat}', '${attr}', -1, 5)">-</button><span class="val-contador">${f.atributos[cat][attr]}</span><button type="button" class="btn-contador" onclick="comprarTraitRetroativo('atributos', '${cat}', '${attr}', 1, 5)">+</button></div></div>`;
+                }
+            }
+
+            container.innerHTML += `<h5 style="color:var(--roxo-mago); margin:15px 0 5px 0;">Habilidades (+2 bônus / pt)</h5>`;
+            for (let cat in f.habilidades) {
+                for (let hab in f.habilidades[cat]) {
+                    container.innerHTML += `<div class="controle-ponto"><label>${hab}</label><div class="botoes-mais-menos"><button type="button" class="btn-contador" onclick="comprarTraitRetroativo('habilidades', '${cat}', '${hab}', -1, 2)">-</button><span class="val-contador">${f.habilidades[cat][hab]}</span><button type="button" class="btn-contador" onclick="comprarTraitRetroativo('habilidades', '${cat}', '${hab}', 1, 2)">+</button></div></div>`;
+                }
+            }
+
+            container.innerHTML += `<h5 style="color:var(--roxo-mago); margin:15px 0 5px 0;">Esferas de Magia (+7 bônus / pt)</h5>`;
+            for (let esf in f.esferas) {
+                container.innerHTML += `<div class="controle-ponto"><label>${esf.toUpperCase()}</label><div class="botoes-mais-menos"><button type="button" class="btn-contador" onclick="comprarEsferaRetroativa('${esf}', -1)">-</button><span class="val-contador">${f.esferas[esf]}</span><button type="button" class="btn-contador" onclick="comprarEsferaRetroativa('${esf}', 1)">+</button></div></div>`;
+            }
+
+            if (f.vantagens.antecedentes.length > 0) {
+                container.innerHTML += `<h5 style="color:var(--roxo-mago); margin:15px 0 5px 0;">Antecedentes (1 ou 2 pts)</h5>`;
+                f.vantagens.antecedentes.forEach((ant, idx) => {
+                    const dobro = ant.nome_antecedente.includes("Aprimoramentos") || ant.nome_antecedente.includes("Santuário") || ant.nome_antecedente.includes("Totem");
+                    container.innerHTML += `<div class="controle-ponto"><label>${ant.nome_antecedente}</label><div class="botoes-mais-menos"><button type="button" class="btn-contador" onclick="comprarAntecedenteRetroativo(${idx}, -1, ${dobro?2:1})">-</button><span class="val-contador">${ant.pontos}</span><button type="button" class="btn-contador" onclick="comprarAntecedenteRetroativo(${idx}, 1, ${dobro?2:1})">+</button></div></div>`;
+                });
+            }
+        }
+
+        function comprarTraitRetroativo(bloco, cat, chave, mod, custo) {
+            const f = fichaMagoM20.ficha_mago_a_ascensao;
+            const nValor = f[bloco][cat][chave] + mod;
+            if (bloco === 'atributos' && (nValor < 1 || nValor > 5)) return;
+            if (bloco === 'habilidades' && (nValor < 0 || nValor > 5)) return;
+            carteiraBonus.gastoTotal += (mod * custo);
+            f[bloco][cat][chave] = nValor;
+            atualizarBonusEFicha();
+        }
+
+        function comprarEsferaRetroativa(esfera, mod) {
+            const f = fichaMagoM20.ficha_mago_a_ascensao;
+            const nValor = f.esferas[esfera] + mod;
+            if (nValor > f.vantagens.arete) { alert(`Esferas bloqueadas pelo nível de Arete (${f.vantagens.arete})!`); return; }
+            if (esfera === esferaAfimEscolhida && nValor < 1) return;
+            if (nValor < 0 || nValor > 5) return;
+            carteiraBonus.gastoTotal += (mod * 7);
+            f.esferas[esfera] = nValor;
+            atualizarBonusEFicha();
+        }
+
+        function comprarAntecedenteRetroativo(idx, mod, custo) {
+            const ant = fichaMagoM20.ficha_mago_a_ascensao.vantagens.antecedentes[idx];
+            const nValor = ant.pontos + mod;
+            if (nValor < 0 || nValor > 5) return;
+            carteiraBonus.gastoTotal += (mod * custo);
+            ant.pontos = nValor;
+            atualizarBonusEFicha();
+        }
+
+        function atualizarBonusEFicha() {
+            renderizarQualidadesDefeitos();
+            renderizarPainelRevisao();
+            atualizarPainelBonus();
+        }
+
+        // --- SISTEMAS DA FASE 4 (DESPERTAR) ---
+        function definirEsferaAfim() {
+            esferaAfimEscolhida = document.getElementById('esfera-afinidade').value;
+            const esf = fichaMagoM20.ficha_mago_a_ascensao.esferas;
+            for (let key in esf) esf[key] = 0;
+            if (esferaAfimEscolhida) esf[esferaAfimEscolhida] = 1;
+            carteiraEsferas.gastos = 0;
+            renderizarEsferasFase4();
+        }
+
+        function renderizarEsferasFase4() {
+            const wrapper = document.getElementById('wrapper-esferas-fase4'); wrapper.innerHTML = '';
+            const esf = fichaMagoM20.ficha_mago_a_ascensao.esferas;
+            for (let key in esf) {
+                const labelText = key.toUpperCase() + (key === esferaAfimEscolhida ? " (Afim)" : "");
+                wrapper.innerHTML += `<div class="controle-ponto"><label style="font-size:11px;">${labelText}</label><div class="botoes-mais-menos"><button type="button" class="btn-contador" onclick="alterarEsferaFase4('${key}', -1)">-</button><span class="val-contador">${esf[key]}</span><button type="button" class="btn-contador" onclick="alterarEsferaFase4('${key}', 1)">+</button></div></div>`;
+            }
+            atualizarPainelEsferas();
+        }
+
+        function alterarEsferaFase4(esfera, mod) {
+            const esf = fichaMagoM20.ficha_mago_a_ascensao.esferas;
+            const nValor = esf[esfera] + mod;
+            if (esfera === esferaAfimEscolhida && nValor < 1) return;
+            if (nValor < 0 || nValor > 3) return;
+            if (mod > 0 && carteiraEsferas.gastos >= carteiraEsferas.total) { alert("Limite de 6 pontos iniciais atingido!"); return; }
+            esf[esfera] = nValor;
+            carteiraEsferas.gastos += mod;
+            renderizarEsferasFase4();
+        }
+
+        function atualizarPainelEsferas() {
+            const saldo = carteiraEsferas.total - carteiraEsferas.gastos;
+            if (saldo > 0) painelRegras.innerHTML = `Pontos de Esferas Restantes: ${saldo}`;
+            else atualizarPainelAntecedentes();
+        }
+
+        function adicionarAntecedenteNaLista() {
+            const name = document.getElementById('select-lista-antecedentes').value;
+            const list = fichaMagoM20.ficha_mago_a_ascensao.vantagens.antecedentes;
+            if (list.some(a => a.nome_antecedente === name)) return;
+            list.push({ nome_antecedente: name, pontos: 0 });
+            atualizarListaVisualAntecedentes();
+        }
+
+        function removerAntecedentedaLista(name) {
+            const list = fichaMagoM20.ficha_mago_a_ascensao.vantagens.antecedentes;
+            const idx = list.findIndex(a => a.nome_antecedente === name);
+            if (idx > -1) { carteiraAntecedentes.gastos -= list[idx].pontos; list.splice(idx, 1); }
+            atualizarListaVisualAntecedentes();
+        }
+
+        function alterarPontosAntecedente(name, mod) {
+            const list = fichaMagoM20.ficha_mago_a_ascensao.vantagens.antecedentes;
+            const ant = list.find(a => a.nome_antecedente === name);
+            if (!ant) return;
+            const nValor = ant.pontos + mod;
+            if (nValor < 0 || nValor > 5) return;
+            if (mod > 0 && carteiraAntecedentes.gastos >= carteiraAntecedentes.total) { alert("Limite de 7 pontos iniciais atingido!"); return; }
+            ant.pontos = nValor;
+            carteiraAntecedentes.gastos += mod;
+            atualizarListaVisualAntecedentes();
+        }
+
+        function atualizarListaVisualAntecedentes() {
+            const wrapper = document.getElementById('wrapper-antecedentes-adicionados'); wrapper.innerHTML = '';
+            fichaMagoM20.ficha_mago_a_ascensao.vantagens.antecedentes.forEach(ant => {
+                wrapper.innerHTML += `<div class="controle-ponto"><label style="font-size:11px;">${ant.nome_antecedente}</label><div class="botoes-mais-menos"><button type="button" class="btn-contador" onclick="alterarPontosAntecedente('${ant.nome_antecedente}', -1)">-</button><span class="val-contador">${ant.pontos}</span><button type="button" class="btn-contador" onclick="alterarPontosAntecedente('${ant.nome_antecedente}', 1)">+</button><button type="button" class="btn-remover" onclick="removerAntecedentedaLista('${ant.nome_antecedente}')">✕</button></div></div>`;
+            });
+            atualizarPainelAntecedentes();
+        }
+
+        function atualizarPainelAntecedentes() {
+            const saldo = carteiraAntecedentes.total - carteiraAntecedentes.gastos;
+            if ((carteiraEsferas.total - carteiraEsferas.gastos) > 0) return;
+            if (saldo > 0) painelRegras.innerHTML = `Pontos de Antecedentes Restantes: ${saldo}`;
+            else painelRegras.innerHTML = `<span style="color:var(--sucesso)">✓ Fase 4 Concluída!</span>`;
+        }
+
+        // --- MANIPULAÇÃO BASES DE ATRIBUTOS E HABILIDADES ---
+        function renderizarHabilidades() {
+            const habs = fichaMagoM20.ficha_mago_a_ascensao.habilidades;
+            for (let cat in habs) {
+                const container = document.getElementById(`lista-${cat}`); container.innerHTML = '';
+                for (let chave in habs[cat]) {
+                    const nomeForm = chave.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                    container.innerHTML += `<div class="controle-ponto"><label>${nomeForm}</label><div class="botoes-mais-menos"><button type="button" class="btn-contador" onclick="alterarHabilidade('${cat}', '${chave}', -1)">-</button><span class="val-contador" id="txt-hab-${chave}">0</span><button type="button" class="btn-contador" onclick="alterarHabilidade('${cat}', '${chave}', 1)">+</button></div></div>`;
+                }
+            }
+        }
+        // Nova função auxiliar para zerar a categoria
+        function resetarCategoriaAtributo(cat) {
+            // Zera a contagem de gastos daquela carteira
+            carteiraAtributos[cat].gastos = 0;
+            
+            // Retorna os valores do JSON para 1 e atualiza o texto na tela
+            for (let attr in fichaMagoM20.ficha_mago_a_ascensao.atributos[cat]) {
+                fichaMagoM20.ficha_mago_a_ascensao.atributos[cat][attr] = 1;
+                document.getElementById(`txt-${attr}`).innerText = 1;
+            }
+        }
+
+        // Função de gerenciamento atualizada
+        function gerenciarPrioridadesAtributos(catModificada) {
+            const valorSelecionado = document.getElementById(`prioridade-${catModificada}`).value;
+
+            // 1. Sempre que o usuário muda a caixa, reseta imediatamente os pontos daquela coluna
+            resetarCategoriaAtributo(catModificada);
+
+            // 2. Verifica se houve conflito (duplicidade) e limpa a coluna concorrente
+            const categorias = ['fisicos', 'sociais', 'mentais'];
+            categorias.forEach(cat => {
+                const sel = document.getElementById(`prioridade-${cat}`);
+                if (cat !== catModificada && sel.value !== "" && sel.value === valorSelecionado) {
+                    sel.value = ""; // Tira a seleção da outra caixa duplicada
+                    resetarCategoriaAtributo(cat); // Reseta as bolinhas da caixa que perdeu o status
+                }
+            });
+
+            // 3. Atualiza o total lógico das carteiras
+            categorias.forEach(cat => { 
+                const val = document.getElementById(`prioridade-${cat}`).value; 
+                carteiraAtributos[cat].total = val ? parseInt(val) : 0; 
+            });
+            
+            atualizarPainelAtributos();
+        }
+        function alterarAtributo(cat, attr, mod) {
+            const carteira = carteiraAtributos[cat]; if (carteira.total === 0) return;
+            const vAtual = fichaMagoM20.ficha_mago_a_ascensao.atributos[cat][attr]; const nValor = vAtual + mod;
+            if (nValor < 1 || nValor > 5) return; if (mod > 0 && carteira.gastos >= carteira.total) return;
+            fichaMagoM20.ficha_mago_a_ascensao.atributos[cat][attr] = nValor; carteira.gastos += mod;
+            document.getElementById(`txt-${attr}`).innerText = nValor; atualizarPainelAtributos();
+        }
+        function atualizarPainelAtributos() {
+            const total = (carteiraAtributos.fisicos.total - carteiraAtributos.fisicos.gastos) + (carteiraAtributos.sociais.total - carteiraAtributos.sociais.gastos) + (carteiraAtributos.mentais.total - carteiraAtributos.mentais.gastos);
+            if (!(carteiraAtributos.fisicos.total && carteiraAtributos.sociais.total && carteiraAtributos.mentais.total)) { painelRegras.innerHTML = `Defina as prioridades dos Atributos`; return; }
+            if (total > 0) painelRegras.innerHTML = `Distribua os pontos de Atributo.`; else painelRegras.innerHTML = `<span style="color:var(--sucesso)">✓ Atributos prontos!</span>`;
+        }
+        function gerenciarPrioridadesHabilidades(catModificada) {
+            const lista = [document.getElementById('prioridade-talentos'), document.getElementById('prioridade-pericias'), document.getElementById('prioridade-conhecimentos')];
+            lista.forEach(sel => { if (sel.id !== `prioridade-${catModificada}` && sel.value === document.getElementById(`prioridade-${catModificada}`).value) sel.value = ""; });
+            ['talentos', 'pericias', 'conhecimentos'].forEach(cat => { const val = document.getElementById(`prioridade-${cat}`).value; carteiraHabilidades[cat].total = val ? parseInt(val) : 0; });
+            atualizarPainelHabilidades();
+        }
+        function alterarHabilidade(cat, chave, mod) {
+            const carteira = carteiraHabilidades[cat]; if (carteira.total === 0) return;
+            const vAtual = fichaMagoM20.ficha_mago_a_ascensao.habilidades[cat][chave]; const nValor = vAtual + mod;
+            if (nValor < 0 || nValor > 3) return; if (mod > 0 && carteira.gastos >= carteira.total) return;
+            fichaMagoM20.ficha_mago_a_ascensao.habilidades[cat][chave] = nValor; carteira.gastos += mod;
+            document.getElementById(`txt-hab-${chave}`).innerText = nValor; atualizarPainelHabilidades();
+        }
+        function atualizarPainelHabilidades() {
+            const total = (carteiraHabilidades.talentos.total - carteiraHabilidades.talentos.gastos) + (carteiraHabilidades.pericias.total - carteiraHabilidades.pericias.gastos) + (carteiraHabilidades.conhecimentos.total - carteiraHabilidades.conhecimentos.gastos);
+            if (!(carteiraHabilidades.talentos.total && carteiraHabilidades.pericias.total && carteiraHabilidades.conhecimentos.total)) { painelRegras.innerHTML = `Defina as prioridades das Habilidades`; return; }
+            if (total > 0) painelRegras.innerHTML = `Distribua os pontos de Habilidade.`; else painelRegras.innerHTML = `<span style="color:var(--sucesso)">✓ Habilidades prontas!</span>`;
+        }
+
+        // --- ESTADOS DE TRANSIÇÃO E POST FINAL ---
+        async function alternarPasso(direcao) {
+            if (direcao === 1 && passoAtual === 1) {
+                const campos = ['cab-nome', 'cab-natureza', 'cab-comportamento', 'cab-essencia', 'cab-afiliacao', 'cab-conceito'];
+                let valido = true; campos.forEach(id => { if(!document.getElementById(id).value) valido = false; });
+                if (!valido) { alert("Preencha os campos obrigatórios."); return; }
+                campos.forEach(id => { const chave = id.replace('cab-', ''); fichaMagoM20.ficha_mago_a_ascensao.cabecalho[chave] = document.getElementById(id).value; });
+                fichaMagoM20.ficha_mago_a_ascensao.cabecalho.jogador = document.getElementById('cab-jogador').value;
+                fichaMagoM20.ficha_mago_a_ascensao.cabecalho.cronica = document.getElementById('cab-cronica').value;
+                fichaMagoM20.ficha_mago_a_ascensao.cabecalho.seita = document.getElementById('cab-seita').value;
+            }
+
+            if (direcao === 1 && passoAtual === 2) {
+                const total = (carteiraAtributos.fisicos.total - carteiraAtributos.fisicos.gastos) + (carteiraAtributos.sociais.total - carteiraAtributos.sociais.gastos) + (carteiraAtributos.mentais.total - carteiraAtributos.mentais.gastos);
+                if (!(carteiraAtributos.fisicos.total && carteiraAtributos.sociais.total && carteiraAtributos.mentais.total) || total !== 0) { alert("Distribua todos os Atributos!"); return; }
+            }
+
+            if (direcao === 1 && passoAtual === 3) {
+                const total = (carteiraHabilidades.talentos.total - carteiraHabilidades.talentos.gastos) + (carteiraHabilidades.pericias.total - carteiraHabilidades.pericias.gastos) + (carteiraHabilidades.conhecimentos.total - carteiraHabilidades.conhecimentos.gastos);
+                if (!(carteiraHabilidades.talentos.total && carteiraHabilidades.pericias.total && carteiraHabilidades.conhecimentos.total) || total !== 0) { alert("Distribua todas as Habilidades!"); return; }
+            }
+
+            if (direcao === 1 && passoAtual === 4) {
+                if (carteiraEsferas.gastos !== carteiraEsferas.total || carteiraAntecedentes.gastos !== carteiraAntecedentes.total) { alert("Aloque totalmente suas Esferas e seus Antecedentes!"); return; }
+            }
+
+            if (direcao === 1 && passoAtual === 5) {
+                if (obterSaldoBonus() < 0) { alert("Seu saldo está negativo!"); return; }
+                
+                const payloadFinal = {
+                    nome: fichaMagoM20.ficha_mago_a_ascensao.cabecalho.nome,
+                    tradicao: fichaMagoM20.ficha_mago_a_ascensao.cabecalho.afiliacao,
+                    conceito: fichaMagoM20.ficha_mago_a_ascensao.cabecalho.conceito,
+                    natureza: fichaMagoM20.ficha_mago_a_ascensao.cabecalho.natureza,
+                    comportamento: fichaMagoM20.ficha_mago_a_ascensao.cabecalho.comportamento,
+                    arete: fichaMagoM20.ficha_mago_a_ascensao.vantagens.arete,
+                    dados_completo: fichaMagoM20.ficha_mago_a_ascensao
+                };
+
+            const resposta = await fetch('/personagens', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    // Busca o token direto do armazenamento do navegador
+                    'Authorization': `Bearer ${localStorage.getItem('token_m20')}` 
+                },
+                body: JSON.stringify(payloadFinal)
+            });
+
+                if (resposta.ok) {
+                    alert("🔮 Mago salvo no banco de dados!");
+                    window.location.href = "/painel_mago.html";
+                } else {
+                    alert("Erro ao salvar.");
+                }
+                return;
+            }
+
+            document.getElementById(`passo-${passoAtual}`).classList.remove('ativo');
+            document.getElementById(`ind-${passoAtual}`).classList.remove('ativo');
+            passoAtual += direcao;
+            document.getElementById(`passo-${passoAtual}`).classList.add('ativo');
+            document.getElementById(`ind-${passoAtual}`).classList.add('ativo');
+
+            btnVoltar.style.visibility = passoAtual === 1 ? 'hidden' : 'visible';
+            
+            if (passoAtual === 2) atualizarPainelAtributos();
+            if (passoAtual === 3) { renderizarHabilidades(); atualizarPainelHabilidades(); }
+            if (passoAtual === 4) { popularSelectAntecedentes(); renderizarEsferasFase4(); atualizarListaVisualAntecedentes(); }
+            if (passoAtual === 5) { popularSelectBonusAntecedentes(); atualizarBonusEFicha(); }
+        }
+
+        btnProximo.addEventListener('click', () => alternarPasso(1));
+        btnVoltar.addEventListener('click', () => alternarPasso(-1));
+        renderizarHabilidades();
+    </script>
+</body>
+</html>

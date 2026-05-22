@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mochila do Aventureiro - Sistemas</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #121214; color: #e1e1e6; max-width: 800px; margin: 40px auto; padding: 20px; }
+        h1 { color: #9871f5; text-align: center; margin-bottom: 30px; }
+        .grid-sistemas { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
+        .card-sistema { background: #202024; border: 1px solid #29292e; border-radius: 8px; padding: 20px; text-align: center; transition: transform 0.2s, border-color 0.2s; }
+        .card-sistema:hover { transform: translateY(-2px); border-color: #9871f5; }
+        .btn-entrar { display: block; background: #9871f5; color: #fff; font-weight: bold; text-decoration: none; padding: 10px; border-radius: 4px; margin-top: 15px; }
+        .btn-entrar:hover { background: #7f57df; }
+        .bloqueado { opacity: 0.4; pointer-events: none; }
+    </style>
+</head>
+<body>
+
+    <h1>🔮 Mochila do Aventureiro</h1>
+    <h2 style="text-align: center; color: #8d8d99; font-weight: normal; margin-bottom: 40px;">Selecione o Sistema de RPG</h2>
+    
+    <div class="grid-sistemas">
+        <div class="card-sistema">
+            <h3>Mago: A Ascensão</h3>
+            <p style="color: #8d8d99; font-size: 14px;">M20 - Edição de 20 Anos</p>
+            <a href="/painel_mago.html" class="btn-entrar">Acessar Painel</a>
+        </div>
+
+        <div class="card-sistema bloqueado">
+            <h3>Vampiro: A Máscara</h3>
+            <p style="color: #8d8d99; font-size: 14px;">V20 / V5 (Em breve)</p>
+            <a href="#" class="btn-entrar">Bloqueado</a>
+        </div>
+    </div>
+
+</body>
+</html>

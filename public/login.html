@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mochila do Aventureiro - Login</title>
+    <style>
+        :root { --bg-principal: #121214; --bg-card: #202024; --roxo-mago: #9871f5; --roxo-hover: #7f57df; --texto-claro: #e1e1e6; --borda: #29292e; --erro: #f75a68; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg-principal); color: var(--texto-claro); display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .caixa-auth { background: var(--bg-card); padding: 40px; border-radius: 8px; border: 1px solid var(--borda); width: 100%; max-width: 400px; box-sizing: border-box; }
+        h2 { color: var(--roxo-mago); margin-top: 0; text-align: center; }
+        .campo { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
+        input { padding: 12px; background: var(--bg-principal); border: 1px solid var(--borda); color: #fff; border-radius: 4px; outline: none; }
+        input:focus { border-color: var(--roxo-mago); }
+        .btn-auth { background: var(--roxo-mago); color: #fff; border: none; padding: 12px; border-radius: 4px; font-weight: bold; cursor: pointer; width: 100%; font-size: 16px; margin-top: 10px; }
+        .btn-auth:hover { background: var(--roxo-hover); }
+        .link-rodape { text-align: center; margin-top: 20px; font-size: 14px; }
+        .link-rodape a { color: var(--roxo-mago); text-decoration: none; }
+        .link-rodape a:hover { text-decoration: underline; }
+        #msg-erro { color: var(--erro); font-size: 14px; text-align: center; margin-bottom: 15px; display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="caixa-auth">
+        <h2>Acesso ao Grimório</h2>
+        <div id="msg-erro"></div>
+        
+        <form id="form-login">
+            <div class="campo">
+                <label>E-mail</label>
+                <input type="email" id="login-email" required>
+            </div>
+            <div class="campo">
+                <label>Senha</label>
+                <input type="password" id="login-senha" required>
+            </div>
+            
+            <button type="submit" class="btn-auth">Entrar</button>
+        </form>
+
+        <div class="link-rodape">
+            Ainda não é um Desperto? <a href="/registro.html">Crie sua conta</a>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('form-login').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('login-email').value;
+            const senha = document.getElementById('login-senha').value;
+            const msgErro = document.getElementById('msg-erro');
+
+            msgErro.style.display = 'none';
+
+            try {
+                const resposta = await fetch('/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, senha })
+                });
+
+                const data = await resposta.json();
+
+                if (!resposta.ok) throw new Error(data.erro || 'Erro ao fazer login.');
+
+                // A MÁGICA ACONTECE AQUI: Salva o token JWT no cofre do navegador
+                localStorage.setItem('token_m20', data.token);
+                localStorage.setItem('user_role', data.role);
+
+                // Redirecionamento baseado na Role (Se for narrador, vai pro painel dele)
+                window.location.href = '/profile.html';
+
+            } catch (err) {
+                msgErro.innerText = err.message;
+                msgErro.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mochila do Aventureiro - Meu Perfil</title>
+    <style>
+        :root {
+            --bg-principal: #121214;
+            --bg-card: #202024;
+            --roxo-mago: #9871f5;
+            --roxo-hover: #7f57df;
+            --texto-claro: #e1e1e6;
+            --texto-mutado: #8d8d99;
+            --borda: #29292e;
+            --erro: #f75a68;
+            --sucesso: #50fa7b;
+        }
+
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg-principal); color: var(--texto-claro); max-width: 1200px; margin: 40px auto; padding: 20px; }
+        .header-perfil { display: flex; justify-content: space-between; align-items: center; background: var(--bg-card); padding: 20px 30px; border-radius: 8px; border: 1px solid var(--borda); margin-bottom: 30px; }
+        .user-info { display: flex; align-items: center; gap: 20px; }
+        .avatar-perfil { width: 64px; height: 64px; border-radius: 50%; background: var(--borda); border: 2px solid var(--roxo-mago); object-fit: cover; }
+        
+        .grid-papeis { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+        .coluna-papel { background: var(--bg-card); padding: 25px; border-radius: 8px; border: 1px solid var(--borda); min-height: 400px; }
+        
+        .card-item { background: var(--bg-principal); border: 1px solid var(--borda); padding: 15px; border-radius: 6px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .btn-acao { background: var(--roxo-mago); color: #fff; border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer; font-weight: bold; text-decoration: none; font-size: 14px; display: inline-block; }
+        .btn-acao:hover { background: var(--roxo-hover); }
+        .btn-logout { background: transparent; border: 1px solid var(--erro); color: var(--erro); padding: 8px 14px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-logout:hover { background: var(--erro); color: #fff; }
+        
+        .tag-status { font-size: 11px; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+        .status-ativa { background: rgba(80, 250, 123, 0.2); color: var(--sucesso); }
+
+        .acoes-mesa {
+            display: flex;
+            gap: 10px;
+            align-items: center;}
+
+        .btn-lobby {
+            background: transparent;
+            color: #9871f5; /* Sua cor --roxo-mago */
+            border: 1px solid #9871f5;
+            padding: 8px 16px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 14px;
+            transition: all 0.2s ease;}
+
+            .btn-lobby:hover {
+                background: #9871f5;
+                color: #fff;}
+    </style>
+</head>
+<body>
+
+    <div class="header-perfil">
+        <div class="user-info">
+            <img src="/uploads/avatares/default.png" id="img-avatar" class="avatar-perfil" alt="Avatar">
+            <div>
+                <h2 id="txt-boas-vindas" style="margin: 0; color: var(--texto-claro);">Carregando Desperto...</h2>
+                <p style="color: var(--texto-mutado); font-size: 14px; margin: 4px 0 0 0;">Painel de Controle Multissistema</p>
+            </div>
+        </div>
+        <button class="btn-logout" onclick="fazerLogout()">Encerrar Sessão</button>
+    </div>
+
+    <div class="grid-papeis">
+        
+        <div class="coluna-papel">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="color: var(--roxo-mago); margin: 0;">Como Narrador (DM/GM)</h3>
+                <a href="/criar_cronica.html" class="btn-acao" style="font-size: 12px;">+ Nova Crônica</a>
+            </div>
+            <div id="lista-cronicas-narrador">
+                </div>
+        </div>
+
+        <div class="coluna-papel">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="color: var(--sucesso); margin: 0;">Como Jogador</h3>
+                <a href="/painel_mago.html" class="btn-acao" style="background: var(--bg-principal); border: 1px solid var(--sucesso); color: var(--sucesso); font-size: 12px;">Ver Minha Gaveta de Fichas</a>
+            </div>
+            <div id="lista-cronicas-jogador">
+                </div>
+        </div>
+
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token_m20');
+        if (!token) {
+            window.location.href = '/login.html';
+        }
+
+        // Decodifica o nome do usuário direto do Token JWT para ser instantâneo
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            document.getElementById('txt-boas-vindas').innerText = `Saudações, ${payload.nome}`;
+        } catch(e) {
+            fazerLogout();
+        }
+
+        function fazerLogout() {
+            localStorage.removeItem('token_m20');
+            window.location.href = '/login.html';
+        }
+
+        async function carregarDashboard() {
+            try {
+                // Faremos esse endpoint no server para buscar o resumo do perfil
+                const resposta = await fetch('/auth/dashboard-resumo', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!resposta.ok) throw new Error();
+                const dados = await resposta.json();
+
+                // 1. Renderiza as crônicas que ele narra
+                const listaNarrador = document.getElementById('lista-cronicas-narrador');
+                listaNarrador.innerHTML = '';
+                if(dados.narrando.length === 0) {
+                    listaNarrador.innerHTML = `<p style="color: var(--texto-mutado); font-size:14px;">Você ainda não criou nenhuma crônica como narrador.</p>`;
+                } else {
+                   dados.narrando.forEach(cronica => {
+                        listaNarrador.innerHTML += `
+                            <div class="card-item">
+                                <div>
+                                    <strong style="color: #fff;">${cronica.nome}</strong>
+                                    <span class="tag-status status-ativa">${cronica.status}</span>
+                                    <p style="color: var(--texto-mutado); font-size: 12px; margin: 4px 0 0 0;">Sistema: Mago M20</p>
+                                </div>
+                                
+                                <div class="acoes-mesa">
+                                    <a href="/painel_narrador.html?id=${cronica.id}" class="btn-acao">Gerenciar Mesa</a>
+                                    <a href="/painel_cronica.html?id=${cronica.id}" class="btn-lobby">👥 Membros</a>
+                                </div>
+                                
+                            </div>
+                        `;
+                    });
+                }
+
+                // 2. Renderiza as crônicas onde ele joga
+                const listaJogador = document.getElementById('lista-cronicas-jogador');
+                listaJogador.innerHTML = '';
+                
+                if(dados.jogando.length === 0) {
+                    listaJogador.innerHTML = `<p style="color: var(--texto-mutado); font-size:14px;">Você não está participando de nenhuma crônica ativa como jogador.</p>`;
+                } else {
+                    dados.jogando.forEach(item => {
+                        listaJogador.innerHTML += `
+                            <div class="card-item">
+                                <div>
+                                    <strong style="color: #fff;">${item.cronica_nome}</strong>
+                                    <span class="tag-status status-ativa">${item.status || 'ativa'}</span>
+                                    <p style="color: var(--texto-mutado); font-size: 12px; margin: 4px 0 0 0;">Sistema: Mago M20</p>
+                                </div>
+                                
+                                <div class="acoes-mesa">
+                                    <a href="/painel_narrador.html?id=${item.cronica_id}" class="btn-acao" style="background: var(--sucesso); color: var(--bg-principal);">Acessar Mesa</a>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+
+            } catch (err) {
+                console.error("Erro ao carregar dados do hub de perfil", err);
+            }
+        }
+
+        carregarDashboard();
+    </script>
+</body>
+</html>

@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mochila do Aventureiro - Evolução M20</title>
+    <style>
+        :root {
+            --bg-principal: #121214;
+            --bg-card: #202024;
+            --roxo-mago: #9871f5;
+            --roxo-hover: #7f57df;
+            --texto-claro: #e1e1e6;
+            --texto-mutado: #8d8d99;
+            --borda: #29292e;
+            --erro: #f75a68;
+            --sucesso: #50fa7b;
+            --aviso: #f1e05a;
+        }
+
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg-principal); color: var(--texto-claro); max-width: 1000px; margin: 40px auto; padding: 20px; }
+        h1, h2, h3, h4 { color: var(--roxo-mago); margin-bottom: 5px; margin-top: 0; }
+        p { margin: 5px 0; }
+        
+        .painel-exp { display: flex; justify-content: space-between; align-items: center; background: var(--bg-card); padding: 15px 25px; border-radius: 8px; border: 1px solid var(--borda); margin-bottom: 25px; }
+        .bloco-exp-input { display: flex; align-items: center; gap: 10px; }
+        
+        .secao-horizontal { background: var(--bg-card); padding: 20px; border-radius: 8px; border: 1px solid var(--borda); margin-bottom: 20px; }
+        .grid-tres-colunas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+        
+        .coluna-interna { background: var(--bg-principal); padding: 12px; border-radius: 6px; border: 1px solid var(--borda); }
+        .controle-ponto { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--borda); }
+        .controle-ponto:last-child { border-bottom: none; }
+        
+        .botoes-mais-menos { display: flex; align-items: center; gap: 8px; }
+        .val-contador { font-weight: bold; min-width: 20px; text-align: center; }
+        .btn-contador { background: var(--borda); color: #fff; border: none; width: 22px; height: 22px; border-radius: 50%; cursor: pointer; font-weight: bold; display: flex; justify-content: center; align-items: center;}
+        .btn-contador:hover:not(:disabled) { background: var(--roxo-mago); }
+        .btn-contador:disabled { opacity: 0.3; cursor: not-allowed; }
+        
+        .btn-desfazer { background: transparent; border: 1px solid var(--texto-mutado); color: var(--texto-mutado); }
+        .btn-desfazer:hover:not(:disabled) { background: var(--texto-mutado); color: #121214; }
+        .btn-perda { background: transparent; border: 1px solid var(--erro); color: var(--erro); }
+        .btn-perda:hover:not(:disabled) { background: var(--erro); color: #fff; }
+
+        .custo-preview { font-size: 10px; color: var(--texto-mutado); display: block; margin-top: 2px; }
+        .especialidade-tag { font-size: 11px; color: var(--sucesso); display: inline-block; font-style: italic; margin-top: 2px; margin-right: 5px; }
+
+        .bloco-adicionar { display: flex; gap: 8px; align-items: center; margin-top: 10px; background: var(--bg-principal); padding: 10px; border-radius: 6px; border: 1px dashed var(--borda); flex-wrap: wrap; }
+        input[type="text"], input[type="number"], select { padding: 8px; background: var(--bg-card); border: 1px solid var(--borda); color: #fff; border-radius: 4px; width: 100%; box-sizing: border-box; }
+        .btn-acao { background: var(--roxo-mago); color: #fff; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; white-space: nowrap; }
+        .btn-acao:hover { background: var(--roxo-hover); }
+        
+        .btn-salvar { background: var(--sucesso); color: #121214; padding: 15px 30px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 16px; display: block; margin: 30px 0 0 auto; }
+        .btn-salvar:hover { opacity: 0.9; }
+    </style>
+</head>
+<body>
+
+    <p><a href="/painel_mago.html" style="color: var(--texto-mutado); text-decoration: none;">← Voltar ao Grimório</a></p>
+
+    <div class="painel-exp">
+        <div>
+            <h1 id="nome-mago" style="margin: 0;">Evolução do Desperto</h1>
+            <p style="color: var(--texto-mutado); font-size: 12px; margin: 2px 0 0 0;">O botão de ( - ) cinza devolve a EXP. Alterações em Vontade e Antecedentes têm opções para perdas reais.</p>
+        </div>
+        <div style="text-align: right;">
+            <span style="font-size: 14px; color: var(--texto-mutado);">Saldo de Experiência</span>
+            <div id="txt-saldo-exp" style="font-size: 28px; font-weight: bold; color: var(--sucesso);">0 XP</div>
+            <div class="bloco-exp-input" style="margin-top: 5px;">
+                <input type="number" id="input-add-exp" value="0" min="0" style="width: 60px; text-align: center; padding: 4px;">
+                <input type="button" class="btn-acao" style="padding: 4px 10px;" value="Receber XP" onclick="injetarExperiencia()">
+            </div>
+        </div>
+    </div>
+
+    <div class="secao-horizontal">
+        <div style="display: flex; justify-content: space-between;">
+            <h3>Atributos</h3>
+            <span class="custo-preview">Custo: Nível Atual × 4 XP</span>
+        </div>
+        <div class="grid-tres-colunas" id="container-atributos"></div>
+    </div>
+
+    <div class="secao-horizontal">
+        <div style="display: flex; justify-content: space-between;">
+            <h3>Habilidades</h3>
+            <span class="custo-preview">Nova: 3 XP | Existente: Nível Atual × 2 XP</span>
+        </div>
+        <div class="grid-tres-colunas" id="container-habilidades"></div>
+
+        <div class="bloco-adicionar" style="margin-top: 15px;">
+            <label style="font-size: 12px; white-space: nowrap;">Aprender Nova Habilidade:</label>
+            <input type="text" id="nova-hab-nome" placeholder="Nome da Habilidade">
+            <select id="nova-hab-cat" style="width: 150px;">
+                <option value="talentos">Talento</option>
+                <option value="pericias">Perícia</option>
+                <option value="conhecimentos">Conhecimento</option>
+            </select>
+            <button type="button" class="btn-acao" onclick="adicionarHabilidadeCustom()">Adicionar Habilidade (0 XP)</button>
+        </div>
+    </div>
+
+    <div class="secao-horizontal">
+        <div class="grid-tres-colunas">
+            <div class="coluna-interna" style="grid-column: span 2;">
+                <div style="display: flex; justify-content: space-between;">
+                    <h3>Esferas de Magia</h3>
+                    <span class="custo-preview">Nova: 10 XP | Afim: Nível × 7 XP | Outras: Nível × 8 XP</span>
+                </div>
+                <div id="container-esferas" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0 15px;"></div>
+            </div>
+            
+            <div class="coluna-interna">
+                <h3>Vantagens Duras</h3>
+                <div class="controle-ponto">
+                    <div>
+                        <label>Arete</label>
+                        <span class="custo-preview" id="custo-arete">Próximo: 0 XP</span>
+                    </div>
+                    <div class="botoes-mais-menos">
+                        <button type="button" class="btn-contador btn-desfazer" id="btn-undo-arete">-</button>
+                        <span class="val-contador" id="val-arete">1</span>
+                        <button type="button" class="btn-contador" id="btn-add-arete">+</button>
+                    </div>
+                </div>
+                <div class="controle-ponto">
+                    <div>
+                        <label>Força de Vontade</label>
+                        <span class="custo-preview" id="custo-fv">Evoluir: 0 XP</span>
+                        <span class="custo-preview" style="color:var(--erro)">* Perda In-Game não devolve XP</span>
+                    </div>
+                    <div class="botoes-mais-menos">
+                        <button type="button" class="btn-contador btn-perda" style="width:18px; height:18px; font-size:10px; margin-right:4px;" title="Perda In-Game Narrativa (Sem Reembolso)" onclick="perderFv()">-</button>
+                        <button type="button" class="btn-contador btn-desfazer" id="btn-undo-fv">-</button>
+                        <span class="val-contador" id="val-fv">5</span>
+                        <button type="button" class="btn-contador" id="btn-add-fv">+</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="secao-horizontal">
+        <div style="display: flex; justify-content: space-between;">
+            <h3>Especializações (Traços de Nível 4 e 5)</h3>
+            <span class="custo-preview">Atributos: 2 Grátis (Nv.4), 3 Grátis (Nv.5) | Outros: 1 Grátis (Nv.4), 2 Grátis (Nv.5)</span>
+        </div>
+        <p style="font-size: 11px; color: var(--texto-mutado);">Clique em uma especialidade vermelha na ficha para remover e recuperar o XP (apenas antes de salvar).</p>
+        
+        <div class="bloco-adicionar">
+            <label style="font-size: 12px; white-space: nowrap;">Aprender Especialidade:</label>
+            <select id="select-esp-trait" style="width: 250px;"><option value="">-- Carregando Traços --</option></select>
+            <input type="text" id="nova-esp-nome" placeholder="Nome da Especialidade">
+            <button type="button" class="btn-acao" onclick="comprarEspecialidade()">Adicionar Especialidade</button>
+        </div>
+    </div>
+
+    <div class="secao-horizontal">
+        <div style="display: flex; justify-content: space-between;">
+            <h3>Antecedentes</h3>
+            <span class="custo-preview">Evoluir: Nível × 3 XP (Especiais × 6 XP)</span>
+        </div>
+        <p style="font-size: 11px; color: var(--texto-mutado); margin-bottom: 15px;">A redução ( - ) vermelha representa a perda narrativa do recurso in-game e não reembolsa EXP.</p>
+        
+        <div class="grid-tres-colunas" id="container-antecedentes"></div>
+
+        <div class="bloco-adicionar" style="margin-top: 20px;">
+            <label style="font-size: 12px; white-space: nowrap;">Novo Antecedente:</label>
+            <select id="select-novo-ant" style="width: 200px;"></select>
+            <button type="button" class="btn-acao" onclick="adicionarNovoAntecedente(true)">Comprar Nível 1 (3/6 XP)</button>
+            <div style="display: flex; gap: 5px; align-items: center; border-left: 1px solid var(--borda); padding-left: 15px; margin-left: 5px;">
+                <label style="font-size: 11px; color: var(--aviso);">Narrador:</label>
+                <input type="number" id="novo-ant-nivel-gratis" min="1" max="5" value="1" style="width: 45px; padding: 6px;">
+                <button type="button" class="btn-acao" style="background: var(--bg-card); border: 1px solid var(--roxo-mago); color: var(--roxo-mago);" onclick="adicionarNovoAntecedente(false)">Dar Grátis</button>
+            </div>
+        </div>
+    </div>
+
+    <button type="button" class="btn-salvar" onclick="salvarEvolucaoNoBanco()">✓ Consolidar Ficha Oficial</button>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const magoId = urlParams.get('id');
+
+        let fichaMago = null;
+        let fichaBase = null; 
+        let expDisponivel = 0;
+        let esferaAfim = "";
+
+        const listaOficialAntecedentes = ["Aliados (Allies)", "Apoio / Reforços (Backup)", "Aprimoramentos (Enhancement)", "Arcano / Ocultamento (Arcane / Cloaking)", "Armas Secretas (Secret Weapons)", "Avatar / Gênio (Avatar / Genius)", "Bênção (Blessing)", "Biblioteca (Library)", "Capela / Construto (Chantry / Construct)", "Certificação (Certification)", "Contatos (Contacts)", "Culto (Cult)", "Destino (Destiny)", "Domínio (Demesne)", "Espiões (Spies)", "Fama (Fame)", "Familiar / Companheiro (Familiar / Companion)", "Identidade Alternativa (Alternate Identity)", "Influência (Influence)", "Lacaios (Retainers)", "Lenda (Legend)", "Maravilha (Wonder)", "Mentor (Mentor)", "Nodo (Node)", "Patrono (Patron)", "Posto (Rank)", "Recursos (Resources)", "Requisições (Requisitions)", "Santuário / Laboratório (Sanctum / Laboratory)", "Sonho / Hiper-estudo (Dream / Hypercram)", "Status (Status)", "Totem (Totem)", "Vidas Passadas (Past Lives)"];
+
+        async function inicializarSistema() {
+            if (!magoId) return alert("ID não encontrado!");
+            const resposta = await fetch(`/personagens/${magoId}`);
+            const data = await resposta.json();
+
+            if (!data || !data.dados_ficha) {
+                alert("Ficha inválida ou muito antiga. Crie uma nova ficha no sistema.");
+                window.location.href = "/painel_mago.html";
+                return;
+            }
+
+            fichaMago = data;
+            
+            if (!fichaMago.dados_ficha.especialidades_dinamicas) fichaMago.dados_ficha.especialidades_dinamicas = {};
+            fichaBase = JSON.parse(JSON.stringify(fichaMago.dados_ficha));
+            expDisponivel = fichaMago.exp_total - fichaMago.exp_gasta;
+            esferaAfim = fichaMago.dados_ficha.esfera_afim || descobrirEsferaAfim();
+
+            document.getElementById('nome-mago').innerText = `${fichaMago.nome}`;
+            
+            const selAnt = document.getElementById('select-novo-ant');
+            listaOficialAntecedentes.forEach(a => selAnt.innerHTML += `<option value="${a}">${a}</option>`);
+
+            atualizarTelaInteira();
+        }
+
+        function descobrirEsferaAfim() {
+            let maior = 0; let afim = "correspondencia";
+            for(let key in fichaMago.dados_ficha.esferas) { if(fichaMago.dados_ficha.esferas[key] > maior) { maior = fichaMago.dados_ficha.esferas[key]; afim = key; } }
+            return afim;
+        }
+
+        function injetarExperiencia() {
+            const input = document.getElementById('input-add-exp');
+            const qtd = parseInt(input.value);
+            if (qtd <= 0) return;
+            expDisponivel += qtd;
+            fichaMago.exp_total += qtd;
+            input.value = 0;
+            atualizarTelaInteira();
+        }
+
+        function atualizarTelaInteira() {
+            document.getElementById('txt-saldo-exp').innerText = `${expDisponivel} XP`;
+            renderizarAtributos();
+            renderizarHabilidades();
+            renderizarMagica();
+            renderizarAntecedentes();
+            popularSelectEspecialidades();
+        }
+
+        // --- SISTEMA LÓGICO DE REMOÇÃO DE ESPECIALIDADE POR QUEDA DE NÍVEL EM CASCATA ---
+        function verificarEstornoEspecialidade(chave, nivelAnterior, isAtributo = false) {
+            const espList = fichaMago.dados_ficha.especialidades_dinamicas[chave];
+            if (!espList || espList.length === 0) return;
+
+            let numPops = 0;
+            if (isAtributo) {
+                if (nivelAnterior === 5) numPops = 1; // De 3 vagas livres cai para 2
+                if (nivelAnterior === 4) numPops = 2; // De 2 vagas livres cai para 0
+            } else {
+                if (nivelAnterior === 5) numPops = 1; // De 2 vagas livres cai para 1
+                if (nivelAnterior === 4) numPops = 1; // De 1 vaga livre cai para 0
+            }
+
+            for (let i = 0; i < numPops; i++) {
+                if (espList.length > 0) {
+                    const removida = espList.pop();
+                    if (typeof removida === 'object' && removida.adquirida_nesta_sessao) {
+                        expDisponivel += removida.custo;
+                    }
+                }
+            }
+            if (numPops > 0) {
+                alert(`Aviso: O nível de '${chave}' caiu de ${nivelAnterior}. As especialidades vinculadas às concessões gratuitas desse nível foram limpas.`);
+            }
+        }
+
+        function removerEspecialidadeRecente(chave, index) {
+            const espList = fichaMago.dados_ficha.especialidades_dinamicas[chave];
+            const esp = espList[index];
+
+            if (confirm(`Remover a especialidade '${esp.nome}' e recuperar ${esp.custo} XP?`)) {
+                expDisponivel += esp.custo;
+                espList.splice(index, 1);
+                atualizarTelaInteira();
+            }
+        }
+
+        // --- ATRIBUTOS ---
+        function renderizarAtributos() {
+            const container = document.getElementById('container-atributos'); container.innerHTML = '';
+            const labels = { fisicos: "Físicos", sociais: "Sociais", mentais: "Mentais" };
+            const attrs = fichaMago.dados_ficha.atributos;
+            const espMap = fichaMago.dados_ficha.especialidades_dinamicas;
+
+            for (let cat in attrs) {
+                let htmlColuna = `<div class="coluna-interna"><h4>${labels[cat]}</h4>`;
+                for (let attr in attrs[cat]) {
+                    const nivel = attrs[cat][attr];
+                    const baseNivel = fichaBase.atributos[cat][attr];
+                    const custoUp = nivel * 4;
+                    const custoDown = (nivel - 1) * 4; 
+                    
+                    const disabledUndo = nivel <= baseNivel ? "disabled" : "";
+                    const disabledUp = nivel >= 5 ? "disabled" : "";
+                    const txtCusto = nivel >= 5 ? "MÁX" : `${custoUp} XP`;
+
+                    let espTxt = "";
+                    if (espMap[attr] && espMap[attr].length > 0) {
+                        espTxt = espMap[attr].map((esp, idx) => {
+                            const isObj = typeof esp === 'object';
+                            const nome = isObj ? esp.nome : esp;
+                            if (isObj && esp.adquirida_nesta_sessao) {
+                                return `<span class="especialidade-tag" style="cursor:pointer; color:var(--erro);" onclick="removerEspecialidadeRecente('${attr}', ${idx})">✕ ${nome}</span>`;
+                            }
+                            return `<span class="especialidade-tag">Esp: ${nome}</span>`;
+                        }).join("");
+                    }
+
+                    htmlColuna += `
+                        <div class="controle-ponto" style="align-items:flex-start;">
+                            <div>
+                                <label style="font-size:12px; text-transform:capitalize;">${attr}</label><br>
+                                ${espTxt}
+                                <span class="custo-preview">${txtCusto}</span>
+                            </div>
+                            <div class="botoes-mais-menos" style="margin-top:2px;">
+                                <button type="button" class="btn-contador btn-desfazer" ${disabledUndo} onclick="estornarAtributo('${cat}', '${attr}', ${custoDown})">-</button>
+                                <span class="val-contador">${nivel}</span>
+                                <button type="button" class="btn-contador" ${disabledUp} onclick="evoluirAtributo('${cat}', '${attr}', ${custoUp})">+</button>
+                            </div>
+                        </div>`;
+                }
+                htmlColuna += `</div>`;
+                container.innerHTML += htmlColuna;
+            }
+        }
+
+        function evoluirAtributo(cat, attr, custo) {
+            if (expDisponivel < custo) return alert("EXP insuficiente!");
+            expDisponivel -= custo; fichaMago.dados_ficha.atributos[cat][attr]++; atualizarTelaInteira();
+        }
+
+        function estornarAtributo(cat, attr, reembolso) {
+            const nivelAnterior = fichaMago.dados_ficha.atributos[cat][attr];
+            expDisponivel += reembolso;
+            fichaMago.dados_ficha.atributos[cat][attr]--;
+            verificarEstornoEspecialidade(attr, nivelAnterior, true);
+            atualizarTelaInteira();
+        }
+
+        // --- HABILIDADES ---
+        function renderizarHabilidades() {
+            const container = document.getElementById('container-habilidades'); container.innerHTML = '';
+            const labels = { talentos: "Talentos", pericias: "Perícias", conhecimentos: "Conhecimentos" };
+            const habs = fichaMago.dados_ficha.habilidades;
+            const espMap = fichaMago.dados_ficha.especialidades_dinamicas;
+
+            for (let cat in habs) {
+                let htmlColuna = `<div class="coluna-interna"><h4>${labels[cat]}</h4>`;
+                for (let hab in habs[cat]) {
+                    const nivel = habs[cat][hab];
+                    const baseNivel = fichaBase.habilidades[cat][hab] || 0; 
+                    
+                    const custoUp = nivel === 0 ? 3 : nivel * 2;
+                    const custoDown = nivel === 1 ? 3 : (nivel - 1) * 2;
+                    
+                    const disabledUndo = nivel <= baseNivel ? "disabled" : "";
+                    const disabledUp = nivel >= 5 ? "disabled" : "";
+                    const txtCusto = nivel >= 5 ? "MÁX" : `${custoUp} XP`;
+
+                    let espTxt = "";
+                    if (espMap[hab] && espMap[hab].length > 0) {
+                        espTxt = espMap[hab].map((esp, idx) => {
+                            const isObj = typeof esp === 'object';
+                            const nome = isObj ? esp.nome : esp;
+                            if (isObj && esp.adquirida_nesta_sessao) {
+                                return `<span class="especialidade-tag" style="cursor:pointer; color:var(--erro);" onclick="removerEspecialidadeRecente('${hab}', ${idx})">✕ ${nome}</span>`;
+                            }
+                            return `<span class="especialidade-tag">Esp: ${nome}</span>`;
+                        }).join("");
+                    }
+
+                    const formatado = hab.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+                    htmlColuna += `
+                        <div class="controle-ponto" style="align-items:flex-start;">
+                            <div>
+                                <label style="font-size:12px;">${formatado}</label><br>
+                                ${espTxt}
+                                <span class="custo-preview">${txtCusto}</span>
+                            </div>
+                            <div class="botoes-mais-menos" style="margin-top:2px;">
+                                <button type="button" class="btn-contador btn-desfazer" ${disabledUndo} onclick="estornarHabilidade('${cat}', '${hab}', ${custoDown})">-</button>
+                                <span class="val-contador">${nivel}</span>
+                                <button type="button" class="btn-contador" ${disabledUp} onclick="evoluirHabilidade('${cat}', '${hab}', ${custoUp})">+</button>
+                            </div>
+                        </div>`;
+                }
+                htmlColuna += `</div>`;
+                container.innerHTML += htmlColuna;
+            }
+        }
+
+        function evoluirHabilidade(cat, hab, custo) {
+            if (expDisponivel < custo) return alert("EXP insuficiente!");
+            expDisponivel -= custo; fichaMago.dados_ficha.habilidades[cat][hab]++; atualizarTelaInteira();
+        }
+
+        function estornarHabilidade(cat, hab, reembolso) {
+            const nivelAnterior = fichaMago.dados_ficha.habilidades[cat][hab];
+            expDisponivel += reembolso;
+            fichaMago.dados_ficha.habilidades[cat][hab]--;
+            verificarEstornoEspecialidade(hab, nivelAnterior, false);
+            atualizarTelaInteira();
+        }
+
+        function adicionarHabilidadeCustom() {
+            const nomeStr = document.getElementById('nova-hab-nome').value.trim();
+            const cat = document.getElementById('nova-hab-cat').value;
+            if (!nomeStr) return;
+            
+            const chave = nomeStr.toLowerCase().replace(/\s+/g, '_');
+            if (fichaMago.dados_ficha.habilidades[cat][chave] !== undefined) return alert("Esta habilidade já existe!");
+
+            fichaMago.dados_ficha.habilidades[cat][chave] = 0;
+            if(!fichaBase.habilidades[cat][chave]) fichaBase.habilidades[cat][chave] = 0;
+
+            document.getElementById('nova-hab-nome').value = "";
+            atualizarTelaInteira();
+        }
+
+        // --- ESPECIALIDADES GERAIS (Suporta nova regra matemática customizada) ---
+        function popularSelectEspecialidades() {
+            const sel = document.getElementById('select-esp-trait');
+            sel.innerHTML = '<option value="">-- Escolha o Traço Nv. 4+ --</option>';
+            const f = fichaMago.dados_ficha;
+            
+            for(let cat in f.atributos) {
+                for(let attr in f.atributos[cat]) {
+                    if(f.atributos[cat][attr] >= 4) sel.innerHTML += `<option value="atributos|${cat}|${attr}">${attr.toUpperCase()} (Lvl ${f.atributos[cat][attr]})</option>`;
+                }
+            }
+            for(let cat in f.habilidades) {
+                for(let hab in f.habilidades[cat]) {
+                    if(f.habilidades[cat][hab] >= 4) {
+                        const name = hab.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                        sel.innerHTML += `<option value="habilidades|${cat}|${hab}">${name} (Lvl ${f.habilidades[cat][hab]})</option>`;
+                    }
+                }
+            }
+            for(let esf in f.esferas) {
+                if(f.esferas[esf] >= 4) sel.innerHTML += `<option value="esferas|none|${esf}">${esf.toUpperCase()} (Lvl ${f.esferas[esf]})</option>`;
+            }
+        }
+
+        function comprarEspecialidade() {
+            const val = document.getElementById('select-esp-trait').value;
+            const nomeEsp = document.getElementById('nova-esp-nome').value.trim();
+            if (!val || !nomeEsp) return alert("Preencha o Traço e o Nome da Especialidade.");
+
+            const [bloco, cat, chave] = val.split('|');
+            let nivelAtual = 0;
+            if (bloco === 'esferas') nivelAtual = fichaMago.dados_ficha[bloco][chave];
+            else nivelAtual = fichaMago.dados_ficha[bloco][cat][chave];
+
+            // Mudança Crítica: Atributos ganham 2 grátis no lvl 4 e 3 grátis no lvl 5
+            let gratisPermitidas = 0;
+            if (bloco === 'atributos') {
+                gratisPermitidas = (nivelAtual >= 5) ? 3 : (nivelAtual >= 4 ? 2 : 0);
+            } else {
+                gratisPermitidas = (nivelAtual >= 5) ? 2 : (nivelAtual >= 4 ? 1 : 0);
+            }
+            
+            if(!fichaMago.dados_ficha.especialidades_dinamicas[chave]) {
+                fichaMago.dados_ficha.especialidades_dinamicas[chave] = [];
+            }
+            const espAtuais = fichaMago.dados_ficha.especialidades_dinamicas[chave].length;
+            
+            let custo = (espAtuais < gratisPermitidas) ? 0 : 4;
+            if (expDisponivel < custo) return alert(`Limite de pontos ultrapassado. Necessário ${custo} XP para especialização adicional.`);
+
+            expDisponivel -= custo;
+            fichaMago.dados_ficha.especialidades_dinamicas[chave].push({
+                nome: nomeEsp,
+                adquirida_nesta_sessao: true,
+                custo: custo
+            });
+            
+            document.getElementById('nova-esp-nome').value = "";
+            atualizarTelaInteira();
+            if(custo === 0) alert("✓ Especialidade Adicionada Gratuitamente pelo domínio do Nível!");
+        }
+
+        // --- MÁGICA (Arete, FV com botões de estorno paralelos, Esferas) ---
+        function renderizarMagica() {
+            const df = fichaMago.dados_ficha;
+            const bDf = fichaBase;
+            const espMap = fichaMago.dados_ficha.especialidades_dinamicas;
+
+            // Arete
+            const custoArete = df.vantagens.arete * 8;
+            const rArete = (df.vantagens.arete - 1) * 8;
+            document.getElementById('val-arete').innerText = df.vantagens.arete;
+            document.getElementById('custo-arete').innerText = `Próximo: ${custoArete} XP`;
+            document.getElementById('btn-undo-arete').disabled = (df.vantagens.arete <= bDf.vantagens.arete);
+            document.getElementById('btn-undo-arete').onclick = () => { expDisponivel+=rArete; df.vantagens.arete--; atualizarTelaInteira(); };
+            document.getElementById('btn-add-arete').onclick = () => { if(expDisponivel<custoArete) return alert("Sem EXP!"); expDisponivel-=custoArete; df.vantagens.arete++; atualizarTelaInteira(); };
+
+            // Força de Vontade - Duplo Controle Lógico integrado
+            const custoFv = df.vantagens.forca_de_vontade * 1;
+            const rFv = (df.vantagens.forca_de_vontade - 1) * 1;
+            document.getElementById('val-fv').innerText = df.vantagens.forca_de_vontade;
+            document.getElementById('custo-fv').innerText = df.vantagens.forca_de_vontade >= 10 ? "MÁX" : `Evoluir: ${custoFv} XP`;
+            
+            document.getElementById('btn-undo-fv').disabled = (df.vantagens.forca_de_vontade <= bDf.vantagens.forca_de_vontade);
+            document.getElementById('btn-undo-fv').onclick = () => { expDisponivel += rFv; df.vantagens.forca_de_vontade--; atualizarTelaInteira(); };
+
+            document.getElementById('btn-add-fv').disabled = df.vantagens.forca_de_vontade >= 10;
+            document.getElementById('btn-add-fv').onclick = () => { if(expDisponivel < custoFv) return alert("Sem EXP!"); expDisponivel -= custoFv; df.vantagens.forca_de_vontade++; atualizarTelaInteira(); };
+
+            // Esferas
+            const cEsferas = document.getElementById('container-esferas'); cEsferas.innerHTML = '';
+            for (let esf in df.esferas) {
+                const n = df.esferas[esf];
+                const bn = bDf.esferas[esf];
+                
+                let cUp = n === 0 ? 10 : (esf === esferaAfim ? n * 7 : n * 8);
+                let cDown = n === 1 ? 10 : (esf === esferaAfim ? (n-1)*7 : (n-1)*8);
+                
+                const dUp = n >= df.vantagens.arete ? "disabled" : "";
+                const dUn = n <= bn ? "disabled" : "";
+                const format = esf.toUpperCase() + (esf === esferaAfim ? " ★" : "");
+
+                let espTxt = "";
+                if (espMap[esf] && espMap[esf].length > 0) {
+                    espTxt = espMap[esf].map((esp, idx) => {
+                        const isObj = typeof esp === 'object';
+                        const nome = isObj ? esp.nome : esp;
+                        if (isObj && esp.adquirida_nesta_sessao) {
+                            return `<span class="especialidade-tag" style="cursor:pointer; color:var(--erro);" onclick="removerEspecialidadeRecente('${esf}', ${idx})">✕ ${nome}</span>`;
+                        }
+                        return `<span class="especialidade-tag">Esp: ${nome}</span>`;
+                    }).join("");
+                }
+
+                cEsferas.innerHTML += `
+                    <div class="controle-ponto" style="align-items:flex-start;">
+                        <div>
+                            <label style="font-size:11px;">${format}</label><br>
+                            ${espTxt}
+                            <span class="custo-preview">${n >= df.vantagens.arete ? "Bloqueado pelo Arete" : cUp + " XP"}</span>
+                        </div>
+                        <div class="botoes-mais-menos" style="margin-top:2px;">
+                            <button type="button" class="btn-contador btn-desfazer" ${dUn} onclick="estornarEsfera('${esf}', ${cDown})">-</button>
+                            <span class="val-contador" style="font-size:13px;">${n}</span>
+                            <button type="button" class="btn-contador" ${dUp} onclick="evoluirEsfera('${esf}', ${cUp})">+</button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function perderFv() {
+            if (fichaMago.dados_ficha.vantagens.forca_de_vontade <= 1) return;
+            if(confirm("Deseja registrar uma Perda Narrativa de Força de Vontade permanente? Isso NÃO devolverá EXP de sessões passadas nem desta.")) {
+                fichaMago.dados_ficha.vantagens.forca_de_vontade--;
+                // Rebaixa também o teto da ficha base para travar o estorno indevido
+                if(fichaBase.vantagens.forca_de_vontade > fichaMago.dados_ficha.vantagens.forca_de_vontade) {
+                    fichaBase.vantagens.forca_de_vontade = fichaMago.dados_ficha.vantagens.forca_de_vontade;
+                }
+                atualizarTelaInteira();
+            }
+        }
+
+        function evoluirEsfera(esf, custo) {
+            if(expDisponivel < custo) return alert("Sem EXP!");
+            expDisponivel -= custo; fichaMago.dados_ficha.esferas[esf]++; atualizarTelaInteira();
+        }
+        
+        function estornarEsfera(esf, rb) {
+            const nivelAnterior = fichaMago.dados_ficha.esferas[esf];
+            expDisponivel += rb; 
+            fichaMago.dados_ficha.esferas[esf]--; 
+            verificarEstornoEspecialidade(esf, nivelAnterior, false);
+            atualizarTelaInteira();
+        }
+
+        // --- ANTECEDENTES ---
+        function renderizarAntecedentes() {
+            const container = document.getElementById('container-antecedentes'); container.innerHTML = '';
+            const ants = fichaMago.dados_ficha.vantagens.antecedentes;
+
+            ants.forEach((ant, idx) => {
+                const dobro = ant.nome_antecedente.includes("Aprimoramentos") || ant.nome_antecedente.includes("Santuário") || ant.nome_antecedente.includes("Totem");
+                const custoUp = ant.pontos * (dobro ? 6 : 3);
+                const blockUp = ant.pontos >= 5 ? "disabled" : "";
+
+                container.innerHTML += `
+                    <div class="coluna-interna" style="display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <label style="font-size:12px;">${ant.nome_antecedente}</label>
+                            <span class="custo-preview">${ant.pontos >= 5 ? "Máximo (5)" : "Evoluir: " + custoUp + " XP"}</span>
+                        </div>
+                        <div class="botoes-mais-menos">
+                            <button type="button" title="Excluir da Ficha (Perda Permanente)" class="btn-contador btn-perda" style="font-size:10px; margin-right:5px;" onclick="removerAntecedente(${idx})">X</button>
+                            <button type="button" title="Reduzir Nível Narrativamente (Sem XP)" class="btn-contador btn-perda" onclick="reduzirAntecedenteLivre(${idx})">-</button>
+                            <span class="val-contador">${ant.pontos}</span>
+                            <button type="button" class="btn-contador" ${blockUp} onclick="evoluirAntecedente(${idx}, ${custoUp})">+</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function evoluirAntecedente(idx, custo) {
+            if(expDisponivel < custo) return alert("EXP insuficiente!");
+            expDisponivel -= custo; fichaMago.dados_ficha.vantagens.antecedentes[idx].pontos++; atualizarTelaInteira();
+        }
+
+        function reduzirAntecedenteLivre(idx) {
+            const ant = fichaMago.dados_ficha.vantagens.antecedentes[idx];
+            if(ant.pontos <= 1) return alert("Use o botão X para excluir o Antecedente.");
+            if(confirm(`REDUÇÃO NARRATIVA: Diminuir ${ant.nome_antecedente} para ${ant.pontos - 1} sem receber XP de volta?`)) {
+                ant.pontos--; atualizarTelaInteira();
+            }
+        }
+
+        function removerAntecedente(idx) {
+            if(confirm(`PERDA TOTAL: Deletar permanentemente este antecedente da ficha sem reembolso?`)) {
+                fichaMago.dados_ficha.vantagens.antecedentes.splice(idx, 1); atualizarTelaInteira();
+            }
+        }
+
+        function adicionarNovoAntecedente(comExp) {
+            const nome = document.getElementById('select-novo-ant').value;
+            const ants = fichaMago.dados_ficha.vantagens.antecedentes;
+            if(ants.some(a => a.nome_antecedente === nome)) return alert("Este antecedente já existe!");
+
+            let pontosAdicionados = 1;
+            
+            if (comExp) {
+                const dobro = nome.includes("Aprimoramentos") || nome.includes("Santuário") || nome.includes("Totem");
+                const custo = dobro ? 6 : 3; 
+                if(expDisponivel < custo) return alert(`Necessário ${custo} XP.`);
+                expDisponivel -= custo;
+            } else {
+                pontosAdicionados = parseInt(document.getElementById('novo-ant-nivel-gratis').value);
+                if (pontosAdicionados < 1 || pontosAdicionados > 5) return alert("Nível de bônus inválido (1 a 5).");
+            }
+
+            ants.push({ nome_antecedente: nome, pontos: pontosAdicionados });
+            atualizarTelaInteira();
+        }
+
+        // --- SALVAMENTO NO BANCO POSTGRES (CONGELAMENTO DE SESSÃO) ---
+        async function salvarEvolucaoNoBanco() {
+            // Converte objetos temporários de especialidade em strings normais permanentes
+            for (let chave in fichaMago.dados_ficha.especialidades_dinamicas) {
+                fichaMago.dados_ficha.especialidades_dinamicas[chave] = fichaMago.dados_ficha.especialidades_dinamicas[chave].map(e => {
+                    return typeof e === 'object' ? e.nome : e;
+                });
+            }
+
+            fichaMago.exp_gasta = fichaMago.exp_total - expDisponivel;
+
+            const payload = {
+                dados_ficha: fichaMago.dados_ficha,
+                exp_total: fichaMago.exp_total,
+                exp_gasta: fichaMago.exp_gasta,
+                arete: fichaMago.dados_ficha.vantagens.arete
+            };
+
+            const resposta = await fetch(`/personagens/${magoId}/evoluir`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (resposta.ok) {
+                alert("✓ Experiência Consolidada com Sucesso!");
+                window.location.href = "/painel_mago.html";
+            } else {
+                alert("Erro grave ao salvar as alterações no banco de dados.");
+            }
+        }
+
+        inicializarSistema();
+    </script>
+</body>
+</html>

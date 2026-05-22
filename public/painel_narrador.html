@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comunidade da Crônica</title>
+    <style>
+        :root { --bg-principal: #121214; --bg-card: #202024; --roxo-mago: #9871f5; --roxo-hover: #7f57df; --texto-claro: #e1e1e6; --texto-mutado: #8d8d99; --borda: #29292e; --destaque: #50fa7b; }
+        
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg-principal); color: var(--texto-claro); margin: 0; padding: 0; }
+        
+        /* BANNER */
+        .banner-comunidade { width: 100%; height: 300px; background-color: var(--borda); background-size: cover; background-position: center; position: relative; border-bottom: 2px solid var(--roxo-mago); }
+        .banner-overlay { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.9)); padding: 40px 20px 20px 20px; display: flex; justify-content: space-between; align-items: flex-end; }
+        .banner-titulo { margin: 0; font-size: 32px; color: #fff; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); }
+        .btn-voltar { color: #fff; text-decoration: none; background: rgba(0,0,0,0.5); padding: 8px 12px; border-radius: 4px; border: 1px solid var(--texto-mutado); }
+        .btn-voltar:hover { background: var(--roxo-mago); border-color: var(--roxo-mago); }
+
+        /* GRID PRINCIPAL */
+        .container-social { max-width: 1200px; margin: 30px auto; padding: 0 20px; display: grid; grid-template-columns: 250px 1fr; gap: 30px; }
+        
+        /* MENU LATERAL */
+        .menu-abas { background: var(--bg-card); padding: 20px; border-radius: 8px; border: 1px solid var(--borda); align-self: start; }
+        .titulo-menu { color: var(--texto-mutado); font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px; }
+        .lista-abas { list-style: none; padding: 0; margin: 0; }
+        .aba-item { padding: 10px 15px; margin-bottom: 5px; background: var(--bg-principal); border-radius: 4px; cursor: pointer; border-left: 3px solid transparent; transition: 0.2s; }
+        .aba-item:hover { background: #29292e; }
+        .aba-item.ativa { border-left-color: var(--roxo-mago); font-weight: bold; color: var(--roxo-mago); }
+        .btn-nova-aba { margin-top: 15px; width: 100%; padding: 10px; background: transparent; color: var(--destaque); border: 1px dashed var(--destaque); border-radius: 4px; cursor: pointer; }
+        .btn-nova-aba:hover { background: rgba(80, 250, 123, 0.1); }
+
+        /* FEED CENTRAL */
+        .feed-container { display: flex; flex-direction: column; gap: 20px; }
+        .caixa-postar { background: var(--bg-card); padding: 20px; border-radius: 8px; border: 1px solid var(--borda); }
+        .caixa-postar textarea { width: 100%; background: var(--bg-principal); border: 1px solid var(--borda); color: #fff; padding: 15px; border-radius: 4px; resize: vertical; min-height: 80px; box-sizing: border-box; margin-bottom: 10px; outline: none; }
+        .caixa-postar textarea:focus { border-color: var(--roxo-mago); }
+        .acoes-post { display: flex; justify-content: space-between; align-items: center; }
+        .btn-postar { background: var(--roxo-mago); color: #fff; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-postar:hover { background: var(--roxo-hover); }
+
+        /* POSTAGEM */
+        .post { background: var(--bg-card); padding: 20px; border-radius: 8px; border: 1px solid var(--borda); }
+        .post-header { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
+        .avatar-post { width: 40px; height: 40px; border-radius: 50%; background: var(--roxo-mago); display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 18px; color: #fff;}
+        .nome-autor { font-weight: bold; color: var(--destaque); }
+        .data-post { font-size: 12px; color: var(--texto-mutado); }
+        .post-conteudo { line-height: 1.6; white-space: pre-wrap; }
+
+        /* RESPONSIVIDADE PARA CELULARES */
+        @media (max-width: 768px) {
+            .container-social { grid-template-columns: 1fr; }
+            .banner-titulo { font-size: 24px; }
+        }
+
+        /* Esconde o botão por padrão */
+        .btn-delete { 
+            display: none; 
+            background: none; 
+            border: none; 
+            color: #ff5555; 
+            cursor: pointer; 
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        /* Mostra o botão apenas quando o mouse passa sobre o item da aba */
+        .aba-item:hover .btn-delete { 
+            display: block; 
+        }
+
+        .aba-container { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            width: 100%; 
+        }
+    </style>
+</head>
+<body>
+
+    <div class="banner-comunidade" id="banner-cronica">
+        <div class="banner-overlay">
+            <h1 class="banner-titulo" id="titulo-cronica">Carregando...</h1>
+            <a href="/profile.html" class="btn-voltar">← Sair da Mesa</a>
+        </div>
+    </div>
+
+    <div class="container-social">
+        
+        <div class="menu-abas">
+            <div class="titulo-menu">Salas da Comunidade</div>
+            <ul class="lista-abas" id="lista-abas"></ul>
+            <div class="aba-item" onclick="carregarControleMundo(event)">Controle de Mundo</div>  
+            <div class="aba-item" onclick="carregarFilaModeracao()">Fila de Moderação</div>
+            <div class="aba-item" onclick="carregarAgendaEventos(event)">Agenda de Eventos</div>
+            <button class="btn-nova-aba" id="btn-add-aba" style="display: none;" onclick="criarNovaAba()">+ Nova Aba (Restrita)</button>
+        </div>
+    
+        <div class="feed-container">
+            <div class="caixa-postar">
+                <textarea id="texto-post" placeholder="Escreva algo..."></textarea>
+                <div style="margin-top: 10px;">
+                    <input type="file" id="input-imagem" accept="image/*" multiple onchange="console.log('Arquivos selecionados:', this.files.length)">
+                </div>
+                <button onclick="limparUpload()" style="background: #ff5555; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-top: 5px;">
+                Cancelar Uploads
+                </button>
+                <div class="acoes-post" style="margin-top: 10px;">
+                    <button class="btn-postar" onclick="publicarPostComImagem()">Publicar no Feed</button>
+                </div>
+            </div>
+
+            <div id="lista-posts">
+                <p style="color: var(--texto-mutado); text-align: center;">Carregando mensagens do éter...</p>
+            </div>
+        </div>
+    </div>
+    
+    <div id="modal-forja" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 1000;">
+        <div style="background: var(--bg-card); padding: 30px; border-radius: 8px; border: 1px solid var(--roxo-mago); width: 400px; max-width: 90%; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+            <h3 style="margin-top: 0; color: var(--destaque);">🔨 Forjar Nova Entidade</h3>
+            <label style="display: block; margin-bottom: 5px; color: var(--texto-mutado);">Nome (Ex: Guarda da Cidade)</label>
+            <input type="text" id="forja-nome" autocomplete="off" style="width: 100%; padding: 10px; margin-bottom: 15px; background: var(--bg-principal); border: 1px solid var(--borda); color: white; border-radius: 4px; box-sizing: border-box;">
+            <label style="display: block; margin-bottom: 5px; color: var(--texto-mutado);">Categoria</label>
+            <select id="forja-tipo" style="width: 100%; padding: 10px; margin-bottom: 25px; background: var(--bg-principal); border: 1px solid var(--borda); color: white; border-radius: 4px; box-sizing: border-box;">
+                <option value="npc">👤 NPC</option>
+                <option value="faccao">🛡️ Facção</option>
+                <option value="local">📍 Local</option>
+                <option value="cenario">🌍 Cenário Macro</option>
+            </select>
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button onclick="fecharModalForja()" style="padding: 10px 15px; background: transparent; border: 1px solid var(--texto-mutado); color: var(--texto-claro); border-radius: 4px; cursor: pointer;">Cancelar</button>
+                <button onclick="salvarForja()" style="padding: 10px 15px; background: var(--roxo-mago); border: none; color: white; border-radius: 4px; font-weight: bold; cursor: pointer;">Criar e Adicionar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-vinculo" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 1000;">
+        <div style="background: var(--bg-card); padding: 30px; border-radius: 8px; border: 1px solid var(--roxo-mago); width: 400px; max-width: 90%;">
+            <h3 style="margin-top: 0; color: var(--destaque);">🔗 Vincular Causa ao Evento</h3>
+            <input type="hidden" id="vinculo-event-id">
+            <label style="display: block; margin-bottom: 5px; color: var(--texto-mutado);">Escolha o Núcleo (Entidade)</label>
+            <select id="vinculo-node-id" onchange="atualizarListaDeFlagsVinculo()" style="width: 100%; padding: 10px; margin-bottom: 15px; background: var(--bg-principal); border: 1px solid var(--borda); color: white; border-radius: 4px;"></select>
+            <label style="display: block; margin-bottom: 5px; color: var(--texto-mutado);">Selecione a Flag</label>
+            <select id="vinculo-flag-key" style="width: 100%; padding: 10px; margin-bottom: 15px; background: var(--bg-principal); border: 1px solid var(--borda); color: white; border-radius: 4px; box-sizing: border-box;">
+                <option value="">Selecione um núcleo primeiro...</option>
+            </select>
+            <label style="display: block; margin-bottom: 5px; color: var(--texto-mutado);">Peso de Tensão (Quantos pontos soma se for TRUE?)</label>
+            <input type="number" id="vinculo-peso" value="1" min="1" style="width: 100%; padding: 10px; margin-bottom: 25px; background: var(--bg-principal); border: 1px solid var(--borda); color: white; border-radius: 4px; box-sizing: border-box;">
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button onclick="fecharModalVinculo()" style="padding: 10px 15px; background: transparent; border: 1px solid var(--texto-mutado); color: var(--texto-claro); border-radius: 4px; cursor: pointer;">Cancelar</button>
+                <button onclick="salvarVinculo()" style="padding: 10px 15px; background: var(--roxo-mago); border: none; color: white; border-radius: 4px; font-weight: bold; cursor: pointer;">Vincular</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-permissoes" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 1000;">
+        <div style="background: var(--bg-card); padding: 30px; border-radius: 8px; border: 1px solid var(--roxo-mago); width: 500px; max-width: 90%;">
+            <h3 style="margin-top: 0; color: var(--destaque);">🔐 Controle de Acesso da Aba</h3>
+            <input type="hidden" id="perm-aba-id">
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <select id="perm-jogador-id" style="flex: 1; padding: 10px; background: var(--bg-principal); border: 1px solid var(--borda); color: white; border-radius: 4px;">
+                    <option value="">Selecione um Jogador...</option>
+                </select>
+                <select id="perm-nivel" style="width: 100%; padding: 10px; background: var(--bg-principal); border: 1px solid var(--borda); color: white; border-radius: 4px; margin-bottom: 20px;">
+                    <option value="leitura">👁️ Somente Leitura</option>
+                    <option value="comentar">💬 Ler e Comentar</option>
+                    <value="editor">✍️ Editor (Postar e Editar)</option>
+                </select>
+                <button onclick="salvarPermissaoAba()" style="background: var(--destaque); color: #121214; border: none; padding: 0 15px; border-radius: 4px; font-weight: bold; cursor: pointer;">Conceder</button>
+            </div>
+            <h4 style="margin-bottom: 10px; color: var(--texto-mutado); overflow-y: auto; border-bottom: 1px solid var(--borda); padding-bottom: 5px;">Jogadores com Acesso</h4>
+            <div id="lista-permissoes-atuais" style="max-height: 200px; overflow-y: auto; margin-bottom: 20px;"></div>
+            <div style="display: flex; justify-content: flex-end;">
+                <button onclick="fecharModalPermissoes()" style="padding: 10px 15px; background: transparent; border: 1px solid var(--texto-mutado); color: var(--texto-claro); border-radius: 4px; cursor: pointer;">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-imagem" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); justify-content: center; align-items: center; z-index: 9999; flex-direction: column;" onclick="fecharModalImagem()">
+        <div style="position: absolute; top: 20px; right: 30px; color: white; font-size: 40px; font-weight: bold; cursor: pointer; z-index: 10001;" onclick="fecharModalImagem()">&times;</div>
+        
+        <div id="modal-btn-esq" style="position: absolute; left: 20px; top: 50%; transform: translateY(-50%); color: white; font-size: 50px; cursor: pointer; user-select: none; padding: 20px; z-index: 10000; transition: 0.2s;" onmouseover="this.style.color='var(--destaque)'" onmouseout="this.style.color='white'" onclick="event.stopPropagation(); mudarImagem(-1)">&#10094;</div>
+        
+        <img id="imagem-ampliada" src="" style="max-width: 90%; max-height: 85%; border-radius: 8px; box-shadow: 0 0 30px rgba(0,0,0,0.8); object-fit: contain; transition: opacity 0.2s;">
+        
+        <div id="modal-btn-dir" style="position: absolute; right: 20px; top: 50%; transform: translateY(-50%); color: white; font-size: 50px; cursor: pointer; user-select: none; padding: 20px; z-index: 10000; transition: 0.2s;" onmouseover="this.style.color='var(--destaque)'" onmouseout="this.style.color='white'" onclick="event.stopPropagation(); mudarImagem(1)">&#10095;</div>
+        
+        <div id="modal-contador" style="color: var(--texto-mutado); margin-top: 15px; font-size: 16px; font-weight: bold; letter-spacing: 1px;"></div>
+    </div>
+    
+    <div id="modal-editar-post" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 1000;">
+    <div style="background: var(--bg-card); padding: 30px; border-radius: 8px; border: 1px solid var(--roxo-mago); width: 600px; max-width: 90%;">
+        <h3 style="margin-top: 0; color: var(--destaque);">✏️ Editar Postagem</h3>
+        <input type="hidden" id="edit-post-id">
+        <input type="hidden" id="edit-post-index">
+        <textarea id="edit-post-texto" style="width: 100%; height: 250px; background: var(--bg-principal); border: 1px solid var(--borda); color: white; padding: 10px; border-radius: 4px; box-sizing: border-box; resize: vertical; margin-bottom: 20px;"></textarea>
+        <div style="display: flex; justify-content: flex-end; gap: 10px;">
+            <button onclick="document.getElementById('modal-editar-post').style.display='none'" style="padding: 10px 15px; background: transparent; border: 1px solid var(--texto-mutado); color: var(--texto-claro); border-radius: 4px; cursor: pointer;">Cancelar</button>
+            <button onclick="confirmarEdicaoPost()" style="padding: 10px 15px; background: var(--roxo-mago); border: none; color: white; border-radius: 4px; font-weight: bold; cursor: pointer;">Salvar Alterações</button>
+        </div>
+    </div>
+    </div>
+
+   <script>
+    const token = localStorage.getItem('token_m20');
+    if (!token) window.location.href = '/login.html';
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const cronicaId = urlParams.get('id');
+
+    let minhaPermissaoAtual = 'leitura';
+    let meuPapelNaMesa = 'jogador';
+    let meuIdUsuario = null;
+
+    // Variáveis globais para o carrossel/lightbox reativo
+    let lightboxImagens = [];
+    let lightboxIndex = 0;
+
+    if (!cronicaId) window.location.href = '/profile.html';
+
+    // 1. INICIALIZAÇÃO
+    carregarComunidade();
+
+    // ==========================================
+    // FUNÇÕES DE UI (GERAR GRID E CARROSSEL)
+    // ==========================================
+    function gerarGridImagens(imagensUrls) {
+        if (!imagensUrls || imagensUrls.length === 0) return '';
+        
+        let urls = [];
+        if (typeof imagensUrls === 'string') {
+            try { urls = imagensUrls.startsWith('[') ? JSON.parse(imagensUrls) : [imagensUrls]; } catch(e) { urls = [imagensUrls]; }
+        } else if (Array.isArray(imagensUrls)) {
+            urls = imagensUrls;
+        }
+
+        urls = urls.filter(u => u && u.length > 5);
+        const count = urls.length;
+        if (count === 0) return '';
+
+        const urlsFormatadas = urls.map(u => (u.startsWith('/') ? u : '/' + u));
+        
+        let gridCols = count === 1 ? "1fr" : (count === 2 ? "1fr 1fr" : "2fr 1fr");
+        let gridRows = count >= 3 ? "1fr 1fr" : "1fr";
+        let alturaGrid = count === 1 ? 'auto' : '350px';
+        let maxAltura = count === 1 ? '500px' : 'none';
+
+        const urlsStr = encodeURIComponent(JSON.stringify(urlsFormatadas));
+
+        let html = `<div style="display: grid; gap: 5px; margin-top: 15px; border-radius: 8px; overflow: hidden; border: 1px solid var(--borda); grid-template-columns: ${gridCols}; grid-template-rows: ${gridRows}; height: ${alturaGrid}; max-height: ${maxAltura};">`;
+
+        urlsFormatadas.forEach((url, i) => {
+            if (i >= 3) return;
+
+            let objFit = count === 1 ? 'contain' : 'cover';
+            let bgStyle = count === 1 ? 'background: rgba(0,0,0,0.3);' : '';
+
+            if (i === 2 && count > 3) {
+                let ocultas = count - 3;
+                html += `<div style="position: relative; width: 100%; height: 100%; cursor: pointer; ${bgStyle}" onclick="event.stopPropagation(); abrirModalNavegacao('${urlsStr}', ${i})">
+                            <img src="${url}" style="width: 100%; height: 100%; object-fit: ${objFit}; object-position: center; display: block;">
+                            <div style="position: absolute; inset: 0; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; font-size: 32px; font-weight: bold; color: white; transition: 0.2s;" onmouseover="this.style.background='rgba(0,0,0,0.5)'" onmouseout="this.style.background='rgba(0,0,0,0.7)'">
+                                +${ocultas}
+                            </div>
+                         </div>`;
+            } else {
+                html += `<div style="width: 100%; height: 100%; cursor: pointer; ${i === 0 && count >= 3 ? 'grid-row: span 2;' : ''} ${bgStyle}" onclick="event.stopPropagation(); abrirModalNavegacao('${urlsStr}', ${i})">
+                            <img src="${url}" style="width: 100%; height: 100%; object-fit: ${objFit}; object-position: center; display: block; transition: 0.2s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+                         </div>`;
+            }
+        });
+
+        html += `</div>`;
+        return html;
+    }
+
+    // --- SISTEMA DE CARROSSEL INTERATIVO ---
+    function abrirModalNavegacao(urlsStrJSON, startIndex) {
+        lightboxImagens = JSON.parse(decodeURIComponent(urlsStrJSON));
+        lightboxIndex = startIndex;
+        atualizarImagemModal();
+        document.getElementById('modal-imagem').style.display = 'flex';
+    }
+
+    function atualizarImagemModal() {
+        const imgEl = document.getElementById('imagem-ampliada');
+        const contadorEl = document.getElementById('modal-contador');
+        
+        if (!imgEl) return;
+        imgEl.style.opacity = '0';
+        
+        setTimeout(() => {
+            imgEl.src = lightboxImagens[lightboxIndex];
+            imgEl.style.opacity = '1';
+        }, 100);
+
+        if (contadorEl) {
+            contadorEl.innerText = `${lightboxIndex + 1} / ${lightboxImagens.length}`;
+        }
+
+        const displaySetas = lightboxImagens.length > 1 ? 'block' : 'none';
+        if (document.getElementById('modal-btn-esq')) document.getElementById('modal-btn-esq').style.display = displaySetas;
+        if (document.getElementById('modal-btn-dir')) document.getElementById('modal-btn-dir').style.display = displaySetas;
+    }
+
+    function mudarImagem(direcao) {
+        if (lightboxImagens.length <= 1) return;
+        
+        lightboxIndex += direcao;
+        if (lightboxIndex < 0) lightboxIndex = lightboxImagens.length - 1; 
+        if (lightboxIndex >= lightboxImagens.length) lightboxIndex = 0;      
+        
+        atualizarImagemModal();
+    }
+
+    function fecharModalImagem() {
+        document.getElementById('modal-imagem').style.display = 'none';
+        lightboxImagens = [];
+    }
+
+    // Escuta os inputs do teclado físico (Setas e ESC)
+    document.addEventListener('keydown', (e) => {
+        const modal = document.getElementById('modal-imagem');
+        if (modal && modal.style.display === 'flex') {
+            if (e.key === 'ArrowLeft') mudarImagem(-1);
+            else if (e.key === 'ArrowRight') mudarImagem(1);
+            else if (e.key === 'Escape') fecharModalImagem();
+        }
+    });
+
+    // ==========================================
+    // FUNÇÕES DE CARREGAMENTO (COMUNIDADE E POSTS)
+    // ==========================================
+    
+async function carregarComunidade() {
+        try {
+            const res = await fetch(`/cronicas/${cronicaId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const dados = await res.json();
+
+            if (!res.ok) {
+                alert(dados.erro || "Acesso negado.");
+                window.location.href = '/profile.html';
+                return;
+            }
+
+            // 1. FORÇANDO O NOME DA MESA (Procura H1, ID ou Classe)
+            const titulo = dados.cronica.nome || "Comunidade da Crônica";
+            const elementoNome = document.getElementById('nome-cronica') || document.querySelector('.nome-cronica') || document.querySelector('h1');
+            if (elementoNome) elementoNome.innerText = titulo;
+
+            // 2. CAPA DA MESA
+            const elementoBanner = document.getElementById('banner') || document.querySelector('.banner-comunidade');
+            const urlCapa = dados.cronica.banner_url || dados.cronica.capa_url || dados.cronica.imagem_url;
+            if (elementoBanner && urlCapa) {
+                elementoBanner.style.backgroundImage = `url('${urlCapa}')`;
+            }
+
+            // 3. MENU DE ABAS (COM OS NOMES REAIS DAS FUNÇÕES)
+            const menuAbas = document.getElementById('menu-abas') || document.getElementById('lista-abas') || document.querySelector('.menu-abas');
+            if (!menuAbas) return;
+            
+            menuAbas.innerHTML = '';
+            const isNarrador = (dados.papel === 'narrador' || dados.is_narrador);
+
+            if (dados.abas && dados.abas.length > 0) {
+                dados.abas.forEach(aba => {
+                    const icone = aba.tipo === 'restrita' ? '🔒' : '👁️';
+                    
+                    // CORREÇÃO: Usando deletarAba() em vez de apagarAba()
+                    const btnExcluir = isNarrador 
+                        ? `<span onclick="event.stopPropagation(); deletarAba('${aba.id}')" style="color: #ff5555; font-weight: bold; font-size: 14px; cursor: pointer; float: right;" title="Apagar Aba">✖</span>` 
+                        : '';
+
+                    menuAbas.innerHTML += `
+                        <div class="aba-item" onclick="selecionarAba('${aba.id}', this)">
+                            ${icone} ${aba.nome}
+                            ${btnExcluir}
+                        </div>
+                    `;
+                });
+                
+                setTimeout(() => {
+                    const primeiraAba = menuAbas.querySelector('.aba-item');
+                    if (primeiraAba) primeiraAba.click();
+                }, 100);
+            } else {
+                menuAbas.innerHTML = '<p style="color: var(--texto-mutado); padding: 15px; font-size:13px;">Nenhuma aba visível.</p>';
+            }
+
+            // CORREÇÃO: Usando abrirModalAba() em vez de abrirModalNovaAba()
+            if (isNarrador) {
+                menuAbas.innerHTML += `
+                    <button onclick="criarNovaAba()" style="width: 90%; margin: 15px auto; display: block; padding: 10px; background: transparent; border: 1px dashed var(--roxo-mago); color: var(--roxo-mago); border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.3s;">
+                        + Nova Aba
+                    </button>
+                `;
+            
+            }
+
+        } catch (err) {
+            console.error("Erro ao renderizar comunidade:", err);
+        }
+    }
+// Certifique-se de que a função de deletar existe no seu script:
+async function deletarAba(abaId) {
+    if(!confirm("Deseja apagar esta sala e todo o seu conteúdo?")) return;
+    try {
+        const res = await fetch(`/cronicas/${cronicaId}/abas/${abaId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if(res.ok) {
+            abaAtualId = null; 
+            carregarComunidade();
+        } else {
+            alert("Erro ao deletar aba.");
+        }
+    } catch (e) { alert("Erro de conexão."); }
+}
+
+    async function carregarPosts() {
+        const divPosts = document.getElementById('lista-posts');
+        if(!abaAtualId) return;
+
+        try {
+            const res = await fetch(`/cronicas/${cronicaId}/abas/${abaAtualId}/posts`, { headers: { 'Authorization': `Bearer ${token}` } });
+            const dados = await res.json();
+            
+            postsAtuaisNaAba = dados.posts || [];
+            
+            // Salva globalmente nossas credenciais nesta aba
+            minhaPermissaoAtual = dados.minha_permissao;
+            meuPapelNaMesa = dados.papel_na_mesa;
+            meuIdUsuario = dados.meu_usuario_id;
+
+            const nomeAbaAtiva = document.querySelector('.aba-item.ativa')?.innerText || "Aba";
+            
+            // 1. REGRA DO BOTÃO DE PERMISSÕES: Só existe se o Papel for Narrador!
+            const btnPermissoes = (meuPapelNaMesa === 'narrador') 
+                ? `<button onclick="abrirModalPermissoes('${abaAtualId}')" style="background: transparent; border: 1px solid var(--roxo-mago); color: var(--roxo-mago); padding: 5px 15px; border-radius: 4px; cursor: pointer;">🔐 Permissões</button>`
+                : ``; // Se for jogador, não renderiza nada
+
+            divPosts.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--borda); padding-bottom: 10px;">
+                    <h3>📑 ${nomeAbaAtiva}</h3>
+                    ${btnPermissoes}
+                </div>
+              
+                <div style="display: flex; gap: 20px; height: auto;">
+                    <div id="leitura-principal" style="flex: 2.5; background: var(--bg-card); padding: 20px; border-radius: 8px; border: 1px solid var(--borda);"></div>
+                    <div id="lista-lateral" style="flex: 1; overflow-y: auto; border-left: 1px dashed var(--borda); padding-left: 15px;"></div>
+                </div>
+            `;
+
+            // 2. REGRA DA CAIXA DE POSTAR: Só Narrador ou Editor enxergam!
+            const areaPostagem = document.querySelector('.caixa-postar');
+            if (areaPostagem) {
+                if (meuPapelNaMesa === 'narrador' || minhaPermissaoAtual === 'editor') {
+                    areaPostagem.style.display = 'block';
+                } else {
+                    areaPostagem.style.display = 'none';
+                }
+            }
+
+            const listaLateral = document.getElementById('lista-lateral');
+            listaLateral.innerHTML = '';
+            
+            postsAtuaisNaAba.forEach((post, index) => {
+                let imgs = [];
+                try { imgs = typeof post.imagens === 'string' ? JSON.parse(post.imagens) : (post.imagens || []); } catch(e) {}
+                const capa = (imgs.length > 0) ? imgs[0] : null;
+                
+                listaLateral.innerHTML += `
+                    <div onclick="exibirPostCompleto(${index})" style="padding: 10px; cursor: pointer; border-bottom: 1px solid var(--borda);">
+                        ${capa ? `<img src="${capa}" style="width: 100%; height: 60px; object-fit: cover; border-radius:4px;">` : '📄'}
+                        <div style="font-size: 12px; margin-top: 5px;">${post.conteudo.substring(0,20)}...</div>
+                    </div>
+                `;
+            });
+            
+            if(postsAtuaisNaAba.length > 0) exibirPostCompleto(0);
+        } catch (err) { console.error(err); }
+    }
+
+    // Função responsável por clicar e abrir uma aba
+    function selecionarAba(abaId, elemento) {
+        abaAtualId = abaId;
+        
+        // Remove a marcação 'ativa' de todas as abas
+        const todasAbas = document.querySelectorAll('.aba-item');
+        todasAbas.forEach(aba => aba.classList.remove('ativa'));
+        
+        // Destaca a aba que foi clicada agora
+        if (elemento) {
+            elemento.classList.add('ativa');
+        }
+        
+        // Carrega as postagens da aba e, por consequência, o botão de Permissões!
+        carregarPosts();
+    }
+
+    function exibirPostCompleto(index) {
+        const post = postsAtuaisNaAba[index];
+        if (!post) return;
+
+        const leituraPrincipal = document.getElementById('leitura-principal');
+        const dataFormatada = new Date(post.criado_em).toLocaleString('pt-BR');
+        const inicial = post.autor_nome.charAt(0).toUpperCase();
+        
+        // 3. REGRA DE EDITAR/APAGAR POST: Só Narrador, ou Editor no PRÓPRIO post!
+        const souDonoDoPost = (post.autor_id === meuIdUsuario);
+        const possoEditarPost = (meuPapelNaMesa === 'narrador') || (minhaPermissaoAtual === 'editor' && souDonoDoPost);
+        
+        const botoesAcaoHtml = possoEditarPost ? `
+            <div style="display: flex; gap: 10px;">
+                <button onclick="editarPost('${post.id}', ${index})" style="background: rgba(255,255,255,0.05); border: 1px solid var(--borda); color: var(--texto-claro); padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px;">✏️ Editar</button>
+                <button onclick="deletarPost('${post.id}')" style="background: rgba(255,85,85,0.1); border: 1px solid #ff5555; color: #ff5555; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px;">🗑️ Apagar</button>
+            </div>
+        ` : ``;
+
+        // 4. REGRA DOS COMENTÁRIOS: Leitura não comenta!
+        const possoComentar = (meuPapelNaMesa === 'narrador' || minhaPermissaoAtual === 'editor' || minhaPermissaoAtual === 'comentar');
+        
+        const areaComentariosHtml = possoComentar ? `
+            <div class="area-comentarios-input" style="display: flex; gap: 10px;">
+                <input type="text" id="input-comentario-${post.id}" placeholder="Escreva e aperte Enter..." style="flex: 1; padding: 10px; background: var(--bg-principal); border: 1px solid var(--borda); color: white; border-radius: 4px;" onkeydown="if(event.key === 'Enter') enviarComentario('${post.id}')">
+                <button onclick="enviarComentario('${post.id}')" style="background: var(--destaque); color: #121214; border: none; padding: 0 20px; border-radius: 4px; font-weight: bold; cursor: pointer;">Enviar</button>
+            </div>
+        ` : `<p style="color: var(--texto-mutado); font-size: 13px; font-style: italic;">Você possui apenas permissão de leitura.</p>`;
+
+        let arrayImagens = [];
+        try { arrayImagens = typeof post.imagens === 'string' ? JSON.parse(post.imagens) : (post.imagens || []); } catch(e) {}
+        if (post.imagem_url && arrayImagens.length === 0) arrayImagens = [post.imagem_url];
+
+        const mosaicoImagensHtml = gerarGridImagens(arrayImagens);
+        
+        leituraPrincipal.innerHTML = `
+        <div style="padding: 20px; background: var(--bg-card); border-bottom: 1px solid var(--borda);">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <div style="width: 45px; height: 45px; border-radius: 50%; background: var(--roxo-mago); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 20px; color: white; border: 2px solid var(--destaque); flex-shrink: 0;">${inicial}</div>
+                    <div>
+                        <div style="font-weight: bold; font-size: 18px; color: var(--destaque);">${post.autor_nome}</div>
+                        <div style="font-size: 12px; color: var(--texto-mutado);">${dataFormatada}</div>
+                    </div>
+                </div>
+                ${botoesAcaoHtml}
+            </div>
+            ${mosaicoImagensHtml}
+        </div>
+    
+        <div id="post-corpo-texto" style="padding: 20px; font-size: 16px; line-height: 1.8; color: var(--texto-claro); white-space: pre-wrap; word-break: break-word; text-align: left; width: 100%; box-sizing: border-box;">${post.conteudo.trim()}</div>
+    
+        <div style="margin-top: 40px; border-top: 1px dashed var(--borda); padding: 20px;">
+            <h4 style="margin-top: 0; color: var(--texto-mutado);">Comentários</h4>
+            <div id="lista-comentarios-${post.id}" style="margin-bottom: 15px;"></div>
+            ${areaComentariosHtml}
+        </div>
+        `;
+        carregarComentarios(post.id);
+    }
+
+    async function deletarPost(postId) {
+        if(!confirm("Atenção: Esta ação apagará permanentemente o registro e todos os seus comentários. Deseja prosseguir?")) return;
+        try {
+            const res = await fetch(`/cronicas/${cronicaId}/abas/${abaAtualId}/posts/${postId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) carregarPosts(); 
+            else alert("Você não tem permissão para apagar este post.");
+        } catch (err) { alert("Falha na matriz."); }
+    }
+
+    function editarPost(postId, index) {
+    const divTexto = document.getElementById('post-corpo-texto');
+    document.getElementById('edit-post-id').value = postId;
+    document.getElementById('edit-post-index').value = index;
+    // .trim() remove espaços vazios iniciais/finais
+    document.getElementById('edit-post-texto').value = divTexto.innerText.trim(); 
+    document.getElementById('modal-editar-post').style.display = 'flex';
+}
+
+    async function confirmarEdicaoPost() {
+    const postId = document.getElementById('edit-post-id').value;
+    const index = document.getElementById('edit-post-index').value;
+    const novoConteudo = document.getElementById('edit-post-texto').value.trim();
+
+    try {
+        const res = await fetch(`/cronicas/${cronicaId}/abas/${abaAtualId}/posts/${postId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ conteudo: novoConteudo })
+        });
+        if (res.ok) {
+            document.getElementById('modal-editar-post').style.display = 'none';
+            postsAtuaisNaAba[index].conteudo = novoConteudo;
+            exibirPostCompleto(index);
+        } else {
+            alert("Erro ao atualizar o post.");
+        }
+    } catch (err) { alert("Erro de conexão."); }
+}
+
+    async function carregarComentarios(postId) {
+    const divComentarios = document.getElementById(`lista-comentarios-${postId}`);
+    divComentarios.innerHTML = '<span style="color: var(--texto-mutado); font-size: 13px;">Carregando ecos...</span>';
+    try {
+        const res = await fetch(`/cronicas/${cronicaId}/posts/${postId}/comentarios`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const comentarios = await res.json();
+
+        if (comentarios.length === 0) {
+            divComentarios.innerHTML = '<div style="font-size: 13px; color: var(--texto-mutado);">Ninguém ecoou nesta memória ainda.</div>';
+            return;
+        }
+
+        divComentarios.innerHTML = '';
+        comentarios.forEach(c => {
+            const dataC = new Date(c.criado_em).toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
+            const nomeAutor = c.autor_nome || 'Desconhecido';
+            const inicial = nomeAutor.charAt(0).toUpperCase();
+
+            divComentarios.innerHTML += `
+        <div style="background: rgba(255,255,255,0.02); padding: 12px; border-radius: 6px; margin-bottom: 8px; border: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column;">
+
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; width: 100%;">
+                <div style="width: 24px; height: 24px; border-radius: 50%; background: var(--roxo-mago); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: white; flex-shrink: 0;">${inicial}</div>
+                <strong style="color: var(--destaque); font-size: 13px;">${nomeAutor}</strong>
+                <span style="font-size: 10px; color: var(--texto-mutado);">${dataC}</span>
+            </div>
+
+            <div id="comentario-texto-${c.id}" 
+            style="font-size: 14px; 
+            color: var(--texto-claro); 
+            white-space: pre-wrap; 
+            word-break: break-word; 
+            overflow-wrap: break-word; 
+            text-align: left; 
+            box-sizing: border-box; 
+            width: 100%; 
+            margin-bottom: 12px;
+            padding-left: 0;"> 
+            ${c.conteudo}
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 8px; width: 100%;">
+                <button onclick="editarComentario('${postId}', '${c.id}')" 
+                    style="background: #202024; border: 1px solid #8d8d99; color: #e1e1e6; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">Editar</button>
+
+                <button onclick="deletarComentario('${postId}', '${c.id}')" 
+                    style="background: #202024; border: 1px solid #ff5555; color: #ff5555; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold;">✕</button>
+            </div>
+        </div>
+`;
+        });
+    } catch (err) {
+        divComentarios.innerHTML = '<div style="color: red; font-size: 13px;">Erro ao ler as tramas.</div>';
+    }
+    }
+
+    async function enviarComentario(postId) {
+        const input = document.getElementById(`input-comentario-${postId}`);
+        const conteudo = input.value.trim();
+        if (!conteudo) return;
+
+        try {
+            const res = await fetch(`/cronicas/${cronicaId}/posts/${postId}/comentarios`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ conteudo })
+            });
+
+            if (res.ok) {
+                input.value = ''; 
+                carregarComentarios(postId); 
+            }
+        } catch (err) { alert("Erro de conexão."); }
+    }
+
+    async function editarComentario(postId, comentarioId) {
+        const paragrafo = document.getElementById(`comentario-texto-${comentarioId}`);
+        const conteudoAntigo = paragrafo.innerText;
+        const novoConteudo = prompt("Edite as suas palavras:", conteudoAntigo);
+        if (!novoConteudo || novoConteudo.trim() === '' || novoConteudo === conteudoAntigo) return;
+        try {
+            const res = await fetch(`/cronicas/${cronicaId}/posts/${postId}/comentarios/${comentarioId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ conteudo: novoConteudo })
+            });
+            if (res.ok) carregarComentarios(postId);
+            else alert("Você só pode editar os seus próprios comentários.");
+        } catch (err) { alert("Erro de conexão."); }
+    }
+
+    async function deletarComentario(postId, comentarioId) {
+        if (!confirm("Tem certeza que deseja apagar este comentário permanentemente?")) return;
+        try {
+            const res = await fetch(`/cronicas/${cronicaId}/posts/${postId}/comentarios/${comentarioId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) carregarComentarios(postId);
+            else alert("Apenas o autor ou o Narrador podem apagar este comentário.");
+        } catch (err) { alert("Erro de conexão."); }
+    }
+
+    async function publicarPostComImagem() {
+        const textarea = document.getElementById('texto-post');
+        const inputImg = document.getElementById('input-imagem');
+        const conteudo = textarea.value.trim();
+
+        if (!conteudo && inputImg.files.length === 0) return alert("Escreva algo ou anexe pelo menos uma imagem.");
+        if (!abaAtualId) return alert("Nenhuma aba selecionada.");
+
+        let urlsImagens = [];
+        try {
+            if (inputImg.files.length > 0) {
+                const formData = new FormData();
+                for (let i = 0; i < inputImg.files.length; i++) {
+                    formData.append('imagens', inputImg.files[i]); 
+                }
+
+                const resUpload = await fetch('/midia/upload/social', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+
+                const dataUpload = await resUpload.json();
+                if (!resUpload.ok) throw new Error(dataUpload.erro);
+                urlsImagens = dataUpload.urls || [dataUpload.url]; 
+            }
+
+            const resposta = await fetch(`/cronicas/${cronicaId}/abas/${abaAtualId}/posts`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ conteudo: conteudo, imagens: urlsImagens })
+            });
+
+            if (resposta.ok) {
+                textarea.value = '';
+                inputImg.value = ''; 
+                carregarPosts();
+            } else {
+                throw new Error("Erro ao salvar postagem.");
+            }
+        } catch (err) {
+            alert(err.message);
+        }
+    }
+
+    // ==========================================
+    // OUTRAS FUNÇÕES DA MESA (NÓS, MODERAÇÃO E EVENTOS)
+    // ==========================================
+    function abrirModalForja() { document.getElementById('forja-nome').value = ''; document.getElementById('modal-forja').style.display = 'flex'; }
+    function fecharModalForja() { document.getElementById('modal-forja').style.display = 'none'; }
+    
+    async function salvarForja() {
+        const nome = document.getElementById('forja-nome').value.trim();
+        const tipo = document.getElementById('forja-tipo').value;
+        if (!nome) return alert("O nome da entidade não pode ser vazio.");
+        try {
+            const resposta = await fetch(`/cronicas/${cronicaId}/nodes`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ nome: nome, tipo: tipo })
+            });
+            if (resposta.ok) { fecharModalForja(); carregarControleMundo(); }
+            else throw new Error("Erro ao forjar no servidor.");
+        } catch (err) { alert("Falha na realidade: " + err.message); }
+    }
+
+    async function criarNovaAba() {
+        const nomeAba = prompt("Qual será o nome da nova sala? (Ex: NPCs, Diários, Segredos)");
+        if (!nomeAba || nomeAba.trim() === '') return;
+
+        try {
+            const resposta = await fetch(`/cronicas/${cronicaId}/abas`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ nome: nomeAba, tipo: 'restrita' })
+            });
+            if (resposta.ok) carregarComunidade();
+            else alert("Erro ao criar aba.");
+        } catch (err) { alert("A conexão falhou."); }
+    }
+
+    async function carregarControleMundo(e) { 
+        const divPosts = document.getElementById('lista-posts');
+        const menuItems = document.querySelectorAll('.aba-item');
+
+        if (e && e.target) {
+            menuItems.forEach(el => el.classList.remove('ativa'));
+            e.target.classList.add('ativa');
+        }
+        
+        document.querySelector('.caixa-postar').style.display = 'none';
+
+        divPosts.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3>⚙️ Painel de Estados do Mundo</h3>
+                <button onclick="abrirModalForja()" style="background: var(--destaque); color: #121214; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold;">+ Forjar Entidade</button>
+            </div>
+            <div id="grid-mundo" style="display:grid; gap:15px; margin-top: 20px;">Carregando...</div>
+        `;
+
+        try {
+            const resposta = await fetch(`/cronicas/${cronicaId}/nodes`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const nodes = await resposta.json();
+            
+            const grid = document.getElementById('grid-mundo');
+            grid.innerHTML = '';
+
+            nodes.forEach(node => {
+                const card = document.createElement('div');
+                card.className = 'post';
+                card.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid var(--borda); padding-bottom: 5px;">
+                        <div style="font-weight:bold;">${node.nome} <span style="font-size:10px; opacity:0.6; text-transform:uppercase;">(${node.tipo})</span></div>
+                        <button onclick="adicionarNovaFlag('${node.id}')" style="background: transparent; color: var(--destaque); border: 1px dashed var(--destaque); padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">+ Flag</button>
+                    </div>
+                    <div id="flags-${node.id}"></div>
+                `;
+                grid.appendChild(card);
+
+                const flagsDiv = document.getElementById(`flags-${node.id}`);
+                node.flags.forEach(f => {
+                    if (f.key) {
+                        flagsDiv.innerHTML += `
+                            <label style="display:block; margin:5px 0; cursor:pointer;">
+                                <input type="checkbox" ${f.value ? 'checked' : ''} onchange="toggleWorldFlag('${node.id}', '${f.key}', this.checked)">
+                                ${f.key}
+                            </label>
+                        `;
+                    }
+                });
+            });
+        } catch (err) { divPosts.innerHTML = 'Erro ao carregar o mundo.'; }
+    }
+
+    async function toggleWorldFlag(nodeId, flagKey, isChecked) {
+        try {
+            await fetch(`/cronicas/${cronicaId}/nodes/${nodeId}/flags`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ flag_key: flagKey, flag_value: isChecked })
+            });
+        } catch (err) { alert("Erro ao alterar flag."); }
+    }
+
+    async function carregarFilaModeracao() {
+        const divPosts = document.getElementById('lista-posts');
+        const menuItems = document.querySelectorAll('.aba-item');
+        
+        menuItems.forEach(el => el.classList.remove('ativa'));
+        event.target.classList.add('ativa');
+        document.querySelector('.caixa-postar').style.display = 'none';
+
+        divPosts.innerHTML = '<h3>🛡️ Fila de Moderação</h3><div id="grid-moderacao" style="display:grid; gap:15px;">Inspecionando o véu...</div>';
+
+        try {
+            const resposta = await fetch(`/cronicas/${cronicaId}/moderacao`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const pendentes = await resposta.json();
+            
+            const grid = document.getElementById('grid-moderacao');
+            grid.innerHTML = '';
+
+            if (pendentes.length === 0) {
+                grid.innerHTML = '<p style="color: var(--texto-mutado); text-align: center; margin-top: 20px;">A fila está vazia.</p>';
+                return;
+            }
+
+            pendentes.forEach(node => {
+                const card = document.createElement('div');
+                card.className = 'post';
+                card.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong style="color: var(--destaque); font-size: 18px;">${node.nome}</strong> 
+                            <span style="font-size:12px; color: var(--texto-mutado); margin-left: 10px; text-transform: uppercase;">[${node.tipo}]</span>
+                        </div>
+                        <button onclick="aprovarNode('${node.id}')" style="background: var(--destaque); color: #121214; border: none; padding: 8px 20px; border-radius: 4px; cursor: pointer; font-weight: bold;">Aprovar</button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        } catch (err) { divPosts.innerHTML = 'Erro ao carregar a fila.'; }
+    }
+
+    async function aprovarNode(nodeId) {
+        try {
+            const res = await fetch(`/cronicas/${cronicaId}/nodes/${nodeId}/aprovar`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if(res.ok) carregarFilaModeracao(); 
+            else alert("Falha ao aprovar.");
+        } catch(err) { alert("Erro de conexão."); }
+    }
+
+    async function adicionarNovaFlag(nodeId) {
+        const nomeFlag = prompt("Digite o nome da nova Flag:");
+        if (!nomeFlag || nomeFlag.trim() === '') return;
+
+        try {
+            const resposta = await fetch(`/cronicas/${cronicaId}/nodes/${nodeId}/flags`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ flag_key: nomeFlag })
+            });
+            if (resposta.ok) carregarControleMundo(); 
+            else alert("Erro ao criar flag.");
+        } catch (err) { alert("Falha de conexão."); }
+    }        
+
+    async function carregarAgendaEventos(event) {
+        const divPosts = document.getElementById('lista-posts');
+        const menuItems = document.querySelectorAll('.aba-item');
+
+        if (event && event.target) {
+            menuItems.forEach(el => el.classList.remove('ativa'));
+            event.target.classList.add('ativa');
+        }
+
+        document.querySelector('.caixa-postar').style.display = 'none';
+
+        divPosts.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3>📅 Agenda de Eventos</h3>
+                <button onclick="criarNovoEvento()" style="background: var(--destaque); color: #121214; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold;">+ Forjar Evento</button>
+            </div>
+            <div id="grid-eventos" style="display:grid; gap:15px; margin-top: 20px;">Carregando...</div>
+        `;
+
+        try {
+            const resposta = await fetch(`/cronicas/${cronicaId}/eventos`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const eventos = await resposta.json();
+            const grid = document.getElementById('grid-eventos');
+            grid.innerHTML = '';
+
+            if (eventos.length === 0) {
+                grid.innerHTML = '<p style="color: var(--texto-mutado); text-align: center;">Nenhum evento no horizonte.</p>';
+                return;
+            }
+
+            eventos.forEach(ev => {
+                const porcentagem = Math.min((ev.pool_atual / ev.pool_maxima) * 100, 100);
+                const corBarra = porcentagem >= 99 ? '#ff5555' : 'var(--roxo-mago)';
+                
+                let listaGatilhosHtml = '';
+                ev.gatilhos.forEach(g => {
+                    if (g.node_nome) {
+                        listaGatilhosHtml += `<div style="font-size:12px; background: rgba(255,255,255,0.05); padding: 4px 8px; border-radius:4px; margin-bottom:4px;">⚙️ <strong>${g.node_nome}</strong> (${g.flag_key}) &rarr; Peso: <span style="color: var(--destaque)">+${g.peso}</span></div>`;
+                    }
+                });
+
+                if (!listaGatilhosHtml) listaGatilhosHtml = '<em style="font-size:12px; color:var(--texto-mutado)">Nenhuma causa vinculada.</em>';
+
+                const card = document.createElement('div');
+                card.className = 'post';
+                card.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px;">
+                        <div style="font-weight: bold; font-size: 18px;">${ev.nome}</div>
+                        <button onclick="abrirModalVinculo('${ev.id}')" style="background:transparent; border: 1px dashed var(--roxo-mago); color: var(--roxo-mago); padding: 4px 8px; border-radius:4px; cursor:pointer; font-size:12px;">+ Vincular</button>
+                    </div>
+                    <div style="margin-bottom: 15px;">${listaGatilhosHtml}</div>
+                    <div style="background: var(--bg-principal); border-radius: 8px; width: 100%; height: 20px; position: relative;">
+                        <div style="background: ${corBarra}; width: ${porcentagem}%; height: 100%;"></div>
+                        <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; font-size: 11px; font-weight: bold; color: white;">Pool: ${ev.pool_atual} / ${ev.pool_maxima}</div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        } catch (err) { console.error(err); }
+    }
+
+    async function criarNovoEvento() {
+        const nome = prompt("Nome do Evento:");
+        if (!nome) return;
+        const maxima = prompt("Tamanho da Pool (Ex: 10):");
+
+        try {
+            const res = await fetch(`/cronicas/${cronicaId}/eventos`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ nome, descricao: '', pool_maxima: parseInt(maxima) || 10 })
+            });
+            if(res.ok) carregarAgendaEventos(); 
+        } catch (err) { alert("Erro de conexão."); }
+    }
+
+    async function abrirModalVinculo(eventId) {
+        document.getElementById('vinculo-event-id').value = eventId;
+        document.getElementById('modal-vinculo').style.display = 'flex';
+        const selectNodes = document.getElementById('vinculo-node-id');
+        
+        try {
+            const res = await fetch(`/cronicas/${cronicaId}/nodes`, { headers: { 'Authorization': `Bearer ${token}` } });
+            memoriaDosNodes = await res.json();
+            selectNodes.innerHTML = '';
+            memoriaDosNodes.forEach(n => selectNodes.innerHTML += `<option value="${n.id}">${n.nome}</option>`);
+            atualizarListaDeFlagsVinculo();
+        } catch (err) { selectNodes.innerHTML = '<option>Erro</option>'; }
+    }
+
+    function atualizarListaDeFlagsVinculo() {
+        const nodeId = document.getElementById('vinculo-node-id').value;
+        const selectFlags = document.getElementById('vinculo-flag-key');
+        selectFlags.innerHTML = ''; 
+        const node = memoriaDosNodes.find(n => n.id === nodeId);
+        if (!node || !node.flags) return selectFlags.innerHTML = '<option value="">Sem flags</option>';
+        node.flags.forEach(f => { if (f.key) selectFlags.innerHTML += `<option value="${f.key}">${f.key}</option>`; });
+    }
+
+    function fecharModalVinculo() { document.getElementById('modal-vinculo').style.display = 'none'; }
+
+    async function salvarVinculo() {
+        const eventId = document.getElementById('vinculo-event-id').value;
+        const nodeId = document.getElementById('vinculo-node-id').value;
+        const flagKey = document.getElementById('vinculo-flag-key').value;
+        const peso = document.getElementById('vinculo-peso').value;
+
+        try {
+            const res = await fetch(`/cronicas/${cronicaId}/eventos/${eventId}/pesos`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ node_id: nodeId, flag_key: flagKey, peso: peso })
+            });
+            if (res.ok) { fecharModalVinculo(); carregarAgendaEventos(); }
+        } catch (err) { alert("Erro de conexão."); }
+    }
+
+    async function abrirModalPermissoes(abaId) {
+        document.getElementById('perm-aba-id').value = abaId;
+        document.getElementById('modal-permissoes').style.display = 'flex';
+        const selectJogadores = document.getElementById('perm-jogador-id');
+        const listaPermissoes = document.getElementById('lista-permissoes-atuais');
+
+        try {
+            const res = await fetch(`/cronicas/${cronicaId}/abas/${abaId}/permissoes`, { headers: { 'Authorization': `Bearer ${token}` } });
+            const dados = await res.json();
+            
+            selectJogadores.innerHTML = '<option value="">Selecione um Jogador...</option>';
+            dados.jogadores.forEach(j => selectJogadores.innerHTML += `<option value="${j.id}">${j.nome_usuario}</option>`);
+
+            listaPermissoes.innerHTML = '';
+            dados.permissoes.forEach(p => {
+                listaPermissoes.innerHTML += `
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 8px 10px; margin-bottom: 5px; border-radius: 4px;">
+                        <div><strong>${p.nome_usuario}</strong> <span style="font-size: 12px; color: var(--texto-mutado); margin-left: 10px;">${p.nivel_acesso.toUpperCase()}</span></div>
+                        <button onclick="revogarPermissao('${abaId}', '${p.jogador_id}')" style="background: transparent; color: #ff5555; border: 1px solid #ff5555; border-radius: 4px; cursor: pointer; padding: 2px 8px; font-size: 12px;">Revogar</button>
+                    </div>
+                `;
+            });
+        } catch (err) { listaPermissoes.innerHTML = '<div style="color: red;">Erro.</div>'; }
+    }
+
+    function fecharModalPermissoes() { document.getElementById('modal-permissoes').style.display = 'none'; }
+
+    async function salvarPermissaoAba() {
+        const abaId = document.getElementById('perm-aba-id').value;
+        const jogadorId = document.getElementById('perm-jogador-id').value;
+        const nivel = document.getElementById('perm-nivel').value;
+
+        // ==========================================
+        // PASSO B: A TRAVA DE SEGURANÇA
+        // ==========================================
+        if (!jogadorId || jogadorId.trim() === "") {
+            alert("Por favor, selecione um Desperto na lista antes de conceder acesso.");
+            return; // Para tudo aqui e não deixa a requisição ir para o servidor vazio!
+        }
+        // ==========================================
+
+        try {
+            const res = await fetch(`/cronicas/${cronicaId}/abas/${abaId}/permissoes`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ jogador_id: jogadorId, nivel_acesso: nivel })
+            });
+            
+            if (res.ok) {
+                abrirModalPermissoes(abaId); 
+            } else {
+                // Se o servidor reclamar de algo, mostramos o erro para o Narrador
+                const dadosErro = await res.json();
+                alert(dadosErro.erro || "Erro ao conceder acesso.");
+            }
+        } catch (err) { 
+            alert("Erro de conexão.");
+        }
+    }
+
+    async function revogarPermissao(abaId, jogadorId) {
+        try {
+            const res = await fetch(`/cronicas/${cronicaId}/abas/${abaId}/permissoes/${jogadorId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) abrirModalPermissoes(abaId); 
+        } catch (err) { alert("Erro de conexão."); }
+    }
+    
+    function limparUpload() {
+    // Limpa o input de arquivo
+    const input = document.getElementById('input-imagem');
+    input.value = ''; 
+    
+    // Se você estiver usando o container de miniaturas (previews), limpe-o também:
+    const previewContainer = document.getElementById('container-previews');
+    if (previewContainer) previewContainer.innerHTML = '';
+    
+    // Se você estiver usando a variável de lista de imagens:
+    if (typeof listaImagensParaUpload !== 'undefined') {
+        listaImagensParaUpload = [];
+    }
+    
+    console.log("Uploads removidos.");
+}
+
+// =================================================================
+// FUNÇÕES GLOBAIS FORÇADAS
+// =================================================================
+
+// 1. Garante que o clique nas abas funcione
+window.selecionarAba = selecionarAba;
+
+// 2. Garante que o botão de apagar aba encontre a função certa
+window.deletarAba = (typeof deletarAba !== 'undefined') ? deletarAba : 
+                   ((typeof apagarAba !== 'undefined') ? apagarAba : 
+                   function(id) { alert("A função original de apagar aba não foi encontrada."); });
+
+</script>
+</body>
+</html>

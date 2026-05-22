@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mochila do Aventureiro - Gerenciar Crônica</title>
+    <style>
+        :root { --bg-principal: #121214; --bg-card: #202024; --roxo-mago: #9871f5; --roxo-hover: #7f57df; --texto-claro: #e1e1e6; --borda: #29292e; --sucesso: #50fa7b; --erro: #f75a68; }
+        
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg-principal); color: var(--texto-claro); max-width: 800px; margin: 40px auto; padding: 20px; }
+        .header-painel { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--borda); padding-bottom: 20px; }
+        h1, h3 { color: var(--roxo-mago); margin: 0; }
+        
+        .caixa { background: var(--bg-card); padding: 20px; border-radius: 8px; border: 1px solid var(--borda); margin-bottom: 20px; }
+        
+        .form-convite { display: flex; gap: 10px; margin-top: 15px; }
+        input { flex: 1; padding: 10px; background: var(--bg-principal); border: 1px solid var(--borda); color: #fff; border-radius: 4px; outline: none; }
+        button { background: var(--roxo-mago); color: #fff; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button:hover { background: var(--roxo-hover); }
+        
+        .lista-jogadores { list-style: none; padding: 0; margin: 0; }
+        .jogador-item { background: var(--bg-principal); padding: 15px; border: 1px solid var(--borda); border-radius: 4px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .badge { background: var(--roxo-mago); padding: 3px 8px; border-radius: 12px; font-size: 12px; }
+    </style>
+</head>
+<body>
+
+    <div class="header-painel">
+        <h1>Gerenciar Crônica</h1>
+        <a href="/profile.html" style="color: var(--texto-claro); text-decoration: none;">Voltar ao Hub</a>
+    </div>
+
+    <div class="caixa">
+        <h3>Convidar Desperto</h3>
+        <p style="font-size: 14px; color: #8d8d99; margin-top: 5px;">Digite o e-mail cadastrado do jogador para adicioná-lo à mesa.</p>
+        <div class="form-convite">
+            <input type="email" id="email-novo-jogador" placeholder="email@do-jogador.com">
+            <button onclick="adicionarJogador()">Adicionar</button>
+        </div>
+    </div>
+
+    <div class="caixa">
+        <h3>Jogadores na Mesa</h3>
+        <ul class="lista-jogadores" id="lista-jogadores">
+            <p style="color: #8d8d99;">Carregando membros da cabala...</p>
+        </ul>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token_m20');
+        const urlParams = new URLSearchParams(window.location.search);
+        const cronicaId = urlParams.get('id'); // Pega o ID da URL (?id=xxxx)
+
+        if (!token) {
+            alert("Acesso negado. Faça login.");
+            window.location.href = '/login.html';
+        }
+
+        if (!cronicaId) {
+            alert("Crônica não especificada.");
+            window.location.href = '/profile.html';
+        }
+
+        // Função para buscar e renderizar a lista
+        async function carregarJogadores() {
+            try {
+                const resposta = await fetch(`/cronicas/${cronicaId}/jogadores`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!resposta.ok) throw new Error("Erro ao buscar jogadores");
+                
+                const jogadores = await resposta.json();
+                const lista = document.getElementById('lista-jogadores');
+                lista.innerHTML = ''; // Limpa o "Carregando..."
+
+                if (jogadores.length === 0) {
+                    lista.innerHTML = '<p style="color: #8d8d99;">Nenhum jogador nesta crônica ainda.</p>';
+                    return;
+                }
+
+                jogadores.forEach(jog => {
+                    lista.innerHTML += `
+                        <li class="jogador-item">
+                            <span><strong>${jog.nome_usuario}</strong></span>
+                            <span class="badge">${jog.papel.toUpperCase()}</span>
+                        </li>
+                    `;
+                });
+            } catch (err) {
+                console.error(err);
+                document.getElementById('lista-jogadores').innerHTML = '<p style="color: var(--erro);">Falha ao carregar jogadores.</p>';
+            }
+        }
+
+        // Função para adicionar novo jogador
+        async function adicionarJogador() {
+            const email = document.getElementById('email-novo-jogador').value;
+            
+            if (!email) { alert("Digite um e-mail."); return; }
+
+            try {
+                const resposta = await fetch(`/cronicas/${cronicaId}/adicionar-jogador`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ email_jogador: email })
+                });
+
+                const dados = await resposta.json();
+
+                if (!resposta.ok) throw new Error(dados.erro || 'Erro ao adicionar.');
+
+                alert(dados.mensagem);
+                document.getElementById('email-novo-jogador').value = '';
+                
+                // Recarrega a lista para mostrar o amigo que acabou de entrar
+                carregarJogadores(); 
+
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        // Inicia carregando os jogadores quando a página abre
+        carregarJogadores();
+    </script>
+</body>
+</html>

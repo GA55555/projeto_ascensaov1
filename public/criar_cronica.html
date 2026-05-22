@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mochila do Aventureiro - Forjar Crônica</title>
+    <style>
+        :root { --bg-principal: #121214; --bg-card: #202024; --roxo-mago: #9871f5; --roxo-hover: #7f57df; --texto-claro: #e1e1e6; --texto-mutado: #8d8d99; --borda: #29292e; --sucesso: #50fa7b; --erro: #f75a68; }
+        
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg-principal); color: var(--texto-claro); max-width: 800px; margin: 40px auto; padding: 20px; }
+        .header-painel { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .caixa-form { background: var(--bg-card); padding: 30px; border-radius: 8px; border: 1px solid var(--borda); }
+        
+        .campo { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+        input[type="text"], textarea, select { padding: 12px; background: var(--bg-principal); border: 1px solid var(--borda); color: #fff; border-radius: 4px; outline: none; width: 100%; box-sizing: border-box; }
+        input:focus, textarea:focus { border-color: var(--roxo-mago); }
+        textarea { resize: vertical; min-height: 120px; }
+        
+        .preview-capa { width: 100%; height: 200px; background: var(--bg-principal); border: 2px dashed var(--borda); border-radius: 8px; display: flex; justify-content: center; align-items: center; overflow: hidden; margin-top: 10px; position: relative; }
+        .preview-capa img { width: 100%; height: 100%; object-fit: cover; display: none; }
+        .preview-capa span { color: var(--texto-mutado); }
+        
+        .btn-acao { background: var(--roxo-mago); color: #fff; border: none; padding: 15px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 16px; width: 100%; margin-top: 10px; }
+        .btn-acao:hover { background: var(--roxo-hover); }
+        .btn-acao:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        a { color: var(--texto-mutado); text-decoration: none; }
+        a:hover { color: var(--roxo-mago); }
+    </style>
+</head>
+<body>
+
+    <div class="header-painel">
+        <a href="/profile.html">← Voltar ao Perfil</a>
+        <h2 style="color: var(--roxo-mago); margin: 0;">Forjar Nova Crônica</h2>
+    </div>
+
+    <div class="caixa-form">
+        <form id="form-cronica">
+            <div class="campo">
+                <label>Nome da Crônica</label>
+                <input type="text" id="cro-nome" placeholder="Ex: Sombras de Belo Horizonte" required>
+            </div>
+
+            <div class="campo">
+                <label>Sistema de Regras</label>
+                <select id="cro-sistema">
+                    <option value="1">Mago: A Ascensão (M20)</option>
+                    </select>
+            </div>
+
+            <div class="campo">
+                <label>Sinopse / Descrição da Aventura</label>
+                <textarea id="cro-descricao" placeholder="Escreva um breve resumo do que aguarda os jogadores nesta crônica..."></textarea>
+            </div>
+
+            <div class="campo">
+                <label>Arte de Capa (Banner da Comunidade)</label>
+                <input type="file" id="cro-capa" accept=".jpg, .jpeg, .png, .webp" onchange="mostrarPreviewCapa(this)">
+                <div class="preview-capa" id="preview-container">
+                    <span>Nenhuma imagem selecionada</span>
+                    <img id="img-preview" src="">
+                </div>
+            </div>
+
+            <button type="submit" class="btn-acao" id="btn-submit">Criar Crônica e Iniciar Comunidade</button>
+        </form>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token_m20');
+        if (!token) window.location.href = '/login.html';
+
+        // Faz o preview visual da imagem selecionada instantaneamente
+        function mostrarPreviewCapa(input) {
+            const container = document.getElementById('preview-container');
+            const img = document.getElementById('img-preview');
+            const span = container.querySelector('span');
+
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    img.src = e.target.result;
+                    img.style.display = 'block';
+                    span.style.display = 'none';
+                    container.style.border = 'none';
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        document.getElementById('form-cronica').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btn-submit');
+            btn.disabled = true;
+            btn.innerText = 'Forjando a Realidade (Enviando...)...';
+
+            const nome = document.getElementById('cro-nome').value;
+            const descricao = document.getElementById('cro-descricao').value;
+            const sistema_id = parseInt(document.getElementById('cro-sistema').value);
+            const inputCapa = document.getElementById('cro-capa');
+
+            let capa_url = null;
+
+            try {
+                // 1. Fazer o Upload da Imagem no Debian (Se o narrador anexou uma)
+                if (inputCapa.files.length > 0) {
+                    const formData = new FormData();
+                    formData.append('imagens', inputCapa.files[0]);
+
+                    const resUpload = await fetch('/midia/upload/capas', {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}` },
+                        body: formData
+                    });
+
+                    const dadosUpload = await resUpload.json();
+                    if (!resUpload.ok) throw new Error(dadosUpload.erro || 'Falha no upload da capa.');
+                    
+                    capa_url = dadosUpload.urls[0];
+                }
+
+                // 2. Salvar a Crônica no Postgres
+                const payload = { nome, descricao, sistema_id, capa_url };
+
+                const resCronica = await fetch('/cronicas', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!resCronica.ok) throw new Error('Erro ao criar a crônica no banco de dados.');
+
+                alert("Mundo criado com sucesso! O Feed Geral já está online.");
+                window.location.href = '/profile.html'; // Volta para o Hub Central
+
+            } catch (err) {
+                alert(err.message);
+                btn.disabled = false;
+                btn.innerText = 'Criar Crônica e Iniciar Comunidade';
+            }
+        });
+    </script>
+</body>
+</html>
