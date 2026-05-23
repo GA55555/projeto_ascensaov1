@@ -156,35 +156,6 @@ app.use((err, req, res, next) => {
 });
 
 // ==========================================
-// ROTAS DE CRÔNICAS (NARRADOR)
-// ==========================================
-
-app.post('/cronicas', verificarToken, async (req, res) => {
-    const { nome, descricao, sistema_id, capa_url } = req.body;
-    const narrador_id = req.usuario.id;
-
-    try {
-        await pool.query('BEGIN');
-        const novaCronica = await pool.query(
-            `INSERT INTO cronicas (nome, descricao, narrador_id, sistema_id, capa_url) 
-             VALUES ($1, $2, $3, $4, $5) RETURNING id`,
-            [nome, descricao, narrador_id, sistema_id || 1, capa_url]
-        );
-        const cronicaId = novaCronica.rows[0].id;
-        await pool.query(
-            `INSERT INTO cronica_abas (cronica_id, nome, tipo) VALUES ($1, 'Feed Geral', 'geral')`,
-            [cronicaId]
-        );
-        await pool.query('COMMIT');
-        res.status(201).json({ mensagem: 'Crônica criada com sucesso!', id: cronicaId });
-    } catch (err) {
-        await pool.query('ROLLBACK');
-        console.error("Erro ao criar crônica:", err);
-        res.status(500).json({ erro: 'Erro interno ao criar a crônica.' });
-    }
-});
-
-// ==========================================
 // ROTAS DO FEED DA COMUNIDADE
 // ==========================================
 
@@ -748,8 +719,8 @@ app.get('/cronicas/:cronicaId/jogadores', verificarToken, async (req, res) => {
     }
 });
 
-
 app.use('/auth', authRoutes);
 app.use('/personagens', personagensRoutes);
 app.use('/cronicas', cronicasRoutes);
+
 app.listen(PORTA, () => console.log(`🚀 Servidor rodando em http://localhost:${PORTA}`));

@@ -203,7 +203,7 @@
     </div>
 
    <script>
-    const token = localStorage.getItem('token_m20');
+    const token = localStorage.getItem('m20_token');
     if (!token) window.location.href = '/login.html';
 
     const urlParams = new URLSearchParams(window.location.search);
@@ -334,20 +334,21 @@
     // ==========================================
     
 async function carregarComunidade() {
-        try {
-            const res = await fetch(`/cronicas/${cronicaId}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const dados = await res.json();
+    try {
+        const res = await fetch(`/cronicas/${cronicaId}/comunidade`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        const dados = await res.json();
 
-            if (!res.ok) {
-                alert(dados.erro || "Acesso negado.");
-                window.location.href = '/profile.html';
-                return;
-            }
+        if (!res.ok) {
+            alert(dados.erro || "Acesso negado.");
+            window.location.href = '/profile.html';
+            return;
+        }
 
             // 1. FORÇANDO O NOME DA MESA (Procura H1, ID ou Classe)
-            const titulo = dados.cronica.nome || "Comunidade da Crônica";
+            const titulo = dados.nome || "Comunidade da Crônica";
             const elementoNome = document.getElementById('nome-cronica') || document.querySelector('.nome-cronica') || document.querySelector('h1');
             if (elementoNome) elementoNome.innerText = titulo;
 
