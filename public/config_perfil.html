@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configurações do Perfil</title>
+    <style>
+        :root { --bg-principal: #121214; --bg-card: #202024; --roxo-mago: #9871f5; --roxo-hover: #7f57df; --texto-claro: #e1e1e6; --texto-mutado: #8d8d99; --borda: #29292e; --erro: #f75a68; --sucesso: #50fa7b; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg-principal); color: var(--texto-claro); max-width: 800px; margin: 40px auto; padding: 20px; }
+        h2, h3 { color: var(--roxo-mago); }
+        .card { background: var(--bg-card); padding: 25px; border-radius: 8px; border: 1px solid var(--borda); margin-bottom: 20px; }
+        .campo { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; color: var(--texto-mutado); font-size: 13px; }
+        input[type="text"], input[type="email"], input[type="password"] { 
+            width: 100%; padding: 10px; background: var(--bg-principal); border: 1px solid var(--borda); 
+            color: #fff; border-radius: 4px; box-sizing: border-box; 
+        }
+        input:focus { border-color: var(--roxo-mago); outline: none; }
+        .btn { background: var(--roxo-mago); color: #fff; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn:hover { background: var(--roxo-hover); }
+        .avatar-preview { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 2px solid var(--roxo-mago); background: var(--borda); }
+        .perfil-cronica { display: flex; gap: 15px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--borda); }
+        .perfil-cronica:last-child { border-bottom: none; }
+        .msg { padding: 10px; border-radius: 4px; margin-bottom: 15px; display: none; }
+        .msg-sucesso { background: rgba(80,250,123,0.1); color: var(--sucesso); border: 1px solid var(--sucesso); }
+        .msg-erro { background: rgba(255,85,85,0.1); color: var(--erro); border: 1px solid var(--erro); }
+        .avatar-cronica { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; background: var(--borda); }
+    </style>
+</head>
+<body>
+
+    <a href="/profile.html" style="color: var(--texto-mutado);">← Voltar ao Perfil</a>
+    <h2>⚙️ Configurações do Desperto</h2>
+
+    <!-- Avatar e Dados Básicos -->
+    <div class="card">
+        <div style="display: flex; gap: 20px; align-items: center; margin-bottom: 20px;">
+            <img id="avatar-preview" class="avatar-preview" src="/uploads/avatares/default.png">
+            <div>
+                <input type="file" id="input-avatar" accept="image/*" onchange="uploadAvatar()">
+                <p style="font-size: 11px; color: var(--texto-mutado);">JPG, PNG ou WebP. Máx 2MB</p>
+            </div>
+        </div>
+
+        <div class="campo">
+            <label>Nome de Perfil</label>
+            <input type="text" id="nome-usuario">
+        </div>
+        <div class="campo">
+            <label>Email</label>
+            <input type="email" id="email-usuario">
+        </div>
+        <button class="btn" onclick="salvarDados()">💾 Salvar Dados</button>
+    </div>
+
+    <!-- Alterar Senha -->
+    <div class="card">
+        <h3>🔒 Alterar Senha</h3>
+        <div class="campo">
+            <label>Senha Atual</label>
+            <input type="password" id="senha-atual">
+        </div>
+        <div class="campo">
+            <label>Nova Senha</label>
+            <input type="password" id="nova-senha">
+        </div>
+        <div class="campo">
+            <label>Confirmar Nova Senha</label>
+            <input type="password" id="confirmar-senha">
+        </div>
+        <button class="btn" onclick="alterarSenha()">🔐 Alterar Senha</button>
+    </div>
+
+    <!-- Apelidos por Crônica -->
+    <div class="card">
+        <h3>🎭 Apelidos e Avatares por Crônica</h3>
+        <div id="lista-perfis-cronica">
+            <p style="color: var(--texto-mutado);">Carregando...</p>
+        </div>
+    </div>
+
+    <div id="msg" class="msg"></div>
+
+    <script>
+        const token = localStorage.getItem('m20_token');
+        if (!token) window.location.href = '/login.html';
+
+        function mostrarMsg(texto, tipo) {
+            const msg = document.getElementById('msg');
+            msg.innerText = texto;
+            msg.className = `msg msg-${tipo}`;
+            msg.style.display = 'block';
+            setTimeout(() => msg.style.display = 'none', 3000);
+        }
+
+        async function carregarPerfil() {
+            try {
+                const res = await fetch('/perfil', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const dados = await res.json();
+
+                document.getElementById('nome-usuario').value = dados.usuario.nome_usuario;
+                document.getElementById('email-usuario').value = dados.usuario.email;
+                
+                if (dados.usuario.avatar_url) {
+                    document.getElementById('avatar-preview').src = dados.usuario.avatar_url;
+                }
+
+                // Renderiza perfis por crônica
+                const lista = document.getElementById('lista-perfis-cronica');
+                lista.innerHTML = '';
+                
+                if (dados.perfis_cronica.length === 0) {
+                    lista.innerHTML = '<p style="color: var(--texto-mutado);">Nenhuma crônica encontrada.</p>';
+                } else {
+                    dados.perfis_cronica.forEach(p => {
+                        lista.innerHTML += `
+                            <div class="perfil-cronica">
+                                <img class="avatar-cronica" src="${p.avatar_url || '/uploads/avatares/default.png'}">
+                                <div style="flex: 1;">
+                                    <strong>${p.cronica_nome}</strong>
+                                    <input type="text" id="apelido-${p.cronica_id}" value="${p.apelido || ''}" 
+                                           placeholder="Seu apelido nesta crônica" style="width: 100%; margin-top: 5px;">
+                                </div>
+                                <input type="file" id="avatar-cronica-${p.cronica_id}" accept="image/*" 
+                                       onchange="uploadAvatarCronica('${p.cronica_id}')">
+                                <button class="btn" style="font-size: 12px; padding: 5px 10px;" 
+                                        onclick="salvarPerfilCronica('${p.cronica_id}')">Salvar</button>
+                            </div>
+                        `;
+                    });
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function salvarDados() {
+            const nome_usuario = document.getElementById('nome-usuario').value;
+            const email = document.getElementById('email-usuario').value;
+
+            try {
+                const res = await fetch('/perfil/dados', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ nome_usuario, email })
+                });
+                const data = await res.json();
+                if (res.ok) mostrarMsg(data.mensagem, 'sucesso');
+                else mostrarMsg(data.erro, 'erro');
+            } catch (err) {
+                mostrarMsg('Erro de conexão.', 'erro');
+            }
+        }
+
+        async function alterarSenha() {
+            const senha_atual = document.getElementById('senha-atual').value;
+            const nova_senha = document.getElementById('nova-senha').value;
+            const confirmar = document.getElementById('confirmar-senha').value;
+
+            if (nova_senha !== confirmar) return mostrarMsg('Senhas não conferem.', 'erro');
+
+            try {
+                const res = await fetch('/perfil/senha', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ senha_atual, nova_senha })
+                });
+                const data = await res.json();
+                if (res.ok) mostrarMsg(data.mensagem, 'sucesso');
+                else mostrarMsg(data.erro, 'erro');
+            } catch (err) {
+                mostrarMsg('Erro de conexão.', 'erro');
+            }
+        }
+
+        async function salvarPerfilCronica(cronicaId) {
+            const apelido = document.getElementById(`apelido-${cronicaId}`).value;
+            
+            try {
+                const res = await fetch(`/perfil/cronica/${cronicaId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ apelido })
+                });
+                const data = await res.json();
+                if (res.ok) mostrarMsg(data.mensagem, 'sucesso');
+                else mostrarMsg(data.erro, 'erro');
+            } catch (err) {
+                mostrarMsg('Erro de conexão.', 'erro');
+            }
+        }
+
+        carregarPerfil();
+    </script>
+</body>
+</html>

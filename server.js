@@ -2,8 +2,6 @@ require('dotenv').config();
 const express = require('express');
 const pool = require('./db');
 const path = require('path');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const fs = require('fs');
 const verificarToken = require('./middlewares/auth');

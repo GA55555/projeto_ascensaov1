@@ -4,6 +4,7 @@ const pool = require('../db'); // Conexão com o banco
 const verificarToken = require('../middlewares/auth'); // O segurança da porta
 const { checarAcessoCronica } = require('../middlewares/permissoes');
 
+
 // Rota: Buscar todas as crônicas criadas pelo narrador logado
 router.get('/', verificarToken, async (req, res) => {
     try {
@@ -18,26 +19,24 @@ router.get('/', verificarToken, async (req, res) => {
     }
 });
 
-// Rota: Criar uma nova crônica (Apenas para Narradores)
 router.post('/', verificarToken, async (req, res) => {
-    // Verificação extra de segurança: o usuário é realmente um narrador?
     if (req.usuario.papel !== 'narrador') {
-        return res.status(403).json({ error: 'Acesso negado. Apenas narradores podem tecer novas crônicas.' });
+        return res.status(403).json({ erro: 'Acesso negado. Apenas narradores podem tecer novas crônicas.' });
     }
 
-    const { titulo, descricao, sistema } = req.body;
-    
-    try {
+    const { nome, descricao, sistema_id, capa_url } = req.body;
+
+    try {  
         const novaCronica = await pool.query(
-            `INSERT INTO cronicas (narrador_id, titulo, descricao, sistema) 
-             VALUES ($1, $2, $3, $4) RETURNING *`,
-            [req.usuario.id, titulo, descricao, sistema || 'Mago: A Ascensão']
+            `INSERT INTO cronicas (narrador_id, nome, descricao, sistema_id, capa_url) 
+             VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+            [req.usuario.id, nome, descricao, sistema_id || 1, capa_url]
         );
         
         res.status(201).json(novaCronica.rows[0]);
     } catch (err) {
         console.error('Erro ao criar crônica:', err);
-        res.status(500).json({ error: 'Erro no servidor ao forjar a nova crônica.' });
+        res.status(500).json({ erro: 'Erro no servidor ao forjar a nova crônica.' });
     }
 });
 
@@ -69,5 +68,63 @@ router.get('/:id/comunidade', verificarToken, async (req, res) => {
     }
 });
 
+router.put('/:id/status', verificarToken, async (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body;
+    const usuarioId = req.usuario.id;
+
+    const statusPermitidos = ['ativa', 'inativa', 'terminada'];
+    if (!statusPermitidos.includes(status)) {
+        return res.status(400).json({ erro: 'Status inválido. Use: ativa, inativa ou terminada.' });
+    }
+
+    try {
+        // Determina o valor de data_termino ANTES da query
+        const dataTermino = status === 'terminada' ? new Date() : null;
+
+        const result = await pool.query(
+            `UPDATE cronicas 
+             SET status = $1, 
+                 data_termino = $2
+             WHERE id = $3 AND narrador_id = $4 
+             RETURNING *`,
+            [status, dataTermino, id, usuarioId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(403).json({ erro: 'Apenas o Narrador pode alterar o status.' });
+        }
+
+        res.json({ 
+            mensagem: `Crônica ${status === 'ativa' ? 'ativada' : status === 'inativa' ? 'pausada' : 'finalizada'}!`,
+            cronica: result.rows[0]
+        });
+    } catch (err) {
+        console.error('Erro ao atualizar status:', err);
+        res.status(500).json({ erro: 'Erro ao alterar status da crônica.' });
+    }
+});
+
+// Deletar crônica (imediatamente, com confirmação)
+router.delete('/:id', verificarToken, async (req, res) => {
+    const { id } = req.params;
+    const usuarioId = req.usuario.id;
+
+    try {
+        const result = await pool.query(
+            'DELETE FROM cronicas WHERE id = $1 AND narrador_id = $2 RETURNING id',
+            [id, usuarioId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(403).json({ erro: 'Apenas o Narrador pode deletar a crônica.' });
+        }
+
+        res.json({ mensagem: 'Crônica e todos os seus registros foram apagados.' });
+    } catch (err) {
+        console.error('Erro ao deletar crônica:', err);
+        res.status(500).json({ erro: 'Erro ao deletar crônica.' });
+    }
+});
 // Exporta o roteador
 module.exports = router;
