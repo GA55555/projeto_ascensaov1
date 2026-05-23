@@ -66,17 +66,24 @@
                 if (!resposta.ok) throw new Error(data.erro || 'Erro ao fazer login.');
 
                 // A MÁGICA ACONTECE AQUI: Salva o token JWT no cofre do navegador
-                localStorage.setItem('token_m20', data.token);
-                localStorage.setItem('user_role', data.usuario.papel);
+                // Mude as chaves para o padrão m20_
+                localStorage.setItem('m20_token', data.token);
+                localStorage.setItem('m20_role', data.role || data.usuario?.papel);
+                localStorage.setItem('m20_user', JSON.stringify(data.usuario));
 
                 // Redirecionamento baseado na Role (Se for narrador, vai pro painel dele)
+                const role = data.role || data.usuario?.papel;
+                if (role === 'narrador') {
+                window.location.href = '/profile.html';  // ou painel específico
+                } else {
                 window.location.href = '/profile.html';
+                }
 
-            } catch (err) {
-                msgErro.innerText = err.message;
-                msgErro.style.display = 'block';
-            }
-        });
+        } catch (err) {
+            msgErro.innerText = err.message;
+            msgErro.style.display = 'block';
+        }
+    });
     </script>
 </body>
 </html>

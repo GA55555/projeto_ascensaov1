@@ -4,7 +4,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const pool = require('../db');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'grimorio_secreto_m20_super_seguro';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // Rota de Registro
 router.post('/registro', async (req, res) => {
