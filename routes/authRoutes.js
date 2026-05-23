@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const pool = require('../db'); // Traz a conexão com o banco
+const pool = require('../db');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'grimorio_secreto_m20_super_seguro';
 
@@ -11,13 +11,12 @@ router.post('/registro', async (req, res) => {
     const { nome, email, senha, papel } = req.body;
     
     try {
-        // Encriptar a senha antes de salvar no banco
         const salt = await bcrypt.genSalt(10);
         const senhaHash = await bcrypt.hash(senha, salt);
 
-        // Inserir o novo jogador ou narrador
+        // ✅ CORRIGIDO: nome_usuario em vez de nome
         const novoUsuario = await pool.query(
-            'INSERT INTO usuarios (nome, email, senha_hash, papel) VALUES ($1, $2, $3, $4) RETURNING *',
+            'INSERT INTO usuarios (nome_usuario, email, senha_hash, papel) VALUES ($1, $2, $3, $4) RETURNING *',
             [nome, email, senhaHash, papel || 'jogador']
         );
 
@@ -33,31 +32,39 @@ router.post('/login', async (req, res) => {
     const { email, senha } = req.body;
 
     try {
-        // Buscar o usuário pelo email
         const usuario = await pool.query('SELECT * FROM usuarios WHERE email = $1', [email]);
+        
         if (usuario.rows.length === 0) {
-            return res.status(401).json({ error: 'Credenciais inválidas' });
+            return res.status(401).json({ erro: 'Credenciais inválidas' });
         }
 
-        // Comparar a senha digitada com a criptografada no banco
         const senhaValida = await bcrypt.compare(senha, usuario.rows[0].senha_hash);
         if (!senhaValida) {
-            return res.status(401).json({ error: 'Credenciais inválidas' });
+            return res.status(401).json({ erro: 'Credenciais inválidas' });
         }
 
-        // Gerar o token de acesso
+        // ✅ CORRIGIDO: token criado ANTES de usar
         const token = jwt.sign(
             { id: usuario.rows[0].id, papel: usuario.rows[0].papel },
             JWT_SECRET,
-            { expiresIn: '1h' }
+            { expiresIn: '7d' }  // aumentado para 7 dias
         );
 
-        res.json({ token, usuario: { id: usuario.rows[0].id, nome: usuario.rows[0].nome, papel: usuario.rows[0].papel } });
+        // ✅ Resposta única, completa e correta
+        res.json({ 
+            token, 
+            role: usuario.rows[0].papel,
+            usuario: { 
+                id: usuario.rows[0].id, 
+                nome: usuario.rows[0].nome_usuario,  // ✅ nome_usuario
+                papel: usuario.rows[0].papel 
+            } 
+        });
+
     } catch (err) {
         console.error('Erro no login:', err);
-        res.status(500).json({ error: 'Erro no servidor' });
+        res.status(500).json({ erro: 'Erro no servidor' });
     }
 });
 
-// Exporta o roteador para o server.js usar
 module.exports = router;

@@ -67,7 +67,7 @@
 
                 // A MÁGICA ACONTECE AQUI: Salva o token JWT no cofre do navegador
                 localStorage.setItem('token_m20', data.token);
-                localStorage.setItem('user_role', data.role);
+                localStorage.setItem('user_role', data.usuario.papel);
 
                 // Redirecionamento baseado na Role (Se for narrador, vai pro painel dele)
                 window.location.href = '/profile.html';
