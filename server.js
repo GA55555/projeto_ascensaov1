@@ -1,86 +1,23 @@
+require('dotenv').config();
 const express = require('express');
-const pool = require('./db');
+const { Pool } = require('pg');
 const path = require('path');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const fs = require('fs');
-
+const verificarToken = require('./middlewares/auth');
 const app = express();
 const PORTA = 3000;
 const JWT_SECRET = 'grimorio_secreto_m20_super_seguro';
+const authRoutes = require('./routes/authRoutes');
+const personagensRoutes = require('./routes/personagensRoutes');
+const cronicasRoutes = require('./routes/cronicasRoutes');
 
 app.use(express.json({ limit: '1mb' })); 
 
 // Define a pasta public como raiz estática (assim tudo dentro de public fica acessível no navegador)
 app.use(express.static(path.join(__dirname, 'public')));
-
-// ==========================================
-// ROTAS DE AUTENTICAÇÃO
-// ==========================================
-
-app.post('/auth/registrar', async (req, res) => {
-    const { nome_usuario, email, senha } = req.body; 
-    try {
-        const usuarioExiste = await pool.query('SELECT * FROM usuarios WHERE email = $1', [email]);
-        if (usuarioExiste.rows.length > 0) {
-            return res.status(400).json({ erro: 'Este email já está em uso.' });
-        }
-        const saltRounds = 10;
-        const senhaHash = await bcrypt.hash(senha, saltRounds);
-        
-        const novoUsuario = await pool.query(
-            `INSERT INTO usuarios (nome_usuario, email, senha_hash) 
-             VALUES ($1, $2, $3) RETURNING id, nome_usuario, email`,
-            [nome_usuario, email, senhaHash]
-        );
-        
-        res.status(201).json({ mensagem: 'Usuário registrado com sucesso!', usuario: novoUsuario.rows[0] });
-    } catch (err) {
-        console.error(err);
-        res.status(500).send('Erro no servidor ao registrar usuário.');
-    }
-});
-
-app.post('/auth/login', async (req, res) => {
-    const { email, senha } = req.body;
-    try {
-        const usuario = await pool.query('SELECT * FROM usuarios WHERE email = $1', [email]);
-        if (usuario.rows.length === 0) {
-            return res.status(401).json({ erro: 'Credenciais inválidas.' });
-        }
-        const user = usuario.rows[0];
-        const senhaValida = await bcrypt.compare(senha, user.senha_hash);
-        if (!senhaValida) {
-            return res.status(401).json({ erro: 'Credenciais inválidas.' });
-        }
-        
-        const token = jwt.sign(
-            { id: user.id, nome: user.nome_usuario },
-            JWT_SECRET,
-            { expiresIn: '8h' }
-        );
-        res.json({ mensagem: 'Login bem-sucedido!', token });
-    } catch (err) {
-        console.error(err);
-        res.status(500).send('Erro no servidor ao fazer login.');
-    }
-});
-
-// ==========================================
-// MIDDLEWARE DE PROTEÇÃO (O Porteiro)
-// ==========================================
-const verificarToken = (req, res, next) => {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-    if (!token) return res.status(403).json({ erro: 'Acesso negado. Token não fornecido.' });
-
-    jwt.verify(token, JWT_SECRET, (err, usuarioDecodificado) => {
-        if (err) return res.status(403).json({ erro: 'Token inválido ou expirado.' });
-        req.usuario = usuarioDecodificado;
-        next();
-    });
-};
 
 // ==========================================
 // ROTA DO HUB DE PERFIL (DASHBOARD)
@@ -111,47 +48,6 @@ app.get('/auth/dashboard-resumo', verificarToken, async (req, res) => {
     } catch (err) {
         console.error("Erro ao carregar resumo do dashboard:", err);
         res.status(500).json({ erro: 'Erro interno ao carregar perfil.' });
-    }
-});
-
-// ==========================================
-// ROTAS DE PERSONAGENS (PROTEGIDAS)
-// ==========================================
-
-app.post('/personagens', verificarToken, async (req, res) => {
-    const { nome, tradicao, conceito, natureza, comportamento, arete, dados_completo } = req.body;
-    const donoId = req.usuario.id;
-    try {
-        const novo = await pool.query(
-            `INSERT INTO personagens (nome, tradicao, conceito, natureza, comportamento, arete, dados_ficha, exp_total, usuario_id) 
-             VALUES ($1, $2, $3, $4, $5, $6, $7, 15, $8) RETURNING *`,
-            [nome, tradicao, conceito, natureza, comportamento, arete, dados_completo, donoId]
-        );
-        res.status(201).json(novo.rows[0]);
-    } catch (err) {
-        res.status(500).send(err.message);
-    }
-});
-
-app.get('/personagens', verificarToken, async (req, res) => {
-    const donoId = req.usuario.id;
-    try {
-        const todos = await pool.query('SELECT * FROM personagens WHERE usuario_id = $1 ORDER BY criado_em DESC', [donoId]);
-        res.json(todos.rows);
-    } catch (err) {
-        res.status(500).send(err.message);
-    }
-});
-
-app.get('/personagens/:id', verificarToken, async (req, res) => {
-    const { id } = req.params;
-    const donoId = req.usuario.id;
-    try {
-        const personagem = await pool.query('SELECT * FROM personagens WHERE id = $1 AND usuario_id = $2', [id, donoId]);
-        if (personagem.rows.length === 0) return res.status(404).json({ erro: 'Ficha não encontrada ou acesso negado.'});
-        res.json(personagem.rows[0]);
-    } catch (err) {
-        res.status(500).send(err.message);
     }
 });
 
@@ -285,92 +181,6 @@ app.post('/cronicas', verificarToken, async (req, res) => {
         await pool.query('ROLLBACK');
         console.error("Erro ao criar crônica:", err);
         res.status(500).json({ erro: 'Erro interno ao criar a crônica.' });
-    }
-});
-
-app.get('/cronicas/:id', verificarToken, async (req, res) => {
-    const { id } = req.params;
-    const usuarioId = req.usuario.id;
-
-    try {
-        const queryCronica = await pool.query('SELECT * FROM cronicas WHERE id = $1', [id]);
-        if (queryCronica.rows.length === 0) {
-            return res.status(404).json({ erro: 'Crônica não encontrada.' });
-        }
-        const cronica = queryCronica.rows[0];
-
-        // A PALAVRA CORRETA: narrador_id
-        const isNarrador = cronica.narrador_id === usuarioId;
-
-        const queryJogador = await pool.query(
-            'SELECT papel FROM cronica_jogadores WHERE cronica_id = $1 AND usuario_id = $2',
-            [id, usuarioId]
-        );
-        const isJogador = queryJogador.rows.length > 0;
-
-        if (!isNarrador && !isJogador) {
-            return res.status(403).json({ erro: 'Acesso negado.' });
-        }
-
-        const papelUsuario = isNarrador ? 'narrador' : 'jogador';
-
-        let queryAbas;
-        if (isNarrador) {
-            queryAbas = await pool.query(
-                'SELECT id, nome, tipo FROM cronica_abas WHERE cronica_id = $1 ORDER BY criado_em ASC', 
-                [id]
-            );
-        } else {
-            queryAbas = await pool.query(`
-                SELECT DISTINCT a.id, a.nome, a.tipo, a.criado_em 
-                FROM cronica_abas a
-                LEFT JOIN aba_permissoes p ON a.id = p.aba_id
-                WHERE a.cronica_id = $1 AND (a.tipo = 'publica' OR p.jogador_id = $2)
-                ORDER BY a.criado_em ASC
-            `, [id, usuarioId]);
-        }
-
-        res.json({
-            cronica: cronica,
-            abas: queryAbas.rows,
-            is_narrador: isNarrador,
-            papel: papelUsuario
-        });
-
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ erro: 'Erro interno.' });
-    }
-});
-
-// ==========================================
-// ROTA PARA FORJAR UMA NOVA ABA
-// ==========================================
-app.post('/cronicas/:cronicaId/abas', verificarToken, async (req, res) => {
-    const { cronicaId } = req.params;
-    const { nome } = req.body;
-    const usuarioId = req.usuario.id;
-
-    if (!nome || nome.trim() === '') {
-        return res.status(400).json({ erro: 'O nome da aba não pode ser um sussurro vazio.' });
-    }
-
-    try {
-        const queryDono = await pool.query('SELECT narrador_id FROM cronicas WHERE id = $1', [cronicaId]);
-        if (queryDono.rows.length === 0 || queryDono.rows[0].narrador_id !== usuarioId) {
-            return res.status(403).json({ erro: 'Apenas o Narrador possui o dom de moldar novas realidades (abas).' });
-        }
-
-        // A MÁGICA FOI CORRIGIDA AQUI: A aba agora nasce 'restrita'
-        const novaAba = await pool.query(
-            "INSERT INTO cronica_abas (cronica_id, nome, tipo) VALUES ($1, $2, 'restrita') RETURNING *",
-            [cronicaId, nome]
-        );
-
-        res.status(201).json(novaAba.rows[0]);
-    } catch (err) {
-        console.error("Erro ao forjar aba:", err);
-        res.status(500).json({ erro: 'A magia falhou ao tentar criar a aba.' });
     }
 });
 
@@ -989,4 +799,8 @@ async function checarNivelAcessoAba(usuarioId, abaId) {
 
     return 'leitura'; 
 }
+
+app.use('/auth', authRoutes);
+app.use('/personagens', personagensRoutes);
+app.use('/cronicas', cronicasRoutes);
 app.listen(PORTA, () => console.log(`🚀 Servidor rodando em http://localhost:${PORTA}`));
