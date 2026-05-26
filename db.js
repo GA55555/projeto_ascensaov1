@@ -1,13 +1,13 @@
-// db.js
 const { Pool } = require('pg');
-require('dotenv').config();
 
 const pool = new Pool({
-    user: process.env.DB_USER,
-    host: process.env.DB_HOST,
-    database: process.env.DB_NAME,
-    password: process.env.DB_PASSWORD,
+    user: 'app_mochila',           // ← usuário limitado
+    password: process.env.DB_PASSWORD,  // ← do .env
+    host: process.env.DB_HOST || 'localhost',
+    database: process.env.DB_NAME || 'rpg_database',
     port: process.env.DB_PORT || 5432,
+    max: 20,                       // limite de conexões
+    idleTimeoutMillis: 30000
 });
 
 module.exports = pool;

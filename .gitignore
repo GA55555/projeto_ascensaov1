@@ -1,1 +1,19 @@
+# Dependências
+node_modules/
+
+# Variáveis de ambiente
 .env
+
+# Uploads de usuários
+public/uploads/avatares/*
+public/uploads/capas/*
+public/uploads/social/*
+
+# Manter pastas
+!public/uploads/avatares/.gitkeep
+!public/uploads/capas/.gitkeep
+!public/uploads/social/.gitkeep
+
+# Logs
+*.log
+npm-debug.log*

@@ -1,86 +1,22 @@
+require('dotenv').config();
 const express = require('express');
 const pool = require('./db');
 const path = require('path');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const fs = require('fs');
-
+const verificarToken = require('./middlewares/auth');
+const { checarAcessoCronica, checarNivelAcessoAba } = require('./middlewares/permissoes');
 const app = express();
 const PORTA = 3000;
-const JWT_SECRET = 'grimorio_secreto_m20_super_seguro';
+const authRoutes = require('./routes/authRoutes');
+const personagensRoutes = require('./routes/personagensRoutes');
+const cronicasRoutes = require('./routes/cronicasRoutes');
+const perfilRoutes = require('./routes/perfilRoutes');
 
 app.use(express.json({ limit: '1mb' })); 
 
 // Define a pasta public como raiz estática (assim tudo dentro de public fica acessível no navegador)
 app.use(express.static(path.join(__dirname, 'public')));
-
-// ==========================================
-// ROTAS DE AUTENTICAÇÃO
-// ==========================================
-
-app.post('/auth/registrar', async (req, res) => {
-    const { nome_usuario, email, senha } = req.body; 
-    try {
-        const usuarioExiste = await pool.query('SELECT * FROM usuarios WHERE email = $1', [email]);
-        if (usuarioExiste.rows.length > 0) {
-            return res.status(400).json({ erro: 'Este email já está em uso.' });
-        }
-        const saltRounds = 10;
-        const senhaHash = await bcrypt.hash(senha, saltRounds);
-        
-        const novoUsuario = await pool.query(
-            `INSERT INTO usuarios (nome_usuario, email, senha_hash) 
-             VALUES ($1, $2, $3) RETURNING id, nome_usuario, email`,
-            [nome_usuario, email, senhaHash]
-        );
-        
-        res.status(201).json({ mensagem: 'Usuário registrado com sucesso!', usuario: novoUsuario.rows[0] });
-    } catch (err) {
-        console.error(err);
-        res.status(500).send('Erro no servidor ao registrar usuário.');
-    }
-});
-
-app.post('/auth/login', async (req, res) => {
-    const { email, senha } = req.body;
-    try {
-        const usuario = await pool.query('SELECT * FROM usuarios WHERE email = $1', [email]);
-        if (usuario.rows.length === 0) {
-            return res.status(401).json({ erro: 'Credenciais inválidas.' });
-        }
-        const user = usuario.rows[0];
-        const senhaValida = await bcrypt.compare(senha, user.senha_hash);
-        if (!senhaValida) {
-            return res.status(401).json({ erro: 'Credenciais inválidas.' });
-        }
-        
-        const token = jwt.sign(
-            { id: user.id, nome: user.nome_usuario },
-            JWT_SECRET,
-            { expiresIn: '8h' }
-        );
-        res.json({ mensagem: 'Login bem-sucedido!', token });
-    } catch (err) {
-        console.error(err);
-        res.status(500).send('Erro no servidor ao fazer login.');
-    }
-});
-
-// ==========================================
-// MIDDLEWARE DE PROTEÇÃO (O Porteiro)
-// ==========================================
-const verificarToken = (req, res, next) => {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-    if (!token) return res.status(403).json({ erro: 'Acesso negado. Token não fornecido.' });
-
-    jwt.verify(token, JWT_SECRET, (err, usuarioDecodificado) => {
-        if (err) return res.status(403).json({ erro: 'Token inválido ou expirado.' });
-        req.usuario = usuarioDecodificado;
-        next();
-    });
-};
 
 // ==========================================
 // ROTA DO HUB DE PERFIL (DASHBOARD)
@@ -111,47 +47,6 @@ app.get('/auth/dashboard-resumo', verificarToken, async (req, res) => {
     } catch (err) {
         console.error("Erro ao carregar resumo do dashboard:", err);
         res.status(500).json({ erro: 'Erro interno ao carregar perfil.' });
-    }
-});
-
-// ==========================================
-// ROTAS DE PERSONAGENS (PROTEGIDAS)
-// ==========================================
-
-app.post('/personagens', verificarToken, async (req, res) => {
-    const { nome, tradicao, conceito, natureza, comportamento, arete, dados_completo } = req.body;
-    const donoId = req.usuario.id;
-    try {
-        const novo = await pool.query(
-            `INSERT INTO personagens (nome, tradicao, conceito, natureza, comportamento, arete, dados_ficha, exp_total, usuario_id) 
-             VALUES ($1, $2, $3, $4, $5, $6, $7, 15, $8) RETURNING *`,
-            [nome, tradicao, conceito, natureza, comportamento, arete, dados_completo, donoId]
-        );
-        res.status(201).json(novo.rows[0]);
-    } catch (err) {
-        res.status(500).send(err.message);
-    }
-});
-
-app.get('/personagens', verificarToken, async (req, res) => {
-    const donoId = req.usuario.id;
-    try {
-        const todos = await pool.query('SELECT * FROM personagens WHERE usuario_id = $1 ORDER BY criado_em DESC', [donoId]);
-        res.json(todos.rows);
-    } catch (err) {
-        res.status(500).send(err.message);
-    }
-});
-
-app.get('/personagens/:id', verificarToken, async (req, res) => {
-    const { id } = req.params;
-    const donoId = req.usuario.id;
-    try {
-        const personagem = await pool.query('SELECT * FROM personagens WHERE id = $1 AND usuario_id = $2', [id, donoId]);
-        if (personagem.rows.length === 0) return res.status(404).json({ erro: 'Ficha não encontrada ou acesso negado.'});
-        res.json(personagem.rows[0]);
-    } catch (err) {
-        res.status(500).send(err.message);
     }
 });
 
@@ -260,121 +155,6 @@ app.use((err, req, res, next) => {
 });
 
 // ==========================================
-// ROTAS DE CRÔNICAS (NARRADOR)
-// ==========================================
-
-app.post('/cronicas', verificarToken, async (req, res) => {
-    const { nome, descricao, sistema_id, capa_url } = req.body;
-    const narrador_id = req.usuario.id;
-
-    try {
-        await pool.query('BEGIN');
-        const novaCronica = await pool.query(
-            `INSERT INTO cronicas (nome, descricao, narrador_id, sistema_id, capa_url) 
-             VALUES ($1, $2, $3, $4, $5) RETURNING id`,
-            [nome, descricao, narrador_id, sistema_id || 1, capa_url]
-        );
-        const cronicaId = novaCronica.rows[0].id;
-        await pool.query(
-            `INSERT INTO cronica_abas (cronica_id, nome, tipo) VALUES ($1, 'Feed Geral', 'geral')`,
-            [cronicaId]
-        );
-        await pool.query('COMMIT');
-        res.status(201).json({ mensagem: 'Crônica criada com sucesso!', id: cronicaId });
-    } catch (err) {
-        await pool.query('ROLLBACK');
-        console.error("Erro ao criar crônica:", err);
-        res.status(500).json({ erro: 'Erro interno ao criar a crônica.' });
-    }
-});
-
-app.get('/cronicas/:id', verificarToken, async (req, res) => {
-    const { id } = req.params;
-    const usuarioId = req.usuario.id;
-
-    try {
-        const queryCronica = await pool.query('SELECT * FROM cronicas WHERE id = $1', [id]);
-        if (queryCronica.rows.length === 0) {
-            return res.status(404).json({ erro: 'Crônica não encontrada.' });
-        }
-        const cronica = queryCronica.rows[0];
-
-        // A PALAVRA CORRETA: narrador_id
-        const isNarrador = cronica.narrador_id === usuarioId;
-
-        const queryJogador = await pool.query(
-            'SELECT papel FROM cronica_jogadores WHERE cronica_id = $1 AND usuario_id = $2',
-            [id, usuarioId]
-        );
-        const isJogador = queryJogador.rows.length > 0;
-
-        if (!isNarrador && !isJogador) {
-            return res.status(403).json({ erro: 'Acesso negado.' });
-        }
-
-        const papelUsuario = isNarrador ? 'narrador' : 'jogador';
-
-        let queryAbas;
-        if (isNarrador) {
-            queryAbas = await pool.query(
-                'SELECT id, nome, tipo FROM cronica_abas WHERE cronica_id = $1 ORDER BY criado_em ASC', 
-                [id]
-            );
-        } else {
-            queryAbas = await pool.query(`
-                SELECT DISTINCT a.id, a.nome, a.tipo, a.criado_em 
-                FROM cronica_abas a
-                LEFT JOIN aba_permissoes p ON a.id = p.aba_id
-                WHERE a.cronica_id = $1 AND (a.tipo = 'publica' OR p.jogador_id = $2)
-                ORDER BY a.criado_em ASC
-            `, [id, usuarioId]);
-        }
-
-        res.json({
-            cronica: cronica,
-            abas: queryAbas.rows,
-            is_narrador: isNarrador,
-            papel: papelUsuario
-        });
-
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ erro: 'Erro interno.' });
-    }
-});
-
-// ==========================================
-// ROTA PARA FORJAR UMA NOVA ABA
-// ==========================================
-app.post('/cronicas/:cronicaId/abas', verificarToken, async (req, res) => {
-    const { cronicaId } = req.params;
-    const { nome } = req.body;
-    const usuarioId = req.usuario.id;
-
-    if (!nome || nome.trim() === '') {
-        return res.status(400).json({ erro: 'O nome da aba não pode ser um sussurro vazio.' });
-    }
-
-    try {
-        const queryDono = await pool.query('SELECT narrador_id FROM cronicas WHERE id = $1', [cronicaId]);
-        if (queryDono.rows.length === 0 || queryDono.rows[0].narrador_id !== usuarioId) {
-            return res.status(403).json({ erro: 'Apenas o Narrador possui o dom de moldar novas realidades (abas).' });
-        }
-
-        // A MÁGICA FOI CORRIGIDA AQUI: A aba agora nasce 'restrita'
-        const novaAba = await pool.query(
-            "INSERT INTO cronica_abas (cronica_id, nome, tipo) VALUES ($1, $2, 'restrita') RETURNING *",
-            [cronicaId, nome]
-        );
-
-        res.status(201).json(novaAba.rows[0]);
-    } catch (err) {
-        console.error("Erro ao forjar aba:", err);
-        res.status(500).json({ erro: 'A magia falhou ao tentar criar a aba.' });
-    }
-});
-
-// ==========================================
 // ROTAS DO FEED DA COMUNIDADE
 // ==========================================
 
@@ -391,13 +171,31 @@ app.get('/cronicas/:cronicaId/abas/:abaId/posts', verificarToken, async (req, re
         if (nivel === 'nenhuma') return res.status(403).json({ erro: 'Aba oculta para você.' });
 
         const postsQuery = await pool.query(`
-            SELECT p.*, u.nome_usuario as autor_nome
-            FROM postagens p
-            JOIN usuarios u ON p.autor_id = u.id
-            WHERE p.aba_id = $1
-            ORDER BY p.criado_em DESC
-        `, [abaId]);
+        SELECT 
+        p.*,
+        COALESCE(pc.apelido, u.nome_usuario) AS autor_nome,
+        COALESCE(pc.avatar_url, u.avatar_url) AS autor_avatar
+        FROM postagens p
+        JOIN usuarios u ON p.autor_id = u.id
+        LEFT JOIN perfis_cronica pc ON pc.usuario_id = u.id AND pc.cronica_id = $2
+        WHERE p.aba_id = $1
+        ORDER BY p.criado_em DESC
+        `, [abaId, cronicaId]);
 
+         for (let post of postsQuery.rows) {
+        if (post.tipo === 'album') {
+            const album = await pool.query(
+                'SELECT * FROM post_album_itens WHERE post_id = $1 ORDER BY ordem', [post.id]
+            );
+            post.album_itens = album.rows;
+        }
+        if (post.tipo === 'votacao') {
+            const opcoes = await pool.query(
+                'SELECT * FROM post_votacao_opcoes WHERE post_id = $1', [post.id]
+            );
+            post.opcoes = opcoes.rows;
+        }
+    }
         res.json({
             posts: postsQuery.rows,
             minha_permissao: nivel,         // 'leitura', 'comentar', 'editor', ou 'narrador'
@@ -411,10 +209,10 @@ app.get('/cronicas/:cronicaId/abas/:abaId/posts', verificarToken, async (req, re
     }
 });
 
-// CRIAR POST (Apenas Narrador e Editor)
+// CRIAR POST (com suporte a tipos: normal, album, votacao)
 app.post('/cronicas/:cronicaId/abas/:abaId/posts', verificarToken, async (req, res) => {
     const { cronicaId, abaId } = req.params;
-    const { conteudo, imagem_url, imagens } = req.body;
+    const { conteudo, imagem_url, imagens, tipo, pergunta, opcoes, album_itens } = req.body;
     const autorId = req.usuario.id;
 
     try {
@@ -423,58 +221,51 @@ app.post('/cronicas/:cronicaId/abas/:abaId/posts', verificarToken, async (req, r
 
         const nivel = await checarNivelAcessoAba(autorId, abaId);
         
-        // BLOQUEIO: Se for 'leitura' ou 'comentar', a requisição morre aqui!
         if (nivel !== 'narrador' && nivel !== 'editor') {
             return res.status(403).json({ erro: 'Você não tem poder de Editor nesta aba para forjar novas postagens.' });
         }
 
+        // Salva o post principal
         const novoPost = await pool.query(
-            "INSERT INTO postagens (aba_id, autor_id, conteudo, imagem_url, imagens) VALUES ($1, $2, $3, $4, $5) RETURNING *",
-            [abaId, autorId, conteudo, imagem_url || null, JSON.stringify(imagens || [])]
-        );
-        res.status(201).json(novoPost.rows[0]);
-    } catch (err) {
-        res.status(500).json({ erro: 'Erro ao forjar o post.' });
-    }
-});
+        `INSERT INTO postagens (aba_id, autor_id, conteudo, imagem_url, imagens, tipo, multipla_escolha) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+        [abaId, autorId, conteudo || pergunta || '', imagem_url || null, 
+        JSON.stringify(imagens || []), tipo || 'normal', req.body.multipla_escolha || false]
+    );
+        
+        const postId = novoPost.rows[0].id;
 
-
-app.post('/cronicas/:cronicaId/abas/:abaId/posts', verificarToken, async (req, res) => {
-    const { cronicaId, abaId } = req.params;
-    const { conteudo, imagem_url, imagens } = req.body;
-    const autorId = req.usuario.id;
-
-    try {
-        const acesso = await checarAcessoCronica(autorId, cronicaId);
-        if (!acesso.temAcesso) return res.status(403).json({ erro: 'Acesso negado.' });
-
-        // BLINDAGEM DO SERVIDOR: Verifica se o jogador pode escrever
-        if (acesso.papel === 'jogador') {
-            const queryAba = await pool.query('SELECT tipo FROM cronica_abas WHERE id = $1', [abaId]);
-            const tipoAba = queryAba.rows[0].tipo;
-
-            if (tipoAba === 'restrita') {
-                const queryPerm = await pool.query(
-                    'SELECT nivel_acesso FROM aba_permissoes WHERE aba_id = $1 AND jogador_id = $2',
-                    [abaId, autorId]
+        // ✅ Salva itens do álbum
+        if (tipo === 'album' && album_itens && album_itens.length > 0) {
+            for (let i = 0; i < album_itens.length; i++) {
+                const item = album_itens[i];
+                await pool.query(
+                    `INSERT INTO post_album_itens (post_id, imagem_url, descricao, ordem) 
+                     VALUES ($1, $2, $3, $4)`,
+                    [postId, item.imagem_url, item.descricao || '', i]
                 );
+            }
+        }
 
-                if (queryPerm.rows.length === 0 || queryPerm.rows[0].nivel_acesso === 'leitura') {
-                    return res.status(403).json({ erro: 'Sua magia não permite alterar esta aba. Apenas leitura.' });
+        // ✅ Salva opções da votação
+        if (tipo === 'votacao' && opcoes && opcoes.length > 0) {
+            for (let opcao of opcoes) {
+                if (opcao.trim()) {
+                    await pool.query(
+                        `INSERT INTO post_votacao_opcoes (post_id, texto) VALUES ($1, $2)`,
+                        [postId, opcao.trim()]
+                    );
                 }
             }
         }
 
-        const novoPost = await pool.query(
-            "INSERT INTO postagens (aba_id, autor_id, conteudo, imagem_url, imagens) VALUES ($1, $2, $3, $4, $5) RETURNING *",
-            [abaId, autorId, conteudo, imagem_url || null, JSON.stringify(imagens || [])]
-        );
         res.status(201).json(novoPost.rows[0]);
     } catch (err) {
-        console.error(err);
+        console.error('Erro ao criar post:', err);
         res.status(500).json({ erro: 'Erro ao forjar o post.' });
     }
 });
+
 
 // ==========================================
 // EDICAO E EXCLUSAO DE PUBLICACÕES (POSTS)
@@ -540,15 +331,21 @@ app.delete('/cronicas/:cronicaId/abas/:abaId', verificarToken, async (req, res) 
 // ==========================================
 
 app.get('/cronicas/:cronicaId/posts/:postId/comentarios', verificarToken, async (req, res) => {
-    const { postId } = req.params;
+    const { cronicaId, postId } = req.params;  // ✅ Adicione cronicaId!
+    
     try {
         const query = await pool.query(`
-            SELECT c.*, u.nome_usuario as autor_nome
+            SELECT 
+                c.*,
+                COALESCE(pc.apelido, u.nome_usuario) AS autor_nome,
+                COALESCE(pc.avatar_url, u.avatar_url) AS autor_avatar
             FROM post_comentarios c
             JOIN usuarios u ON c.autor_id = u.id
+            LEFT JOIN perfis_cronica pc ON pc.usuario_id = u.id AND pc.cronica_id = $2
             WHERE c.post_id = $1
             ORDER BY c.criado_em ASC
-        `, [postId]);
+        `, [postId, cronicaId]);  // ✅ Agora cronicaId existe!
+        
         res.json(query.rows);
     } catch (err) {
         console.error(err);
@@ -560,7 +357,7 @@ app.get('/cronicas/:cronicaId/posts/:postId/comentarios', verificarToken, async 
 // ROTA DE ENVIAR COMENTÁRIOS (URL ORIGINAL)
 // ==========================================
 app.post('/cronicas/:cronicaId/posts/:postId/comentarios', verificarToken, async (req, res) => {
-    const { postId } = req.params;
+    const { cronicaId, postId } = req.params;
     const { conteudo } = req.body;
     const autorId = req.usuario.id;
 
@@ -576,7 +373,7 @@ app.post('/cronicas/:cronicaId/posts/:postId/comentarios', verificarToken, async
         }
         const abaId = postQuery.rows[0].aba_id;
 
-        // 2. Checa a permissão da aba correspondente
+               // 2. Checa a permissão da aba correspondente
         const nivel = await checarNivelAcessoAba(autorId, abaId);
         
         // 3. Se for apenas leitura, bloqueia o usuário imediatamente
@@ -892,25 +689,43 @@ app.post('/cronicas/:cronicaId/adicionar-jogador', verificarToken, async (req, r
     const { email_jogador } = req.body;
 
     try {
-        // 1. Busca o ID do usuário através do e-mail informado
-        const userQuery = await pool.query('SELECT id FROM usuarios WHERE email = $1', [email_jogador]);
+        // ✅ VERIFICA SE É O NARRADOR DA CRÔNICA
+        const cronica = await pool.query('SELECT narrador_id FROM cronicas WHERE id = $1', [cronicaId]);
         
-        if (userQuery.rows.length === 0) {
-            return res.status(404).json({ erro: 'Nenhum desperto encontrado com este e-mail. Ele já se cadastrou?' });
+        if (cronica.rows.length === 0) {
+            return res.status(404).json({ erro: 'Crônica não encontrada.' });
+        }
+        
+        if (cronica.rows[0].narrador_id !== req.usuario.id) {
+            return res.status(403).json({ erro: 'Apenas o Narrador pode adicionar jogadores.' });
         }
 
-        const usuarioId = userQuery.rows[0].id;
+        // ✅ Busca o usuário pelo email
+        const userQuery = await pool.query('SELECT id, nome_usuario FROM usuarios WHERE email = $1', [email_jogador]);
+        
+        if (userQuery.rows.length === 0) {
+            return res.status(404).json({ erro: 'Nenhum desperto encontrado com este e-mail.' });
+        }
 
-        // 2. Insere na tabela associativa
+        const convidado = userQuery.rows[0];
+
+        // ✅ IMPEDE QUE O NARRADOR ADICIONE A SI MESMO
+        if (convidado.id === req.usuario.id) {
+            return res.status(400).json({ erro: 'Você já é o Narrador desta crônica!' });
+        }
+
+        // ✅ Insere na tabela associativa
         await pool.query(
             'INSERT INTO cronica_jogadores (cronica_id, usuario_id) VALUES ($1, $2)',
-            [cronicaId, usuarioId]
+            [cronicaId, convidado.id]
         );
 
-        res.status(201).json({ mensagem: 'Jogador convocado para a crônica com sucesso!' });
+        res.status(201).json({ 
+            mensagem: `${convidado.nome_usuario} foi convocado para a crônica!`,
+            jogador: { id: convidado.id, nome_usuario: convidado.nome_usuario }
+        });
 
     } catch (err) {
-        // O erro 23505 no Postgres significa "Unique Violation" (jogador já adicionado)
         if (err.code === '23505') {
             return res.status(400).json({ erro: 'Este jogador já faz parte desta crônica.' });
         }
@@ -938,55 +753,147 @@ app.get('/cronicas/:cronicaId/jogadores', verificarToken, async (req, res) => {
     }
 });
 
-// Função auxiliar para verificar se o usuário pertence à crônica
-async function checarAcessoCronica(usuarioId, cronicaId) {
-    const donoQuery = await pool.query(
-        'SELECT narrador_id FROM cronicas WHERE id = $1', 
-        [cronicaId]
-    );
-    
-    if (donoQuery.rows.length > 0 && donoQuery.rows[0].narrador_id === usuarioId) {
-        return { temAcesso: true, papel: 'narrador' };
+// Remover jogador da crônica
+app.delete('/cronicas/:cronicaId/jogadores/:jogadorId', verificarToken, async (req, res) => {
+    const { cronicaId, jogadorId } = req.params;
+
+    try {
+        // ✅ Só o narrador pode remover
+        const cronica = await pool.query('SELECT narrador_id FROM cronicas WHERE id = $1', [cronicaId]);
+        
+        if (cronica.rows.length === 0) {
+            return res.status(404).json({ erro: 'Crônica não encontrada.' });
+        }
+        
+        if (cronica.rows[0].narrador_id !== req.usuario.id) {
+            return res.status(403).json({ erro: 'Apenas o Narrador pode remover jogadores.' });
+        }
+
+        // ✅ Impede remover a si mesmo (narrador não é jogador)
+        if (jogadorId === req.usuario.id) {
+            return res.status(400).json({ erro: 'Você é o Narrador, não um jogador.' });
+        }
+
+        const result = await pool.query(
+            'DELETE FROM cronica_jogadores WHERE cronica_id = $1 AND usuario_id = $2 RETURNING *',
+            [cronicaId, jogadorId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ erro: 'Jogador não encontrado nesta crônica.' });
+        }
+
+        res.json({ mensagem: 'Jogador removido da crônica.' });
+    } catch (err) {
+        console.error('Erro ao remover jogador:', err);
+        res.status(500).json({ erro: 'Erro ao remover jogador.' });
     }
+});
 
-    const jogadorQuery = await pool.query(
-        'SELECT papel FROM cronica_jogadores WHERE cronica_id = $1 AND usuario_id = $2',
-        [cronicaId, usuarioId]
-    );
+// Jogador sai da crônica (auto-remoção)
+app.delete('/cronicas/:cronicaId/sair', verificarToken, async (req, res) => {
+    const { cronicaId } = req.params;
+    const usuarioId = req.usuario.id;
 
-    if (jogadorQuery.rows.length > 0) {
-        return { temAcesso: true, papel: jogadorQuery.rows[0].papel };
+    try {
+        // ✅ Verifica se NÃO é o narrador (narrador não pode "sair")
+        const cronica = await pool.query('SELECT narrador_id FROM cronicas WHERE id = $1', [cronicaId]);
+        
+        if (cronica.rows.length === 0) {
+            return res.status(404).json({ erro: 'Crônica não encontrada.' });
+        }
+        
+        if (cronica.rows[0].narrador_id === usuarioId) {
+            return res.status(400).json({ erro: 'O Narrador não pode sair da própria crônica. Use a opção de Finalizar/Deletar a crônica.' });
+        }
+
+        const result = await pool.query(
+            'DELETE FROM cronica_jogadores WHERE cronica_id = $1 AND usuario_id = $2 RETURNING *',
+            [cronicaId, usuarioId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ erro: 'Você não está nesta crônica.' });
+        }
+
+        res.json({ mensagem: 'Você saiu da crônica.' });
+    } catch (err) {
+        console.error('Erro ao sair da crônica:', err);
+        res.status(500).json({ erro: 'Erro ao sair da crônica.' });
     }
+});
 
-    return { temAcesso: false, papel: null };
-}
+// Votar em uma opção (voto permanente, sem toggle)
+app.post('/cronicas/:cronicaId/posts/:postId/votar', verificarToken, async (req, res) => {
+    const { postId } = req.params;
+    const { opcao_id } = req.body;
+    const usuarioId = req.usuario.id;
 
-// ==========================================
-// FUNÇÃO DEFINITIVA DE PERMISSÕES
-// ==========================================
-async function checarNivelAcessoAba(usuarioId, abaId) {
-    const queryAba = await pool.query(`
-        SELECT a.tipo, c.narrador_id 
-        FROM cronica_abas a
-        JOIN cronicas c ON a.cronica_id = c.id
-        WHERE a.id = $1
-    `, [abaId]);
+    try {
+        const post = await pool.query('SELECT * FROM postagens WHERE id = $1 AND tipo = $2', [postId, 'votacao']);
+        if (post.rows.length === 0) return res.status(404).json({ erro: 'Votação não encontrada.' });
 
-    if (queryAba.rows.length === 0) return 'nenhuma';
+        const isMultipla = post.rows[0].multipla_escolha;
 
-    const { tipo, narrador_id } = queryAba.rows[0];
+        // Se NÃO for múltipla, remove TODOS os votos anteriores (troca de opção)
+        if (!isMultipla) {
+            // Verifica se já votou em ALGUMA opção
+            const jaVotou = await pool.query(
+                `SELECT v.* FROM post_votacao_votos v 
+                 JOIN post_votacao_opcoes o ON v.opcao_id = o.id 
+                 WHERE o.post_id = $1 AND v.usuario_id = $2`,
+                [postId, usuarioId]
+            );
 
-    if (narrador_id === usuarioId) return 'narrador'; 
-    
-    if (tipo === 'publica') return 'editor'; 
+            if (jaVotou.rows.length > 0) {
+                // Remove o voto anterior
+                await pool.query(
+                    `DELETE FROM post_votacao_votos 
+                     WHERE opcao_id IN (SELECT id FROM post_votacao_opcoes WHERE post_id = $1) 
+                     AND usuario_id = $2`,
+                    [postId, usuarioId]
+                );
+                // Decrementa o contador da opção antiga
+                await pool.query(
+                    'UPDATE post_votacao_opcoes SET votos = GREATEST(votos - 1, 0) WHERE id = $1',
+                    [jaVotou.rows[0].opcao_id]
+                );
+            }
 
-    const queryPerm = await pool.query(
-        'SELECT nivel_acesso FROM aba_permissoes WHERE aba_id = $1 AND jogador_id = $2',
-        [abaId, usuarioId]
-    );
+            // Adiciona o novo voto
+            await pool.query('INSERT INTO post_votacao_votos (opcao_id, usuario_id) VALUES ($1, $2)', [opcao_id, usuarioId]);
+            await pool.query('UPDATE post_votacao_opcoes SET votos = votos + 1 WHERE id = $1', [opcao_id]);
 
-    if (queryPerm.rows.length > 0) return queryPerm.rows[0].nivel_acesso;
+        } else {
+            // ✅ MÚLTIPLA ESCOLHA: verifica se já votou NESTA opção
+            const jaVotouNesta = await pool.query(
+                'SELECT * FROM post_votacao_votos WHERE opcao_id = $1 AND usuario_id = $2',
+                [opcao_id, usuarioId]
+            );
 
-    return 'leitura'; 
-}
+            if (jaVotouNesta.rows.length > 0) {
+                return res.status(400).json({ erro: 'Você já votou nesta opção.' });
+            }
+
+            // Adiciona o voto (sem remover outros)
+            await pool.query('INSERT INTO post_votacao_votos (opcao_id, usuario_id) VALUES ($1, $2)', [opcao_id, usuarioId]);
+            await pool.query('UPDATE post_votacao_opcoes SET votos = votos + 1 WHERE id = $1', [opcao_id]);
+        }
+
+        const opcoes = await pool.query('SELECT * FROM post_votacao_opcoes WHERE post_id = $1 ORDER BY id', [postId]);
+        res.json({ mensagem: 'Voto registrado!', opcoes: opcoes.rows });
+    } catch (err) {
+        if (err.code === '23505') return res.status(400).json({ erro: 'Você já votou nesta opção.' });
+        console.error('Erro ao votar:', err);
+        res.status(500).json({ erro: 'Erro ao registrar voto.' });
+    }
+});
+
+
+
+app.use('/auth', authRoutes);
+app.use('/personagens', personagensRoutes);
+app.use('/cronicas', cronicasRoutes);
+app.use('/perfil', perfilRoutes);
+
 app.listen(PORTA, () => console.log(`🚀 Servidor rodando em http://localhost:${PORTA}`));

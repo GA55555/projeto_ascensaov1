@@ -52,28 +52,9 @@
             .banner-titulo { font-size: 24px; }
         }
 
-        /* Esconde o botão por padrão */
-        .btn-delete { 
-            display: none; 
-            background: none; 
-            border: none; 
-            color: #ff5555; 
-            cursor: pointer; 
-            font-weight: bold;
-            font-size: 16px;
-        }
-
-        /* Mostra o botão apenas quando o mouse passa sobre o item da aba */
-        .aba-item:hover .btn-delete { 
-            display: block; 
-        }
-
-        .aba-container { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            width: 100%; 
-        }
+        .btn-delete { display: none; background: none; border: none; color: #ff5555; cursor: pointer; font-weight: bold; font-size: 16px; }
+        .aba-item:hover .btn-delete { display: block; }
+        .aba-container { display: flex; justify-content: space-between; align-items: center; width: 100%; }
     </style>
 </head>
 <body>
@@ -98,17 +79,33 @@
     
         <div class="feed-container">
             <div class="caixa-postar">
-                <textarea id="texto-post" placeholder="Escreva algo..."></textarea>
-                <div style="margin-top: 10px;">
-                    <input type="file" id="input-imagem" accept="image/*" multiple onchange="console.log('Arquivos selecionados:', this.files.length)">
-                </div>
-                <button onclick="limparUpload()" style="background: #ff5555; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-top: 5px;">
-                Cancelar Uploads
-                </button>
-                <div class="acoes-post" style="margin-top: 10px;">
-                    <button class="btn-postar" onclick="publicarPostComImagem()">Publicar no Feed</button>
-                </div>
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <button onclick="selecionarTipoPost('normal')" id="btn-tipo-normal" style="background: var(--roxo-mago); color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold;">📝 Normal</button>
+                <button onclick="selecionarTipoPost('album')" id="btn-tipo-album" style="background: transparent; border: 1px solid var(--borda); color: var(--texto-claro); padding: 8px 16px; border-radius: 4px; cursor: pointer;">🖼️ Álbum</button>
+                <button onclick="selecionarTipoPost('votacao')" id="btn-tipo-votacao" style="background: transparent; border: 1px solid var(--borda); color: var(--texto-claro); padding: 8px 16px; border-radius: 4px; cursor: pointer;">🗳️ Votação</button>
             </div>
+        
+            <div id="form-post-normal">
+                <textarea id="texto-post" placeholder="Escreva algo..."></textarea>
+                <input type="file" id="input-imagem" accept="image/*">
+            </div>
+        
+            <div id="form-post-album" style="display: none;">
+                <div id="album-itens"></div>
+                <button onclick="adicionarItemAlbum()" style="background: transparent; border: 1px dashed var(--destaque); color: var(--destaque); padding: 10px; border-radius: 4px; cursor: pointer; width: 100%;">+ Adicionar Imagem ao Álbum</button>
+            </div>
+        
+            <div id="form-post-votacao" style="display: none;">
+                <input type="text" id="votacao-pergunta" placeholder="Pergunta da votação..." style="width: 100%; padding: 10px; background: var(--bg-principal); border: 1px solid var(--borda); color: #fff; border-radius: 4px; margin-bottom: 10px;">
+                <div id="votacao-opcoes">
+                    <input type="text" class="opcao-votacao" placeholder="Opção 1" style="width: 100%; padding: 8px; margin-bottom: 5px; background: var(--bg-principal); border: 1px solid var(--borda); color: #fff; border-radius: 4px;">
+                    <input type="text" class="opcao-votacao" placeholder="Opção 2" style="width: 100%; padding: 8px; margin-bottom: 5px; background: var(--bg-principal); border: 1px solid var(--borda); color: #fff; border-radius: 4px;">
+                </div>
+                <button onclick="adicionarOpcaoVotacao()" style="background: transparent; border: 1px dashed var(--destaque); color: var(--destaque); padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;">+ Opção</button>
+            </div>
+        
+            <button class="btn-postar" onclick="publicarPost()" style="margin-top: 10px;">Publicar</button>
+        </div>
 
             <div id="lista-posts">
                 <p style="color: var(--texto-mutado); text-align: center;">Carregando mensagens do éter...</p>
@@ -165,7 +162,7 @@
                 <select id="perm-nivel" style="width: 100%; padding: 10px; background: var(--bg-principal); border: 1px solid var(--borda); color: white; border-radius: 4px; margin-bottom: 20px;">
                     <option value="leitura">👁️ Somente Leitura</option>
                     <option value="comentar">💬 Ler e Comentar</option>
-                    <value="editor">✍️ Editor (Postar e Editar)</option>
+                    <option value="editor">✍️ Editor (Postar e Editar)</option>
                 </select>
                 <button onclick="salvarPermissaoAba()" style="background: var(--destaque); color: #121214; border: none; padding: 0 15px; border-radius: 4px; font-weight: bold; cursor: pointer;">Conceder</button>
             </div>
@@ -203,7 +200,8 @@
     </div>
 
    <script>
-    const token = localStorage.getItem('token_m20');
+    // Configuração base (mantida igual)
+    const token = localStorage.getItem('m20_token');
     if (!token) window.location.href = '/login.html';
 
     const urlParams = new URLSearchParams(window.location.search);
@@ -213,46 +211,35 @@
     let meuPapelNaMesa = 'jogador';
     let meuIdUsuario = null;
 
-    // Variáveis globais para o carrossel/lightbox reativo
     let lightboxImagens = [];
     let lightboxIndex = 0;
 
     if (!cronicaId) window.location.href = '/profile.html';
 
-    // 1. INICIALIZAÇÃO
     carregarComunidade();
 
-    // ==========================================
-    // FUNÇÕES DE UI (GERAR GRID E CARROSSEL)
-    // ==========================================
     function gerarGridImagens(imagensUrls) {
         if (!imagensUrls || imagensUrls.length === 0) return '';
-        
         let urls = [];
         if (typeof imagensUrls === 'string') {
             try { urls = imagensUrls.startsWith('[') ? JSON.parse(imagensUrls) : [imagensUrls]; } catch(e) { urls = [imagensUrls]; }
-        } else if (Array.isArray(imagensUrls)) {
-            urls = imagensUrls;
-        }
+        } else if (Array.isArray(imagensUrls)) { urls = imagensUrls; }
 
         urls = urls.filter(u => u && u.length > 5);
         const count = urls.length;
         if (count === 0) return '';
 
         const urlsFormatadas = urls.map(u => (u.startsWith('/') ? u : '/' + u));
-        
         let gridCols = count === 1 ? "1fr" : (count === 2 ? "1fr 1fr" : "2fr 1fr");
         let gridRows = count >= 3 ? "1fr 1fr" : "1fr";
         let alturaGrid = count === 1 ? 'auto' : '350px';
         let maxAltura = count === 1 ? '500px' : 'none';
-
         const urlsStr = encodeURIComponent(JSON.stringify(urlsFormatadas));
 
         let html = `<div style="display: grid; gap: 5px; margin-top: 15px; border-radius: 8px; overflow: hidden; border: 1px solid var(--borda); grid-template-columns: ${gridCols}; grid-template-rows: ${gridRows}; height: ${alturaGrid}; max-height: ${maxAltura};">`;
 
         urlsFormatadas.forEach((url, i) => {
             if (i >= 3) return;
-
             let objFit = count === 1 ? 'contain' : 'cover';
             let bgStyle = count === 1 ? 'background: rgba(0,0,0,0.3);' : '';
 
@@ -270,12 +257,10 @@
                          </div>`;
             }
         });
-
         html += `</div>`;
         return html;
     }
 
-    // --- SISTEMA DE CARROSSEL INTERATIVO ---
     function abrirModalNavegacao(urlsStrJSON, startIndex) {
         lightboxImagens = JSON.parse(decodeURIComponent(urlsStrJSON));
         lightboxIndex = startIndex;
@@ -286,19 +271,13 @@
     function atualizarImagemModal() {
         const imgEl = document.getElementById('imagem-ampliada');
         const contadorEl = document.getElementById('modal-contador');
-        
         if (!imgEl) return;
         imgEl.style.opacity = '0';
-        
         setTimeout(() => {
             imgEl.src = lightboxImagens[lightboxIndex];
             imgEl.style.opacity = '1';
         }, 100);
-
-        if (contadorEl) {
-            contadorEl.innerText = `${lightboxIndex + 1} / ${lightboxImagens.length}`;
-        }
-
+        if (contadorEl) contadorEl.innerText = `${lightboxIndex + 1} / ${lightboxImagens.length}`;
         const displaySetas = lightboxImagens.length > 1 ? 'block' : 'none';
         if (document.getElementById('modal-btn-esq')) document.getElementById('modal-btn-esq').style.display = displaySetas;
         if (document.getElementById('modal-btn-dir')) document.getElementById('modal-btn-dir').style.display = displaySetas;
@@ -306,11 +285,9 @@
 
     function mudarImagem(direcao) {
         if (lightboxImagens.length <= 1) return;
-        
         lightboxIndex += direcao;
         if (lightboxIndex < 0) lightboxIndex = lightboxImagens.length - 1; 
         if (lightboxIndex >= lightboxImagens.length) lightboxIndex = 0;      
-        
         atualizarImagemModal();
     }
 
@@ -319,7 +296,6 @@
         lightboxImagens = [];
     }
 
-    // Escuta os inputs do teclado físico (Setas e ESC)
     document.addEventListener('keydown', (e) => {
         const modal = document.getElementById('modal-imagem');
         if (modal && modal.style.display === 'flex') {
@@ -329,82 +305,59 @@
         }
     });
 
-    // ==========================================
-    // FUNÇÕES DE CARREGAMENTO (COMUNIDADE E POSTS)
-    // ==========================================
-    
 async function carregarComunidade() {
-        try {
-            const res = await fetch(`/cronicas/${cronicaId}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const dados = await res.json();
-
-            if (!res.ok) {
-                alert(dados.erro || "Acesso negado.");
-                window.location.href = '/profile.html';
-                return;
-            }
-
-            // 1. FORÇANDO O NOME DA MESA (Procura H1, ID ou Classe)
-            const titulo = dados.cronica.nome || "Comunidade da Crônica";
-            const elementoNome = document.getElementById('nome-cronica') || document.querySelector('.nome-cronica') || document.querySelector('h1');
-            if (elementoNome) elementoNome.innerText = titulo;
-
-            // 2. CAPA DA MESA
-            const elementoBanner = document.getElementById('banner') || document.querySelector('.banner-comunidade');
-            const urlCapa = dados.cronica.banner_url || dados.cronica.capa_url || dados.cronica.imagem_url;
-            if (elementoBanner && urlCapa) {
-                elementoBanner.style.backgroundImage = `url('${urlCapa}')`;
-            }
-
-            // 3. MENU DE ABAS (COM OS NOMES REAIS DAS FUNÇÕES)
-            const menuAbas = document.getElementById('menu-abas') || document.getElementById('lista-abas') || document.querySelector('.menu-abas');
-            if (!menuAbas) return;
-            
-            menuAbas.innerHTML = '';
-            const isNarrador = (dados.papel === 'narrador' || dados.is_narrador);
-
-            if (dados.abas && dados.abas.length > 0) {
-                dados.abas.forEach(aba => {
-                    const icone = aba.tipo === 'restrita' ? '🔒' : '👁️';
-                    
-                    // CORREÇÃO: Usando deletarAba() em vez de apagarAba()
-                    const btnExcluir = isNarrador 
-                        ? `<span onclick="event.stopPropagation(); deletarAba('${aba.id}')" style="color: #ff5555; font-weight: bold; font-size: 14px; cursor: pointer; float: right;" title="Apagar Aba">✖</span>` 
-                        : '';
-
-                    menuAbas.innerHTML += `
-                        <div class="aba-item" onclick="selecionarAba('${aba.id}', this)">
-                            ${icone} ${aba.nome}
-                            ${btnExcluir}
-                        </div>
-                    `;
-                });
-                
-                setTimeout(() => {
-                    const primeiraAba = menuAbas.querySelector('.aba-item');
-                    if (primeiraAba) primeiraAba.click();
-                }, 100);
-            } else {
-                menuAbas.innerHTML = '<p style="color: var(--texto-mutado); padding: 15px; font-size:13px;">Nenhuma aba visível.</p>';
-            }
-
-            // CORREÇÃO: Usando abrirModalAba() em vez de abrirModalNovaAba()
-            if (isNarrador) {
-                menuAbas.innerHTML += `
-                    <button onclick="criarNovaAba()" style="width: 90%; margin: 15px auto; display: block; padding: 10px; background: transparent; border: 1px dashed var(--roxo-mago); color: var(--roxo-mago); border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.3s;">
-                        + Nova Aba
-                    </button>
-                `;
-            
-            }
-
-        } catch (err) {
-            console.error("Erro ao renderizar comunidade:", err);
+    try {
+        const res = await fetch(`/cronicas/${cronicaId}/comunidade`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const dados = await res.json();
+        if (!res.ok) {
+            alert(dados.erro || "Acesso negado.");
+            window.location.href = '/profile.html';
+            return;
         }
-    }
-// Certifique-se de que a função de deletar existe no seu script:
+
+        const titulo = dados.nome || "Comunidade da Crônica";
+        const elementoNome = document.getElementById('nome-cronica') || document.querySelector('.nome-cronica') || document.querySelector('h1');
+        if (elementoNome) elementoNome.innerText = titulo;
+
+        const elementoBanner = document.getElementById('banner') || document.querySelector('.banner-comunidade');
+        const urlCapa = dados.cronica.banner_url || dados.cronica.capa_url || dados.cronica.imagem_url;
+        if (elementoBanner && urlCapa) elementoBanner.style.backgroundImage = `url('${urlCapa}')`;
+
+        const menuAbas = document.getElementById('menu-abas') || document.getElementById('lista-abas') || document.querySelector('.menu-abas');
+        if (!menuAbas) return;
+        
+        menuAbas.innerHTML = '';
+        const isNarrador = (dados.papel === 'narrador' || dados.is_narrador);
+
+        if (dados.abas && dados.abas.length > 0) {
+            dados.abas.forEach(aba => {
+                const icone = aba.tipo === 'restrita' ? '🔒' : '👁️';
+                const btnExcluir = isNarrador ? `<span onclick="event.stopPropagation(); deletarAba('${aba.id}')" style="color: #ff5555; font-weight: bold; font-size: 14px; cursor: pointer; float: right;" title="Apagar Aba">✖</span>` : '';
+                menuAbas.innerHTML += `
+                    <div class="aba-item" onclick="selecionarAba('${aba.id}', this)">
+                        ${icone} ${aba.nome}
+                        ${btnExcluir}
+                    </div>
+                `;
+            });
+            setTimeout(() => {
+                const primeiraAba = menuAbas.querySelector('.aba-item');
+                if (primeiraAba) primeiraAba.click();
+            }, 100);
+        } else {
+            menuAbas.innerHTML = '<p style="color: var(--texto-mutado); padding: 15px; font-size:13px;">Nenhuma aba visível.</p>';
+        }
+
+        if (isNarrador) {
+            menuAbas.innerHTML += `
+                <button onclick="criarNovaAba()" style="width: 90%; margin: 15px auto; display: block; padding: 10px; background: transparent; border: 1px dashed var(--roxo-mago); color: var(--roxo-mago); border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.3s;">
+                    + Nova Aba
+                </button>
+            `;
+        }
+    } catch (err) { console.error("Erro ao renderizar comunidade:", err); }
+}
+
 async function deletarAba(abaId) {
     if(!confirm("Deseja apagar esta sala e todo o seu conteúdo?")) return;
     try {
@@ -430,18 +383,14 @@ async function deletarAba(abaId) {
             const dados = await res.json();
             
             postsAtuaisNaAba = dados.posts || [];
-            
-            // Salva globalmente nossas credenciais nesta aba
             minhaPermissaoAtual = dados.minha_permissao;
             meuPapelNaMesa = dados.papel_na_mesa;
             meuIdUsuario = dados.meu_usuario_id;
 
             const nomeAbaAtiva = document.querySelector('.aba-item.ativa')?.innerText || "Aba";
-            
-            // 1. REGRA DO BOTÃO DE PERMISSÕES: Só existe se o Papel for Narrador!
             const btnPermissoes = (meuPapelNaMesa === 'narrador') 
                 ? `<button onclick="abrirModalPermissoes('${abaAtualId}')" style="background: transparent; border: 1px solid var(--roxo-mago); color: var(--roxo-mago); padding: 5px 15px; border-radius: 4px; cursor: pointer;">🔐 Permissões</button>`
-                : ``; // Se for jogador, não renderiza nada
+                : ``;
 
             divPosts.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--borda); padding-bottom: 10px;">
@@ -455,7 +404,6 @@ async function deletarAba(abaId) {
                 </div>
             `;
 
-            // 2. REGRA DA CAIXA DE POSTAR: Só Narrador ou Editor enxergam!
             const areaPostagem = document.querySelector('.caixa-postar');
             if (areaPostagem) {
                 if (meuPapelNaMesa === 'narrador' || minhaPermissaoAtual === 'editor') {
@@ -485,20 +433,11 @@ async function deletarAba(abaId) {
         } catch (err) { console.error(err); }
     }
 
-    // Função responsável por clicar e abrir uma aba
     function selecionarAba(abaId, elemento) {
         abaAtualId = abaId;
-        
-        // Remove a marcação 'ativa' de todas as abas
         const todasAbas = document.querySelectorAll('.aba-item');
         todasAbas.forEach(aba => aba.classList.remove('ativa'));
-        
-        // Destaca a aba que foi clicada agora
-        if (elemento) {
-            elemento.classList.add('ativa');
-        }
-        
-        // Carrega as postagens da aba e, por consequência, o botão de Permissões!
+        if (elemento) elemento.classList.add('ativa');
         carregarPosts();
     }
 
@@ -510,7 +449,6 @@ async function deletarAba(abaId) {
         const dataFormatada = new Date(post.criado_em).toLocaleString('pt-BR');
         const inicial = post.autor_nome.charAt(0).toUpperCase();
         
-        // 3. REGRA DE EDITAR/APAGAR POST: Só Narrador, ou Editor no PRÓPRIO post!
         const souDonoDoPost = (post.autor_id === meuIdUsuario);
         const possoEditarPost = (meuPapelNaMesa === 'narrador') || (minhaPermissaoAtual === 'editor' && souDonoDoPost);
         
@@ -521,7 +459,6 @@ async function deletarAba(abaId) {
             </div>
         ` : ``;
 
-        // 4. REGRA DOS COMENTÁRIOS: Leitura não comenta!
         const possoComentar = (meuPapelNaMesa === 'narrador' || minhaPermissaoAtual === 'editor' || minhaPermissaoAtual === 'comentar');
         
         const areaComentariosHtml = possoComentar ? `
@@ -536,23 +473,68 @@ async function deletarAba(abaId) {
         if (post.imagem_url && arrayImagens.length === 0) arrayImagens = [post.imagem_url];
 
         const mosaicoImagensHtml = gerarGridImagens(arrayImagens);
-        
+        let conteudoHtml = '';
+        let tipoBadge = '';
+
+        if (post.tipo === 'album' && post.album_itens) {
+            tipoBadge = '🖼️ Álbum';
+            conteudoHtml = post.album_itens.map((item, i) => `
+                <div style="margin-bottom: 20px; border-bottom: 1px solid var(--borda); padding-bottom: 15px;">
+                    <img src="${item.imagem_url}" style="width: 100%; max-height: 400px; object-fit: contain; border-radius: 8px; background: #000;">
+                    ${item.descricao ? `<p style="color: var(--texto-claro); margin-top: 10px;">${item.descricao}</p>` : ''}
+                </div>
+            `).join('');
+        }  else if (post.tipo === 'votacao' && post.opcoes) {
+        tipoBadge = '🗳️ Votação';
+        conteudoHtml = `
+        <div style="background: var(--bg-principal); padding: 15px; border-radius: 8px; margin-bottom: 10px;">
+            <p style="font-size: 18px; font-weight: bold; color: var(--destaque); margin-bottom: 15px;">${post.conteudo}</p>
+            <div id="votacao-opcoes-${post.id}">
+                ${post.opcoes.map(op => {
+                    const totalVotos = post.opcoes.reduce((s, o) => s + (o.votos || 0), 0) || 1;
+                    const porcentagem = Math.round(((op.votos || 0) / totalVotos) * 100);
+                    return `
+                        <div onclick="votar('${post.id}', '${op.id}')" style="display: flex; align-items: center; gap: 10px; padding: 12px; margin-bottom: 8px; background: rgba(255,255,255,0.03); border-radius: 4px; cursor: pointer; position: relative; overflow: hidden; border: 1px solid var(--borda); transition: 0.2s;" onmouseover="this.style.borderColor='var(--roxo-mago)'" onmouseout="this.style.borderColor='var(--borda)'">
+                            <div style="position: absolute; left: 0; top: 0; bottom: 0; width: ${porcentagem}%; background: rgba(152, 113, 245, 0.15); transition: width 0.5s ease; z-index: 0;"></div>
+                            <div style="width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--roxo-mago); display: flex; align-items: center; justify-content: center; flex-shrink: 0; z-index: 1; background: var(--bg-principal);">
+                                <div style="width: 10px; height: 10px; border-radius: 50%; background: transparent;"></div>
+                            </div>
+                            <span style="flex: 1; z-index: 1;">${op.texto}</span>
+                            <span style="color: var(--texto-mutado); font-size: 12px; z-index: 1; font-weight: bold;">
+                                ${op.votos || 0} voto${op.votos !== 1 ? 's' : ''} (${porcentagem}%)
+                            </span>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+            <p style="font-size: 11px; color: var(--texto-mutado); margin-top: 10px; text-align: center;">Clique em uma opção para votar • Total: ${post.opcoes.reduce((s, o) => s + (o.votos || 0), 0)} voto(s)</p>
+        </div>
+            `;
+        }
+         else {
+            tipoBadge = post.tipo === 'normal' ? '' : '📝';
+            conteudoHtml = post.conteudo;
+        }
+
         leituraPrincipal.innerHTML = `
         <div style="padding: 20px; background: var(--bg-card); border-bottom: 1px solid var(--borda);">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div style="display: flex; align-items: center; gap: 15px;">
-                    <div style="width: 45px; height: 45px; border-radius: 50%; background: var(--roxo-mago); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 20px; color: white; border: 2px solid var(--destaque); flex-shrink: 0;">${inicial}</div>
+                    ${post.autor_avatar 
+    ? `<img src="${post.autor_avatar}" style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid var(--destaque); flex-shrink: 0;">`
+    : ''}
+<div style="width: 45px; height: 45px; border-radius: 50%; background: var(--roxo-mago); display: ${post.autor_avatar ? 'none' : 'flex'}; align-items: center; justify-content: center; font-weight: bold; font-size: 20px; color: white; border: 2px solid var(--destaque); flex-shrink: 0;">${inicial}</div>
                     <div>
-                        <div style="font-weight: bold; font-size: 18px; color: var(--destaque);">${post.autor_nome}</div>
+                        <div style="font-weight: bold; font-size: 18px; color: var(--destaque);">${post.autor_nome} ${tipoBadge ? `<span style="font-size: 12px; color: var(--texto-mutado);">${tipoBadge}</span>` : ''}</div>
                         <div style="font-size: 12px; color: var(--texto-mutado);">${dataFormatada}</div>
                     </div>
                 </div>
                 ${botoesAcaoHtml}
             </div>
-            ${mosaicoImagensHtml}
+            ${post.tipo === 'normal' ? mosaicoImagensHtml : ''}
         </div>
     
-        <div id="post-corpo-texto" style="padding: 20px; font-size: 16px; line-height: 1.8; color: var(--texto-claro); white-space: pre-wrap; word-break: break-word; text-align: left; width: 100%; box-sizing: border-box;">${post.conteudo.trim()}</div>
+        <div style="padding: 20px; font-size: 16px; line-height: 1.8; color: var(--texto-claro); white-space: pre-wrap; word-break: break-word;">${conteudoHtml}</div>
     
         <div style="margin-top: 40px; border-top: 1px dashed var(--borda); padding: 20px;">
             <h4 style="margin-top: 0; color: var(--texto-mutado);">Comentários</h4>
@@ -576,91 +558,120 @@ async function deletarAba(abaId) {
     }
 
     function editarPost(postId, index) {
-    const divTexto = document.getElementById('post-corpo-texto');
-    document.getElementById('edit-post-id').value = postId;
-    document.getElementById('edit-post-index').value = index;
-    // .trim() remove espaços vazios iniciais/finais
-    document.getElementById('edit-post-texto').value = divTexto.innerText.trim(); 
-    document.getElementById('modal-editar-post').style.display = 'flex';
-}
-
-    async function confirmarEdicaoPost() {
-    const postId = document.getElementById('edit-post-id').value;
-    const index = document.getElementById('edit-post-index').value;
-    const novoConteudo = document.getElementById('edit-post-texto').value.trim();
-
-    try {
-        const res = await fetch(`/cronicas/${cronicaId}/abas/${abaAtualId}/posts/${postId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify({ conteudo: novoConteudo })
-        });
-        if (res.ok) {
-            document.getElementById('modal-editar-post').style.display = 'none';
-            postsAtuaisNaAba[index].conteudo = novoConteudo;
-            exibirPostCompleto(index);
-        } else {
-            alert("Erro ao atualizar o post.");
-        }
-    } catch (err) { alert("Erro de conexão."); }
-}
-
-    async function carregarComentarios(postId) {
-    const divComentarios = document.getElementById(`lista-comentarios-${postId}`);
-    divComentarios.innerHTML = '<span style="color: var(--texto-mutado); font-size: 13px;">Carregando ecos...</span>';
-    try {
-        const res = await fetch(`/cronicas/${cronicaId}/posts/${postId}/comentarios`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const comentarios = await res.json();
-
-        if (comentarios.length === 0) {
-            divComentarios.innerHTML = '<div style="font-size: 13px; color: var(--texto-mutado);">Ninguém ecoou nesta memória ainda.</div>';
+        const post = postsAtuaisNaAba[index];
+        if (!post) return;
+        
+        document.getElementById('edit-post-id').value = postId;
+        document.getElementById('edit-post-index').value = index;
+        
+        if (post.tipo === 'normal' || !post.tipo) {
+            const divTexto = document.getElementById('post-corpo-texto');
+            document.getElementById('edit-post-texto').value = divTexto ? divTexto.innerText.trim() : post.conteudo || '';
+            document.getElementById('modal-editar-post').style.display = 'flex';
             return;
         }
-
-        divComentarios.innerHTML = '';
-        comentarios.forEach(c => {
-            const dataC = new Date(c.criado_em).toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
-            const nomeAutor = c.autor_nome || 'Desconhecido';
-            const inicial = nomeAutor.charAt(0).toUpperCase();
-
-            divComentarios.innerHTML += `
-        <div style="background: rgba(255,255,255,0.02); padding: 12px; border-radius: 6px; margin-bottom: 8px; border: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column;">
-
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; width: 100%;">
-                <div style="width: 24px; height: 24px; border-radius: 50%; background: var(--roxo-mago); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: white; flex-shrink: 0;">${inicial}</div>
-                <strong style="color: var(--destaque); font-size: 13px;">${nomeAutor}</strong>
-                <span style="font-size: 10px; color: var(--texto-mutado);">${dataC}</span>
-            </div>
-
-            <div id="comentario-texto-${c.id}" 
-            style="font-size: 14px; 
-            color: var(--texto-claro); 
-            white-space: pre-wrap; 
-            word-break: break-word; 
-            overflow-wrap: break-word; 
-            text-align: left; 
-            box-sizing: border-box; 
-            width: 100%; 
-            margin-bottom: 12px;
-            padding-left: 0;"> 
-            ${c.conteudo}
-            </div>
-
-            <div style="display: flex; justify-content: flex-end; gap: 8px; width: 100%;">
-                <button onclick="editarComentario('${postId}', '${c.id}')" 
-                    style="background: #202024; border: 1px solid #8d8d99; color: #e1e1e6; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">Editar</button>
-
-                <button onclick="deletarComentario('${postId}', '${c.id}')" 
-                    style="background: #202024; border: 1px solid #ff5555; color: #ff5555; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold;">✕</button>
-            </div>
-        </div>
-`;
-        });
-    } catch (err) {
-        divComentarios.innerHTML = '<div style="color: red; font-size: 13px;">Erro ao ler as tramas.</div>';
+        
+        if (post.tipo === 'album' && post.album_itens) {
+            let html = '';
+            post.album_itens.forEach((item, i) => {
+                html += `
+                    <div style="margin-bottom: 15px; padding: 10px; background: var(--bg-principal); border-radius: 4px;">
+                        <img src="${item.imagem_url}" style="width: 100%; max-height: 150px; object-fit: contain; border-radius: 4px; margin-bottom: 8px;">
+                        <label style="color: var(--texto-mutado); font-size: 12px;">Descrição da imagem ${i + 1}:</label>
+                        <textarea class="edit-album-desc" data-item-id="${item.id}" style="width: 100%; min-height: 60px; padding: 8px; background: var(--bg-card); border: 1px solid var(--borda); color: #fff; border-radius: 4px; margin-top: 5px; box-sizing: border-box; resize: vertical;">${item.descricao || ''}</textarea>
+                    </div>
+                `;
+            });
+            
+            document.getElementById('edit-post-texto').style.display = 'none';
+            let albumDiv = document.getElementById('edit-album-container');
+            if (!albumDiv) {
+                albumDiv = document.createElement('div');
+                albumDiv.id = 'edit-album-container';
+                document.getElementById('edit-post-texto').parentNode.insertBefore(albumDiv, document.getElementById('edit-post-texto'));
+            }
+            albumDiv.innerHTML = html;
+            albumDiv.style.display = 'block';
+            document.getElementById('modal-editar-post').style.display = 'flex';
+            return;
+        }
+        
+        alert('Posts do tipo "votação" não podem ser editados, apenas apagados.');
     }
+
+    async function confirmarEdicaoPost() {
+        const postId = document.getElementById('edit-post-id').value;
+        const index = document.getElementById('edit-post-index').value;
+        const novoConteudo = document.getElementById('edit-post-texto').value.trim();
+
+        try {
+            const res = await fetch(`/cronicas/${cronicaId}/abas/${abaAtualId}/posts/${postId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ conteudo: novoConteudo })
+            });
+            if (res.ok) {
+                document.getElementById('modal-editar-post').style.display = 'none';
+                postsAtuaisNaAba[index].conteudo = novoConteudo;
+                exibirPostCompleto(index);
+            } else {
+                alert("Erro ao atualizar o post.");
+            }
+        } catch (err) { alert("Erro de conexão."); }
+    }
+
+    /* ========================================================================================= */
+    /* AQUI ESTÁ A MUDANÇA PRINCIPAL DOS COMENTÁRIOS: Agora ele busca e usa c.autor_avatar       */
+    /* ========================================================================================= */
+    async function carregarComentarios(postId) {
+        const divComentarios = document.getElementById(`lista-comentarios-${postId}`);
+        divComentarios.innerHTML = '<span style="color: var(--texto-mutado); font-size: 13px;">Carregando ecos...</span>';
+        try {
+            const res = await fetch(`/cronicas/${cronicaId}/posts/${postId}/comentarios`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const comentarios = await res.json();
+
+            if (comentarios.length === 0) {
+                divComentarios.innerHTML = '<div style="font-size: 13px; color: var(--texto-mutado);">Ninguém ecoou nesta memória ainda.</div>';
+                return;
+            }
+
+            divComentarios.innerHTML = '';
+            comentarios.forEach(c => {
+                const dataC = new Date(c.criado_em).toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
+                const nomeAutor = c.autor_nome || 'Desconhecido';
+                const inicial = nomeAutor.charAt(0).toUpperCase();
+
+                // Lógica de Renderização do Avatar no Comentário:
+                const avatarHtml = c.autor_avatar 
+                    ? `<img src="${c.autor_avatar}" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover; border: 1px solid var(--destaque); flex-shrink: 0;">`
+                    : `<div style="width: 24px; height: 24px; border-radius: 50%; background: var(--roxo-mago); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: white; flex-shrink: 0;">${inicial}</div>`;
+
+                divComentarios.innerHTML += `
+            <div style="background: rgba(255,255,255,0.02); padding: 12px; border-radius: 6px; margin-bottom: 8px; border: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column;">
+
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; width: 100%;">
+                    ${avatarHtml}
+                    <strong style="color: var(--destaque); font-size: 13px;">${nomeAutor}</strong>
+                    <span style="font-size: 10px; color: var(--texto-mutado);">${dataC}</span>
+                </div>
+
+                <div id="comentario-texto-${c.id}" 
+                style="font-size: 14px; color: var(--texto-claro); white-space: pre-wrap; word-break: break-word; overflow-wrap: break-word; text-align: left; box-sizing: border-box; width: 100%; margin-bottom: 12px; padding-left: 0;"> 
+                ${c.conteudo}
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 8px; width: 100%;">
+                    <button onclick="editarComentario('${postId}', '${c.id}')" style="background: #202024; border: 1px solid #8d8d99; color: #e1e1e6; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">Editar</button>
+                    <button onclick="deletarComentario('${postId}', '${c.id}')" style="background: #202024; border: 1px solid #ff5555; color: #ff5555; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold;">✕</button>
+                </div>
+            </div>
+    `;
+            });
+        } catch (err) {
+            divComentarios.innerHTML = '<div style="color: red; font-size: 13px;">Erro ao ler as tramas.</div>';
+        }
     }
 
     async function enviarComentario(postId) {
@@ -674,7 +685,6 @@ async function deletarAba(abaId) {
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ conteudo })
             });
-
             if (res.ok) {
                 input.value = ''; 
                 carregarComentarios(postId); 
@@ -710,54 +720,122 @@ async function deletarAba(abaId) {
         } catch (err) { alert("Erro de conexão."); }
     }
 
-    async function publicarPostComImagem() {
-        const textarea = document.getElementById('texto-post');
-        const inputImg = document.getElementById('input-imagem');
-        const conteudo = textarea.value.trim();
+    let tipoPostSelecionado = 'normal';
 
-        if (!conteudo && inputImg.files.length === 0) return alert("Escreva algo ou anexe pelo menos uma imagem.");
-        if (!abaAtualId) return alert("Nenhuma aba selecionada.");
-
-        let urlsImagens = [];
-        try {
-            if (inputImg.files.length > 0) {
-                const formData = new FormData();
-                for (let i = 0; i < inputImg.files.length; i++) {
-                    formData.append('imagens', inputImg.files[i]); 
-                }
-
-                const resUpload = await fetch('/midia/upload/social', {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` },
-                    body: formData
-                });
-
-                const dataUpload = await resUpload.json();
-                if (!resUpload.ok) throw new Error(dataUpload.erro);
-                urlsImagens = dataUpload.urls || [dataUpload.url]; 
-            }
-
-            const resposta = await fetch(`/cronicas/${cronicaId}/abas/${abaAtualId}/posts`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ conteudo: conteudo, imagens: urlsImagens })
-            });
-
-            if (resposta.ok) {
-                textarea.value = '';
-                inputImg.value = ''; 
-                carregarPosts();
-            } else {
-                throw new Error("Erro ao salvar postagem.");
-            }
-        } catch (err) {
-            alert(err.message);
-        }
+    function selecionarTipoPost(tipo) {
+        tipoPostSelecionado = tipo;
+        document.getElementById('form-post-normal').style.display = 'none';
+        document.getElementById('form-post-album').style.display = 'none';
+        document.getElementById('form-post-votacao').style.display = 'none';
+        
+        ['normal', 'album', 'votacao'].forEach(t => {
+            const btn = document.getElementById(`btn-tipo-${t}`);
+            btn.style.background = 'transparent';
+            btn.style.border = '1px solid var(--borda)';
+            btn.style.color = 'var(--texto-claro)';
+        });
+        
+        document.getElementById(`form-post-${tipo}`).style.display = 'block';
+        const btnAtivo = document.getElementById(`btn-tipo-${tipo}`);
+        btnAtivo.style.background = 'var(--roxo-mago)';
+        btnAtivo.style.color = 'white';
+        btnAtivo.style.border = 'none';
     }
 
-    // ==========================================
-    // OUTRAS FUNÇÕES DA MESA (NÓS, MODERAÇÃO E EVENTOS)
-    // ==========================================
+    let albumItensCount = 0;
+
+    function adicionarItemAlbum() {
+        albumItensCount++;
+        const div = document.createElement('div');
+        div.id = `album-item-${albumItensCount}`;
+        div.style.cssText = 'display: flex; gap: 10px; margin-bottom: 10px; padding: 10px; background: var(--bg-principal); border-radius: 4px; align-items: start;';
+        div.innerHTML = `
+            <div style="flex: 1;">
+                <input type="file" id="album-img-${albumItensCount}" accept="image/*" style="margin-bottom: 5px; color: var(--texto-mutado); font-size: 13px;">
+                <textarea id="album-desc-${albumItensCount}" placeholder="Descrição da imagem..." style="width: 100%; padding: 8px; background: var(--bg-principal); border: 1px solid var(--borda); color: #fff; border-radius: 4px; min-height: 40px; box-sizing: border-box; resize: vertical;"></textarea>
+            </div>
+            <button onclick="this.parentElement.remove()" style="background: transparent; border: 1px solid #ff5555; color: #ff5555; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 18px; flex-shrink: 0;">✕</button>
+        `;
+        document.getElementById('album-itens').appendChild(div);
+    }
+
+    function adicionarOpcaoVotacao() {
+        const container = document.getElementById('votacao-opcoes');
+        const count = container.querySelectorAll('.opcao-votacao').length + 1;
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'opcao-votacao';
+        input.placeholder = `Opção ${count}`;
+        input.style.cssText = 'width: 100%; padding: 8px; margin-bottom: 5px; background: var(--bg-principal); border: 1px solid var(--borda); color: #fff; border-radius: 4px; box-sizing: border-box;';
+        container.appendChild(input);
+        input.focus();
+    }
+
+    async function publicarPost() {
+        if (!abaAtualId) return alert('Selecione uma aba primeiro.');
+        let payload = { tipo: tipoPostSelecionado };
+        
+        try {
+            if (tipoPostSelecionado === 'normal') {
+                const conteudo = document.getElementById('texto-post').value.trim();
+                const inputImg = document.getElementById('input-imagem');
+                if (!conteudo && inputImg.files.length === 0) return alert('Escreva algo ou anexe uma imagem.');
+                payload.conteudo = conteudo;
+                
+                if (inputImg.files.length > 0) {
+                    const formData = new FormData();
+                    formData.append('imagens', inputImg.files[0]);
+                    const resUpload = await fetch('/midia/upload/social', { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: formData });
+                    const dataUpload = await resUpload.json();
+                    if (!resUpload.ok) throw new Error(dataUpload.erro);
+                    payload.imagem_url = dataUpload.urls?.[0] || dataUpload.url;
+                }
+            }
+            else if (tipoPostSelecionado === 'album') {
+                const itens = document.querySelectorAll('#album-itens > div');
+                if (itens.length === 0) return alert('Adicione pelo menos uma imagem ao álbum.');
+                payload.album_itens = [];
+                for (let item of itens) {
+                    const id = item.id.split('-')[2];
+                    const descricao = document.getElementById(`album-desc-${id}`)?.value || '';
+                    const imgInput = document.getElementById(`album-img-${id}`);
+                    if (!imgInput.files.length) continue;
+                    
+                    const formData = new FormData();
+                    formData.append('imagens', imgInput.files[0]);
+                    const resUpload = await fetch('/midia/upload/social', { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: formData });
+                    const dataUpload = await resUpload.json();
+                    if (!resUpload.ok) throw new Error(dataUpload.erro);
+                    payload.album_itens.push({ imagem_url: dataUpload.urls?.[0] || dataUpload.url, descricao: descricao });
+                }
+                if (payload.album_itens.length === 0) return alert('Selecione pelo menos uma imagem para cada item do álbum.');
+            }
+            else if (tipoPostSelecionado === 'votacao') {
+                const pergunta = document.getElementById('votacao-pergunta').value.trim();
+                if (!pergunta) return alert('Digite a pergunta da votação.');
+                const opcoes = [...document.querySelectorAll('.opcao-votacao')].map(i => i.value.trim()).filter(v => v);
+                if (opcoes.length < 2) return alert('Adicione pelo menos 2 opções.');
+                payload.pergunta = pergunta;
+                payload.opcoes = opcoes;
+            }
+            
+            const res = await fetch(`/cronicas/${cronicaId}/abas/${abaAtualId}/posts`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(payload)
+            });
+            if (!res.ok) { const err = await res.json(); throw new Error(err.erro || 'Erro ao publicar.'); }
+            
+            document.getElementById('texto-post').value = '';
+            document.getElementById('input-imagem').value = '';
+            document.getElementById('album-itens').innerHTML = '';
+            document.getElementById('votacao-pergunta').value = '';
+            document.getElementById('votacao-opcoes').innerHTML = `<input type="text" class="opcao-votacao" placeholder="Opção 1" style="width: 100%; padding: 8px; margin-bottom: 5px; background: var(--bg-principal); border: 1px solid var(--borda); color: #fff; border-radius: 4px;"><input type="text" class="opcao-votacao" placeholder="Opção 2" style="width: 100%; padding: 8px; margin-bottom: 5px; background: var(--bg-principal); border: 1px solid var(--borda); color: #fff; border-radius: 4px;">`;
+            albumItensCount = 0;
+            carregarPosts();
+        } catch (err) { alert(err.message); }
+    }
+
     function abrirModalForja() { document.getElementById('forja-nome').value = ''; document.getElementById('modal-forja').style.display = 'flex'; }
     function fecharModalForja() { document.getElementById('modal-forja').style.display = 'none'; }
     
@@ -799,7 +877,6 @@ async function deletarAba(abaId) {
             menuItems.forEach(el => el.classList.remove('ativa'));
             e.target.classList.add('ativa');
         }
-        
         document.querySelector('.caixa-postar').style.display = 'none';
 
         divPosts.innerHTML = `
@@ -811,11 +888,8 @@ async function deletarAba(abaId) {
         `;
 
         try {
-            const resposta = await fetch(`/cronicas/${cronicaId}/nodes`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const resposta = await fetch(`/cronicas/${cronicaId}/nodes`, { headers: { 'Authorization': `Bearer ${token}` } });
             const nodes = await resposta.json();
-            
             const grid = document.getElementById('grid-mundo');
             grid.innerHTML = '';
 
@@ -859,7 +933,6 @@ async function deletarAba(abaId) {
     async function carregarFilaModeracao() {
         const divPosts = document.getElementById('lista-posts');
         const menuItems = document.querySelectorAll('.aba-item');
-        
         menuItems.forEach(el => el.classList.remove('ativa'));
         event.target.classList.add('ativa');
         document.querySelector('.caixa-postar').style.display = 'none';
@@ -867,11 +940,8 @@ async function deletarAba(abaId) {
         divPosts.innerHTML = '<h3>🛡️ Fila de Moderação</h3><div id="grid-moderacao" style="display:grid; gap:15px;">Inspecionando o véu...</div>';
 
         try {
-            const resposta = await fetch(`/cronicas/${cronicaId}/moderacao`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const resposta = await fetch(`/cronicas/${cronicaId}/moderacao`, { headers: { 'Authorization': `Bearer ${token}` } });
             const pendentes = await resposta.json();
-            
             const grid = document.getElementById('grid-moderacao');
             grid.innerHTML = '';
 
@@ -899,10 +969,7 @@ async function deletarAba(abaId) {
 
     async function aprovarNode(nodeId) {
         try {
-            const res = await fetch(`/cronicas/${cronicaId}/nodes/${nodeId}/aprovar`, {
-                method: 'PUT',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const res = await fetch(`/cronicas/${cronicaId}/nodes/${nodeId}/aprovar`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` } });
             if(res.ok) carregarFilaModeracao(); 
             else alert("Falha ao aprovar.");
         } catch(err) { alert("Erro de conexão."); }
@@ -943,9 +1010,7 @@ async function deletarAba(abaId) {
         `;
 
         try {
-            const resposta = await fetch(`/cronicas/${cronicaId}/eventos`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const resposta = await fetch(`/cronicas/${cronicaId}/eventos`, { headers: { 'Authorization': `Bearer ${token}` } });
             const eventos = await resposta.json();
             const grid = document.getElementById('grid-eventos');
             grid.innerHTML = '';
@@ -1074,14 +1139,10 @@ async function deletarAba(abaId) {
         const jogadorId = document.getElementById('perm-jogador-id').value;
         const nivel = document.getElementById('perm-nivel').value;
 
-        // ==========================================
-        // PASSO B: A TRAVA DE SEGURANÇA
-        // ==========================================
         if (!jogadorId || jogadorId.trim() === "") {
             alert("Por favor, selecione um Desperto na lista antes de conceder acesso.");
-            return; // Para tudo aqui e não deixa a requisição ir para o servidor vazio!
+            return; 
         }
-        // ==========================================
 
         try {
             const res = await fetch(`/cronicas/${cronicaId}/abas/${abaId}/permissoes`, {
@@ -1093,7 +1154,6 @@ async function deletarAba(abaId) {
             if (res.ok) {
                 abrirModalPermissoes(abaId); 
             } else {
-                // Se o servidor reclamar de algo, mostramos o erro para o Narrador
                 const dadosErro = await res.json();
                 alert(dadosErro.erro || "Erro ao conceder acesso.");
             }
@@ -1113,34 +1173,43 @@ async function deletarAba(abaId) {
     }
     
     function limparUpload() {
-    // Limpa o input de arquivo
-    const input = document.getElementById('input-imagem');
-    input.value = ''; 
-    
-    // Se você estiver usando o container de miniaturas (previews), limpe-o também:
-    const previewContainer = document.getElementById('container-previews');
-    if (previewContainer) previewContainer.innerHTML = '';
-    
-    // Se você estiver usando a variável de lista de imagens:
-    if (typeof listaImagensParaUpload !== 'undefined') {
-        listaImagensParaUpload = [];
+        const input = document.getElementById('input-imagem');
+        input.value = ''; 
+        const previewContainer = document.getElementById('container-previews');
+        if (previewContainer) previewContainer.innerHTML = '';
+        if (typeof listaImagensParaUpload !== 'undefined') listaImagensParaUpload = [];
     }
-    
-    console.log("Uploads removidos.");
-}
 
-// =================================================================
-// FUNÇÕES GLOBAIS FORÇADAS
-// =================================================================
+    async function votar(postId, opcaoId) {
+        try {
+            const res = await fetch(`/cronicas/${cronicaId}/posts/${postId}/votar`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ opcao_id: opcaoId })
+            });
 
-// 1. Garante que o clique nas abas funcione
-window.selecionarAba = selecionarAba;
+            const dados = await res.json();
 
-// 2. Garante que o botão de apagar aba encontre a função certa
-window.deletarAba = (typeof deletarAba !== 'undefined') ? deletarAba : 
-                   ((typeof apagarAba !== 'undefined') ? apagarAba : 
-                   function(id) { alert("A função original de apagar aba não foi encontrada."); });
+            if (res.ok) {
+                const post = postsAtuaisNaAba.find(p => p.id === postId);
+                if (post && dados.opcoes) {
+                    post.opcoes = dados.opcoes;
+                    const index = postsAtuaisNaAba.findIndex(p => p.id === postId);
+                    if (index >= 0) exibirPostCompleto(index);
+                }
+            } else {
+                alert(dados.erro || 'Erro ao votar.');
+            }
+        } catch (err) {
+            alert('Erro de conexão.');
+        }
+    }
 
-</script>
+    window.selecionarAba = selecionarAba;
+    window.deletarAba = (typeof deletarAba !== 'undefined') ? deletarAba : 
+                       ((typeof apagarAba !== 'undefined') ? apagarAba : 
+                       function(id) { alert("A função original de apagar aba não foi encontrada."); });
+
+   </script>
 </body>
 </html>
