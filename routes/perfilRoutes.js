@@ -5,26 +5,34 @@ const verificarToken = require('../middlewares/auth');
 const bcrypt = require('bcrypt');
 
 // Buscar perfil completo
+// Devolve o usuário e as crônicas com os respectivos apelidos e avatares
 router.get('/', verificarToken, async (req, res) => {
     try {
-        const usuario = await pool.query(
-            'SELECT id, nome_usuario, email, avatar_url FROM usuarios WHERE id = $1',
-            [req.usuario.id]
-        );
-
+        const usuarioId = req.usuario.id;
+        
+        // Busca os dados básicos do utilizador principal
+        const user = await pool.query('SELECT nome_usuario, email, avatar_url FROM usuarios WHERE id = $1', [usuarioId]);
+        
+        // Busca as crónicas em que o utilizador participa e as suas identidades (apelido/avatar)
         const perfis = await pool.query(`
-            SELECT pc.*, c.nome as cronica_nome
-            FROM perfis_cronica pc
-            JOIN cronicas c ON pc.cronica_id = c.id
-            WHERE pc.usuario_id = $1
-        `, [req.usuario.id]);
+            SELECT 
+                c.id AS cronica_id, 
+                c.nome AS cronica_nome, 
+                pc.apelido, 
+                pc.avatar_url 
+            FROM cronicas c
+            JOIN cronica_jogadores jc ON c.id = jc.cronica_id
+            LEFT JOIN perfis_cronica pc ON c.id = pc.cronica_id AND pc.usuario_id = $1
+            WHERE jc.usuario_id = $1
+        `, [usuarioId]);
 
-        res.json({
-            usuario: usuario.rows[0],
-            perfis_cronica: perfis.rows
+        res.json({ 
+            usuario: user.rows[0], 
+            perfis_cronica: perfis.rows 
         });
     } catch (err) {
-        res.status(500).json({ erro: 'Erro ao carregar perfil.' });
+        console.error('Erro ao buscar o perfil completo:', err);
+        res.status(500).json({ erro: "Erro interno ao buscar perfil." });
     }
 });
 
@@ -79,20 +87,32 @@ router.put('/avatar', verificarToken, async (req, res) => {
 
 // Salvar/atualizar perfil por crônica
 router.put('/cronica/:cronicaId', verificarToken, async (req, res) => {
-    const { cronicaId } = req.params;
-    const { apelido, avatar_url } = req.body;
-
     try {
-        await pool.query(`
+        const usuarioId = req.usuario.id;
+        const cronicaId = req.params.cronicaId;
+        const { apelido, avatar_url } = req.body;
+
+        // Query de Upsert: Insere o registo. Se a combinação (usuario_id, cronica_id) já existir, atualiza.
+        // O COALESCE garante que, se for enviado apenas o apelido, o avatar antigo não é apagado da base de dados.
+        const query = `
             INSERT INTO perfis_cronica (usuario_id, cronica_id, apelido, avatar_url)
             VALUES ($1, $2, $3, $4)
             ON CONFLICT (usuario_id, cronica_id) 
-            DO UPDATE SET apelido = EXCLUDED.apelido, avatar_url = EXCLUDED.avatar_url
-        `, [req.usuario.id, cronicaId, apelido, avatar_url]);
+            DO UPDATE SET 
+                apelido = EXCLUDED.apelido, 
+                avatar_url = COALESCE(EXCLUDED.avatar_url, perfis_cronica.avatar_url)
+            RETURNING *;
+        `;
+        
+        const result = await pool.query(query, [usuarioId, cronicaId, apelido, avatar_url]);
 
-        res.json({ mensagem: 'Perfil da crônica atualizado!' });
+        res.json({ 
+            mensagem: "Identidade na crónica atualizada com sucesso!", 
+            perfil: result.rows[0] 
+        });
     } catch (err) {
-        res.status(500).json({ erro: 'Erro ao salvar perfil da crônica.' });
+        console.error("Erro ao atualizar o perfil da crónica:", err);
+        res.status(500).json({ erro: "Erro interno do servidor ao guardar a identidade." });
     }
 });
 

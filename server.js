@@ -171,12 +171,16 @@ app.get('/cronicas/:cronicaId/abas/:abaId/posts', verificarToken, async (req, re
         if (nivel === 'nenhuma') return res.status(403).json({ erro: 'Aba oculta para você.' });
 
         const postsQuery = await pool.query(`
-        SELECT p.*, u.nome_usuario as autor_nome, u.avatar_url as autor_avatar
+        SELECT 
+        p.*,
+        COALESCE(pc.apelido, u.nome_usuario) AS autor_nome,
+        COALESCE(pc.avatar_url, u.avatar_url) AS autor_avatar
         FROM postagens p
         JOIN usuarios u ON p.autor_id = u.id
+        LEFT JOIN perfis_cronica pc ON pc.usuario_id = u.id AND pc.cronica_id = $2
         WHERE p.aba_id = $1
         ORDER BY p.criado_em DESC
-        `, [abaId]);
+        `, [abaId, cronicaId]);
 
          for (let post of postsQuery.rows) {
         if (post.tipo === 'album') {
@@ -327,15 +331,21 @@ app.delete('/cronicas/:cronicaId/abas/:abaId', verificarToken, async (req, res) 
 // ==========================================
 
 app.get('/cronicas/:cronicaId/posts/:postId/comentarios', verificarToken, async (req, res) => {
-    const { postId } = req.params;
+    const { cronicaId, postId } = req.params;  // ✅ Adicione cronicaId!
+    
     try {
         const query = await pool.query(`
-            SELECT c.*, u.nome_usuario as autor_nome
+            SELECT 
+                c.*,
+                COALESCE(pc.apelido, u.nome_usuario) AS autor_nome,
+                COALESCE(pc.avatar_url, u.avatar_url) AS autor_avatar
             FROM post_comentarios c
             JOIN usuarios u ON c.autor_id = u.id
+            LEFT JOIN perfis_cronica pc ON pc.usuario_id = u.id AND pc.cronica_id = $2
             WHERE c.post_id = $1
             ORDER BY c.criado_em ASC
-        `, [postId]);
+        `, [postId, cronicaId]);  // ✅ Agora cronicaId existe!
+        
         res.json(query.rows);
     } catch (err) {
         console.error(err);
@@ -347,7 +357,7 @@ app.get('/cronicas/:cronicaId/posts/:postId/comentarios', verificarToken, async 
 // ROTA DE ENVIAR COMENTÁRIOS (URL ORIGINAL)
 // ==========================================
 app.post('/cronicas/:cronicaId/posts/:postId/comentarios', verificarToken, async (req, res) => {
-    const { postId } = req.params;
+    const { cronicaId, postId } = req.params;
     const { conteudo } = req.body;
     const autorId = req.usuario.id;
 
