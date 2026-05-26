@@ -58,15 +58,32 @@
 <body>
 
     <div class="header-perfil">
-        <div class="user-info">
-            <img src="/uploads/avatares/default.png" id="img-avatar" class="avatar-perfil" alt="Avatar">
-            <div>
-                <h2 id="txt-boas-vindas" style="margin: 0; color: var(--texto-claro);">Carregando Desperto...</h2>
-                <p style="color: var(--texto-mutado); font-size: 14px; margin: 4px 0 0 0;">Painel de Controle Multissistema</p>
-            </div>
+    <div class="user-info">
+    <input type="file" id="input-avatar-perfil" accept="image/*" style="display: none;" onchange="uploadAvatarPerfil()">
+    <img src="/uploads/avatares/default.png" id="img-avatar" class="avatar-perfil" alt="Avatar" 
+         onclick="document.getElementById('input-avatar-perfil').click()" 
+         style="cursor: pointer;" title="Clique para trocar o avatar">
+        <div>
+            <h2 id="txt-boas-vindas" style="margin: 0; color: var(--texto-claro);">Carregando perfil...</h2>
+            <p style="color: var(--texto-mutado); font-size: 14px; margin: 4px 0 8px 0;">Painel de Controle Multissistema</p>
+            <a href="/config_perfil.html" style="
+                background: transparent; 
+                border: 1px solid var(--roxo-mago); 
+                color: var(--roxo-mago); 
+                padding: 6px 12px; 
+                border-radius: 4px; 
+                text-decoration: none; 
+                font-size: 13px; 
+                font-weight: bold;
+                display: inline-block;
+            " onmouseover="this.style.background='var(--roxo-mago)'; this.style.color='#fff';" 
+               onmouseout="this.style.background='transparent'; this.style.color='var(--roxo-mago)';">
+                Configurações
+            </a>
         </div>
-        <button class="btn-logout" onclick="fazerLogout()">Encerrar Sessão</button>
     </div>
+    <button class="btn-logout" onclick="fazerLogout()">Encerrar Sessão</button>
+</div>
 
     <div class="grid-papeis">
         
@@ -96,27 +113,73 @@
             window.location.href = '/login.html';
         }
 
-        // Decodifica o nome do usuário direto do Token JWT para ser instantâneo
-        try {
-            const payload = JSON.parse(atob(token.split('.')[1]));
-            document.getElementById('txt-boas-vindas').innerText = `Saudações, ${payload.nome}`;
-        } catch(e) {
-            fazerLogout();
-        }
-
         function fazerLogout() {
-            localStorage.removeItem('token_m20');
-            window.location.href = '/login.html';
-        }
+        localStorage.removeItem('m20_token');
+        localStorage.removeItem('m20_role');
+        localStorage.removeItem('m20_user');
+        window.location.href = '/login.html';
+}
 
-        async function carregarDashboard() {
+        // Decodifica o nome do usuário direto do Token JWT para ser instantâneo
+        
+
+        async function uploadAvatarPerfil() {
+    const input = document.getElementById('input-avatar-perfil');
+    if (!input.files || !input.files.length) return;
+
+    const file = input.files[0];
+    
+    // Preview imediato
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        document.getElementById('img-avatar').src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+
+    // Upload
+    const formData = new FormData();
+    formData.append('imagens', file);
+
     try {
+        const res = await fetch('/midia/upload/avatares', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
+            body: formData
+        });
+        const data = await res.json();
+
+        if (res.ok && data.urls && data.urls.length) {
+            await fetch('/perfil/avatar', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ avatar_url: data.urls[0] })
+            });
+        }
+        } catch (err) {
+        console.error('Erro no upload:', err);
+        }
+        }
+           
+        async function carregarDashboard() {
+        try {
         const resposta = await fetch('/auth/dashboard-resumo', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
         if (!resposta.ok) throw new Error();
         const dados = await resposta.json();
+
+        try {
+            const resPerfil = await fetch('/perfil', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const dadosPerfil = await resPerfil.json();
+            if (dadosPerfil.usuario && dadosPerfil.usuario.avatar_url) {
+                document.getElementById('img-avatar').src = dadosPerfil.usuario.avatar_url;
+            }
+            if (dadosPerfil.usuario && dadosPerfil.usuario.nome_usuario) {
+            document.getElementById('txt-boas-vindas').innerText = `Saudações, ${dadosPerfil.usuario.nome_usuario}`;}
+        } catch(e) {}
 
         // 1. Renderiza as crônicas que ele narra
         const listaNarrador = document.getElementById('lista-cronicas-narrador');
@@ -205,20 +268,26 @@
         if (dados.jogando.length === 0) {
             listaJogador.innerHTML = `<p style="color: var(--texto-mutado); font-size:14px;">Você não está participando de nenhuma crônica ativa como jogador.</p>`;
         } else {
-            dados.jogando.forEach(item => {
-                listaJogador.innerHTML += `
-                    <div class="card-item">
-                        <div>
-                            <strong style="color: #fff;">${item.cronica_nome}</strong>
-                            <span class="tag-status status-ativa">${item.status || 'ativa'}</span>
-                            <p style="color: var(--texto-mutado); font-size: 12px; margin: 4px 0 0 0;">Sistema: Mago M20</p>
-                        </div>
-                        <div class="acoes-mesa">
-                            <a href="/painel_narrador.html?id=${item.cronica_id}" class="btn-acao" style="background: var(--sucesso); color: var(--bg-principal);">Acessar Mesa</a>
-                        </div>
-                    </div>
-                `;
-            });
+           dados.jogando.forEach(item => {
+            listaJogador.innerHTML += `
+            <div class="card-item">
+            <div>
+                <strong style="color: #fff;">${item.cronica_nome}</strong>
+                <span class="tag-status status-ativa">${item.status || 'ativa'}</span>
+                <p style="color: var(--texto-mutado); font-size: 12px; margin: 4px 0 0 0;">Sistema: Mago M20</p>
+            </div>
+            <div class="acoes-mesa">
+                <a href="/painel_narrador.html?id=${item.cronica_id}" class="btn-acao" style="background: var(--sucesso); color: var(--bg-principal);">Acessar Mesa</a>
+                <button onclick="sairDaCronica('${item.cronica_id}', '${item.cronica_nome}')" 
+                    style="background: transparent; border: 1px solid #ff5555; color: #ff5555; 
+                           padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;"
+                    title="Sair desta crônica">
+                    🚪 Sair
+                </button>
+            </div>
+        </div>
+    `;
+});
         }
 
     } catch (err) {
@@ -288,7 +357,37 @@ async function deletarCronica(cronicaId) {
     }
 }
 
+async function sairDaCronica(cronicaId, nomeCronica) {
+    if (!confirm(`Tem certeza que deseja SAIR da crônica "${nomeCronica}"?`)) return;
+    if (!confirm('Você perderá o acesso a esta mesa. Confirma?')) return;
+
+    try {
+        const res = await fetch(`/cronicas/${cronicaId}/sair`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        const dados = await res.json();
+
+        if (res.ok) {
+            alert(dados.mensagem);
+            carregarDashboard(); // Recarrega a lista
+        } else {
+            alert(dados.erro || 'Erro ao sair.');
+        }
+    } catch (err) {
+        alert('Erro de conexão ao sair da crônica.');
+    }
+}
+// Força recarregar quando volta pra página (cache do navegador)
+window.addEventListener('pageshow', function(event) {
+    if (event.persisted || performance.getEntriesByType('navigation')[0]?.type === 'back_forward') {
+        carregarDashboard();
+    }
+});
+
 carregarDashboard();
+
 </script>
 </body>
 </html>

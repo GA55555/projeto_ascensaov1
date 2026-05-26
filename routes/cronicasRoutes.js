@@ -20,17 +20,19 @@ router.get('/', verificarToken, async (req, res) => {
 });
 
 router.post('/', verificarToken, async (req, res) => {
-    if (req.usuario.papel !== 'narrador') {
-        return res.status(403).json({ erro: 'Acesso negado. Apenas narradores podem tecer novas crônicas.' });
-    }
-
     const { nome, descricao, sistema_id, capa_url } = req.body;
 
-    try {  
+    try {
         const novaCronica = await pool.query(
             `INSERT INTO cronicas (narrador_id, nome, descricao, sistema_id, capa_url) 
              VALUES ($1, $2, $3, $4, $5) RETURNING *`,
             [req.usuario.id, nome, descricao, sistema_id || 1, capa_url]
+        );
+        
+        // Cria a aba "Feed Geral" automaticamente
+        await pool.query(
+            `INSERT INTO cronica_abas (cronica_id, nome, tipo) VALUES ($1, 'Feed Geral', 'geral')`,
+            [novaCronica.rows[0].id]
         );
         
         res.status(201).json(novaCronica.rows[0]);

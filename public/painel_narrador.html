@@ -98,17 +98,50 @@
     
         <div class="feed-container">
             <div class="caixa-postar">
-                <textarea id="texto-post" placeholder="Escreva algo..."></textarea>
-                <div style="margin-top: 10px;">
-                    <input type="file" id="input-imagem" accept="image/*" multiple onchange="console.log('Arquivos selecionados:', this.files.length)">
-                </div>
-                <button onclick="limparUpload()" style="background: #ff5555; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-top: 5px;">
-                Cancelar Uploads
+            <!-- Seletor de tipo de post -->
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <button onclick="selecionarTipoPost('normal')" id="btn-tipo-normal" 
+                    style="background: var(--roxo-mago); color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold;">
+                    📝 Normal
                 </button>
-                <div class="acoes-post" style="margin-top: 10px;">
-                    <button class="btn-postar" onclick="publicarPostComImagem()">Publicar no Feed</button>
-                </div>
+                <button onclick="selecionarTipoPost('album')" id="btn-tipo-album" 
+                    style="background: transparent; border: 1px solid var(--borda); color: var(--texto-claro); padding: 8px 16px; border-radius: 4px; cursor: pointer;">
+                    🖼️ Álbum
+                </button>
+                <button onclick="selecionarTipoPost('votacao')" id="btn-tipo-votacao" 
+                    style="background: transparent; border: 1px solid var(--borda); color: var(--texto-claro); padding: 8px 16px; border-radius: 4px; cursor: pointer;">
+                    🗳️ Votação
+                </button>
             </div>
+        
+            <!-- POST NORMAL (padrão) -->
+            <div id="form-post-normal">
+                <textarea id="texto-post" placeholder="Escreva algo..."></textarea>
+                <input type="file" id="input-imagem" accept="image/*">
+            </div>
+        
+            <!-- POST ÁLBUM (escondido) -->
+            <div id="form-post-album" style="display: none;">
+                <div id="album-itens"></div>
+                <button onclick="adicionarItemAlbum()" style="background: transparent; border: 1px dashed var(--destaque); color: var(--destaque); padding: 10px; border-radius: 4px; cursor: pointer; width: 100%;">
+                    + Adicionar Imagem ao Álbum
+                </button>
+            </div>
+        
+            <!-- POST VOTAÇÃO (escondido) -->
+            <div id="form-post-votacao" style="display: none;">
+                <input type="text" id="votacao-pergunta" placeholder="Pergunta da votação..." style="width: 100%; padding: 10px; background: var(--bg-principal); border: 1px solid var(--borda); color: #fff; border-radius: 4px; margin-bottom: 10px;">
+                <div id="votacao-opcoes">
+                    <input type="text" class="opcao-votacao" placeholder="Opção 1" style="width: 100%; padding: 8px; margin-bottom: 5px; background: var(--bg-principal); border: 1px solid var(--borda); color: #fff; border-radius: 4px;">
+                    <input type="text" class="opcao-votacao" placeholder="Opção 2" style="width: 100%; padding: 8px; margin-bottom: 5px; background: var(--bg-principal); border: 1px solid var(--borda); color: #fff; border-radius: 4px;">
+                </div>
+                <button onclick="adicionarOpcaoVotacao()" style="background: transparent; border: 1px dashed var(--destaque); color: var(--destaque); padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;">+ Opção</button>
+            </div>
+        
+            <button class="btn-postar" onclick="publicarPost()" style="margin-top: 10px;">Publicar</button>
+        </div>
+
+        
 
             <div id="lista-posts">
                 <p style="color: var(--texto-mutado); text-align: center;">Carregando mensagens do éter...</p>
@@ -165,7 +198,7 @@
                 <select id="perm-nivel" style="width: 100%; padding: 10px; background: var(--bg-principal); border: 1px solid var(--borda); color: white; border-radius: 4px; margin-bottom: 20px;">
                     <option value="leitura">👁️ Somente Leitura</option>
                     <option value="comentar">💬 Ler e Comentar</option>
-                    <value="editor">✍️ Editor (Postar e Editar)</option>
+                    <option value="editor">✍️ Editor (Postar e Editar)</option>
                 </select>
                 <button onclick="salvarPermissaoAba()" style="background: var(--destaque); color: #121214; border: none; padding: 0 15px; border-radius: 4px; font-weight: bold; cursor: pointer;">Conceder</button>
             </div>
@@ -538,22 +571,102 @@ async function deletarAba(abaId) {
 
         const mosaicoImagensHtml = gerarGridImagens(arrayImagens);
         
+        // Conteúdo varia conforme o tipo de post
+        let conteudoHtml = '';
+        let tipoBadge = '';
+
+        if (post.tipo === 'album' && post.album_itens) {
+            tipoBadge = '🖼️ Álbum';
+            conteudoHtml = post.album_itens.map((item, i) => `
+                <div style="margin-bottom: 20px; border-bottom: 1px solid var(--borda); padding-bottom: 15px;">
+                    <img src="${item.imagem_url}" style="width: 100%; max-height: 400px; object-fit: contain; border-radius: 8px; background: #000;">
+                    ${item.descricao ? `<p style="color: var(--texto-claro); margin-top: 10px;">${item.descricao}</p>` : ''}
+                </div>
+            `).join('');
+        }  else if (post.tipo === 'votacao' && post.opcoes) {
+        tipoBadge = '🗳️ Votação';
+        conteudoHtml = `
+        <div style="background: var(--bg-principal); padding: 15px; border-radius: 8px; margin-bottom: 10px;">
+            <p style="font-size: 18px; font-weight: bold; color: var(--destaque); margin-bottom: 15px;">${post.conteudo}</p>
+            <div id="votacao-opcoes-${post.id}">
+                ${post.opcoes.map(op => {
+                    const totalVotos = post.opcoes.reduce((s, o) => s + (o.votos || 0), 0) || 1;
+                    const porcentagem = Math.round(((op.votos || 0) / totalVotos) * 100);
+                    return `
+                        <div onclick="votar('${post.id}', '${op.id}')" style="
+                            display: flex; 
+                            align-items: center; 
+                            gap: 10px; 
+                            padding: 12px; 
+                            margin-bottom: 8px; 
+                            background: rgba(255,255,255,0.03); 
+                            border-radius: 4px; 
+                            cursor: pointer;
+                            position: relative;
+                            overflow: hidden;
+                            border: 1px solid var(--borda);
+                            transition: 0.2s;
+                        " onmouseover="this.style.borderColor='var(--roxo-mago)'" onmouseout="this.style.borderColor='var(--borda)'">
+                            <div style="
+                                position: absolute;
+                                left: 0; top: 0; bottom: 0;
+                                width: ${porcentagem}%;
+                                background: rgba(152, 113, 245, 0.15);
+                                transition: width 0.5s ease;
+                                z-index: 0;
+                            "></div>
+                            <div style="
+                                width: 20px; 
+                                height: 20px; 
+                                border-radius: 50%; 
+                                border: 2px solid var(--roxo-mago); 
+                                display: flex; 
+                                align-items: center; 
+                                justify-content: center;
+                                flex-shrink: 0;
+                                z-index: 1;
+                                background: var(--bg-principal);
+                            ">
+                                <div style="width: 10px; height: 10px; border-radius: 50%; background: transparent;"></div>
+                            </div>
+                            <span style="flex: 1; z-index: 1;">${op.texto}</span>
+                            <span style="color: var(--texto-mutado); font-size: 12px; z-index: 1; font-weight: bold;">
+                                ${op.votos || 0} voto${op.votos !== 1 ? 's' : ''} (${porcentagem}%)
+                            </span>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+            <p style="font-size: 11px; color: var(--texto-mutado); margin-top: 10px; text-align: center;">
+                Clique em uma opção para votar • Total: ${post.opcoes.reduce((s, o) => s + (o.votos || 0), 0)} voto(s)
+            </p>
+        </div>
+            `;
+        }
+         else {
+            tipoBadge = post.tipo === 'normal' ? '' : '📝';
+            conteudoHtml = post.conteudo;
+        }
+
         leituraPrincipal.innerHTML = `
         <div style="padding: 20px; background: var(--bg-card); border-bottom: 1px solid var(--borda);">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div style="display: flex; align-items: center; gap: 15px;">
-                    <div style="width: 45px; height: 45px; border-radius: 50%; background: var(--roxo-mago); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 20px; color: white; border: 2px solid var(--destaque); flex-shrink: 0;">${inicial}</div>
+                    ${post.autor_avatar 
+    ? `<img src="${post.autor_avatar}" style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid var(--destaque); flex-shrink: 0;">`
+    : ''}
+<div style="width: 45px; height: 45px; border-radius: 50%; background: var(--roxo-mago); display: ${post.autor_avatar ? 'none' : 'flex'}; align-items: center; justify-content: center; font-weight: bold; font-size: 20px; color: white; border: 2px solid var(--destaque); flex-shrink: 0;">${inicial}</div>
                     <div>
-                        <div style="font-weight: bold; font-size: 18px; color: var(--destaque);">${post.autor_nome}</div>
+                        <div style="font-weight: bold; font-size: 18px; color: var(--destaque);">${post.autor_nome} ${tipoBadge ? `<span style="font-size: 12px; color: var(--texto-mutado);">${tipoBadge}</span>` : ''}</div>
                         <div style="font-size: 12px; color: var(--texto-mutado);">${dataFormatada}</div>
                     </div>
                 </div>
                 ${botoesAcaoHtml}
             </div>
-            ${mosaicoImagensHtml}
+            ${post.tipo === 'normal' ? mosaicoImagensHtml : ''}
         </div>
     
-        <div id="post-corpo-texto" style="padding: 20px; font-size: 16px; line-height: 1.8; color: var(--texto-claro); white-space: pre-wrap; word-break: break-word; text-align: left; width: 100%; box-sizing: border-box;">${post.conteudo.trim()}</div>
+        <div style="padding: 20px; font-size: 16px; line-height: 1.8; color: var(--texto-claro); white-space: pre-wrap; word-break: break-word;">${conteudoHtml}</div>
     
         <div style="margin-top: 40px; border-top: 1px dashed var(--borda); padding: 20px;">
             <h4 style="margin-top: 0; color: var(--texto-mutado);">Comentários</h4>
@@ -562,6 +675,9 @@ async function deletarAba(abaId) {
         </div>
         `;
         carregarComentarios(post.id);
+    
+        
+        
     }
 
     async function deletarPost(postId) {
@@ -577,14 +693,49 @@ async function deletarAba(abaId) {
     }
 
     function editarPost(postId, index) {
-    const divTexto = document.getElementById('post-corpo-texto');
+    const post = postsAtuaisNaAba[index];
+    if (!post) return;
+    
     document.getElementById('edit-post-id').value = postId;
     document.getElementById('edit-post-index').value = index;
-    // .trim() remove espaços vazios iniciais/finais
-    document.getElementById('edit-post-texto').value = divTexto.innerText.trim(); 
-    document.getElementById('modal-editar-post').style.display = 'flex';
+    
+    // Post normal: editar texto
+    if (post.tipo === 'normal' || !post.tipo) {
+        const divTexto = document.getElementById('post-corpo-texto');
+        document.getElementById('edit-post-texto').value = divTexto ? divTexto.innerText.trim() : post.conteudo || '';
+        document.getElementById('modal-editar-post').style.display = 'flex';
+        return;
+    }
+    
+    // Álbum: editar descrições das imagens
+    if (post.tipo === 'album' && post.album_itens) {
+        let html = '';
+        post.album_itens.forEach((item, i) => {
+            html += `
+                <div style="margin-bottom: 15px; padding: 10px; background: var(--bg-principal); border-radius: 4px;">
+                    <img src="${item.imagem_url}" style="width: 100%; max-height: 150px; object-fit: contain; border-radius: 4px; margin-bottom: 8px;">
+                    <label style="color: var(--texto-mutado); font-size: 12px;">Descrição da imagem ${i + 1}:</label>
+                    <textarea class="edit-album-desc" data-item-id="${item.id}" style="width: 100%; min-height: 60px; padding: 8px; background: var(--bg-card); border: 1px solid var(--borda); color: #fff; border-radius: 4px; margin-top: 5px; box-sizing: border-box; resize: vertical;">${item.descricao || ''}</textarea>
+                </div>
+            `;
+        });
+        
+        document.getElementById('edit-post-texto').style.display = 'none';
+        let albumDiv = document.getElementById('edit-album-container');
+        if (!albumDiv) {
+            albumDiv = document.createElement('div');
+            albumDiv.id = 'edit-album-container';
+            document.getElementById('edit-post-texto').parentNode.insertBefore(albumDiv, document.getElementById('edit-post-texto'));
+        }
+        albumDiv.innerHTML = html;
+        albumDiv.style.display = 'block';
+        document.getElementById('modal-editar-post').style.display = 'flex';
+        return;
+    }
+    
+    // Votação: não pode editar
+    alert('Posts do tipo "votação" não podem ser editados, apenas apagados.');
 }
-
     async function confirmarEdicaoPost() {
     const postId = document.getElementById('edit-post-id').value;
     const index = document.getElementById('edit-post-index').value;
@@ -710,6 +861,194 @@ async function deletarAba(abaId) {
             else alert("Apenas o autor ou o Narrador podem apagar este comentário.");
         } catch (err) { alert("Erro de conexão."); }
     }
+
+    // ==========================================
+// SISTEMA DE TIPOS DE POST
+// ==========================================
+
+let tipoPostSelecionado = 'normal';
+
+function selecionarTipoPost(tipo) {
+    tipoPostSelecionado = tipo;
+    
+    // Esconde todos os formulários
+    document.getElementById('form-post-normal').style.display = 'none';
+    document.getElementById('form-post-album').style.display = 'none';
+    document.getElementById('form-post-votacao').style.display = 'none';
+    
+    // Reseta botões
+    ['normal', 'album', 'votacao'].forEach(t => {
+        const btn = document.getElementById(`btn-tipo-${t}`);
+        btn.style.background = 'transparent';
+        btn.style.border = '1px solid var(--borda)';
+        btn.style.color = 'var(--texto-claro)';
+    });
+    
+    // Mostra o formulário selecionado
+    document.getElementById(`form-post-${tipo}`).style.display = 'block';
+    
+    // Destaca o botão ativo
+    const btnAtivo = document.getElementById(`btn-tipo-${tipo}`);
+    btnAtivo.style.background = 'var(--roxo-mago)';
+    btnAtivo.style.color = 'white';
+    btnAtivo.style.border = 'none';
+}
+
+// ==========================================
+// ÁLBUM
+// ==========================================
+let albumItensCount = 0;
+
+function adicionarItemAlbum() {
+    albumItensCount++;
+    const div = document.createElement('div');
+    div.id = `album-item-${albumItensCount}`;
+    div.style.cssText = 'display: flex; gap: 10px; margin-bottom: 10px; padding: 10px; background: var(--bg-principal); border-radius: 4px; align-items: start;';
+    div.innerHTML = `
+        <div style="flex: 1;">
+            <input type="file" id="album-img-${albumItensCount}" accept="image/*" style="margin-bottom: 5px; color: var(--texto-mutado); font-size: 13px;">
+            <textarea id="album-desc-${albumItensCount}" placeholder="Descrição da imagem..." style="width: 100%; padding: 8px; background: var(--bg-principal); border: 1px solid var(--borda); color: #fff; border-radius: 4px; min-height: 40px; box-sizing: border-box; resize: vertical;"></textarea>
+        </div>
+        <button onclick="this.parentElement.remove()" style="background: transparent; border: 1px solid #ff5555; color: #ff5555; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 18px; flex-shrink: 0;">✕</button>
+    `;
+    document.getElementById('album-itens').appendChild(div);
+}
+
+// ==========================================
+// VOTAÇÃO
+// ==========================================
+function adicionarOpcaoVotacao() {
+    const container = document.getElementById('votacao-opcoes');
+    const count = container.querySelectorAll('.opcao-votacao').length + 1;
+    
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'opcao-votacao';
+    input.placeholder = `Opção ${count}`;
+    input.style.cssText = 'width: 100%; padding: 8px; margin-bottom: 5px; background: var(--bg-principal); border: 1px solid var(--borda); color: #fff; border-radius: 4px; box-sizing: border-box;';
+    
+    container.appendChild(input);
+    input.focus();
+}
+
+// ==========================================
+// PUBLICAR POST (UNIFICADO)
+// ==========================================
+async function publicarPost() {
+    if (!abaAtualId) return alert('Selecione uma aba primeiro.');
+    
+    let payload = { tipo: tipoPostSelecionado };
+    
+    try {
+        // ============ POST NORMAL ============
+        if (tipoPostSelecionado === 'normal') {
+            const conteudo = document.getElementById('texto-post').value.trim();
+            const inputImg = document.getElementById('input-imagem');
+            
+            if (!conteudo && inputImg.files.length === 0) {
+                return alert('Escreva algo ou anexe uma imagem.');
+            }
+            
+            payload.conteudo = conteudo;
+            
+            // Upload de imagem se houver
+            if (inputImg.files.length > 0) {
+                const formData = new FormData();
+                formData.append('imagens', inputImg.files[0]);
+                
+                const resUpload = await fetch('/midia/upload/social', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+                const dataUpload = await resUpload.json();
+                if (!resUpload.ok) throw new Error(dataUpload.erro);
+                payload.imagem_url = dataUpload.urls?.[0] || dataUpload.url;
+            }
+        }
+        
+        // ============ POST ÁLBUM ============
+        else if (tipoPostSelecionado === 'album') {
+            const itens = document.querySelectorAll('#album-itens > div');
+            if (itens.length === 0) return alert('Adicione pelo menos uma imagem ao álbum.');
+            
+            payload.album_itens = [];
+            
+            for (let item of itens) {
+                const id = item.id.split('-')[2];
+                const descricao = document.getElementById(`album-desc-${id}`)?.value || '';
+                const imgInput = document.getElementById(`album-img-${id}`);
+                
+                if (!imgInput.files.length) continue;
+                
+                // Upload da imagem
+                const formData = new FormData();
+                formData.append('imagens', imgInput.files[0]);
+                
+                const resUpload = await fetch('/midia/upload/social', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+                const dataUpload = await resUpload.json();
+                if (!resUpload.ok) throw new Error(dataUpload.erro);
+                
+                payload.album_itens.push({
+                    imagem_url: dataUpload.urls?.[0] || dataUpload.url,
+                    descricao: descricao
+                });
+            }
+            
+            if (payload.album_itens.length === 0) {
+                return alert('Selecione pelo menos uma imagem para cada item do álbum.');
+            }
+        }
+        
+        // ============ POST VOTAÇÃO ============
+        else if (tipoPostSelecionado === 'votacao') {
+            const pergunta = document.getElementById('votacao-pergunta').value.trim();
+            if (!pergunta) return alert('Digite a pergunta da votação.');
+            
+            const opcoes = [...document.querySelectorAll('.opcao-votacao')]
+                .map(i => i.value.trim())
+                .filter(v => v);
+            
+            if (opcoes.length < 2) return alert('Adicione pelo menos 2 opções.');
+            
+            payload.pergunta = pergunta;
+            payload.opcoes = opcoes;
+        }
+        
+        // ============ ENVIAR ============
+        const res = await fetch(`/cronicas/${cronicaId}/abas/${abaAtualId}/posts`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify(payload)
+        });
+        
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.erro || 'Erro ao publicar.');
+        }
+        
+        // Limpar formulários
+        document.getElementById('texto-post').value = '';
+        document.getElementById('input-imagem').value = '';
+        document.getElementById('album-itens').innerHTML = '';
+        document.getElementById('votacao-pergunta').value = '';
+        document.getElementById('votacao-opcoes').innerHTML = `
+            <input type="text" class="opcao-votacao" placeholder="Opção 1" style="width: 100%; padding: 8px; margin-bottom: 5px; background: var(--bg-principal); border: 1px solid var(--borda); color: #fff; border-radius: 4px;">
+            <input type="text" class="opcao-votacao" placeholder="Opção 2" style="width: 100%; padding: 8px; margin-bottom: 5px; background: var(--bg-principal); border: 1px solid var(--borda); color: #fff; border-radius: 4px;">
+        `;
+        albumItensCount = 0;
+        
+        // Recarregar posts
+        carregarPosts();
+        
+    } catch (err) {
+        alert(err.message);
+    }
+}
 
     async function publicarPostComImagem() {
         const textarea = document.getElementById('texto-post');
@@ -1128,6 +1467,33 @@ async function deletarAba(abaId) {
     }
     
     console.log("Uploads removidos.");
+}
+
+async function votar(postId, opcaoId) {
+    try {
+        const res = await fetch(`/cronicas/${cronicaId}/posts/${postId}/votar`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ opcao_id: opcaoId })
+        });
+
+        const dados = await res.json();
+
+        if (res.ok) {
+            // Atualiza os dados do post localmente
+            const post = postsAtuaisNaAba.find(p => p.id === postId);
+            if (post && dados.opcoes) {
+                post.opcoes = dados.opcoes;
+                // Re-renderiza o post atual
+                const index = postsAtuaisNaAba.findIndex(p => p.id === postId);
+                if (index >= 0) exibirPostCompleto(index);
+            }
+        } else {
+            alert(dados.erro || 'Erro ao votar.');
+        }
+    } catch (err) {
+        alert('Erro de conexão.');
+    }
 }
 
 // =================================================================

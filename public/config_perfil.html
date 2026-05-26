@@ -154,6 +154,48 @@
             }
         }
 
+        async function uploadAvatar() {
+    const input = document.getElementById('input-avatar');
+    if (!input.files || !input.files.length) return;
+
+    const file = input.files[0];
+    
+    // Preview imediato
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        document.getElementById('avatar-preview').src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+
+    // Upload para o servidor
+    const formData = new FormData();
+    formData.append('imagens', file);
+
+    try {
+        const res = await fetch('/midia/upload/avatares', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
+            body: formData
+        });
+        const data = await res.json();
+
+        if (res.ok && data.urls && data.urls.length) {
+            // Salva a URL no banco
+            await fetch('/perfil/avatar', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ avatar_url: data.urls[0] })
+            });
+            mostrarMsg('Avatar atualizado!', 'sucesso');
+        } else {
+            mostrarMsg(data.erro || 'Erro no upload.', 'erro');
+        }
+    } catch (err) {
+        console.error('Erro no upload:', err);
+        mostrarMsg('Erro de conexão.', 'erro');
+    }
+}
+
         async function alterarSenha() {
             const senha_atual = document.getElementById('senha-atual').value;
             const nova_senha = document.getElementById('nova-senha').value;

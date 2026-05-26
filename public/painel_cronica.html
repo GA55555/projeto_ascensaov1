@@ -46,86 +46,117 @@
         </ul>
     </div>
 
-    <script>
-        const token = localStorage.getItem('token_m20');
-        const urlParams = new URLSearchParams(window.location.search);
-        const cronicaId = urlParams.get('id'); // Pega o ID da URL (?id=xxxx)
+<script>
+    const token = localStorage.getItem('m20_token');
+    const urlParams = new URLSearchParams(window.location.search);
+    const cronicaId = urlParams.get('id');
 
-        if (!token) {
-            alert("Acesso negado. Faça login.");
-            window.location.href = '/login.html';
-        }
+    if (!token) window.location.href = '/login.html';
+    if (!cronicaId) window.location.href = '/profile.html';
 
-        if (!cronicaId) {
-            alert("Crônica não especificada.");
+    async function verificarAcesso() {
+        try {
+            const res = await fetch(`/cronicas/${cronicaId}/comunidade`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!res.ok) throw new Error();
+            const dados = await res.json();
+            if (!dados.is_narrador) {
+                alert("Apenas o Narrador pode gerenciar os jogadores desta crônica.");
+                window.location.href = '/profile.html';
+                return false;
+            }
+            return true;
+        } catch (err) {
             window.location.href = '/profile.html';
+            return false;
         }
+    }
 
-        // Função para buscar e renderizar a lista
-        async function carregarJogadores() {
-            try {
-                const resposta = await fetch(`/cronicas/${cronicaId}/jogadores`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                
-                if (!resposta.ok) throw new Error("Erro ao buscar jogadores");
-                
-                const jogadores = await resposta.json();
-                const lista = document.getElementById('lista-jogadores');
-                lista.innerHTML = ''; // Limpa o "Carregando..."
-
-                if (jogadores.length === 0) {
-                    lista.innerHTML = '<p style="color: #8d8d99;">Nenhum jogador nesta crônica ainda.</p>';
-                    return;
-                }
-
-                jogadores.forEach(jog => {
-                    lista.innerHTML += `
-                        <li class="jogador-item">
-                            <span><strong>${jog.nome_usuario}</strong></span>
-                            <span class="badge">${jog.papel.toUpperCase()}</span>
-                        </li>
-                    `;
-                });
-            } catch (err) {
-                console.error(err);
-                document.getElementById('lista-jogadores').innerHTML = '<p style="color: var(--erro);">Falha ao carregar jogadores.</p>';
-            }
-        }
-
-        // Função para adicionar novo jogador
-        async function adicionarJogador() {
-            const email = document.getElementById('email-novo-jogador').value;
+    async function carregarJogadores() {
+        try {
+            const resposta = await fetch(`/cronicas/${cronicaId}/jogadores`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!resposta.ok) throw new Error("Erro ao buscar jogadores");
             
-            if (!email) { alert("Digite um e-mail."); return; }
+            const jogadores = await resposta.json();
+            const lista = document.getElementById('lista-jogadores');
+            lista.innerHTML = '';
 
-            try {
-                const resposta = await fetch(`/cronicas/${cronicaId}/adicionar-jogador`, {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ email_jogador: email })
-                });
-
-                const dados = await resposta.json();
-
-                if (!resposta.ok) throw new Error(dados.erro || 'Erro ao adicionar.');
-
-                alert(dados.mensagem);
-                document.getElementById('email-novo-jogador').value = '';
-                
-                // Recarrega a lista para mostrar o amigo que acabou de entrar
-                carregarJogadores(); 
-
-            } catch (err) {
-                alert(err.message);
+            if (jogadores.length === 0) {
+                lista.innerHTML = '<p style="color: #8d8d99;">Nenhum jogador nesta crônica ainda.</p>';
+                return;
             }
-        }
 
-        // Inicia carregando os jogadores quando a página abre
-        carregarJogadores();
-    </script>
+            jogadores.forEach(jog => {
+                lista.innerHTML += `
+                    <li class="jogador-item">
+                        <span><strong>${jog.nome_usuario}</strong></span>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span class="badge">${jog.papel.toUpperCase()}</span>
+                            <button onclick="removerJogador('${jog.id}', '${jog.nome_usuario}')" 
+                                style="background: transparent; border: 1px solid #ff5555; color: #ff5555; 
+                                       padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px;"
+                                title="Remover jogador">
+                                ✕
+                            </button>
+                        </div>
+                    </li>
+                `;
+            });
+        } catch (err) {
+            console.error(err);
+            document.getElementById('lista-jogadores').innerHTML = '<p style="color: var(--erro);">Falha ao carregar jogadores.</p>';
+        }
+    }
+
+    async function adicionarJogador() {
+        const email = document.getElementById('email-novo-jogador').value;
+        if (!email) { alert("Digite um e-mail."); return; }
+
+        try {
+            const resposta = await fetch(`/cronicas/${cronicaId}/adicionar-jogador`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ email_jogador: email })
+            });
+
+            const dados = await resposta.json();
+            if (!resposta.ok) throw new Error(dados.erro || 'Erro ao adicionar.');
+            alert(dados.mensagem);
+            document.getElementById('email-novo-jogador').value = '';
+            carregarJogadores(); 
+        } catch (err) {
+            alert(err.message);
+        }
+    }
+
+    async function removerJogador(jogadorId, nomeJogador) {
+        if (!confirm(`Tem certeza que deseja remover ${nomeJogador} desta crônica?`)) return;
+
+        try {
+            const resposta = await fetch(`/cronicas/${cronicaId}/jogadores/${jogadorId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            const dados = await resposta.json();
+            if (!resposta.ok) throw new Error(dados.erro || 'Erro ao remover.');
+            alert(dados.mensagem);
+            carregarJogadores();
+        } catch (err) {
+            alert(err.message);
+        }
+    }
+
+    (async function iniciar() {
+        const temAcesso = await verificarAcesso();
+        if (temAcesso) carregarJogadores();
+    })();
+</script>
 </body>
 </html>
