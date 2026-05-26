@@ -69,12 +69,8 @@
     <div class="container-social">
         
         <div class="menu-abas">
-            <div class="titulo-menu">Salas da Comunidade</div>
-            <ul class="lista-abas" id="lista-abas"></ul>
-            <div class="aba-item" onclick="carregarControleMundo(event)">Controle de Mundo</div>  
-            <div class="aba-item" onclick="carregarFilaModeracao()">Fila de Moderação</div>
-            <div class="aba-item" onclick="carregarAgendaEventos(event)">Agenda de Eventos</div>
-            <button class="btn-nova-aba" id="btn-add-aba" style="display: none;" onclick="criarNovaAba()">+ Nova Aba (Restrita)</button>
+        <div class="titulo-menu">Salas da Comunidade</div>
+        <ul class="lista-abas" id="lista-abas"></ul>
         </div>
     
         <div class="feed-container">
@@ -113,24 +109,7 @@
         </div>
     </div>
     
-    <div id="modal-forja" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 1000;">
-        <div style="background: var(--bg-card); padding: 30px; border-radius: 8px; border: 1px solid var(--roxo-mago); width: 400px; max-width: 90%; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
-            <h3 style="margin-top: 0; color: var(--destaque);">🔨 Forjar Nova Entidade</h3>
-            <label style="display: block; margin-bottom: 5px; color: var(--texto-mutado);">Nome (Ex: Guarda da Cidade)</label>
-            <input type="text" id="forja-nome" autocomplete="off" style="width: 100%; padding: 10px; margin-bottom: 15px; background: var(--bg-principal); border: 1px solid var(--borda); color: white; border-radius: 4px; box-sizing: border-box;">
-            <label style="display: block; margin-bottom: 5px; color: var(--texto-mutado);">Categoria</label>
-            <select id="forja-tipo" style="width: 100%; padding: 10px; margin-bottom: 25px; background: var(--bg-principal); border: 1px solid var(--borda); color: white; border-radius: 4px; box-sizing: border-box;">
-                <option value="npc">👤 NPC</option>
-                <option value="faccao">🛡️ Facção</option>
-                <option value="local">📍 Local</option>
-                <option value="cenario">🌍 Cenário Macro</option>
-            </select>
-            <div style="display: flex; justify-content: flex-end; gap: 10px;">
-                <button onclick="fecharModalForja()" style="padding: 10px 15px; background: transparent; border: 1px solid var(--texto-mutado); color: var(--texto-claro); border-radius: 4px; cursor: pointer;">Cancelar</button>
-                <button onclick="salvarForja()" style="padding: 10px 15px; background: var(--roxo-mago); border: none; color: white; border-radius: 4px; font-weight: bold; cursor: pointer;">Criar e Adicionar</button>
-            </div>
-        </div>
-    </div>
+   
 
     <div id="modal-vinculo" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 1000;">
         <div style="background: var(--bg-card); padding: 30px; border-radius: 8px; border: 1px solid var(--roxo-mago); width: 400px; max-width: 90%;">
@@ -225,6 +204,7 @@
             try { urls = imagensUrls.startsWith('[') ? JSON.parse(imagensUrls) : [imagensUrls]; } catch(e) { urls = [imagensUrls]; }
         } else if (Array.isArray(imagensUrls)) { urls = imagensUrls; }
 
+    
         urls = urls.filter(u => u && u.length > 5);
         const count = urls.length;
         if (count === 0) return '';
@@ -319,9 +299,18 @@ async function carregarComunidade() {
         const elementoNome = document.getElementById('nome-cronica') || document.querySelector('.nome-cronica') || document.querySelector('h1');
         if (elementoNome) elementoNome.innerText = titulo;
 
-        const elementoBanner = document.getElementById('banner') || document.querySelector('.banner-comunidade');
+        const elementoBanner = document.getElementById('banner-cronica') || document.querySelector('.banner-comunidade');
         const urlCapa = dados.cronica.banner_url || dados.cronica.capa_url || dados.cronica.imagem_url;
-        if (elementoBanner && urlCapa) elementoBanner.style.backgroundImage = `url('${urlCapa}')`;
+        
+        if (elementoBanner && urlCapa) {
+            // Garante que as barras do Windows virem barras de URL normais
+            let urlTratada = urlCapa.replace(/\\/g, '/');
+            // Garante que a URL comece com / para o navegador encontrar a pasta na raiz
+            if (!urlTratada.startsWith('/')) {
+                urlTratada = '/' + urlTratada;
+            }
+            elementoBanner.style.backgroundImage = `url('${urlTratada}')`;
+        }
 
         const menuAbas = document.getElementById('menu-abas') || document.getElementById('lista-abas') || document.querySelector('.menu-abas');
         if (!menuAbas) return;
@@ -347,6 +336,14 @@ async function carregarComunidade() {
         } else {
             menuAbas.innerHTML = '<p style="color: var(--texto-mutado); padding: 15px; font-size:13px;">Nenhuma aba visível.</p>';
         }
+
+        // Links de gerenciamento (só narrador vê)
+        if (dados.is_narrador || dados.papel === 'narrador') {
+        menuAbas.innerHTML += `
+        <a href="/controle_mundo.html?id=${cronicaId}" class="aba-item" style="text-decoration: none; display: block;">🌍 Controle de Mundo</a>
+        <a href="/fila_moderacao.html?id=${cronicaId}" class="aba-item" style="text-decoration: none; display: block;">🛡️ Fila de Moderação</a>
+        `;
+    }
 
         if (isNarrador) {
             menuAbas.innerHTML += `
@@ -836,23 +833,8 @@ async function deletarAba(abaId) {
         } catch (err) { alert(err.message); }
     }
 
-    function abrirModalForja() { document.getElementById('forja-nome').value = ''; document.getElementById('modal-forja').style.display = 'flex'; }
-    function fecharModalForja() { document.getElementById('modal-forja').style.display = 'none'; }
     
-    async function salvarForja() {
-        const nome = document.getElementById('forja-nome').value.trim();
-        const tipo = document.getElementById('forja-tipo').value;
-        if (!nome) return alert("O nome da entidade não pode ser vazio.");
-        try {
-            const resposta = await fetch(`/cronicas/${cronicaId}/nodes`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ nome: nome, tipo: tipo })
-            });
-            if (resposta.ok) { fecharModalForja(); carregarControleMundo(); }
-            else throw new Error("Erro ao forjar no servidor.");
-        } catch (err) { alert("Falha na realidade: " + err.message); }
-    }
+    
 
     async function criarNovaAba() {
         const nomeAba = prompt("Qual será o nome da nova sala? (Ex: NPCs, Diários, Segredos)");
@@ -869,67 +851,9 @@ async function deletarAba(abaId) {
         } catch (err) { alert("A conexão falhou."); }
     }
 
-    async function carregarControleMundo(e) { 
-        const divPosts = document.getElementById('lista-posts');
-        const menuItems = document.querySelectorAll('.aba-item');
+    
 
-        if (e && e.target) {
-            menuItems.forEach(el => el.classList.remove('ativa'));
-            e.target.classList.add('ativa');
-        }
-        document.querySelector('.caixa-postar').style.display = 'none';
-
-        divPosts.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h3>⚙️ Painel de Estados do Mundo</h3>
-                <button onclick="abrirModalForja()" style="background: var(--destaque); color: #121214; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold;">+ Forjar Entidade</button>
-            </div>
-            <div id="grid-mundo" style="display:grid; gap:15px; margin-top: 20px;">Carregando...</div>
-        `;
-
-        try {
-            const resposta = await fetch(`/cronicas/${cronicaId}/nodes`, { headers: { 'Authorization': `Bearer ${token}` } });
-            const nodes = await resposta.json();
-            const grid = document.getElementById('grid-mundo');
-            grid.innerHTML = '';
-
-            nodes.forEach(node => {
-                const card = document.createElement('div');
-                card.className = 'post';
-                card.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid var(--borda); padding-bottom: 5px;">
-                        <div style="font-weight:bold;">${node.nome} <span style="font-size:10px; opacity:0.6; text-transform:uppercase;">(${node.tipo})</span></div>
-                        <button onclick="adicionarNovaFlag('${node.id}')" style="background: transparent; color: var(--destaque); border: 1px dashed var(--destaque); padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">+ Flag</button>
-                    </div>
-                    <div id="flags-${node.id}"></div>
-                `;
-                grid.appendChild(card);
-
-                const flagsDiv = document.getElementById(`flags-${node.id}`);
-                node.flags.forEach(f => {
-                    if (f.key) {
-                        flagsDiv.innerHTML += `
-                            <label style="display:block; margin:5px 0; cursor:pointer;">
-                                <input type="checkbox" ${f.value ? 'checked' : ''} onchange="toggleWorldFlag('${node.id}', '${f.key}', this.checked)">
-                                ${f.key}
-                            </label>
-                        `;
-                    }
-                });
-            });
-        } catch (err) { divPosts.innerHTML = 'Erro ao carregar o mundo.'; }
-    }
-
-    async function toggleWorldFlag(nodeId, flagKey, isChecked) {
-        try {
-            await fetch(`/cronicas/${cronicaId}/nodes/${nodeId}/flags`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ flag_key: flagKey, flag_value: isChecked })
-            });
-        } catch (err) { alert("Erro ao alterar flag."); }
-    }
-
+ 
     async function carregarFilaModeracao() {
         const divPosts = document.getElementById('lista-posts');
         const menuItems = document.querySelectorAll('.aba-item');
@@ -975,138 +899,7 @@ async function deletarAba(abaId) {
         } catch(err) { alert("Erro de conexão."); }
     }
 
-    async function adicionarNovaFlag(nodeId) {
-        const nomeFlag = prompt("Digite o nome da nova Flag:");
-        if (!nomeFlag || nomeFlag.trim() === '') return;
-
-        try {
-            const resposta = await fetch(`/cronicas/${cronicaId}/nodes/${nodeId}/flags`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ flag_key: nomeFlag })
-            });
-            if (resposta.ok) carregarControleMundo(); 
-            else alert("Erro ao criar flag.");
-        } catch (err) { alert("Falha de conexão."); }
-    }        
-
-    async function carregarAgendaEventos(event) {
-        const divPosts = document.getElementById('lista-posts');
-        const menuItems = document.querySelectorAll('.aba-item');
-
-        if (event && event.target) {
-            menuItems.forEach(el => el.classList.remove('ativa'));
-            event.target.classList.add('ativa');
-        }
-
-        document.querySelector('.caixa-postar').style.display = 'none';
-
-        divPosts.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h3>📅 Agenda de Eventos</h3>
-                <button onclick="criarNovoEvento()" style="background: var(--destaque); color: #121214; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold;">+ Forjar Evento</button>
-            </div>
-            <div id="grid-eventos" style="display:grid; gap:15px; margin-top: 20px;">Carregando...</div>
-        `;
-
-        try {
-            const resposta = await fetch(`/cronicas/${cronicaId}/eventos`, { headers: { 'Authorization': `Bearer ${token}` } });
-            const eventos = await resposta.json();
-            const grid = document.getElementById('grid-eventos');
-            grid.innerHTML = '';
-
-            if (eventos.length === 0) {
-                grid.innerHTML = '<p style="color: var(--texto-mutado); text-align: center;">Nenhum evento no horizonte.</p>';
-                return;
-            }
-
-            eventos.forEach(ev => {
-                const porcentagem = Math.min((ev.pool_atual / ev.pool_maxima) * 100, 100);
-                const corBarra = porcentagem >= 99 ? '#ff5555' : 'var(--roxo-mago)';
-                
-                let listaGatilhosHtml = '';
-                ev.gatilhos.forEach(g => {
-                    if (g.node_nome) {
-                        listaGatilhosHtml += `<div style="font-size:12px; background: rgba(255,255,255,0.05); padding: 4px 8px; border-radius:4px; margin-bottom:4px;">⚙️ <strong>${g.node_nome}</strong> (${g.flag_key}) &rarr; Peso: <span style="color: var(--destaque)">+${g.peso}</span></div>`;
-                    }
-                });
-
-                if (!listaGatilhosHtml) listaGatilhosHtml = '<em style="font-size:12px; color:var(--texto-mutado)">Nenhuma causa vinculada.</em>';
-
-                const card = document.createElement('div');
-                card.className = 'post';
-                card.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px;">
-                        <div style="font-weight: bold; font-size: 18px;">${ev.nome}</div>
-                        <button onclick="abrirModalVinculo('${ev.id}')" style="background:transparent; border: 1px dashed var(--roxo-mago); color: var(--roxo-mago); padding: 4px 8px; border-radius:4px; cursor:pointer; font-size:12px;">+ Vincular</button>
-                    </div>
-                    <div style="margin-bottom: 15px;">${listaGatilhosHtml}</div>
-                    <div style="background: var(--bg-principal); border-radius: 8px; width: 100%; height: 20px; position: relative;">
-                        <div style="background: ${corBarra}; width: ${porcentagem}%; height: 100%;"></div>
-                        <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; font-size: 11px; font-weight: bold; color: white;">Pool: ${ev.pool_atual} / ${ev.pool_maxima}</div>
-                    </div>
-                `;
-                grid.appendChild(card);
-            });
-        } catch (err) { console.error(err); }
-    }
-
-    async function criarNovoEvento() {
-        const nome = prompt("Nome do Evento:");
-        if (!nome) return;
-        const maxima = prompt("Tamanho da Pool (Ex: 10):");
-
-        try {
-            const res = await fetch(`/cronicas/${cronicaId}/eventos`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ nome, descricao: '', pool_maxima: parseInt(maxima) || 10 })
-            });
-            if(res.ok) carregarAgendaEventos(); 
-        } catch (err) { alert("Erro de conexão."); }
-    }
-
-    async function abrirModalVinculo(eventId) {
-        document.getElementById('vinculo-event-id').value = eventId;
-        document.getElementById('modal-vinculo').style.display = 'flex';
-        const selectNodes = document.getElementById('vinculo-node-id');
-        
-        try {
-            const res = await fetch(`/cronicas/${cronicaId}/nodes`, { headers: { 'Authorization': `Bearer ${token}` } });
-            memoriaDosNodes = await res.json();
-            selectNodes.innerHTML = '';
-            memoriaDosNodes.forEach(n => selectNodes.innerHTML += `<option value="${n.id}">${n.nome}</option>`);
-            atualizarListaDeFlagsVinculo();
-        } catch (err) { selectNodes.innerHTML = '<option>Erro</option>'; }
-    }
-
-    function atualizarListaDeFlagsVinculo() {
-        const nodeId = document.getElementById('vinculo-node-id').value;
-        const selectFlags = document.getElementById('vinculo-flag-key');
-        selectFlags.innerHTML = ''; 
-        const node = memoriaDosNodes.find(n => n.id === nodeId);
-        if (!node || !node.flags) return selectFlags.innerHTML = '<option value="">Sem flags</option>';
-        node.flags.forEach(f => { if (f.key) selectFlags.innerHTML += `<option value="${f.key}">${f.key}</option>`; });
-    }
-
-    function fecharModalVinculo() { document.getElementById('modal-vinculo').style.display = 'none'; }
-
-    async function salvarVinculo() {
-        const eventId = document.getElementById('vinculo-event-id').value;
-        const nodeId = document.getElementById('vinculo-node-id').value;
-        const flagKey = document.getElementById('vinculo-flag-key').value;
-        const peso = document.getElementById('vinculo-peso').value;
-
-        try {
-            const res = await fetch(`/cronicas/${cronicaId}/eventos/${eventId}/pesos`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ node_id: nodeId, flag_key: flagKey, peso: peso })
-            });
-            if (res.ok) { fecharModalVinculo(); carregarAgendaEventos(); }
-        } catch (err) { alert("Erro de conexão."); }
-    }
-
+     
     async function abrirModalPermissoes(abaId) {
         document.getElementById('perm-aba-id').value = abaId;
         document.getElementById('modal-permissoes').style.display = 'flex';

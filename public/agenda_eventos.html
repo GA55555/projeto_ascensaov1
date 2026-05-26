@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agenda de Eventos</title>
+    <style>
+        :root { --bg-principal: #121214; --bg-card: #202024; --roxo-mago: #9871f5; --texto-claro: #e1e1e6; --texto-mutado: #8d8d99; --borda: #29292e; --destaque: #50fa7b; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg-principal); color: var(--texto-claro); max-width: 1000px; margin: 40px auto; padding: 20px; }
+        h2 { color: var(--roxo-mago); }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .card { background: var(--bg-card); padding: 20px; border-radius: 8px; border: 1px solid var(--borda); margin-bottom: 15px; }
+        .btn { background: var(--roxo-mago); color: #fff; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .barra-bg { background: var(--bg-principal); border-radius: 8px; height: 20px; position: relative; margin-top: 10px; }
+        .barra-fill { background: var(--roxo-mago); height: 100%; border-radius: 8px; }
+        a { color: var(--texto-mutado); text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="javascript:history.back()">← Voltar</a>
+        <h2>📅 Agenda de Eventos</h2>
+        <button class="btn" onclick="criarEvento()">+ Forjar Evento</button>
+    </div>
+    <div id="grid-eventos">Carregando...</div>
+
+    <script>
+        const token = localStorage.getItem('m20_token');
+        if (!token) window.location.href = '/login.html';
+        const cronicaId = new URLSearchParams(window.location.search).get('id');
+        if (!cronicaId) window.location.href = '/profile.html';
+
+        carregarEventos();
+
+        async function carregarEventos() {
+            try {
+                const res = await fetch(`/cronicas/${cronicaId}/eventos`, { headers: { 'Authorization':`Bearer ${token}` } });
+                const eventos = await res.json();
+                const grid = document.getElementById('grid-eventos');
+                if (eventos.length === 0) {
+                    grid.innerHTML = '<p style="color:var(--texto-mutado); text-align:center;">Nenhum evento.</p>';
+                    return;
+                }
+                grid.innerHTML = eventos.map(ev => {
+                    const pct = Math.min((ev.pool_atual/ev.pool_maxima)*100, 100);
+                    return `
+                        <div class="card">
+                            <strong style="font-size:18px;">${ev.nome}</strong>
+                            <div class="barra-bg"><div class="barra-fill" style="width:${pct}%"></div></div>
+                            <p style="font-size:12px; color:var(--texto-mutado);">Pool: ${ev.pool_atual}/${ev.pool_maxima}</p>
+                        </div>
+                    `;
+                }).join('');
+            } catch(err) { console.error(err); }
+        }
+
+        async function criarEvento() {
+            const nome = prompt('Nome do Evento:');
+            if (!nome) return;
+            const max = prompt('Pool máxima (ex: 10):');
+            await fetch(`/cronicas/${cronicaId}/eventos`, {
+                method:'POST',
+                headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},
+                body:JSON.stringify({ nome, descricao:'', pool_maxima:parseInt(max)||10 })
+            });
+            carregarEventos();
+        }
+    </script>
+</body>
+</html>

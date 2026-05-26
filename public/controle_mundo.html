@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Mundo & Eventos</title>
+    <style>
+        :root { --bg-principal: #121214; --bg-card: #202024; --roxo-mago: #9871f5; --roxo-hover: #7f57df; --texto-claro: #e1e1e6; --texto-mutado: #8d8d99; --borda: #29292e; --destaque: #50fa7b; --erro: #f75a68; }
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg-principal); color: var(--texto-claro); max-width: 1100px; margin: 40px auto; padding: 20px; }
+        h2, h3 { color: var(--roxo-mago); margin: 0; }
+        a { color: var(--texto-mutado); text-decoration: none; }
+        a:hover { color: var(--roxo-mago); }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; background: var(--bg-card); padding: 20px; border-radius: 8px; border: 1px solid var(--borda); }
+        
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-btn { padding: 10px 20px; background: var(--bg-card); border: 1px solid var(--borda); color: var(--texto-mutado); border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .tab-btn.ativa { background: var(--roxo-mago); color: #fff; border-color: var(--roxo-mago); }
+        .tab-content { display: none; }
+        .tab-content.ativa { display: block; }
+        
+        .card { background: var(--bg-card); padding: 20px; border-radius: 8px; border: 1px solid var(--borda); margin-bottom: 15px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } }
+        
+        .btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px; }
+        .btn-primary { background: var(--roxo-mago); color: #fff; }
+        .btn-primary:hover { background: var(--roxo-hover); }
+        .btn-success { background: var(--destaque); color: #121214; }
+        .btn-danger { background: transparent; border: 1px solid #ff5555; color: #ff5555; }
+        .btn-sm { padding: 4px 10px; font-size: 11px; }
+        
+        .badge { font-size: 11px; padding: 2px 8px; border-radius: 12px; background: rgba(152,113,245,0.2); color: var(--roxo-mago); }
+        .flag-item { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+        .flag-item:last-child { border-bottom: none; }
+        
+        .barra-bg { background: var(--bg-principal); border-radius: 8px; height: 16px; position: relative; margin-top: 8px; overflow: hidden; }
+        .barra-fill { background: var(--roxo-mago); height: 100%; border-radius: 8px; transition: width 0.5s; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; }
+        .barra-alerta { background: #ff5555; }
+        
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); justify-content: center; align-items: center; z-index: 1000; }
+        .modal-overlay.show { display: flex; }
+        .modal-box { background: var(--bg-card); padding: 25px; border-radius: 8px; border: 1px solid var(--roxo-mago); width: 450px; max-width: 90%; max-height: 85vh; overflow-y: auto; }
+        .modal-box input, .modal-box select, .modal-box textarea { width: 100%; padding: 10px; margin-bottom: 10px; background: var(--bg-principal); border: 1px solid var(--borda); color: #fff; border-radius: 4px; }
+        .modal-box label { display: block; margin-bottom: 4px; color: var(--texto-mutado); font-size: 12px; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div>
+            <a href="javascript:history.back()">← Voltar</a>
+            <h2>⚙️ Controle de Mundo & Eventos</h2>
+        </div>
+        <span id="nome-cronica" style="color: var(--roxo-mago); font-weight: bold;"></span>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs">
+        <button class="tab-btn ativa" onclick="abrirTab('mundo')">🌍 Mundo</button>
+        <button class="tab-btn" onclick="abrirTab('eventos')">📅 Eventos</button>
+    </div>
+
+    <!-- TAB: MUNDO -->
+    <div id="tab-mundo" class="tab-content ativa">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 style="color: var(--destaque);">Entidades do Mundo</h3>
+            <button class="btn btn-primary" onclick="abrirModal('modal-forja')">+ Forjar Entidade</button>
+        </div>
+        <div id="grid-mundo" class="grid-2">Carregando...</div>
+    </div>
+
+    <!-- TAB: EVENTOS -->
+    <div id="tab-eventos" class="tab-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 style="color: var(--destaque);">Eventos Programados</h3>
+            <button class="btn btn-primary" onclick="abrirModal('modal-evento')">+ Forjar Evento</button>
+        </div>
+        <div id="grid-eventos">Carregando...</div>
+    </div>
+
+    <!-- ============ MODAIS ============ -->
+    
+    <!-- Forjar Entidade -->
+    <div id="modal-forja" class="modal-overlay">
+        <div class="modal-box">
+            <h3 style="color: var(--destaque); margin-top: 0;">🔨 Forjar Nova Entidade</h3>
+            <label>Nome</label>
+            <input type="text" id="forja-nome" placeholder="Ex: Guarda da Cidade">
+            <label>Categoria</label>
+            <select id="forja-tipo">
+                <option value="npc">👤 NPC</option>
+                <option value="faccao">🛡️ Facção</option>
+                <option value="local">📍 Local</option>
+                <option value="cenario">🌍 Cenário Macro</option>
+            </select>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button class="btn btn-danger" onclick="fecharModal('modal-forja')">Cancelar</button>
+                <button class="btn btn-primary" onclick="salvarForja()">Criar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Forjar Evento -->
+    <div id="modal-evento" class="modal-overlay">
+        <div class="modal-box">
+            <h3 style="color: var(--destaque); margin-top: 0;">📅 Forjar Novo Evento</h3>
+            <label>Nome do Evento</label>
+            <input type="text" id="evento-nome" placeholder="Ex: A Chegada da Tempestade">
+            <label>Descrição</label>
+            <textarea id="evento-descricao" rows="3" placeholder="O que acontece quando a pool atingir o máximo..."></textarea>
+            <label>Pool Máxima</label>
+            <input type="number" id="evento-pool" value="10" min="1">
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button class="btn btn-danger" onclick="fecharModal('modal-evento')">Cancelar</button>
+                <button class="btn btn-primary" onclick="salvarEvento()">Criar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vincular Flag ao Evento -->
+    <div id="modal-vinculo" class="modal-overlay">
+        <div class="modal-box">
+            <h3 style="color: var(--destaque); margin-top: 0;">🔗 Vincular Causa ao Evento</h3>
+            <input type="hidden" id="vinculo-event-id">
+            <label>Entidade (Nó)</label>
+            <select id="vinculo-node-id" onchange="atualizarFlagsVinculo()"></select>
+            <label>Flag</label>
+            <select id="vinculo-flag-key"><option value="">Selecione um nó primeiro...</option></select>
+            <label>Peso</label>
+            <input type="number" id="vinculo-peso" value="1" min="1">
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button class="btn btn-danger" onclick="fecharModal('modal-vinculo')">Cancelar</button>
+                <button class="btn btn-success" onclick="salvarVinculo()">Vincular</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+    const token = localStorage.getItem('m20_token');
+    if (!token) window.location.href = '/login.html';
+    const cronicaId = new URLSearchParams(window.location.search).get('id');
+    if (!cronicaId) window.location.href = '/profile.html';
+
+    let nodesCache = [];
+
+    // ✅ VERIFICA ACESSO (SÓ NARRADOR)
+    async function verificarAcesso() {
+        try {
+            const res = await fetch(`/cronicas/${cronicaId}/comunidade`, { headers: { 'Authorization': `Bearer ${token}` } });
+            if (!res.ok) throw new Error();
+            const dados = await res.json();
+            if (!dados.is_narrador) {
+                alert('Apenas o Narrador pode acessar este painel.');
+                window.location.href = '/profile.html';
+                return false;
+            }
+            document.getElementById('nome-cronica').innerText = dados.cronica?.nome || '';
+            return true;
+        } catch (err) { window.location.href = '/profile.html'; return false; }
+    }
+
+    // ============ TABS ============
+    function abrirTab(tab) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('ativa'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('ativa'));
+        document.querySelector(`[onclick="abrirTab('${tab}')"]`).classList.add('ativa');
+        document.getElementById(`tab-${tab}`).classList.add('ativa');
+        if (tab === 'mundo') carregarMundo();
+        if (tab === 'eventos') carregarEventos();
+    }
+
+    // ============ MODAIS ============
+    function abrirModal(id) { document.getElementById(id).classList.add('show'); }
+    function fecharModal(id) { document.getElementById(id).classList.remove('show'); }
+
+    // ============ CONTROLE DE MUNDO ============
+    async function carregarMundo() {
+        try {
+            const res = await fetch(`/cronicas/${cronicaId}/nodes`, { headers: { 'Authorization': `Bearer ${token}` } });
+            nodesCache = await res.json();
+            const grid = document.getElementById('grid-mundo');
+            if (nodesCache.length === 0) {
+                grid.innerHTML = '<p style="color: var(--texto-mutado); grid-column: span 2; text-align: center;">Nenhuma entidade forjada.</p>';
+                return;
+            }
+            grid.innerHTML = nodesCache.map(node => `
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <strong>${node.nome}</strong>
+                        <span class="badge">${node.tipo}</span>
+                    </div>
+                    <div id="flags-${node.id}">
+                        ${(node.flags || []).filter(f => f.key).map(f => `
+                            <div class="flag-item">
+                                <label style="cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 13px;">
+                                    <input type="checkbox" ${f.value ? 'checked' : ''} onchange="toggleFlag('${node.id}', '${f.key}', this.checked)"> ${f.key}
+                                </label>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <button class="btn btn-primary btn-sm" style="margin-top: 10px; width: 100%;" onclick="adicionarFlag('${node.id}')">+ Nova Flag</button>
+                </div>
+            `).join('');
+        } catch (err) { console.error(err); }
+    }
+
+    async function salvarForja() {
+        const nome = document.getElementById('forja-nome').value.trim();
+        const tipo = document.getElementById('forja-tipo').value;
+        if (!nome) return alert('Digite um nome.');
+        try {
+            const res = await fetch(`/cronicas/${cronicaId}/nodes`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ nome, tipo })
+            });
+            if (res.ok) { fecharModal('modal-forja'); carregarMundo(); }
+        } catch (err) { alert('Erro.'); }
+    }
+
+    async function toggleFlag(nodeId, flagKey, value) {
+        await fetch(`/cronicas/${cronicaId}/nodes/${nodeId}/flags`, {
+            method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ flag_key: flagKey, flag_value: value })
+        });
+    }
+
+    async function adicionarFlag(nodeId) {
+        const nome = prompt('Nome da nova Flag:');
+        if (!nome) return;
+        await fetch(`/cronicas/${cronicaId}/nodes/${nodeId}/flags`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ flag_key: nome })
+        });
+        carregarMundo();
+    }
+
+    // ============ AGENDA DE EVENTOS ============
+    async function carregarEventos() {
+        try {
+            const res = await fetch(`/cronicas/${cronicaId}/eventos`, { headers: { 'Authorization': `Bearer ${token}` } });
+            const eventos = await res.json();
+            const grid = document.getElementById('grid-eventos');
+            if (eventos.length === 0) {
+                grid.innerHTML = '<p style="color: var(--texto-mutado); text-align: center;">Nenhum evento no horizonte.</p>';
+                return;
+            }
+            grid.innerHTML = eventos.map(ev => {
+                const pct = Math.min((ev.pool_atual / ev.pool_maxima) * 100, 100);
+                const alerta = pct >= 100;
+                let gatilhosHtml = '';
+                if (ev.gatilhos && ev.gatilhos.length > 0) {
+                    gatilhosHtml = ev.gatilhos.filter(g => g.node_nome).map(g => `
+                        <div style="font-size: 11px; background: rgba(255,255,255,0.03); padding: 4px 8px; border-radius: 4px; margin-bottom: 3px;">
+                            ⚙️ <strong>${g.node_nome}</strong> → ${g.flag_key} (+${g.peso})
+                        </div>
+                    `).join('');
+                }
+                return `
+                    <div class="card">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+                            <div>
+                                <strong style="font-size: 16px;">${ev.nome}</strong>
+                                <span style="font-size: 11px; color: ${alerta ? '#ff5555' : 'var(--destaque)'}; margin-left: 10px;">
+                                    ${alerta ? '⚠️ PRONTO' : '🔍 Monitorando'}
+                                </span>
+                            </div>
+                            <button class="btn btn-primary btn-sm" onclick="abrirModalVinculo('${ev.id}')">+ Vincular</button>
+                        </div>
+                        ${gatilhosHtml || '<p style="font-size: 11px; color: var(--texto-mutado);">Nenhuma causa vinculada.</p>'}
+                        <div class="barra-bg">
+                            <div class="barra-fill ${alerta ? 'barra-alerta' : ''}" style="width: ${pct}%;">
+                                ${pct > 15 ? `${ev.pool_atual}/${ev.pool_maxima}` : ''}
+                            </div>
+                        </div>
+                        ${pct <= 15 ? `<span style="font-size: 10px; color: var(--texto-mutado);">${ev.pool_atual}/${ev.pool_maxima}</span>` : ''}
+                    </div>
+                `;
+            }).join('');
+        } catch (err) { console.error(err); }
+    }
+
+    async function salvarEvento() {
+        const nome = document.getElementById('evento-nome').value.trim();
+        const descricao = document.getElementById('evento-descricao').value.trim();
+        const pool = parseInt(document.getElementById('evento-pool').value) || 10;
+        if (!nome) return alert('Digite um nome.');
+        try {
+            await fetch(`/cronicas/${cronicaId}/eventos`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ nome, descricao, pool_maxima: pool })
+            });
+            fecharModal('modal-evento');
+            carregarEventos();
+        } catch (err) { alert('Erro.'); }
+    }
+
+    // ============ VÍNCULOS ============
+    async function abrirModalVinculo(eventId) {
+        document.getElementById('vinculo-event-id').value = eventId;
+        const select = document.getElementById('vinculo-node-id');
+        select.innerHTML = '<option value="">Selecione um nó...</option>';
+        nodesCache.forEach(n => select.innerHTML += `<option value="${n.id}">${n.nome} (${n.tipo})</option>`);
+        document.getElementById('vinculo-flag-key').innerHTML = '<option value="">Selecione um nó primeiro...</option>';
+        abrirModal('modal-vinculo');
+    }
+
+    function atualizarFlagsVinculo() {
+        const nodeId = document.getElementById('vinculo-node-id').value;
+        const selectFlags = document.getElementById('vinculo-flag-key');
+        selectFlags.innerHTML = '<option value="">Selecione uma flag...</option>';
+        const node = nodesCache.find(n => n.id === nodeId);
+        if (node?.flags) node.flags.filter(f => f.key).forEach(f => selectFlags.innerHTML += `<option value="${f.key}">${f.key}</option>`);
+    }
+
+    async function salvarVinculo() {
+        const eventId = document.getElementById('vinculo-event-id').value;
+        const nodeId = document.getElementById('vinculo-node-id').value;
+        const flagKey = document.getElementById('vinculo-flag-key').value;
+        const peso = parseInt(document.getElementById('vinculo-peso').value) || 1;
+        if (!nodeId || !flagKey) return alert('Selecione nó e flag.');
+        try {
+            await fetch(`/cronicas/${cronicaId}/eventos/${eventId}/pesos`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ node_id: nodeId, flag_key: flagKey, peso })
+            });
+            fecharModal('modal-vinculo');
+            carregarEventos();
+        } catch (err) { alert('Erro.'); }
+    }
+
+    // ============ INICIALIZAÇÃO ============
+    (async function iniciar() {
+        const temAcesso = await verificarAcesso();
+        if (temAcesso) carregarMundo();
+    })();
+</script>
+</body>
+</html>

@@ -107,6 +107,50 @@ router.put('/:id/status', verificarToken, async (req, res) => {
     }
 });
 
+// Criar uma nova aba na crônica
+router.post('/:id/abas', verificarToken, async (req, res) => {
+    const cronicaId = req.params.id;
+    const { nome, tipo } = req.body;
+    const usuarioId = req.usuario.id;
+
+    try {
+        // Verifica se o usuário é o narrador da crônica
+        const acesso = await checarAcessoCronica(usuarioId, cronicaId);
+        if (acesso.papel !== 'narrador') {
+            return res.status(403).json({ erro: 'Apenas o narrador pode criar abas.' });
+        }
+
+        const result = await pool.query(
+            `INSERT INTO cronica_abas (cronica_id, nome, tipo) VALUES ($1, $2, $3) RETURNING *`,
+            [cronicaId, nome, tipo || 'restrita']
+        );
+
+        res.status(201).json(result.rows[0]);
+    } catch (err) {
+        console.error('Erro ao criar aba:', err);
+        res.status(500).json({ erro: 'Erro interno ao criar a aba.' });
+    }
+});
+
+// Deletar uma aba existente
+router.delete('/:id/abas/:abaId', verificarToken, async (req, res) => {
+    const { id, abaId } = req.params;
+    const usuarioId = req.usuario.id;
+
+    try {
+        const acesso = await checarAcessoCronica(usuarioId, id);
+        if (acesso.papel !== 'narrador') {
+            return res.status(403).json({ erro: 'Apenas o narrador pode deletar abas.' });
+        }
+
+        await pool.query('DELETE FROM cronica_abas WHERE id = $1 AND cronica_id = $2', [abaId, id]);
+        res.json({ mensagem: 'Aba deletada com sucesso.' });
+    } catch (err) {
+        console.error('Erro ao deletar aba:', err);
+        res.status(500).json({ erro: 'Erro ao deletar a aba.' });
+    }
+});
+
 // Deletar crônica (imediatamente, com confirmação)
 router.delete('/:id', verificarToken, async (req, res) => {
     const { id } = req.params;

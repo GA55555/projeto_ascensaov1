@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fila de Moderação</title>
+    <style>
+        :root { --bg-principal: #121214; --bg-card: #202024; --roxo-mago: #9871f5; --texto-claro: #e1e1e6; --texto-mutado: #8d8d99; --borda: #29292e; --destaque: #50fa7b; --erro: #f75a68; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg-principal); color: var(--texto-claro); max-width: 1000px; margin: 40px auto; padding: 20px; }
+        h2 { color: var(--roxo-mago); }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .card { background: var(--bg-card); padding: 20px; border-radius: 8px; border: 1px solid var(--borda); margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .btn { background: var(--destaque); color: #121214; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        a { color: var(--texto-mutado); text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="javascript:history.back()">← Voltar</a>
+        <h2>🛡️ Fila de Moderação</h2>
+    </div>
+    <div id="grid-moderacao">Carregando...</div>
+
+    <script>
+        const token = localStorage.getItem('m20_token');
+        if (!token) window.location.href = '/login.html';
+        const cronicaId = new URLSearchParams(window.location.search).get('id');
+        if (!cronicaId) window.location.href = '/profile.html';
+
+        carregarFila();
+
+        async function carregarFila() {
+            try {
+                const res = await fetch(`/cronicas/${cronicaId}/moderacao`, { headers: { 'Authorization':`Bearer ${token}` } });
+                const pendentes = await res.json();
+                const grid = document.getElementById('grid-moderacao');
+                if (pendentes.length === 0) {
+                    grid.innerHTML = '<p style="color:var(--texto-mutado); text-align:center;">Fila vazia.</p>';
+                    return;
+                }
+                grid.innerHTML = pendentes.map(node => `
+                    <div class="card">
+                        <div><strong>${node.nome}</strong> <span style="font-size:12px; opacity:0.6;">[${node.tipo}]</span></div>
+                        <button class="btn" onclick="aprovar('${node.id}')">Aprovar</button>
+                    </div>
+                `).join('');
+            } catch(err) { console.error(err); }
+        }
+
+        async function aprovar(nodeId) {
+            await fetch(`/cronicas/${cronicaId}/nodes/${nodeId}/aprovar`, { method:'PUT', headers:{'Authorization':`Bearer ${token}`} });
+            carregarFila();
+        }
+    </script>
+</body>
+</html>
