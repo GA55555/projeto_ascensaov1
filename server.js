@@ -443,18 +443,35 @@ app.delete('/cronicas/:cronicaId/posts/:postId/comentarios/:comentarioId', verif
 
 app.get('/cronicas/:cronicaId/nodes', verificarToken, async (req, res) => {
     const { cronicaId } = req.params;
+    const { nucleo_id } = req.query; // opcional: filtra por núcleo
+
     try {
-        const query = await pool.query(`
-            SELECT n.id, n.nome, n.tipo, n.parent_node_id,
+        let queryStr = `
+            SELECT n.id, n.nome, n.tipo, n.parent_node_id, n.nucleo_id,
+                   en.nome as nucleo_nome,
                    COALESCE(json_agg(json_build_object('key', f.flag_key, 'value', f.flag_value)) FILTER (WHERE f.id IS NOT NULL), '[]') as flags
             FROM world_nodes n
             LEFT JOIN world_flags f ON n.id = f.node_id
+            LEFT JOIN entidade_nucleos en ON n.nucleo_id = en.id
             WHERE n.cronica_id = $1
-            GROUP BY n.id
-            ORDER BY n.nome ASC
-        `, [cronicaId]);
+        `;
+        const params = [cronicaId];
+        let paramIdx = 2;
+
+        if (nucleo_id) {
+            queryStr += ` AND n.nucleo_id = $${paramIdx}`;
+            params.push(nucleo_id);
+            paramIdx++;
+        }
+
+        queryStr += ` GROUP BY n.id, en.nome ORDER BY n.nome ASC`;
+
+        const query = await pool.query(queryStr, params);
         res.json(query.rows);
-    } catch (err) { res.status(500).json({ erro: 'Erro ao buscar nós do mundo.' }); }
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ erro: 'Erro ao buscar nós do mundo.' });
+    }
 });
 
 app.put('/cronicas/:cronicaId/nodes/:nodeId/flags', verificarToken, async (req, res) => {
@@ -475,8 +492,18 @@ app.put('/cronicas/:cronicaId/nodes/:nodeId/flags', verificarToken, async (req, 
             WHERE node_id = $1 AND flag_key = $2
         `, [nodeId, flag_key]);
 
+        const avisos = [];
+
         for (let row of eventosAfetados.rows) {
             const eventId = row.event_id;
+
+            const eventoInfo = await pool.query(
+                'SELECT nome, pool_maxima FROM world_events WHERE id = $1',
+                [eventId]
+            );
+            if (eventoInfo.rows.length === 0) continue;
+            const { nome, pool_maxima } = eventoInfo.rows[0];
+
             const somaQuery = await pool.query(`
                 SELECT COALESCE(SUM(w.peso), 0) as total
                 FROM event_flag_weights w
@@ -484,15 +511,32 @@ app.put('/cronicas/:cronicaId/nodes/:nodeId/flags', verificarToken, async (req, 
                 WHERE w.event_id = $1 AND f.flag_value = TRUE
             `, [eventId]);
 
-            const novoPool = somaQuery.rows[0].total;
-            await pool.query(`
-                UPDATE world_events
-                SET pool_atual = $1,
-                    status = CASE WHEN $1 >= pool_maxima THEN 'alerta_pronto' ELSE 'monitorando' END
-                WHERE id = $2
-            `, [novoPool, eventId]);
+            let novoPool = somaQuery.rows[0].total;
+            let novoStatus;
+
+            if (novoPool >= pool_maxima) {
+                if (novoPool > pool_maxima) novoPool = pool_maxima;
+                avisos.push(`${nome} (${novoPool}/${pool_maxima})`);
+                novoStatus = 'alerta_pronto';
+                await pool.query(`
+                    UPDATE world_events
+                    SET pool_atual = $1,
+                        status = $2,
+                        ultima_excedida_em = NOW()
+                    WHERE id = $3
+                `, [novoPool, novoStatus, eventId]);
+            } else {
+                novoStatus = 'monitorando';
+                await pool.query(`
+                    UPDATE world_events
+                    SET pool_atual = $1,
+                        status = $2
+                    WHERE id = $3
+                `, [novoPool, novoStatus, eventId]);
+            }
         }
-        res.json({ mensagem: 'Realidade alterada.' });
+
+        res.json({ mensagem: 'Realidade alterada.', avisos });
     } catch (err) {
         console.error("Erro no Motor de Eventos:", err);
         res.status(500).json({ erro: 'Erro ao atualizar estado.' });
@@ -569,18 +613,34 @@ app.put('/cronicas/:cronicaId/nodes/:nodeId/aprovar', verificarToken, async (req
 
 app.get('/cronicas/:cronicaId/eventos', verificarToken, async (req, res) => {
     const { cronicaId } = req.params;
+    const { nucleo_id } = req.query; // opcional: filtra eventos por núcleo
+
     try {
-        const query = await pool.query(
-            `SELECT e.*,
-                    COALESCE(json_agg(json_build_object('node_nome', n.nome, 'flag_key', w.flag_key, 'peso', w.peso)) FILTER (WHERE w.id IS NOT NULL), '[]') as gatilhos
-             FROM world_events e
-             LEFT JOIN event_flag_weights w ON e.id = w.event_id
-             LEFT JOIN world_nodes n ON w.node_id = n.id
-             WHERE e.cronica_id = $1
-             GROUP BY e.id
-             ORDER BY e.criado_em DESC`,
-            [cronicaId]
-        );
+        let queryStr = `
+            SELECT e.*,
+                   COALESCE(json_agg(DISTINCT jsonb_build_object('node_nome', n.nome, 'flag_key', w.flag_key, 'peso', w.peso)) FILTER (WHERE w.id IS NOT NULL), '[]') as gatilhos,
+                   COALESCE(json_agg(DISTINCT jsonb_build_object('id', en.id, 'nome', en.nome)) FILTER (WHERE en.id IS NOT NULL), '[]') as nucleos
+            FROM world_events e
+            LEFT JOIN event_flag_weights w ON e.id = w.event_id
+            LEFT JOIN world_nodes n ON w.node_id = n.id
+            LEFT JOIN evento_nucleo_ligacao enl ON e.id = enl.evento_id
+            LEFT JOIN evento_nucleos en ON enl.nucleo_id = en.id
+        `;
+
+        const conditions = [`e.cronica_id = $1`];
+        const params = [cronicaId];
+        let paramIdx = 2;
+
+        if (nucleo_id) {
+            // Filtra eventos que estão associados ao núcleo informado
+            conditions.push(`enl.nucleo_id = $${paramIdx}`);
+            params.push(nucleo_id);
+            paramIdx++;
+        }
+
+        queryStr += ` WHERE ${conditions.join(' AND ')} GROUP BY e.id ORDER BY e.criado_em DESC`;
+
+        const query = await pool.query(queryStr, params);
         res.json(query.rows);
     } catch (err) {
         console.error(err);
@@ -590,15 +650,30 @@ app.get('/cronicas/:cronicaId/eventos', verificarToken, async (req, res) => {
 
 app.post('/cronicas/:cronicaId/eventos', verificarToken, async (req, res) => {
     const { cronicaId } = req.params;
-    const { nome, descricao, pool_maxima } = req.body;
+    const { nome, descricao, pool_maxima, nucleos_ids } = req.body;
+
     try {
         const novoEvento = await pool.query(
             `INSERT INTO world_events (cronica_id, nome, descricao, pool_maxima) 
              VALUES ($1, $2, $3, $4) RETURNING *`,
             [cronicaId, nome, descricao, pool_maxima || 10]
         );
+        const eventoId = novoEvento.rows[0].id;
+
+        if (nucleos_ids && Array.isArray(nucleos_ids)) {
+            for (const nucleoId of nucleos_ids) {
+                await pool.query(
+                    'INSERT INTO evento_nucleo_ligacao (evento_id, nucleo_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+                    [eventoId, nucleoId]
+                );
+            }
+        }
+
         res.status(201).json(novoEvento.rows[0]);
-    } catch (err) { res.status(500).json({ erro: 'Erro ao forjar novo evento.' }); }
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ erro: 'Erro ao forjar novo evento.' });
+    }
 });
 
 app.post('/cronicas/:cronicaId/eventos/:eventId/pesos', verificarToken, async (req, res) => {
@@ -889,6 +964,342 @@ app.post('/cronicas/:cronicaId/posts/:postId/votar', verificarToken, async (req,
     }
 });
 
+// Editar uma entidade (nome)
+app.put('/cronicas/:cronicaId/nodes/:nodeId', verificarToken, async (req, res) => {
+    const { nodeId } = req.params;
+    const { nome } = req.body;
+
+    try {
+        const result = await pool.query(
+            'UPDATE world_nodes SET nome = $1 WHERE id = $2 RETURNING *',
+            [nome, nodeId]
+        );
+        if (result.rows.length === 0) return res.status(404).json({ erro: 'Entidade não encontrada.' });
+        res.json({ mensagem: 'Entidade atualizada!', node: result.rows[0] });
+    } catch (err) {
+        console.error('Erro ao editar entidade:', err);
+        res.status(500).json({ erro: 'Erro ao editar entidade.' });
+    }
+});
+
+// Deletar uma entidade e tudo vinculado
+app.delete('/cronicas/:cronicaId/nodes/:nodeId', verificarToken, async (req, res) => {
+    const { nodeId } = req.params;
+
+    try {
+        // As foreign keys com ON DELETE CASCADE já cuidam de world_flags e event_flag_weights
+        const result = await pool.query('DELETE FROM world_nodes WHERE id = $1 RETURNING id', [nodeId]);
+        if (result.rows.length === 0) return res.status(404).json({ erro: 'Entidade não encontrada.' });
+        res.json({ mensagem: 'Entidade e seus vínculos foram apagados.' });
+    } catch (err) {
+        console.error('Erro ao deletar entidade:', err);
+        res.status(500).json({ erro: 'Erro ao deletar entidade.' });
+    }
+});
+
+// Editar uma flag (renomear)
+// Renomear uma flag
+app.put('/cronicas/:cronicaId/nodes/:nodeId/flags/:flagKey', verificarToken, async (req, res) => {
+    const { nodeId, flagKey } = req.params;
+    const { novo_nome } = req.body;
+
+    if (!novo_nome || novo_nome.trim() === '') {
+        return res.status(400).json({ erro: 'Novo nome da flag não pode ser vazio.' });
+    }
+
+    try {
+        await pool.query('BEGIN');
+
+        // Atualiza o nome da flag na tabela world_flags
+        await pool.query(
+            'UPDATE world_flags SET flag_key = $1 WHERE node_id = $2 AND flag_key = $3',
+            [novo_nome, nodeId, flagKey]
+        );
+
+        // Atualiza os pesos vinculados nos eventos
+        await pool.query(
+            'UPDATE event_flag_weights SET flag_key = $1 WHERE node_id = $2 AND flag_key = $3',
+            [novo_nome, nodeId, flagKey]
+        );
+
+        await pool.query('COMMIT');
+        res.json({ mensagem: 'Flag renomeada com sucesso.' });
+    } catch (err) {
+        await pool.query('ROLLBACK');
+        if (err.code === '23505') {
+            return res.status(400).json({ erro: 'Já existe uma flag com este nome nesta entidade.' });
+        }
+        console.error('Erro ao renomear flag:', err);
+        res.status(500).json({ erro: 'Erro ao renomear flag.' });
+    }
+});
+
+// Deletar uma flag
+app.delete('/cronicas/:cronicaId/nodes/:nodeId/flags/:flagKey', verificarToken, async (req, res) => {
+    const { nodeId, flagKey } = req.params;
+
+    try {
+        await pool.query('BEGIN');
+
+        const eventosVinculados = await pool.query(
+            'SELECT DISTINCT event_id FROM event_flag_weights WHERE node_id = $1 AND flag_key = $2',
+            [nodeId, flagKey]
+        );
+
+        await pool.query('DELETE FROM event_flag_weights WHERE node_id = $1 AND flag_key = $2', [nodeId, flagKey]);
+        await pool.query('DELETE FROM world_flags WHERE node_id = $1 AND flag_key = $2', [nodeId, flagKey]);
+
+        for (let row of eventosVinculados.rows) {
+            const eventId = row.event_id;
+
+            const eventoInfo = await pool.query('SELECT pool_maxima FROM world_events WHERE id = $1', [eventId]);
+            if (eventoInfo.rows.length === 0) continue;
+            const { pool_maxima } = eventoInfo.rows[0];
+
+            const somaQuery = await pool.query(`
+                SELECT COALESCE(SUM(w.peso), 0) as total
+                FROM event_flag_weights w
+                JOIN world_flags f ON w.node_id = f.node_id AND w.flag_key = f.flag_key
+                WHERE w.event_id = $1 AND f.flag_value = TRUE
+            `, [eventId]);
+
+            const novoPool = somaQuery.rows[0].total;
+            if (novoPool >= pool_maxima) {
+                await pool.query(`
+                    UPDATE world_events
+                    SET pool_atual = $1,
+                        status = 'alerta_pronto',
+                        ultima_excedida_em = NOW()
+                    WHERE id = $2
+                `, [pool_maxima, eventId]);
+            } else {
+                await pool.query(`
+                    UPDATE world_events
+                    SET pool_atual = $1,
+                        status = 'monitorando'
+                    WHERE id = $2
+                `, [novoPool, eventId]);
+            }
+        }
+
+        await pool.query('COMMIT');
+        res.json({ mensagem: 'Flag e seus vínculos removidos. Eventos recalculados.' });
+    } catch (err) {
+        await pool.query('ROLLBACK');
+        console.error('Erro ao deletar flag:', err);
+        res.status(500).json({ erro: 'Erro ao deletar flag.' });
+    }
+});
+// ============ NÚCLEOS DE ENTIDADES ============
+
+// Listar núcleos de entidades da crônica
+app.get('/cronicas/:cronicaId/entidade-nucleos', verificarToken, async (req, res) => {
+    const { cronicaId } = req.params;
+    try {
+        const query = await pool.query(
+            'SELECT id, nome FROM entidade_nucleos WHERE cronica_id = $1 ORDER BY nome ASC',
+            [cronicaId]
+        );
+        res.json(query.rows);
+    } catch (err) {
+        console.error('Erro ao buscar núcleos de entidades:', err);
+        res.status(500).json({ erro: 'Erro ao buscar núcleos.' });
+    }
+});
+
+// Criar núcleo de entidade
+app.post('/cronicas/:cronicaId/entidade-nucleos', verificarToken, async (req, res) => {
+    const { cronicaId } = req.params;
+    const { nome } = req.body;
+    if (!nome || nome.trim() === '') return res.status(400).json({ erro: 'Nome do núcleo obrigatório.' });
+    try {
+        const novo = await pool.query(
+            'INSERT INTO entidade_nucleos (cronica_id, nome) VALUES ($1, $2) RETURNING *',
+            [cronicaId, nome.trim()]
+        );
+        res.status(201).json(novo.rows[0]);
+    } catch (err) {
+        if (err.code === '23505') return res.status(400).json({ erro: 'Já existe um núcleo com este nome.' });
+        console.error(err);
+        res.status(500).json({ erro: 'Erro ao criar núcleo.' });
+    }
+});
+
+// Renomear núcleo de entidade
+app.put('/cronicas/:cronicaId/entidade-nucleos/:nucleoId', verificarToken, async (req, res) => {
+    const { nucleoId } = req.params;
+    const { nome } = req.body;
+    if (!nome || nome.trim() === '') return res.status(400).json({ erro: 'Nome obrigatório.' });
+    try {
+        const result = await pool.query(
+            'UPDATE entidade_nucleos SET nome = $1 WHERE id = $2 RETURNING *',
+            [nome.trim(), nucleoId]
+        );
+        if (result.rows.length === 0) return res.status(404).json({ erro: 'Núcleo não encontrado.' });
+        res.json(result.rows[0]);
+    } catch (err) {
+        if (err.code === '23505') return res.status(400).json({ erro: 'Já existe um núcleo com este nome.' });
+        console.error(err);
+        res.status(500).json({ erro: 'Erro ao renomear núcleo.' });
+    }
+});
+
+// Excluir núcleo de entidade (entidades vinculadas voltam a ter nucleo_id NULL)
+app.delete('/cronicas/:cronicaId/entidade-nucleos/:nucleoId', verificarToken, async (req, res) => {
+    const { nucleoId } = req.params;
+    try {
+        const result = await pool.query('DELETE FROM entidade_nucleos WHERE id = $1 RETURNING id', [nucleoId]);
+        if (result.rows.length === 0) return res.status(404).json({ erro: 'Núcleo não encontrado.' });
+        res.json({ mensagem: 'Núcleo excluído.' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ erro: 'Erro ao excluir núcleo.' });
+    }
+});
+
+// Atualizar o núcleo de uma entidade (associação 1:N)
+app.put('/cronicas/:cronicaId/nodes/:nodeId/nucleo', verificarToken, async (req, res) => {
+    const { nodeId } = req.params;
+    const { nucleo_id } = req.body; // pode ser null para remover
+    try {
+        await pool.query(
+            'UPDATE world_nodes SET nucleo_id = $1 WHERE id = $2',
+            [nucleo_id || null, nodeId]
+        );
+        res.json({ mensagem: 'Núcleo atualizado.' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ erro: 'Erro ao associar núcleo.' });
+    }
+});
+
+
+// ============ NÚCLEOS DE EVENTOS ============
+
+// Listar núcleos de eventos da crônica
+app.get('/cronicas/:cronicaId/evento-nucleos', verificarToken, async (req, res) => {
+    const { cronicaId } = req.params;
+    try {
+        const query = await pool.query(
+            'SELECT id, nome FROM evento_nucleos WHERE cronica_id = $1 ORDER BY nome ASC',
+            [cronicaId]
+        );
+        res.json(query.rows);
+    } catch (err) {
+        console.error('Erro ao buscar núcleos de eventos:', err);
+        res.status(500).json({ erro: 'Erro ao buscar núcleos.' });
+    }
+});
+
+// Criar núcleo de evento
+app.post('/cronicas/:cronicaId/evento-nucleos', verificarToken, async (req, res) => {
+    const { cronicaId } = req.params;
+    const { nome } = req.body;
+    if (!nome || nome.trim() === '') return res.status(400).json({ erro: 'Nome obrigatório.' });
+    try {
+        const novo = await pool.query(
+            'INSERT INTO evento_nucleos (cronica_id, nome) VALUES ($1, $2) RETURNING *',
+            [cronicaId, nome.trim()]
+        );
+        res.status(201).json(novo.rows[0]);
+    } catch (err) {
+        if (err.code === '23505') return res.status(400).json({ erro: 'Já existe um núcleo com este nome.' });
+        console.error(err);
+        res.status(500).json({ erro: 'Erro ao criar núcleo.' });
+    }
+});
+
+// Renomear núcleo de evento
+app.put('/cronicas/:cronicaId/evento-nucleos/:nucleoId', verificarToken, async (req, res) => {
+    const { nucleoId } = req.params;
+    const { nome } = req.body;
+    if (!nome || nome.trim() === '') return res.status(400).json({ erro: 'Nome obrigatório.' });
+    try {
+        const result = await pool.query(
+            'UPDATE evento_nucleos SET nome = $1 WHERE id = $2 RETURNING *',
+            [nome.trim(), nucleoId]
+        );
+        if (result.rows.length === 0) return res.status(404).json({ erro: 'Núcleo não encontrado.' });
+        res.json(result.rows[0]);
+    } catch (err) {
+        if (err.code === '23505') return res.status(400).json({ erro: 'Já existe um núcleo com este nome.' });
+        console.error(err);
+        res.status(500).json({ erro: 'Erro ao renomear núcleo.' });
+    }
+});
+
+// Excluir núcleo de evento
+app.delete('/cronicas/:cronicaId/evento-nucleos/:nucleoId', verificarToken, async (req, res) => {
+    const { nucleoId } = req.params;
+    try {
+        const result = await pool.query('DELETE FROM evento_nucleos WHERE id = $1 RETURNING id', [nucleoId]);
+        if (result.rows.length === 0) return res.status(404).json({ erro: 'Núcleo não encontrado.' });
+        res.json({ mensagem: 'Núcleo excluído.' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ erro: 'Erro ao excluir núcleo.' });
+    }
+});
+
+// Vincular evento a núcleo (adicionar)
+app.post('/cronicas/:cronicaId/eventos/:eventId/nucleos', verificarToken, async (req, res) => {
+    const { eventId } = req.params;
+    const { nucleo_id } = req.body;
+    try {
+        await pool.query(
+            'INSERT INTO evento_nucleo_ligacao (evento_id, nucleo_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+            [eventId, nucleo_id]
+        );
+        res.json({ mensagem: 'Evento vinculado ao núcleo.' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ erro: 'Erro ao vincular.' });
+    }
+});
+
+// Desvincular evento de núcleo
+app.delete('/cronicas/:cronicaId/eventos/:eventId/nucleos/:nucleoId', verificarToken, async (req, res) => {
+    const { eventId, nucleoId } = req.params;
+    try {
+        await pool.query(
+            'DELETE FROM evento_nucleo_ligacao WHERE evento_id = $1 AND nucleo_id = $2',
+            [eventId, nucleoId]
+        );
+        res.json({ mensagem: 'Vínculo removido.' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ erro: 'Erro ao desvincular.' });
+    }
+});
+// Deletar um evento
+app.delete('/cronicas/:cronicaId/eventos/:eventId', verificarToken, async (req, res) => {
+    const { eventId } = req.params;
+
+    try {
+        await pool.query('BEGIN');
+
+        // Remove os pesos vinculados (gatilhos)
+        await pool.query('DELETE FROM event_flag_weights WHERE event_id = $1', [eventId]);
+
+        // Remove os vínculos com núcleos de eventos
+        await pool.query('DELETE FROM evento_nucleo_ligacao WHERE evento_id = $1', [eventId]);
+
+        // Remove o evento
+        const result = await pool.query('DELETE FROM world_events WHERE id = $1 RETURNING id', [eventId]);
+
+        if (result.rows.length === 0) {
+            await pool.query('ROLLBACK');
+            return res.status(404).json({ erro: 'Evento não encontrado.' });
+        }
+
+        await pool.query('COMMIT');
+        res.json({ mensagem: 'Evento deletado com sucesso.' });
+    } catch (err) {
+        await pool.query('ROLLBACK');
+        console.error('Erro ao deletar evento:', err);
+        res.status(500).json({ erro: 'Erro ao deletar evento.' });
+    }
+});
 
 
 app.use('/auth', authRoutes);

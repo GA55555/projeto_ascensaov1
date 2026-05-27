@@ -44,6 +44,34 @@
         .modal-box { background: var(--bg-card); padding: 25px; border-radius: 8px; border: 1px solid var(--roxo-mago); width: 450px; max-width: 90%; max-height: 85vh; overflow-y: auto; }
         .modal-box input, .modal-box select, .modal-box textarea { width: 100%; padding: 10px; margin-bottom: 10px; background: var(--bg-principal); border: 1px solid var(--borda); color: #fff; border-radius: 4px; }
         .modal-box label { display: block; margin-bottom: 4px; color: var(--texto-mutado); font-size: 12px; }
+
+                .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            padding: 4px 0;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .checkbox-label input[type="checkbox"] {
+            margin: 0;
+            width: auto;
+            height: auto;
+        }
+        .radio-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            padding: 4px 0;
+            cursor: pointer;
+        }
+        .radio-label input[type="radio"] {
+            margin: 0;
+            width: auto;
+            height: auto;
+        }
     </style>
 </head>
 <body>
@@ -64,20 +92,33 @@
 
     <!-- TAB: MUNDO -->
     <div id="tab-mundo" class="tab-content ativa">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h3 style="color: var(--destaque);">Entidades do Mundo</h3>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap;">
+        <h3 style="color: var(--destaque);">Entidades do Mundo</h3>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <select id="filtro-nucleo-entidade" onchange="filtrarPorNucleoEntidade()" style="background: var(--bg-card); color: #fff; border: 1px solid var(--borda); padding: 6px 10px; border-radius: 4px;">
+                <option value="">Todos os núcleos</option>
+            </select>
+            <button class="btn btn-primary btn-sm" onclick="gerenciarNucleos('entidade')">⚙️ Núcleos</button>
             <button class="btn btn-primary" onclick="abrirModal('modal-forja')">+ Forjar Entidade</button>
         </div>
-        <div id="grid-mundo" class="grid-2">Carregando...</div>
+    </div>
+    <div id="grid-mundo" class="grid-2">Carregando...</div>
     </div>
 
     <!-- TAB: EVENTOS -->
+    
     <div id="tab-eventos" class="tab-content">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h3 style="color: var(--destaque);">Eventos Programados</h3>
-            <button class="btn btn-primary" onclick="abrirModal('modal-evento')">+ Forjar Evento</button>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap;">
+        <h3 style="color: var(--destaque);">Eventos Programados</h3>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <select id="filtro-nucleo-evento" onchange="filtrarPorNucleoEvento()" style="background: var(--bg-card); color: #fff; border: 1px solid var(--borda); padding: 6px 10px; border-radius: 4px;">
+                <option value="">Todos os núcleos</option>
+            </select>
+            <button class="btn btn-primary btn-sm" onclick="gerenciarNucleos('evento')">⚙️ Núcleos</button>
+            <button class="btn btn-primary" onclick="prepararModalEvento()">+ Forjar Evento</button>
         </div>
-        <div id="grid-eventos">Carregando...</div>
+    </div>
+    <div id="grid-eventos">Carregando...</div>
     </div>
 
     <!-- ============ MODAIS ============ -->
@@ -111,6 +152,8 @@
             <label>Descrição</label>
             <textarea id="evento-descricao" rows="3" placeholder="O que acontece quando a pool atingir o máximo..."></textarea>
             <label>Pool Máxima</label>
+            <label>Núcleos (opcional, segure Ctrl para múltiplos)</label>
+            <select id="evento-nucleos" multiple style="height: 100px; margin-bottom: 10px;"></select>
             <input type="number" id="evento-pool" value="10" min="1">
             <div style="display: flex; gap: 10px; justify-content: flex-end;">
                 <button class="btn btn-danger" onclick="fecharModal('modal-evento')">Cancelar</button>
@@ -133,6 +176,45 @@
             <div style="display: flex; gap: 10px; justify-content: flex-end;">
                 <button class="btn btn-danger" onclick="fecharModal('modal-vinculo')">Cancelar</button>
                 <button class="btn btn-success" onclick="salvarVinculo()">Vincular</button>
+            </div>
+        </div>
+    </div>
+    <!-- Modal Gerenciar Núcleos -->
+    <div id="modal-nucleos" class="modal-overlay">
+        <div class="modal-box">
+            <h3 id="modal-nucleos-titulo" style="color: var(--destaque); margin-top: 0;">Gerenciar Núcleos</h3>
+            <div id="lista-nucleos" style="max-height: 300px; overflow-y: auto; margin-bottom: 15px;"></div>
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="novo-nucleo-nome" placeholder="Nome do novo núcleo" style="flex: 1;">
+                <button class="btn btn-primary btn-sm" onclick="criarNucleo()">+ Criar</button>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px;">
+                <button class="btn btn-danger" onclick="fecharModal('modal-nucleos')">Fechar</button>
+            </div>
+        </div>
+    </div>
+    <!-- Modal Editar Núcleos do Evento -->
+    <!-- Modal Editar Núcleos do Evento -->
+    <div id="modal-nucleos-evento" class="modal-overlay">
+    <div class="modal-box">
+        <h3 style="color: var(--destaque);">Editar Núcleos do Evento</h3>
+        <div id="lista-nucleos-evento" style="max-height: 300px; overflow-y: auto; margin-bottom: 15px;"></div>
+        <input type="hidden" id="nucleos-evento-id">
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+            <button class="btn btn-danger" onclick="fecharModal('modal-nucleos-evento')">Cancelar</button>
+            <button class="btn btn-success" onclick="salvarNucleosEvento()">Salvar</button>
+        </div>
+    </div>
+    </div>
+    <!-- Modal Mover Entidade de Núcleo -->
+    <div id="modal-mover-nucleo" class="modal-overlay">
+        <div class="modal-box">
+            <h3 style="color: var(--destaque);">Mover Entidade para Núcleo</h3>
+            <div id="lista-nucleos-mover" style="max-height: 300px; overflow-y: auto; margin-bottom: 15px;"></div>
+            <input type="hidden" id="mover-node-id">
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button class="btn btn-danger" onclick="fecharModal('modal-mover-nucleo')">Cancelar</button>
+                <button class="btn btn-success" onclick="salvarMoverNucleo()">Salvar</button>
             </div>
         </div>
     </div>
@@ -163,48 +245,70 @@
 
     // ============ TABS ============
     function abrirTab(tab) {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('ativa'));
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('ativa'));
-        document.querySelector(`[onclick="abrirTab('${tab}')"]`).classList.add('ativa');
-        document.getElementById(`tab-${tab}`).classList.add('ativa');
-        if (tab === 'mundo') carregarMundo();
-        if (tab === 'eventos') carregarEventos();
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('ativa'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('ativa'));
+    document.querySelector(`[onclick="abrirTab('${tab}')"]`).classList.add('ativa');
+    document.getElementById(`tab-${tab}`).classList.add('ativa');
+    if (tab === 'mundo') {
+        carregarMundo(document.getElementById('filtro-nucleo-entidade').value);
+        carregarNucleos('entidade'); // atualiza filtro
     }
+    if (tab === 'eventos') {
+        carregarEventos(document.getElementById('filtro-nucleo-evento').value);
+        carregarNucleos('evento');
+    }
+}
 
     // ============ MODAIS ============
     function abrirModal(id) { document.getElementById(id).classList.add('show'); }
     function fecharModal(id) { document.getElementById(id).classList.remove('show'); }
 
     // ============ CONTROLE DE MUNDO ============
-    async function carregarMundo() {
-        try {
-            const res = await fetch(`/cronicas/${cronicaId}/nodes`, { headers: { 'Authorization': `Bearer ${token}` } });
-            nodesCache = await res.json();
-            const grid = document.getElementById('grid-mundo');
-            if (nodesCache.length === 0) {
-                grid.innerHTML = '<p style="color: var(--texto-mutado); grid-column: span 2; text-align: center;">Nenhuma entidade forjada.</p>';
-                return;
-            }
-            grid.innerHTML = nodesCache.map(node => `
-                <div class="card">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <strong>${node.nome}</strong>
-                        <span class="badge">${node.tipo}</span>
-                    </div>
-                    <div id="flags-${node.id}">
-                        ${(node.flags || []).filter(f => f.key).map(f => `
-                            <div class="flag-item">
-                                <label style="cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 13px;">
-                                    <input type="checkbox" ${f.value ? 'checked' : ''} onchange="toggleFlag('${node.id}', '${f.key}', this.checked)"> ${f.key}
-                                </label>
-                            </div>
-                        `).join('')}
-                    </div>
-                    <button class="btn btn-primary btn-sm" style="margin-top: 10px; width: 100%;" onclick="adicionarFlag('${node.id}')">+ Nova Flag</button>
+    async function carregarMundo(nucleoFiltro = '') {
+    try {
+        const url = `/cronicas/${cronicaId}/nodes` + (nucleoFiltro ? `?nucleo_id=${nucleoFiltro}` : '');
+        const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+        nodesCache = await res.json();
+        const grid = document.getElementById('grid-mundo');
+        if (nodesCache.length === 0) {
+            grid.innerHTML = '<p style="color: var(--texto-mutado); grid-column: span 2; text-align: center;">Nenhuma entidade forjada.</p>';
+            return;
+        }
+        grid.innerHTML = nodesCache.map(node => `
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <strong id="node-nome-${node.id}">${node.nome}</strong>
+                    <span class="badge">${node.tipo}</span>
                 </div>
-            `).join('');
-        } catch (err) { console.error(err); }
-    }
+                <div style="display: flex; gap: 5px;">
+                    <button class="btn btn-primary btn-sm" onclick="editarEntidade('${node.id}', '${node.nome.replace(/'/g, "\\'")}')" title="Editar nome">✏️</button>
+                    <button class="btn btn-danger btn-sm" onclick="deletarEntidade('${node.id}', '${node.nome.replace(/'/g, "\\'")}')" title="Deletar entidade">🗑️</button>
+                </div>
+            </div>
+            <div id="flags-${node.id}">
+                ${(node.flags || []).filter(f => f.key).map(f => `
+                    <div class="flag-item">
+                        <label style="cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 13px; flex: 1;">
+                            <input type="checkbox" ${f.value ? 'checked' : ''} onchange="toggleFlag('${node.id}', '${f.key}', this.checked)"> 
+                            <span id="flag-nome-${node.id}-${f.key}">${f.key}</span>
+                        </label>
+                        <div style="display: flex; gap: 3px;">
+                            <button class="btn btn-primary btn-sm" onclick="editarFlag('${node.id}', '${f.key}')" title="Renomear flag" style="padding: 2px 6px; font-size: 10px;">✏️</button>
+                            <button class="btn btn-danger btn-sm" onclick="deletarFlag('${node.id}', '${f.key}')" title="Deletar flag" style="padding: 2px 6px; font-size: 10px;">✕</button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+            <div style="font-size: 11px; margin-top: 8px; display: flex; align-items: center; gap: 5px;">
+                <span>Núcleo: <span id="node-nucleo-${node.id}">${node.nucleo_nome || 'Nenhum'}</span></span>
+                <button class="btn btn-primary btn-sm" onclick="moverNodeNucleo('${node.id}')">Mover</button>
+            </div>
+            <button class="btn btn-primary btn-sm" style="margin-top: 10px; width: 100%;" onclick="adicionarFlag('${node.id}')">+ Nova Flag</button>
+        </div>
+        `).join('');
+    } catch (err) { console.error(err); }
+}
 
     async function salvarForja() {
         const nome = document.getElementById('forja-nome').value.trim();
@@ -220,11 +324,27 @@
     }
 
     async function toggleFlag(nodeId, flagKey, value) {
-        await fetch(`/cronicas/${cronicaId}/nodes/${nodeId}/flags`, {
-            method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    try {
+        const res = await fetch(`/cronicas/${cronicaId}/nodes/${nodeId}/flags`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({ flag_key: flagKey, flag_value: value })
         });
+        const data = await res.json();
+
+        // Exibe aviso se algum evento estourou a pool
+        if (data.avisos && data.avisos.length > 0) {
+            alert('⚠️ Atenção! Os seguintes eventos ultrapassaram a pool máxima:\n\n' + data.avisos.join('\n'));
+        }
+
+        // Atualiza a barra de progresso se a aba de eventos estiver aberta
+        if (document.getElementById('tab-eventos').classList.contains('ativa')) {
+            carregarEventos();
+        }
+    } catch (err) {
+        console.error(err);
     }
+}
 
     async function adicionarFlag(nodeId) {
         const nome = prompt('Nome da nova Flag:');
@@ -237,64 +357,65 @@
     }
 
     // ============ AGENDA DE EVENTOS ============
-    async function carregarEventos() {
-        try {
-            const res = await fetch(`/cronicas/${cronicaId}/eventos`, { headers: { 'Authorization': `Bearer ${token}` } });
-            const eventos = await res.json();
-            const grid = document.getElementById('grid-eventos');
-            if (eventos.length === 0) {
-                grid.innerHTML = '<p style="color: var(--texto-mutado); text-align: center;">Nenhum evento no horizonte.</p>';
-                return;
-            }
-            grid.innerHTML = eventos.map(ev => {
-                const pct = Math.min((ev.pool_atual / ev.pool_maxima) * 100, 100);
-                const alerta = pct >= 100;
-                let gatilhosHtml = '';
-                if (ev.gatilhos && ev.gatilhos.length > 0) {
-                    gatilhosHtml = ev.gatilhos.filter(g => g.node_nome).map(g => `
-                        <div style="font-size: 11px; background: rgba(255,255,255,0.03); padding: 4px 8px; border-radius: 4px; margin-bottom: 3px;">
-                            ⚙️ <strong>${g.node_nome}</strong> → ${g.flag_key} (+${g.peso})
-                        </div>
-                    `).join('');
-                }
-                return `
-                    <div class="card">
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
-                            <div>
-                                <strong style="font-size: 16px;">${ev.nome}</strong>
-                                <span style="font-size: 11px; color: ${alerta ? '#ff5555' : 'var(--destaque)'}; margin-left: 10px;">
-                                    ${alerta ? '⚠️ PRONTO' : '🔍 Monitorando'}
-                                </span>
-                            </div>
-                            <button class="btn btn-primary btn-sm" onclick="abrirModalVinculo('${ev.id}')">+ Vincular</button>
-                        </div>
-                        ${gatilhosHtml || '<p style="font-size: 11px; color: var(--texto-mutado);">Nenhuma causa vinculada.</p>'}
-                        <div class="barra-bg">
-                            <div class="barra-fill ${alerta ? 'barra-alerta' : ''}" style="width: ${pct}%;">
-                                ${pct > 15 ? `${ev.pool_atual}/${ev.pool_maxima}` : ''}
-                            </div>
-                        </div>
-                        ${pct <= 15 ? `<span style="font-size: 10px; color: var(--texto-mutado);">${ev.pool_atual}/${ev.pool_maxima}</span>` : ''}
+    async function carregarEventos(nucleoFiltro = '') {
+    try {
+        const url = `/cronicas/${cronicaId}/eventos` + (nucleoFiltro ? `?nucleo_id=${nucleoFiltro}` : '');
+        const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+        const eventos = await res.json();
+        const grid = document.getElementById('grid-eventos');
+        if (eventos.length === 0) {
+            grid.innerHTML = '<p style="color: var(--texto-mutado); text-align: center;">Nenhum evento no horizonte.</p>';
+            return;
+        }
+        grid.innerHTML = eventos.map(ev => {
+            const pct = Math.min((ev.pool_atual / ev.pool_maxima) * 100, 100);
+            const alerta = pct >= 100;
+            let gatilhosHtml = '';
+            if (ev.gatilhos && ev.gatilhos.length > 0) {
+                gatilhosHtml = ev.gatilhos.filter(g => g.node_nome).map(g => `
+                    <div style="font-size: 11px; background: rgba(255,255,255,0.03); padding: 4px 8px; border-radius: 4px; margin-bottom: 3px;">
+                        ⚙️ <strong>${g.node_nome}</strong> → ${g.flag_key} (+${g.peso})
                     </div>
-                `;
-            }).join('');
-        } catch (err) { console.error(err); }
-    }
+                `).join('');
+            }
+            // Núcleos do evento
+            const nucleosBadges = (ev.nucleos && ev.nucleos.length > 0) 
+                ? ev.nucleos.map(n => `<span class="badge">${n.nome}</span>`).join(' ') 
+                : 'Nenhum';
+            return `
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+                    <div>
+                        <strong style="font-size: 16px;">${ev.nome}</strong>
+                        <span style="font-size: 11px; color: ${alerta ? '#ff5555' : 'var(--destaque)'}; margin-left: 10px;">
+                            ${alerta ? '⚠️ PRONTO' : '🔍 Monitorando'}
+                        </span>
+                    </div>
+                    <div style="display: flex; gap: 5px;">
+                        <button class="btn btn-primary btn-sm" onclick="abrirModalVinculo('${ev.id}')">+ Vincular</button>
+                        <button class="btn btn-danger btn-sm" onclick="deletarEvento('${ev.id}', '${ev.nome.replace(/'/g, "\\'")}')" title="Deletar evento">🗑️</button>
+                    </div>
+                </div>
+                ${gatilhosHtml || '<p style="font-size: 11px; color: var(--texto-mutado);">Nenhuma causa vinculada.</p>'}
+                <div class="barra-bg">
+                    <div class="barra-fill ${alerta ? 'barra-alerta' : ''}" style="width: ${pct}%;">
+                        ${pct > 15 ? `${ev.pool_atual}/${ev.pool_maxima}` : ''}
+                    </div>
+                </div>
+                ${pct <= 15 ? `<span style="font-size: 10px; color: var(--texto-mutado);">${ev.pool_atual}/${ev.pool_maxima}</span>` : ''}
+                ${ev.ultima_excedida_em ? 
+                  `<div style="font-size: 10px; color: var(--texto-mutado); margin-top: 5px;">⏰ Ativado em: ${new Date(ev.ultima_excedida_em).toLocaleString()}</div>` : ''}
+                <div style="font-size: 11px; margin-top: 8px; display: flex; align-items: center; gap: 5px;">
+                    <span>Núcleos:</span> ${nucleosBadges}
+                    <button class="btn btn-primary btn-sm" onclick="gerenciarNucleosEvento('${ev.id}')">Editar</button>
+                </div>
+            </div>
+            `;
+        }).join('');
+    } catch (err) { console.error(err); }
+}
 
-    async function salvarEvento() {
-        const nome = document.getElementById('evento-nome').value.trim();
-        const descricao = document.getElementById('evento-descricao').value.trim();
-        const pool = parseInt(document.getElementById('evento-pool').value) || 10;
-        if (!nome) return alert('Digite um nome.');
-        try {
-            await fetch(`/cronicas/${cronicaId}/eventos`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ nome, descricao, pool_maxima: pool })
-            });
-            fecharModal('modal-evento');
-            carregarEventos();
-        } catch (err) { alert('Erro.'); }
-    }
+    
 
     // ============ VÍNCULOS ============
     async function abrirModalVinculo(eventId) {
@@ -332,9 +453,364 @@
 
     // ============ INICIALIZAÇÃO ============
     (async function iniciar() {
-        const temAcesso = await verificarAcesso();
-        if (temAcesso) carregarMundo();
-    })();
+    const temAcesso = await verificarAcesso();
+    if (temAcesso) {
+        await carregarMundo();
+        await carregarNucleos('entidade'); // 🔁 Preenche o filtro logo de início
+    }
+})();
+
+    // ============ EDITAR ENTIDADE ============
+async function editarEntidade(nodeId, nomeAtual) {
+    const novoNome = prompt('Novo nome da entidade:', nomeAtual);
+    if (!novoNome || novoNome.trim() === '' || novoNome === nomeAtual) return;
+
+    try {
+        const res = await fetch(`/cronicas/${cronicaId}/nodes/${nodeId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ nome: novoNome.trim() })
+        });
+        if (res.ok) {
+            carregarMundo();
+            // Atualiza a cache para os vínculos
+            const node = nodesCache.find(n => n.id === nodeId);
+            if (node) node.nome = novoNome.trim();
+        } else {
+            const err = await res.json();
+            alert(err.erro || 'Erro ao editar.');
+        }
+    } catch (err) { alert('Erro de conexão.'); }
+}
+
+// ============ DELETAR ENTIDADE ============
+async function deletarEntidade(nodeId, nome) {
+    if (!confirm(`Deletar a entidade "${nome}"? Isso removerá TODAS as flags e vínculos com eventos!`)) return;
+    if (!confirm('Esta ação é IRREVERSÍVEL. Continuar?')) return;
+
+    try {
+        const res = await fetch(`/cronicas/${cronicaId}/nodes/${nodeId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+            carregarMundo();
+        } else {
+            const err = await res.json();
+            alert(err.erro || 'Erro ao deletar.');
+        }
+    } catch (err) { alert('Erro de conexão.'); }
+}
+
+// ============ EDITAR FLAG (RENOMEAR) ============
+async function editarFlag(nodeId, flagKey) {
+    const novoNome = prompt('Novo nome da flag:', flagKey);
+    if (!novoNome || novoNome.trim() === '' || novoNome === flagKey) return;
+
+    try {
+        const res = await fetch(`/cronicas/${cronicaId}/nodes/${nodeId}/flags/${flagKey}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ novo_nome: novoNome.trim().toLowerCase().replace(/\s+/g, '_') })
+        });
+        if (res.ok) {
+            carregarMundo();
+        } else {
+            const err = await res.json();
+            alert(err.erro || 'Erro ao renomear flag.');
+        }
+    } catch (err) { alert('Erro de conexão.'); }
+}
+
+// ============ DELETAR FLAG ============
+async function deletarFlag(nodeId, flagKey) {
+    if (!confirm(`Deletar a flag "${flagKey}"? Isso removerá os vínculos com eventos!`)) return;
+
+    try {
+        const res = await fetch(`/cronicas/${cronicaId}/nodes/${nodeId}/flags/${flagKey}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+            carregarMundo();
+            // Atualiza a aba de eventos se ela estiver visível
+            if (document.getElementById('tab-eventos').classList.contains('ativa')) {
+                carregarEventos();
+            }
+        } else {
+            const err = await res.json();
+            alert(err.erro || 'Erro ao deletar flag.');
+        }
+    } catch (err) { alert('Erro de conexão.'); }
+}
+
+async function deletarEvento(eventId, nome) {
+    if (!confirm(`Tem certeza que deseja deletar o evento "${nome}"? Todos os vínculos serão removidos.`)) return;
+
+    try {
+        const res = await fetch(`/cronicas/${cronicaId}/eventos/${eventId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (res.ok) {
+            // Recarrega a aba de eventos para refletir a exclusão
+            carregarEventos();
+        } else {
+            const err = await res.json();
+            alert(err.erro || 'Erro ao deletar evento.');
+        }
+    } catch (err) {
+        console.error(err);
+        alert('Erro de conexão ao tentar deletar evento.');
+    }
+}
+
+// ============ NÚCLEOS ============
+let nucleoAtivoTipo = 'entidade'; // 'entidade' ou 'evento'
+let nucleosCache = { entidade: [], evento: [] };
+
+async function gerenciarNucleos(tipo) {
+    nucleoAtivoTipo = tipo;
+    document.getElementById('modal-nucleos-titulo').innerText = tipo === 'entidade' ? '⚙️ Núcleos de Entidades' : '⚙️ Núcleos de Eventos';
+    await carregarNucleos(tipo);
+    abrirModal('modal-nucleos');
+}
+
+async function carregarNucleos(tipo) {
+    const endpoint = tipo === 'entidade' ? 'entidade-nucleos' : 'evento-nucleos';
+    try {
+        const res = await fetch(`/cronicas/${cronicaId}/${endpoint}`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const lista = await res.json();
+        nucleosCache[tipo] = lista;
+        renderizarListaNucleos(lista, tipo);
+        // Atualiza os selects de filtro
+        const selectId = tipo === 'entidade' ? 'filtro-nucleo-entidade' : 'filtro-nucleo-evento';
+        const select = document.getElementById(selectId);
+        if (select) {
+            select.innerHTML = '<option value="">Todos os núcleos</option>';
+            lista.forEach(n => select.innerHTML += `<option value="${n.id}">${n.nome}</option>`);
+        }
+    } catch (err) { console.error(err); }
+}
+
+function renderizarListaNucleos(lista, tipo) {
+    const div = document.getElementById('lista-nucleos');
+    div.innerHTML = lista.map(n => `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--borda);">
+            <span id="nucleo-nome-${n.id}">${n.nome}</span>
+            <div style="display: flex; gap: 5px;">
+                <button class="btn btn-primary btn-sm" onclick="editarNucleo('${n.id}', '${tipo}')">✏️</button>
+                <button class="btn btn-danger btn-sm" onclick="excluirNucleo('${n.id}', '${tipo}')">🗑️</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+async function criarNucleo() {
+    const nome = document.getElementById('novo-nucleo-nome').value.trim();
+    if (!nome) return alert('Digite um nome.');
+    const endpoint = nucleoAtivoTipo === 'entidade' ? 'entidade-nucleos' : 'evento-nucleos';
+    try {
+        const res = await fetch(`/cronicas/${cronicaId}/${endpoint}`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ nome })
+        });
+        if (res.ok) {
+            document.getElementById('novo-nucleo-nome').value = '';
+            await carregarNucleos(nucleoAtivoTipo);
+        } else {
+            const err = await res.json();
+            alert(err.erro || 'Erro.');
+        }
+    } catch (err) { alert('Erro de conexão.'); }
+}
+
+async function editarNucleo(id, tipo) {
+    const nomeAtual = document.getElementById(`nucleo-nome-${id}`).innerText;
+    const novoNome = prompt('Novo nome:', nomeAtual);
+    if (!novoNome || novoNome === nomeAtual) return;
+    const endpoint = tipo === 'entidade' ? `entidade-nucleos/${id}` : `evento-nucleos/${id}`;
+    try {
+        const res = await fetch(`/cronicas/${cronicaId}/${endpoint}`, {
+            method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ nome: novoNome.trim() })
+        });
+        if (res.ok) {
+            await carregarNucleos(tipo);
+        } else {
+            const err = await res.json();
+            alert(err.erro || 'Erro.');
+        }
+    } catch (err) { alert('Erro de conexão.'); }
+}
+
+async function excluirNucleo(id, tipo) {
+    if (!confirm('Excluir este núcleo? Vínculos serão removidos.')) return;
+    const endpoint = tipo === 'entidade' ? `entidade-nucleos/${id}` : `evento-nucleos/${id}`;
+    try {
+        const res = await fetch(`/cronicas/${cronicaId}/${endpoint}`, {
+            method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+            await carregarNucleos(tipo);
+            // Recarrega a aba ativa
+            if (tipo === 'entidade') carregarMundo(document.getElementById('filtro-nucleo-entidade').value);
+            else carregarEventos(document.getElementById('filtro-nucleo-evento').value);
+        } else {
+            const err = await res.json();
+            alert(err.erro || 'Erro.');
+        }
+    } catch (err) { alert('Erro de conexão.'); }
+}
+
+function filtrarPorNucleoEntidade() {
+    const nucleoId = document.getElementById('filtro-nucleo-entidade').value;
+    carregarMundo(nucleoId);
+}
+
+function filtrarPorNucleoEvento() {
+    const nucleoId = document.getElementById('filtro-nucleo-evento').value;
+    carregarEventos(nucleoId);
+}
+
+
+// Mover entidade de núcleo (abre modal com radio buttons)
+async function moverNodeNucleo(nodeId) {
+    await carregarNucleos('entidade'); // garante cache atualizado
+    const nucleos = nucleosCache.entidade;
+    // Descobre o núcleo atual da entidade (pode ser null)
+    const node = nodesCache.find(n => n.id === nodeId);
+    const nucleoAtualId = node ? node.nucleo_id : null;
+
+    const div = document.getElementById('lista-nucleos-mover');
+    let html = `<label class="radio-label">
+        <input type="radio" name="mover-nucleo" value="" ${!nucleoAtualId ? 'checked' : ''}> Nenhum
+    </label>`;
+    nucleos.forEach(n => {
+        html += `<label class="radio-label">
+            <input type="radio" name="mover-nucleo" value="${n.id}" ${nucleoAtualId === n.id ? 'checked' : ''}> ${n.nome}
+        </label>`;
+    });
+    div.innerHTML = html;
+    document.getElementById('mover-node-id').value = nodeId;
+    abrirModal('modal-mover-nucleo');
+}
+
+// Salva a seleção do modal de mover núcleo
+async function salvarMoverNucleo() {
+    const nodeId = document.getElementById('mover-node-id').value;
+    const selecionado = document.querySelector('input[name="mover-nucleo"]:checked');
+    if (!selecionado) {
+        alert('Selecione uma opção.');
+        return;
+    }
+    const nucleoId = selecionado.value || null; // vazio = null
+
+    try {
+        await fetch(`/cronicas/${cronicaId}/nodes/${nodeId}/nucleo`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ nucleo_id: nucleoId })
+        });
+        fecharModal('modal-mover-nucleo');
+        carregarMundo(document.getElementById('filtro-nucleo-entidade').value);
+    } catch (err) {
+        alert('Erro ao mover entidade.');
+    }
+}
+
+
+// Gerenciar núcleos de um evento (adicionar/remover)
+// Abre o modal de edição de núcleos do evento
+async function gerenciarNucleosEvento(eventId) {
+    await carregarNucleos('evento'); // cache atualizado
+    // Obtém o evento específico para saber os vínculos atuais
+    const res = await fetch(`/cronicas/${cronicaId}/eventos`, { headers: { 'Authorization': `Bearer ${token}` } });
+    const eventos = await res.json();
+    const ev = eventos.find(e => e.id === eventId);
+    if (!ev) return alert('Evento não encontrado.');
+    const nucleosVinculados = ev.nucleos || [];
+
+    const div = document.getElementById('lista-nucleos-evento');
+    div.innerHTML = nucleosCache.evento.map(n => {
+    const checked = nucleosVinculados.some(v => v.id === n.id);
+    return `<label class="checkbox-label">
+        <input type="checkbox" value="${n.id}" ${checked ? 'checked' : ''}> ${n.nome}
+    </label>`;
+    }).join('');
+    document.getElementById('nucleos-evento-id').value = eventId;
+    abrirModal('modal-nucleos-evento');
+}
+
+// Salva as alterações dos checkboxes
+async function salvarNucleosEvento() {
+    const eventId = document.getElementById('nucleos-evento-id').value;
+    const checkboxes = document.querySelectorAll('#lista-nucleos-evento input[type="checkbox"]');
+    const selecionados = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
+
+    // Busca o estado atual dos vínculos
+    const res = await fetch(`/cronicas/${cronicaId}/eventos`, { headers: { 'Authorization': `Bearer ${token}` } });
+    const eventos = await res.json();
+    const ev = eventos.find(e => e.id === eventId);
+    if (!ev) return;
+    const atuaisIds = (ev.nucleos || []).map(n => n.id);
+
+    const paraAdicionar = selecionados.filter(id => !atuaisIds.includes(id));
+    const paraRemover = atuaisIds.filter(id => !selecionados.includes(id));
+
+    try {
+        for (const id of paraAdicionar) {
+            await fetch(`/cronicas/${cronicaId}/eventos/${eventId}/nucleos`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ nucleo_id: id })
+            });
+        }
+        for (const id of paraRemover) {
+            await fetch(`/cronicas/${cronicaId}/eventos/${eventId}/nucleos/${id}`, {
+                method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }
+            });
+        }
+        fecharModal('modal-nucleos-evento');
+        carregarEventos(document.getElementById('filtro-nucleo-evento').value);
+    } catch (err) { alert('Erro ao atualizar vínculos.'); }
+}
+
+// Prepara o modal de evento carregando os núcleos
+async function prepararModalEvento() {
+    await carregarNucleos('evento'); // garante cache atualizado
+    const select = document.getElementById('evento-nucleos');
+    select.innerHTML = '';
+    nucleosCache.evento.forEach(n => {
+        const option = document.createElement('option');
+        option.value = n.id;
+        option.text = n.nome;
+        select.appendChild(option);
+    });
+    abrirModal('modal-evento');
+}
+
+// Salvar evento – captura os núcleos selecionados
+async function salvarEvento() {
+    const nome = document.getElementById('evento-nome').value.trim();
+    const descricao = document.getElementById('evento-descricao').value.trim();
+    const pool = parseInt(document.getElementById('evento-pool').value) || 10;
+    if (!nome) return alert('Digite um nome.');
+
+    const selectNucleos = document.getElementById('evento-nucleos');
+    const nucleosSelecionados = Array.from(selectNucleos.selectedOptions).map(o => o.value);
+
+    try {
+        await fetch(`/cronicas/${cronicaId}/eventos`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ nome, descricao, pool_maxima: pool, nucleos_ids: nucleosSelecionados })
+        });
+        fecharModal('modal-evento');
+        carregarEventos(document.getElementById('filtro-nucleo-evento').value);
+    } catch (err) { alert('Erro.'); }
+}
+
 </script>
 </body>
 </html>
