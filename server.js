@@ -475,7 +475,7 @@ app.get('/cronicas/:cronicaId/nodes', verificarToken, async (req, res) => {
 });
 
 app.put('/cronicas/:cronicaId/nodes/:nodeId/flags', verificarToken, async (req, res) => {
-    const { nodeId } = req.params;
+    const { cronicaId, nodeId } = req.params; // ✅ EXTRAI cronicaId
     const { flag_key, flag_value } = req.body;
 
     try {
@@ -525,6 +525,11 @@ app.put('/cronicas/:cronicaId/nodes/:nodeId/flags', verificarToken, async (req, 
                         ultima_excedida_em = NOW()
                     WHERE id = $3
                 `, [novoPool, novoStatus, eventId]);
+
+                // ✅ DISPARA O MOTOR DE AUTOMAÇÕES
+                console.log(`Evento ${eventId} (${nome}) atingiu o limite! Disparando motor...`);
+                dispararAutomacoesDoEvento(eventId, cronicaId);
+
             } else {
                 novoStatus = 'monitorando';
                 await pool.query(`
@@ -1000,7 +1005,7 @@ app.delete('/cronicas/:cronicaId/nodes/:nodeId', verificarToken, async (req, res
 // Editar uma flag (renomear)
 // Renomear uma flag
 app.put('/cronicas/:cronicaId/nodes/:nodeId/flags/:flagKey', verificarToken, async (req, res) => {
-    const { nodeId, flagKey } = req.params;
+    const { cronicaId, nodeId, flagKey } = req.params;
     const { novo_nome } = req.body;
 
     if (!novo_nome || novo_nome.trim() === '') {
@@ -1071,16 +1076,18 @@ app.delete('/cronicas/:cronicaId/nodes/:nodeId/flags/:flagKey', verificarToken, 
                         status = 'alerta_pronto',
                         ultima_excedida_em = NOW()
                     WHERE id = $2
-                `, [pool_maxima, eventId]);
+                `, [novoPool, eventId]); // Dica: use novoPool aqui para garantir fidelidade
+
+                // A Integração fica muito mais limpa assim:
+                console.log(`Evento ${eventId} atingiu o limite! Disparando motor...`);
+                dispararAutomacoesDoEvento(eventId, cronicaId);
             } else {
+                // Caso ainda não tenha atingido, apenas atualiza o valor
                 await pool.query(`
-                    UPDATE world_events
-                    SET pool_atual = $1,
-                        status = 'monitorando'
-                    WHERE id = $2
+                    UPDATE world_events SET pool_atual = $1, status = 'monitorando' WHERE id = $2
                 `, [novoPool, eventId]);
             }
-        }
+            }
 
         await pool.query('COMMIT');
         res.json({ mensagem: 'Flag e seus vínculos removidos. Eventos recalculados.' });
@@ -1301,6 +1308,63 @@ app.delete('/cronicas/:cronicaId/eventos/:eventId', verificarToken, async (req, 
     }
 });
 
+// ==========================================
+// MOTOR DE AUTOMAÇÕES (RULE ENGINE)
+// ==========================================
+
+const MotorAutomacao = {
+    'alterar_flag': async (parametros, cronicaId) => {
+        const { node_id, flag_key, novo_valor } = parametros;
+        await pool.query(`
+            INSERT INTO world_flags (node_id, flag_key, flag_value)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (node_id, flag_key) 
+            DO UPDATE SET flag_value = EXCLUDED.flag_value, atualizado_em = NOW();
+        `, [node_id, flag_key, novo_valor]);
+        return `Flag ${flag_key} definida como ${novo_valor}.`;
+    },
+    'postar_em_aba': async (parametros, cronicaId) => {
+        const narrador = await pool.query('SELECT narrador_id FROM cronicas WHERE id = $1', [cronicaId]);
+        const autorId = narrador.rows[0].narrador_id;
+        const { aba_id, conteudo, tipo_post } = parametros;
+        await pool.query(`
+            INSERT INTO postagens (aba_id, autor_id, conteudo, tipo, multipla_escolha) 
+            VALUES ($1, $2, $3, $4, FALSE)
+        `, [aba_id, autorId, conteudo, tipo_post || 'normal']);
+        return `Post gerado na aba ${aba_id}.`;
+    },
+    'criar_evento': async (parametros, cronicaId) => {
+        const { nome, descricao, pool_maxima } = parametros;
+        await pool.query(`
+            INSERT INTO world_events (cronica_id, nome, descricao, pool_maxima) 
+            VALUES ($1, $2, $3, $4)
+        `, [cronicaId, nome, descricao || '', pool_maxima || 10]);
+        return `Evento ${nome} gerado.`;
+    }
+};
+
+async function dispararAutomacoesDoEvento(eventId, cronicaId) {
+    try {
+        const automacoes = await pool.query(`
+            SELECT a.id, t.nome AS tipo, a.parametros 
+            FROM automacoes a
+            JOIN automacao_tipos t ON a.tipo_id = t.id
+            WHERE a.evento_id = $1 AND a.ativo = TRUE
+        `, [eventId]);
+
+        for (let auto of automacoes.rows) {
+            try {
+                if (MotorAutomacao[auto.tipo]) {
+                    const detalhes = await MotorAutomacao[auto.tipo](auto.parametros, cronicaId);
+                    await pool.query(`INSERT INTO automacao_log (automacao_id, evento_id, status, detalhes) VALUES ($1, $2, 'sucesso', $3)`, [auto.id, eventId, detalhes]);
+                }
+            } catch (erroAcao) {
+                await pool.query(`INSERT INTO automacao_log (automacao_id, evento_id, status, detalhes) VALUES ($1, $2, 'erro', $3)`, [auto.id, eventId, erroAcao.message]);
+            }
+        }
+        await pool.query(`UPDATE automacoes SET ativo = FALSE WHERE evento_id = $1`, [eventId]);
+    } catch (err) { console.error("Falha no Motor:", err); }
+}
 
 app.use('/auth', authRoutes);
 app.use('/personagens', personagensRoutes);

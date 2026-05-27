@@ -71,6 +71,9 @@
             margin: 0;
             width: auto;
             height: auto;
+
+            .checkbox-label, .radio-label { display: flex; align-items: center; gap: 8px; font-size: 14px; padding: 4px 0; cursor: pointer; white-space: nowrap; }
+        .checkbox-label input[type="checkbox"], .radio-label input[type="radio"] { margin: 0; width: auto; height: auto; }
         }
     </style>
 </head>
@@ -88,6 +91,7 @@
     <div class="tabs">
         <button class="tab-btn ativa" onclick="abrirTab('mundo')">🌍 Mundo</button>
         <button class="tab-btn" onclick="abrirTab('eventos')">📅 Eventos</button>
+        <button class="tab-btn" onclick="abrirTab('automacoes')">⚡ Automações</button> </div>
     </div>
 
     <!-- TAB: MUNDO -->
@@ -119,6 +123,17 @@
         </div>
     </div>
     <div id="grid-eventos">Carregando...</div>
+    </div>
+
+    <div id="tab-automacoes" class="tab-content">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap;">
+        <h3 style="color: var(--destaque);">Efeito Dominó (Automações)</h3>
+        <button class="btn btn-primary" onclick="abrirModalAutomacao()">+ Nova Automação</button>
+    </div>
+    <p style="color: var(--texto-mutado); font-size: 13px; margin-bottom: 20px;">
+        As automações são engatilhadas silenciosamente sempre que a tensão (Pool) de um Evento atinge seu limite máximo.
+    </p>
+    <div id="grid-automacoes" class="grid-2">Carregando motores do destino...</div>
     </div>
 
     <!-- ============ MODAIS ============ -->
@@ -194,7 +209,7 @@
         </div>
     </div>
     <!-- Modal Editar Núcleos do Evento -->
-    <!-- Modal Editar Núcleos do Evento -->
+    
     <div id="modal-nucleos-evento" class="modal-overlay">
     <div class="modal-box">
         <h3 style="color: var(--destaque);">Editar Núcleos do Evento</h3>
@@ -218,6 +233,34 @@
             </div>
         </div>
     </div>
+    <!-- Modal automação -->
+     <div id="modal-automacao" class="modal-overlay">
+        <div class="modal-box">
+            <h3 style="color: var(--destaque); margin-top: 0;">⚡ Forjar Automação</h3>
+            
+            <label style="color: var(--roxo-mago); font-weight: bold;">Gatilho (Quando isso acontecer...)</label>
+            <label>Selecione o Evento que vai engatilhar a ação:</label>
+            <select id="auto-evento-id"></select>
+
+            <label style="color: var(--roxo-mago); font-weight: bold; margin-top: 15px;">Ação (...faça isso automaticamente)</label>
+            <label>Qual tipo de ação o sistema executará?</label>
+            <select id="auto-tipo" onchange="renderizarCamposAutomacao()">
+                <option value="">Selecione uma ação mágica...</option>
+                <option value="alterar_flag">🚩 Alterar a Flag de uma Entidade</option>
+                <option value="postar_em_aba">📜 Postar Mensagem na Comunidade</option>
+                <option value="criar_evento">📅 Engatilhar um Novo Evento</option>
+            </select>
+
+            <div id="auto-campos-dinamicos" style="margin-top: 15px; padding: 15px; background: rgba(0,0,0,0.2); border: 1px dashed var(--borda); border-radius: 4px; display: none;">
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                <button class="btn btn-danger" onclick="fecharModal('modal-automacao')">Cancelar</button>
+                <button class="btn btn-success" onclick="salvarAutomacao()">Salvar Automação</button>
+            </div>
+        </div>
+    </div>
+
 
 <script>
     const token = localStorage.getItem('m20_token');
@@ -226,6 +269,8 @@
     if (!cronicaId) window.location.href = '/profile.html';
 
     let nodesCache = [];
+    let eventosCache = []; 
+    let abasCache = [];
 
     // ✅ VERIFICA ACESSO (SÓ NARRADOR)
     async function verificarAcesso() {
@@ -245,19 +290,19 @@
 
     // ============ TABS ============
     function abrirTab(tab) {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('ativa'));
-    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('ativa'));
-    document.querySelector(`[onclick="abrirTab('${tab}')"]`).classList.add('ativa');
-    document.getElementById(`tab-${tab}`).classList.add('ativa');
-    if (tab === 'mundo') {
-        carregarMundo(document.getElementById('filtro-nucleo-entidade').value);
-        carregarNucleos('entidade'); // atualiza filtro
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('ativa'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('ativa'));
+        document.querySelector(`[onclick="abrirTab('${tab}')"]`).classList.add('ativa');
+        document.getElementById(`tab-${tab}`).classList.add('ativa');
+        
+        if (tab === 'mundo') {
+            carregarMundo(document.getElementById('filtro-nucleo-entidade').value);
+        } else if (tab === 'eventos') {
+            carregarEventos(document.getElementById('filtro-nucleo-evento').value);
+        } else if (tab === 'automacoes') {
+            carregarAutomacoes();
+        }
     }
-    if (tab === 'eventos') {
-        carregarEventos(document.getElementById('filtro-nucleo-evento').value);
-        carregarNucleos('evento');
-    }
-}
 
     // ============ MODAIS ============
     function abrirModal(id) { document.getElementById(id).classList.add('show'); }
@@ -810,6 +855,182 @@ async function salvarEvento() {
         carregarEventos(document.getElementById('filtro-nucleo-evento').value);
     } catch (err) { alert('Erro.'); }
 }
+
+// ==========================================
+    // JS: SISTEMA DE AUTOMAÇÃO
+    // ==========================================
+
+    async function carregarAutomacoes() {
+        const grid = document.getElementById('grid-automacoes');
+        try {
+            // Requisita as automações já criadas
+            const res = await fetch(`/cronicas/${cronicaId}/automacoes`, { headers: { 'Authorization': `Bearer ${token}` } });
+            const automacoes = await res.json();
+
+            if (automacoes.length === 0) {
+                grid.innerHTML = '<p style="color: var(--texto-mutado); grid-column: span 2; text-align: center;">Nenhuma automação vinculada a esta crônica.</p>';
+                return;
+            }
+
+            grid.innerHTML = automacoes.map(auto => {
+                let badgeTxt = auto.tipo_nome === 'alterar_flag' ? '🚩 Flag' : (auto.tipo_nome === 'postar_em_aba' ? '📜 Post' : '📅 Evento');
+                
+                return `
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+                        <div>
+                            <span class="badge badge-evento" style="display: block; width: fit-content; margin-bottom: 5px;">Gatilho: ${auto.evento_nome}</span>
+                            <strong style="font-size: 15px; color: var(--texto-claro);">Ação: ${badgeTxt}</strong>
+                        </div>
+                        <button class="btn btn-danger btn-sm" onclick="deletarAutomacao('${auto.id}')" title="Apagar automação">🗑️</button>
+                    </div>
+                    <div style="font-size: 12px; color: var(--texto-mutado); margin-top: 10px; background: var(--bg-principal); padding: 8px; border-radius: 4px; font-family: monospace;">
+                        ${JSON.stringify(auto.parametros, null, 2).replace(/\\n/g, '<br>')}
+                    </div>
+                    <div style="margin-top: 10px;">
+                        <label class="checkbox-label" style="font-size: 12px;">
+                            <input type="checkbox" ${auto.ativo ? 'checked' : ''} onchange="toggleAutomacao('${auto.id}', this.checked)"> Automação Ativa
+                        </label>
+                    </div>
+                </div>`;
+            }).join('');
+        } catch (err) {
+            grid.innerHTML = '<p style="color: var(--erro);">Erro ao carregar automações.</p>';
+        }
+    }
+
+    async function abrirModalAutomacao() {
+        // Popula as caches necessárias para desenhar os formulários se estiverem vazias
+        if(eventosCache.length === 0) {
+            const resE = await fetch(`/cronicas/${cronicaId}/eventos`, { headers: { 'Authorization': `Bearer ${token}` } });
+            eventosCache = await resE.json();
+        }
+        if(abasCache.length === 0) {
+            const resA = await fetch(`/cronicas/${cronicaId}/comunidade`, { headers: { 'Authorization': `Bearer ${token}` } });
+            const dadosA = await resA.json();
+            abasCache = dadosA.abas || [];
+        }
+
+        // Popula os eventos no Select
+        const selectEvento = document.getElementById('auto-evento-id');
+        selectEvento.innerHTML = '<option value="">Selecione o Evento que vai engatilhar...</option>';
+        eventosCache.forEach(e => selectEvento.innerHTML += `<option value="${e.id}">${e.nome}</option>`);
+
+        // Reseta os campos
+        document.getElementById('auto-tipo').value = "";
+        renderizarCamposAutomacao();
+        
+        abrirModal('modal-automacao');
+    }
+
+    function renderizarCamposAutomacao() {
+        const tipo = document.getElementById('auto-tipo').value;
+        const div = document.getElementById('auto-campos-dinamicos');
+        
+        if (!tipo) {
+            div.style.display = 'none';
+            div.innerHTML = '';
+            return;
+        }
+
+        div.style.display = 'block';
+        let html = '';
+
+        if (tipo === 'alterar_flag') {
+            html += `<label>Entidade Alvo</label><select id="param-node-id">`;
+            nodesCache.forEach(n => html += `<option value="${n.id}">${n.nome}</option>`);
+            html += `</select>
+                     <label>Nome da Flag (Muitas vezes já existe, ex: em_guerra)</label>
+                     <input type="text" id="param-flag-key" placeholder="Digite o nome da flag">
+                     <label>Novo Valor da Flag</label>
+                     <select id="param-flag-value">
+                        <option value="true">Verdadeiro (Ativar/Conceder)</option>
+                        <option value="false">Falso (Desativar/Remover)</option>
+                     </select>`;
+        } 
+        else if (tipo === 'postar_em_aba') {
+            html += `<label>Aba de Destino na Comunidade</label><select id="param-aba-id">`;
+            abasCache.forEach(a => html += `<option value="${a.id}">${a.nome}</option>`);
+            html += `</select>
+                     <label>Mensagem da Postagem (Narrativa Livre)</label>
+                     <textarea id="param-conteudo" rows="4" placeholder="Um grito ecoa pelas montanhas..."></textarea>`;
+        } 
+        else if (tipo === 'criar_evento') {
+            html += `<label>Nome do Novo Evento Consequência</label>
+                     <input type="text" id="param-nome" placeholder="Ex: A Fuga dos Prisioneiros">
+                     <label>Descrição do Evento</label>
+                     <textarea id="param-descricao" rows="2"></textarea>
+                     <label>Tamanho da Pool do Novo Evento</label>
+                     <input type="number" id="param-pool" value="10">`;
+        }
+        div.innerHTML = html;
+    }
+
+    async function salvarAutomacao() {
+        const evento_id = document.getElementById('auto-evento-id').value;
+        const tipo_nome = document.getElementById('auto-tipo').value;
+
+        if (!evento_id || !tipo_nome) return alert("Selecione um evento e um tipo de ação.");
+
+        let parametros = {};
+
+        // Monta o JSON baseado na ação
+        if (tipo_nome === 'alterar_flag') {
+            parametros.node_id = document.getElementById('param-node-id').value;
+            parametros.flag_key = document.getElementById('param-flag-key').value.trim();
+            parametros.novo_valor = document.getElementById('param-flag-value').value === 'true';
+            if (!parametros.flag_key) return alert("A Flag precisa de um nome.");
+        } 
+        else if (tipo_nome === 'postar_em_aba') {
+            parametros.aba_id = document.getElementById('param-aba-id').value;
+            parametros.conteudo = document.getElementById('param-conteudo').value.trim();
+            if (!parametros.conteudo) return alert("A mensagem não pode ser vazia.");
+        } 
+        else if (tipo_nome === 'criar_evento') {
+            parametros.nome = document.getElementById('param-nome').value.trim();
+            parametros.descricao = document.getElementById('param-descricao').value.trim();
+            parametros.pool_maxima = parseInt(document.getElementById('param-pool').value) || 10;
+            if (!parametros.nome) return alert("O novo evento precisa de um nome.");
+        }
+
+        try {
+            // Chamada POST para o backend
+            const res = await fetch(`/cronicas/${cronicaId}/automacoes`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ evento_id, tipo_nome, parametros })
+            });
+
+            if (res.ok) {
+                fecharModal('modal-automacao');
+                carregarAutomacoes();
+            } else {
+                alert("Erro ao criar a automação. Certifique-se que o backend já tem essa rota mapeada!");
+            }
+        } catch (err) {
+            alert("Erro de conexão.");
+        }
+    }
+
+    async function deletarAutomacao(id) {
+        if (!confirm("Tem certeza que deseja desconectar este fio do destino?")) return;
+        try {
+            const res = await fetch(`/cronicas/${cronicaId}/automacoes/${id}`, {
+                method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) carregarAutomacoes();
+        } catch (err) { alert("Erro de conexão."); }
+    }
+
+    async function toggleAutomacao(id, isAtivo) {
+        try {
+            await fetch(`/cronicas/${cronicaId}/automacoes/${id}/toggle`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ ativo: isAtivo })
+            });
+        } catch (err) { alert("Erro ao alterar o estado."); }
+    }
 
 </script>
 </body>

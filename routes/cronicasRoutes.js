@@ -172,5 +172,77 @@ router.delete('/:id', verificarToken, async (req, res) => {
         res.status(500).json({ erro: 'Erro ao deletar crônica.' });
     }
 });
+
+// ==========================================
+// ROTAS DE AUTOMAÇÕES
+// ==========================================
+
+// 1. Listar automações da crônica
+router.get('/:cronicaId/automacoes', verificarToken, async (req, res) => {
+    const { cronicaId } = req.params;
+    try {
+        const query = await pool.query(`
+            SELECT a.*, e.nome AS evento_nome, t.nome AS tipo_nome 
+            FROM automacoes a
+            JOIN world_events e ON a.evento_id = e.id
+            JOIN automacao_tipos t ON a.tipo_id = t.id
+            WHERE e.cronica_id = $1
+            ORDER BY a.criado_em DESC
+        `, [cronicaId]);
+        res.json(query.rows);
+    } catch (err) { res.status(500).json({ erro: 'Erro ao buscar automações.' }); }
+});
+
+// Rota para buscar eventos (usada pelo carregarEventos e abrirModalAutomacao)
+router.get('/:cronicaId/eventos', verificarToken, async (req, res) => {
+    const { cronicaId } = req.params;
+    try {
+        const query = await pool.query(`
+            SELECT e.*, 
+            COALESCE(json_agg(json_build_object('node_nome', n.nome, 'flag_key', w.flag_key, 'peso', w.peso)) 
+            FILTER (WHERE w.id IS NOT NULL), '[]') as gatilhos
+            FROM world_events e
+            LEFT JOIN event_flag_weights w ON e.id = w.event_id
+            LEFT JOIN world_nodes n ON w.node_id = n.id
+            WHERE e.cronica_id = $1
+            GROUP BY e.id
+        `, [cronicaId]);
+        res.json(query.rows);
+    } catch (err) { res.status(500).json({ erro: 'Erro ao buscar eventos.' }); }
+});
+
+// 2. Criar nova automação
+router.post('/:cronicaId/automacoes', verificarToken, async (req, res) => {
+    const { evento_id, tipo_nome, parametros } = req.body;
+    try {
+        // Busca o ID do tipo pelo nome enviado pelo front
+        const tipoQuery = await pool.query('SELECT id FROM automacao_tipos WHERE nome = $1', [tipo_nome]);
+        const tipoId = tipoQuery.rows[0].id;
+
+        await pool.query(
+            'INSERT INTO automacoes (evento_id, tipo_id, parametros) VALUES ($1, $2, $3)',
+            [evento_id, tipoId, JSON.stringify(parametros)]
+        );
+        res.status(201).json({ mensagem: 'Automação forjada!' });
+    } catch (err) { res.status(500).json({ erro: 'Erro ao criar automação.' }); }
+});
+
+// 3. Deletar automação
+router.delete('/:cronicaId/automacoes/:id', verificarToken, async (req, res) => {
+    try {
+        await pool.query('DELETE FROM automacoes WHERE id = $1', [req.params.id]);
+        res.json({ mensagem: 'Automação destruída.' });
+    } catch (err) { res.status(500).json({ erro: 'Erro ao deletar.' }); }
+});
+
+// 4. Toggle (Ativar/Desativar)
+router.put('/:cronicaId/automacoes/:id/toggle', verificarToken, async (req, res) => {
+    const { ativo } = req.body;
+    try {
+        await pool.query('UPDATE automacoes SET ativo = $1 WHERE id = $2', [ativo, req.params.id]);
+        res.json({ mensagem: 'Estado alterado.' });
+    } catch (err) { res.status(500).json({ erro: 'Erro ao alterar estado.' }); }
+});
+
 // Exporta o roteador
 module.exports = router;
