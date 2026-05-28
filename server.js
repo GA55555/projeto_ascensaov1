@@ -1104,14 +1104,11 @@ app.get('/cronicas/:cronicaId/entidade-nucleos', verificarToken, async (req, res
     const { cronicaId } = req.params;
     try {
         const query = await pool.query(
-            'SELECT id, nome FROM entidade_nucleos WHERE cronica_id = $1 ORDER BY nome ASC',
+            "SELECT id, nome FROM entidade_nucleos WHERE cronica_id = $1 AND tipo = 'entidade' ORDER BY nome ASC",
             [cronicaId]
         );
         res.json(query.rows);
-    } catch (err) {
-        console.error('Erro ao buscar núcleos de entidades:', err);
-        res.status(500).json({ erro: 'Erro ao buscar núcleos.' });
-    }
+    } catch (err) { res.status(500).json({ erro: 'Erro ao buscar núcleos de entidades.' }); }
 });
 
 // Criar núcleo de entidade
@@ -1121,13 +1118,12 @@ app.post('/cronicas/:cronicaId/entidade-nucleos', verificarToken, async (req, re
     if (!nome || nome.trim() === '') return res.status(400).json({ erro: 'Nome do núcleo obrigatório.' });
     try {
         const novo = await pool.query(
-            'INSERT INTO entidade_nucleos (cronica_id, nome) VALUES ($1, $2) RETURNING *',
+            "INSERT INTO entidade_nucleos (cronica_id, nome, tipo) VALUES ($1, $2, 'entidade') RETURNING *",
             [cronicaId, nome.trim()]
         );
         res.status(201).json(novo.rows[0]);
     } catch (err) {
-        if (err.code === '23505') return res.status(400).json({ erro: 'Já existe um núcleo com este nome.' });
-        console.error(err);
+        if (err.code === '23505') return res.status(400).json({ erro: 'Já existe um núcleo com este nome para este tipo.' });
         res.status(500).json({ erro: 'Erro ao criar núcleo.' });
     }
 });
@@ -1183,19 +1179,16 @@ app.put('/cronicas/:cronicaId/nodes/:nodeId/nucleo', verificarToken, async (req,
 
 // ============ NÚCLEOS DE EVENTOS ============
 
-// Listar núcleos de eventos da crônica
+// Listar núcleos de eventos
 app.get('/cronicas/:cronicaId/evento-nucleos', verificarToken, async (req, res) => {
     const { cronicaId } = req.params;
     try {
         const query = await pool.query(
-            'SELECT id, nome FROM evento_nucleos WHERE cronica_id = $1 ORDER BY nome ASC',
+            "SELECT id, nome FROM entidade_nucleos WHERE cronica_id = $1 AND tipo = 'evento' ORDER BY nome ASC",
             [cronicaId]
         );
         res.json(query.rows);
-    } catch (err) {
-        console.error('Erro ao buscar núcleos de eventos:', err);
-        res.status(500).json({ erro: 'Erro ao buscar núcleos.' });
-    }
+    } catch (err) { res.status(500).json({ erro: 'Erro ao buscar núcleos de eventos.' }); }
 });
 
 // Criar núcleo de evento
@@ -1205,41 +1198,40 @@ app.post('/cronicas/:cronicaId/evento-nucleos', verificarToken, async (req, res)
     if (!nome || nome.trim() === '') return res.status(400).json({ erro: 'Nome obrigatório.' });
     try {
         const novo = await pool.query(
-            'INSERT INTO evento_nucleos (cronica_id, nome) VALUES ($1, $2) RETURNING *',
+            "INSERT INTO entidade_nucleos (cronica_id, nome, tipo) VALUES ($1, $2, 'evento') RETURNING *",
             [cronicaId, nome.trim()]
         );
         res.status(201).json(novo.rows[0]);
     } catch (err) {
-        if (err.code === '23505') return res.status(400).json({ erro: 'Já existe um núcleo com este nome.' });
-        console.error(err);
+        if (err.code === '23505') return res.status(400).json({ erro: 'Já existe um núcleo com este nome para este tipo.' });
         res.status(500).json({ erro: 'Erro ao criar núcleo.' });
     }
 });
 
-// Renomear núcleo de evento
+// Renomear núcleo de evento 
 app.put('/cronicas/:cronicaId/evento-nucleos/:nucleoId', verificarToken, async (req, res) => {
     const { nucleoId } = req.params;
     const { nome } = req.body;
     if (!nome || nome.trim() === '') return res.status(400).json({ erro: 'Nome obrigatório.' });
     try {
         const result = await pool.query(
-            'UPDATE evento_nucleos SET nome = $1 WHERE id = $2 RETURNING *',
+            'UPDATE entidade_nucleos SET nome = $1 WHERE id = $2 RETURNING *',
             [nome.trim(), nucleoId]
         );
         if (result.rows.length === 0) return res.status(404).json({ erro: 'Núcleo não encontrado.' });
         res.json(result.rows[0]);
     } catch (err) {
-        if (err.code === '23505') return res.status(400).json({ erro: 'Já existe um núcleo com este nome.' });
+        if (err.code === '23505') return res.status(400).json({ erro: 'Já existe um núcleo com este nome para este tipo.' });
         console.error(err);
         res.status(500).json({ erro: 'Erro ao renomear núcleo.' });
     }
 });
 
-// Excluir núcleo de evento
+// Excluir núcleo de evento 
 app.delete('/cronicas/:cronicaId/evento-nucleos/:nucleoId', verificarToken, async (req, res) => {
     const { nucleoId } = req.params;
     try {
-        const result = await pool.query('DELETE FROM evento_nucleos WHERE id = $1 RETURNING id', [nucleoId]);
+        const result = await pool.query('DELETE FROM entidade_nucleos WHERE id = $1 RETURNING id', [nucleoId]);
         if (result.rows.length === 0) return res.status(404).json({ erro: 'Núcleo não encontrado.' });
         res.json({ mensagem: 'Núcleo excluído.' });
     } catch (err) {
@@ -1365,6 +1357,138 @@ async function dispararAutomacoesDoEvento(eventId, cronicaId) {
         await pool.query(`UPDATE automacoes SET ativo = FALSE WHERE evento_id = $1`, [eventId]);
     } catch (err) { console.error("Falha no Motor:", err); }
 }
+
+// ============ SESSÕES ============
+
+// Listar sessões (agora com nucleo_id e nucleo_nome)
+app.get('/cronicas/:cronicaId/sessoes', verificarToken, async (req, res) => {
+    const { cronicaId } = req.params;
+    try {
+        const query = await pool.query(
+            `SELECT s.*, en.nome AS nucleo_nome
+             FROM sessoes s
+             LEFT JOIN entidade_nucleos en ON s.nucleo_id = en.id
+             WHERE s.cronica_id = $1
+             ORDER BY s.data_sessao DESC, s.criado_em DESC`,
+            [cronicaId]
+        );
+        res.json(query.rows); // sempre retorna um array
+    } catch (err) {
+        console.error('Erro ao buscar sessões:', err);
+        res.status(500).json({ erro: 'Erro ao buscar sessões.' });
+    }
+});
+
+// Criar sessão (com nucleo_id)
+app.post('/cronicas/:cronicaId/sessoes', verificarToken, async (req, res) => {
+    const { cronicaId } = req.params;
+    const { titulo, data_sessao, resumo, status, nucleo_id } = req.body;
+    if (!titulo || titulo.trim() === '') return res.status(400).json({ erro: 'Título obrigatório.' });
+    try {
+        const nova = await pool.query(
+            `INSERT INTO sessoes (cronica_id, titulo, data_sessao, resumo, status, nucleo_id)
+             VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`,
+            [cronicaId, titulo.trim(), data_sessao || null, resumo || null, status || 'planejada', nucleo_id || null]
+        );
+        res.status(201).json({ mensagem: 'Sessão criada.', id: nova.rows[0].id });
+    } catch (err) {
+        console.error('Erro ao criar sessão:', err);
+        res.status(500).json({ erro: 'Erro ao criar sessão.' });
+    }
+});
+
+// Editar sessão (com nucleo_id)
+app.put('/cronicas/:cronicaId/sessoes/:sessaoId', verificarToken, async (req, res) => {
+    const { sessaoId } = req.params;
+    const { titulo, data_sessao, resumo, status, nucleo_id } = req.body;
+    if (!titulo || titulo.trim() === '') {
+        return res.status(400).json({ erro: 'Título é obrigatório.' });
+    }
+    try {
+        const result = await pool.query(
+            `UPDATE sessoes
+             SET titulo = $1, data_sessao = $2, resumo = $3, status = $4, nucleo_id = $5
+             WHERE id = $6
+             RETURNING *`,
+            [titulo.trim(), data_sessao || null, resumo || null, status || 'planejada', nucleo_id || null, sessaoId]
+        );
+        if (result.rows.length === 0) {
+            return res.status(404).json({ erro: 'Sessão não encontrada.' });
+        }
+        res.json({ mensagem: 'Sessão atualizada.', sessao: result.rows[0] });
+    } catch (err) {
+        console.error('Erro ao atualizar sessão:', err);
+        res.status(500).json({ erro: 'Erro interno ao atualizar sessão.', detalhe: err.message });
+    }
+});
+
+// Excluir sessão
+app.delete('/cronicas/:cronicaId/sessoes/:sessaoId', verificarToken, async (req, res) => {
+    const { sessaoId } = req.params;
+    try {
+        await pool.query('DELETE FROM sessoes WHERE id=$1', [sessaoId]);
+        res.json({ mensagem: 'Sessão excluída.' });
+    } catch (err) { res.status(500).json({ erro: 'Erro ao excluir sessão.' }); }
+});
+
+// ============ NÚCLEOS DE SESSÕES ============
+// Listar núcleos de sessões
+app.get('/cronicas/:cronicaId/sessao-nucleos', verificarToken, async (req, res) => {
+    const { cronicaId } = req.params;
+    try {
+        const query = await pool.query(
+            "SELECT id, nome FROM entidade_nucleos WHERE cronica_id = $1 AND tipo = 'sessao' ORDER BY nome ASC",
+            [cronicaId]
+        );
+        res.json(query.rows);
+    } catch (err) { res.status(500).json({ erro: 'Erro ao buscar núcleos de sessão.' }); }
+});
+
+// NOVO: Criar núcleo de sessão
+app.post('/cronicas/:cronicaId/sessao-nucleos', verificarToken, async (req, res) => {
+    const { cronicaId } = req.params;
+    const { nome } = req.body;
+    if (!nome || nome.trim() === '') return res.status(400).json({ erro: 'Nome obrigatório.' });
+    try {
+        const novo = await pool.query(
+            "INSERT INTO entidade_nucleos (cronica_id, nome, tipo) VALUES ($1, $2, 'sessao') RETURNING *",
+            [cronicaId, nome.trim()]
+        );
+        res.status(201).json(novo.rows[0]);
+    } catch (err) {
+        if (err.code === '23505') return res.status(400).json({ erro: 'Já existe um núcleo com este nome para este tipo.' });
+        res.status(500).json({ erro: 'Erro ao criar núcleo.' });
+    }
+});
+
+// Renomear núcleo de sessão
+app.put('/cronicas/:cronicaId/sessao-nucleos/:nucleoId', verificarToken, async (req, res) => {
+    const { nucleoId } = req.params;
+    const { nome } = req.body;
+    if (!nome || nome.trim() === '') return res.status(400).json({ erro: 'Nome obrigatório.' });
+    try {
+        const result = await pool.query(
+            'UPDATE entidade_nucleos SET nome = $1 WHERE id = $2 RETURNING *',
+            [nome.trim(), nucleoId]
+        );
+        if (result.rows.length === 0) return res.status(404).json({ erro: 'Núcleo não encontrado.' });
+        res.json(result.rows[0]);
+    } catch (err) {
+        if (err.code === '23505') return res.status(400).json({ erro: 'Já existe um núcleo com este nome para este tipo.' });
+        res.status(500).json({ erro: 'Erro ao renomear núcleo.' });
+    }
+});
+
+// Excluir núcleo de sessão
+app.delete('/cronicas/:cronicaId/sessao-nucleos/:nucleoId', verificarToken, async (req, res) => {
+    const { nucleoId } = req.params;
+    try {
+        const result = await pool.query('DELETE FROM entidade_nucleos WHERE id = $1 RETURNING id', [nucleoId]);
+        if (result.rows.length === 0) return res.status(404).json({ erro: 'Núcleo não encontrado.' });
+        res.json({ mensagem: 'Núcleo excluído.' });
+    } catch (err) { res.status(500).json({ erro: 'Erro ao excluir núcleo.' }); }
+});
+
 
 app.use('/auth', authRoutes);
 app.use('/personagens', personagensRoutes);

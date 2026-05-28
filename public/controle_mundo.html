@@ -39,42 +39,58 @@
         .barra-fill { background: var(--roxo-mago); height: 100%; border-radius: 8px; transition: width 0.5s; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; }
         .barra-alerta { background: #ff5555; }
         
-        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); justify-content: center; align-items: center; z-index: 1000; }
-        .modal-overlay.show { display: flex; }
-        .modal-box { background: var(--bg-card); padding: 25px; border-radius: 8px; border: 1px solid var(--roxo-mago); width: 450px; max-width: 90%; max-height: 85vh; overflow-y: auto; }
-        .modal-box input, .modal-box select, .modal-box textarea { width: 100%; padding: 10px; margin-bottom: 10px; background: var(--bg-principal); border: 1px solid var(--borda); color: #fff; border-radius: 4px; }
-        .modal-box label { display: block; margin-bottom: 4px; color: var(--texto-mutado); font-size: 12px; }
+        .modal-overlay { 
+    display: none; 
+    position: fixed; 
+    inset: 0; 
+    background: rgba(0,0,0,0.85); 
+    justify-content: center; 
+    align-items: center; 
+    z-index: 1000; 
+}
+.modal-overlay.show { display: flex; }
 
-                .checkbox-label {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 14px;
-            padding: 4px 0;
-            cursor: pointer;
-            white-space: nowrap;
-        }
-        .checkbox-label input[type="checkbox"] {
-            margin: 0;
-            width: auto;
-            height: auto;
-        }
-        .radio-label {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 14px;
-            padding: 4px 0;
-            cursor: pointer;
-        }
-        .radio-label input[type="radio"] {
-            margin: 0;
-            width: auto;
-            height: auto;
+.modal-box { 
+    background: var(--bg-card); 
+    padding: 25px; 
+    border-radius: 8px; 
+    border: 1px solid var(--roxo-mago); 
+    width: 450px; 
+    max-width: 90%; 
+    max-height: 85vh; 
+    overflow-y: auto; 
+}
 
-            .checkbox-label, .radio-label { display: flex; align-items: center; gap: 8px; font-size: 14px; padding: 4px 0; cursor: pointer; white-space: nowrap; }
-        .checkbox-label input[type="checkbox"], .radio-label input[type="radio"] { margin: 0; width: auto; height: auto; }
-        }
+.modal-box input, 
+.modal-box select, 
+.modal-box textarea { 
+    width: 100%; 
+    padding: 10px; 
+    margin-bottom: 10px; 
+    background: var(--bg-principal); 
+    border: 1px solid var(--borda); 
+    color: #fff; 
+    border-radius: 4px;
+    box-sizing: border-box; /* IMPORTANTE: evita que o padding quebre o layout */
+    
+    /* Proteção contra vazamento de texto */
+    word-wrap: break-word;
+    word-break: break-word;
+    overflow-wrap: break-word;
+}
+
+/* Opcional: Garante que o textarea respeite a altura e permita scroll */
+.modal-box textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.modal-box label { 
+    display: block; 
+    margin-bottom: 4px; 
+    color: var(--texto-mutado); 
+    font-size: 12px; 
+}
     </style>
 </head>
 <body>
@@ -91,7 +107,8 @@
     <div class="tabs">
         <button class="tab-btn ativa" onclick="abrirTab('mundo')">🌍 Mundo</button>
         <button class="tab-btn" onclick="abrirTab('eventos')">📅 Eventos</button>
-        <button class="tab-btn" onclick="abrirTab('automacoes')">⚡ Automações</button> </div>
+        <button class="tab-btn" onclick="abrirTab('automacoes')">⚡ Automações</button> 
+        <button class="tab-btn" onclick="abrirTab('sessoes')">📚 Sessões</button>
     </div>
 
     <!-- TAB: MUNDO -->
@@ -124,7 +141,7 @@
     </div>
     <div id="grid-eventos">Carregando...</div>
     </div>
-
+    <!--TAB: AUTOMACOES-->
     <div id="tab-automacoes" class="tab-content">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap;">
         <h3 style="color: var(--destaque);">Efeito Dominó (Automações)</h3>
@@ -135,6 +152,23 @@
     </p>
     <div id="grid-automacoes" class="grid-2">Carregando motores do destino...</div>
     </div>
+
+    <!--TAB: SESSOES-->
+    <div id="tab-sessoes" class="tab-content">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap;">
+        <h3 style="color: var(--destaque);">Sessões</h3>
+        
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <select id="filtro-nucleo-sessao" onchange="filtrarPorNucleoSessao()" style="background: var(--bg-card); color: #fff; border: 1px solid var(--borda); padding: 6px 10px; border-radius: 4px;">
+                <option value="">Todos os núcleos</option>
+            </select>
+            <button class="btn btn-primary btn-sm" onclick="gerenciarNucleos('sessao')">⚙️ Núcleos</button>
+            <button class="btn btn-primary" onclick="abrirModal('modal-sessao')">+ Nova Sessão</button>
+        </div>
+    </div>
+    
+    <div id="grid-sessoes">Carregando...</div>
+</div>
 
     <!-- ============ MODAIS ============ -->
     
@@ -261,6 +295,35 @@
         </div>
     </div>
 
+    <!-- Modal de Criação/Edição de Sessão -->
+<div id="modal-sessao" class="modal-overlay">
+    <div class="modal-box">
+        <h3 id="modal-sessao-titulo">Nova Sessão</h3>
+        <label>Núcleo (Organização)</label>
+        <select id="sessao-nucleo-id">
+        <option value="">Nenhum / Geral</option>
+        </select>
+        <input type="hidden" id="sessao-id">
+        <label>Título</label>
+        <input type="text" id="sessao-titulo" placeholder="Ex: Sessão 27/05 ou Ato 2">
+        <label>Data</label>
+        <input type="date" id="sessao-data">
+        <label>Resumo</label>
+        <textarea id="sessao-resumo" rows="3" wrap="soft" style="word-wrap: break-word; overflow-wrap: break-word;"></textarea>
+        <label>Status</label>
+        <select id="sessao-status">
+            <option value="planejada">Planejada</option>
+            <option value="em_andamento">Em andamento</option>
+            <option value="concluida">Concluída</option>
+        </select>
+        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+            <button class="btn btn-danger" onclick="fecharModal('modal-sessao')">Cancelar</button>
+            <button class="btn btn-primary" onclick="salvarSessao()">Salvar</button>
+        </div>
+    </div>
+</div>
+
+
 
 <script>
     const token = localStorage.getItem('m20_token');
@@ -290,19 +353,22 @@
 
     // ============ TABS ============
     function abrirTab(tab) {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('ativa'));
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('ativa'));
-        document.querySelector(`[onclick="abrirTab('${tab}')"]`).classList.add('ativa');
-        document.getElementById(`tab-${tab}`).classList.add('ativa');
-        
-        if (tab === 'mundo') {
-            carregarMundo(document.getElementById('filtro-nucleo-entidade').value);
-        } else if (tab === 'eventos') {
-            carregarEventos(document.getElementById('filtro-nucleo-evento').value);
-        } else if (tab === 'automacoes') {
-            carregarAutomacoes();
-        }
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('ativa'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('ativa'));
+    document.querySelector(`[onclick="abrirTab('${tab}')"]`).classList.add('ativa');
+    document.getElementById(`tab-${tab}`).classList.add('ativa');
+    
+    if (tab === 'mundo') {
+        carregarMundo(document.getElementById('filtro-nucleo-entidade').value);
+    } else if (tab === 'eventos') {
+        carregarEventos(document.getElementById('filtro-nucleo-evento').value);
+    } else if (tab === 'automacoes') {
+        carregarAutomacoes();
+    } else if (tab === 'sessoes') {
+        carregarSessoes();
+        carregarNucleos('sessao');
     }
+}
 
     // ============ MODAIS ============
     function abrirModal(id) { document.getElementById(id).classList.add('show'); }
@@ -501,7 +567,8 @@
     const temAcesso = await verificarAcesso();
     if (temAcesso) {
         await carregarMundo();
-        await carregarNucleos('entidade'); // 🔁 Preenche o filtro logo de início
+        await carregarNucleos('entidade');
+        await carregarNucleos('sessao'); // NOVO
     }
 })();
 
@@ -617,24 +684,52 @@ let nucleosCache = { entidade: [], evento: [] };
 
 async function gerenciarNucleos(tipo) {
     nucleoAtivoTipo = tipo;
-    document.getElementById('modal-nucleos-titulo').innerText = tipo === 'entidade' ? '⚙️ Núcleos de Entidades' : '⚙️ Núcleos de Eventos';
+    const titulos = {
+        'entidade': '⚙️ Núcleos de Entidades',
+        'evento': '⚙️ Núcleos de Eventos',
+        'sessao': '⚙️ Núcleos de Sessões'
+    };
+    document.getElementById('modal-nucleos-titulo').innerText = titulos[tipo] || 'Gerenciar Núcleos';
     await carregarNucleos(tipo);
     abrirModal('modal-nucleos');
 }
 
 async function carregarNucleos(tipo) {
-    const endpoint = tipo === 'entidade' ? 'entidade-nucleos' : 'evento-nucleos';
+    // Mapeia o tipo para o endpoint correto
+    const endpointMap = {
+        'entidade': 'entidade-nucleos',
+        'evento': 'evento-nucleos',
+        'sessao': 'sessao-nucleos'  // ← NOVO
+    };
+    const endpoint = endpointMap[tipo];
+    if (!endpoint) return;
+    
     try {
         const res = await fetch(`/cronicas/${cronicaId}/${endpoint}`, { headers: { 'Authorization': `Bearer ${token}` } });
         const lista = await res.json();
         nucleosCache[tipo] = lista;
         renderizarListaNucleos(lista, tipo);
+        
         // Atualiza os selects de filtro
-        const selectId = tipo === 'entidade' ? 'filtro-nucleo-entidade' : 'filtro-nucleo-evento';
+        const selectMap = {
+            'entidade': 'filtro-nucleo-entidade',
+            'evento': 'filtro-nucleo-evento',
+            'sessao': 'filtro-nucleo-sessao'  // ← NOVO
+        };
+        const selectId = selectMap[tipo];
         const select = document.getElementById(selectId);
         if (select) {
             select.innerHTML = '<option value="">Todos os núcleos</option>';
             lista.forEach(n => select.innerHTML += `<option value="${n.id}">${n.nome}</option>`);
+        }
+        
+        // Também preenche o select do modal de sessão
+        if (tipo === 'sessao') {
+            const selectModal = document.getElementById('sessao-nucleo-id');
+            if (selectModal) {
+                selectModal.innerHTML = '<option value="">Nenhum / Geral</option>';
+                lista.forEach(n => selectModal.innerHTML += `<option value="${n.id}">${n.nome}</option>`);
+            }
         }
     } catch (err) { console.error(err); }
 }
@@ -655,7 +750,14 @@ function renderizarListaNucleos(lista, tipo) {
 async function criarNucleo() {
     const nome = document.getElementById('novo-nucleo-nome').value.trim();
     if (!nome) return alert('Digite um nome.');
-    const endpoint = nucleoAtivoTipo === 'entidade' ? 'entidade-nucleos' : 'evento-nucleos';
+    // Mapeamento correto para todos os tipos
+    const endpointMap = {
+        'entidade': 'entidade-nucleos',
+        'evento': 'evento-nucleos',
+        'sessao': 'sessao-nucleos'
+    };
+    const endpoint = endpointMap[nucleoAtivoTipo];
+    if (!endpoint) return alert('Tipo de núcleo inválido.');
     try {
         const res = await fetch(`/cronicas/${cronicaId}/${endpoint}`, {
             method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -675,7 +777,13 @@ async function editarNucleo(id, tipo) {
     const nomeAtual = document.getElementById(`nucleo-nome-${id}`).innerText;
     const novoNome = prompt('Novo nome:', nomeAtual);
     if (!novoNome || novoNome === nomeAtual) return;
-    const endpoint = tipo === 'entidade' ? `entidade-nucleos/${id}` : `evento-nucleos/${id}`;
+    const endpointMap = {
+        'entidade': `entidade-nucleos/${id}`,
+        'evento': `evento-nucleos/${id}`,
+        'sessao': `sessao-nucleos/${id}`
+    };
+    const endpoint = endpointMap[tipo];
+    if (!endpoint) return alert('Tipo de núcleo inválido.');
     try {
         const res = await fetch(`/cronicas/${cronicaId}/${endpoint}`, {
             method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -692,16 +800,23 @@ async function editarNucleo(id, tipo) {
 
 async function excluirNucleo(id, tipo) {
     if (!confirm('Excluir este núcleo? Vínculos serão removidos.')) return;
-    const endpoint = tipo === 'entidade' ? `entidade-nucleos/${id}` : `evento-nucleos/${id}`;
+    const endpointMap = {
+        'entidade': `entidade-nucleos/${id}`,
+        'evento': `evento-nucleos/${id}`,
+        'sessao': `sessao-nucleos/${id}`
+    };
+    const endpoint = endpointMap[tipo];
+    if (!endpoint) return alert('Tipo de núcleo inválido.');
     try {
         const res = await fetch(`/cronicas/${cronicaId}/${endpoint}`, {
             method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.ok) {
             await carregarNucleos(tipo);
-            // Recarrega a aba ativa
+            // Recarrega a aba ativa correspondente
             if (tipo === 'entidade') carregarMundo(document.getElementById('filtro-nucleo-entidade').value);
-            else carregarEventos(document.getElementById('filtro-nucleo-evento').value);
+            else if (tipo === 'evento') carregarEventos(document.getElementById('filtro-nucleo-evento').value);
+            else if (tipo === 'sessao') carregarSessoes(); // recarrega sessões
         } else {
             const err = await res.json();
             alert(err.erro || 'Erro.');
@@ -1031,6 +1146,170 @@ async function salvarEvento() {
             });
         } catch (err) { alert("Erro ao alterar o estado."); }
     }
+
+// ============ SESSÕES ============
+let sessoesCache = [];
+
+async function carregarSessoes() {
+    try {
+        const res = await fetch(`/cronicas/${cronicaId}/sessoes`, { headers: { 'Authorization': `Bearer ${token}` } });
+        if (!res.ok) throw new Error('Erro ao buscar sessões');
+        const data = await res.json();
+        sessoesCache = Array.isArray(data) ? data : [];
+        renderizarSessoes();
+    } catch (err) {
+        console.error(err);
+        sessoesCache = [];
+        renderizarSessoes();
+    }
+}
+
+function formatarData(data) {
+    if (!data) return '';
+    const dateString = String(data).split('T')[0];
+    const partes = dateString.split('-');
+    if (partes.length === 3) {
+        const [ano, mes, dia] = partes;
+        return `${parseInt(dia)}/${parseInt(mes)}/${ano}`;
+    }
+    const d = new Date(data);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('pt-BR');
+}
+
+function renderizarSessoes(listaParaRenderizar = sessoesCache) {
+    const grid = document.getElementById('grid-sessoes');
+    
+    if (listaParaRenderizar.length === 0) {
+        grid.innerHTML = '<p style="color: var(--texto-mutado);">Nenhuma sessão registrada (ou encontrada neste núcleo).</p>';
+        return;
+    }
+    
+    grid.innerHTML = listaParaRenderizar.map(s => {
+        const dataFormatada = formatarData(s.data_sessao); 
+        const campos = (s.campos || []).map(c => `<span style="font-size:11px; color: var(--roxo-mago);">${c.chave}: ${c.valor}</span>`).join(' | ');
+
+        return `
+        <div class="card" style="background-color: var(--bg-card); color: #ffffff; word-wrap: break-word; overflow-wrap: break-word; word-break: break-word; max-width: 100%; border: 1px solid var(--borda);">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+                <strong style="word-break: break-all;">${s.titulo}</strong>
+                <span style="color: #cccccc; white-space: nowrap;">${dataFormatada} [${s.status}]</span>
+            </div>
+            <p style="font-size:12px; margin:5px 0; color: #ffffff; word-wrap: break-word; overflow-wrap: break-word; word-break: break-word;">${s.resumo || ''}</p>
+            <div style="margin-top: 5px;">${campos}</div>
+            <div style="display: flex; gap: 5px; margin-top: 10px;">
+                <button class="btn btn-primary btn-sm" onclick="editarSessao('${s.id}')">✏️</button>
+                <button class="btn btn-danger btn-sm" onclick="excluirSessao('${s.id}')">🗑️</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+
+async function abrirModalSessao(id = null) {
+    // Primeiro, garanta que os núcleos de sessão estão carregados
+    if (!nucleosCache['sessao'] || nucleosCache['sessao'].length === 0) {
+        await carregarNucleos('sessao');
+    }
+    
+    if (id) {
+        const s = sessoesCache.find(s => s.id === id);
+        if (!s) return;
+        document.getElementById('sessao-id').value = s.id;
+        document.getElementById('sessao-titulo').value = s.titulo;
+        document.getElementById('sessao-data').value = s.data_sessao || '';
+        document.getElementById('sessao-resumo').value = s.resumo || '';
+        document.getElementById('sessao-status').value = s.status || 'planejada';
+        document.getElementById('sessao-nucleo-id').value = s.nucleo_id || ''; // ← ADICIONE
+        document.getElementById('modal-sessao-titulo').innerText = 'Editar Sessão';
+    } else {
+        document.getElementById('sessao-id').value = '';
+        document.getElementById('sessao-titulo').value = '';
+        document.getElementById('sessao-data').value = '';
+        document.getElementById('sessao-resumo').value = '';
+        document.getElementById('sessao-status').value = 'planejada';
+        document.getElementById('sessao-nucleo-id').value = ''; // ← ADICIONE
+        document.getElementById('modal-sessao-titulo').innerText = 'Nova Sessão';
+    }
+    abrirModal('modal-sessao');
+}
+
+async function salvarSessao() {
+    const id = document.getElementById('sessao-id').value;
+    const titulo = document.getElementById('sessao-titulo').value.trim();
+    const data_sessao = document.getElementById('sessao-data').value;
+    const resumo = document.getElementById('sessao-resumo').value.trim();
+    const status = document.getElementById('sessao-status').value;
+    const nucleo_id = document.getElementById('sessao-nucleo-id').value || null;
+
+    if (!titulo) return alert('Título obrigatório.');
+
+    const body = { titulo, data_sessao, resumo, status, nucleo_id };
+    const method = id ? 'PUT' : 'POST';
+    const url = id ? `/cronicas/${cronicaId}/sessoes/${id}` : `/cronicas/${cronicaId}/sessoes`;
+
+    try {
+        const resp = await fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify(body)
+        });
+
+        if (!resp.ok) {
+            const err = await resp.json();
+            return alert(err.erro || 'Erro ao salvar sessão.');
+        }
+
+        fecharModal('modal-sessao');
+        carregarSessoes();
+    } catch (err) {
+        alert('Erro de conexão ao salvar sessão.');
+    }
+}
+
+function editarSessao(id) {
+    abrirModalSessao(id);
+}
+
+async function excluirSessao(id) {
+    if (!confirm('Excluir esta sessão?')) return;
+    await fetch(`/cronicas/${cronicaId}/sessoes/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+    carregarSessoes();
+}
+
+// O filtro lê o valor do select e decide o que renderizar
+function filtrarPorNucleoSessao() {
+    const nucleoId = document.getElementById('filtro-nucleo-sessao').value;
+    
+    if (!nucleoId) {
+        // Se escolheu "Todos", renderiza o cache inteiro
+        renderizarSessoes(sessoesCache); 
+    } else {
+        // Se escolheu um núcleo específico, filtra a lista
+        const filtradas = sessoesCache.filter(s => s.nucleo_id === nucleoId);
+        renderizarSessoes(filtradas);
+    }
+}
+
+// Exemplo de como preencher apenas com núcleos da categoria 'sessao'
+function atualizarSelectsDeSessoes(todosOsNucleosDaCronica) {
+    // Isola os núcleos de sessão do resto
+    const nucleosSessao = todosOsNucleosDaCronica.filter(n => n.tipo_referencia === 'sessao' || n.categoria === 'sessao');
+    
+    const optionsHtml = '<option value="">Todos os núcleos</option>' + 
+        nucleosSessao.map(n => `<option value="${n.id}">${n.nome}</option>`).join('');
+        
+    const optionsModalHtml = '<option value="">Nenhum / Geral</option>' + 
+        nucleosSessao.map(n => `<option value="${n.id}">${n.nome}</option>`).join('');
+
+    // Preenche o filtro da página
+    const selectFiltro = document.getElementById('filtro-nucleo-sessao');
+    if(selectFiltro) selectFiltro.innerHTML = optionsHtml;
+    
+    // Preenche o select dentro da modal
+    const selectModal = document.getElementById('sessao-nucleo-id');
+    if(selectModal) selectModal.innerHTML = optionsModalHtml;
+}
 
 </script>
 </body>
