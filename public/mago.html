@@ -264,11 +264,17 @@
             <div class="grid-tres-colunas">
                 <div class="coluna-bloco" style="grid-column: span 2;">
                     <h4>1. Esferas de Magia</h4>
-                    <div class="campo-texto" style="margin-bottom:15px;">
-                        <label>Esfera de Afinidade (Afiliação):</label>
-                        <select id="esfera-afinidade" onchange="definirEsferaAfim()">
-                            <option value="">-- Escolha --</option><option value="correspondencia">Correspondência</option><option value="entropia">Entropia</option><option value="forcas">Forças</option><option value="materia">Matéria</option><option value="mente">Mente</option><option value="primordio">Primórdio</option><option value="espirito">Espírito</option><option value="tempo">Tempo</option><option value="vida">Vida</option>
-                        </select>
+                    <div style="display: flex; gap: 15px; margin-bottom:15px; flex-wrap: wrap;">
+                        <div class="campo-texto" style="flex: 1; min-width: 200px;">
+                            <label>Esfera de Afinidade (Afiliação):</label>
+                            <select id="esfera-afinidade" onchange="definirEsferaAfim()">
+                                <option value="">-- Escolha --</option><option value="correspondencia">Correspondência</option><option value="entropia">Entropia</option><option value="forcas">Forças</option><option value="materia">Matéria</option><option value="mente">Mente</option><option value="primordio">Primórdio</option><option value="espirito">Espírito</option><option value="tempo">Tempo</option><option value="vida">Vida</option>
+                            </select>
+                        </div>
+                        <div class="campo-texto" style="width: 140px;">
+                            <label title="Limite máximo das esferas nesta fase">Arete Inicial</label>
+                            <input type="number" id="arete-inicial-fase4" value="1" min="1" max="5" onchange="alterarAreteInicialFase4()">
+                        </div>
                     </div>
                     <div id="wrapper-esferas-fase4" class="grid-tres-colunas" style="gap:10px;"></div>
                 </div>
@@ -502,7 +508,12 @@
         function alterarAreteBonus(mod) {
             const v = fichaMagoM20.ficha_mago_a_ascensao.vantagens;
             const n = v.arete + mod;
-            if (n < 1 || n > 3) return;
+            
+            // Lê o Arete base que foi setado no Passo 4 para impedir que o botão '-' desça abaixo disso
+            const areteBase = parseInt(document.getElementById('arete-inicial-fase4').value) || 1;
+            
+            if (n < areteBase || n > 5) return;
+            
             carteiraBonus.gastoTotal += (mod * 4);
             v.arete = n;
             document.getElementById('bon-arete').innerText = n;
@@ -607,6 +618,28 @@
             renderizarEsferasFase4();
         }
 
+        function alterarAreteInicialFase4() {
+            let novoArete = parseInt(document.getElementById('arete-inicial-fase4').value);
+            if (isNaN(novoArete) || novoArete < 1) { novoArete = 1; document.getElementById('arete-inicial-fase4').value = 1; }
+            if (novoArete > 5) { novoArete = 5; document.getElementById('arete-inicial-fase4').value = 5; }
+            
+            // Atualiza o JSON e espelha no texto do Passo 5
+            fichaMagoM20.ficha_mago_a_ascensao.vantagens.arete = novoArete;
+            document.getElementById('bon-arete').innerText = novoArete; 
+
+            // Se o Narrador abaixar o Arete, temos que garantir que nenhuma esfera ultrapasse o novo teto
+            let precisaAtualizar = false;
+            const esf = fichaMagoM20.ficha_mago_a_ascensao.esferas;
+            for (let e in esf) {
+                if (esf[e] > novoArete) {
+                    carteiraEsferas.gastos -= (esf[e] - novoArete); // Devolve o custo extra pra carteira
+                    esf[e] = novoArete;
+                    precisaAtualizar = true;
+                }
+            }
+            if (precisaAtualizar) renderizarEsferasFase4();
+        }
+
         function renderizarEsferasFase4() {
             const wrapper = document.getElementById('wrapper-esferas-fase4'); wrapper.innerHTML = '';
             const esf = fichaMagoM20.ficha_mago_a_ascensao.esferas;
@@ -620,9 +653,15 @@
         function alterarEsferaFase4(esfera, mod) {
             const esf = fichaMagoM20.ficha_mago_a_ascensao.esferas;
             const nValor = esf[esfera] + mod;
+            
+            // LÊ O ARETE PARA USAR DE TETO MÁXIMO DA ESFERA
+            const limiteArete = fichaMagoM20.ficha_mago_a_ascensao.vantagens.arete; 
+            
             if (esfera === esferaAfimEscolhida && nValor < 1) return;
-            if (nValor < 0 || nValor > 3) return;
+            if (nValor < 0 || nValor > limiteArete) return; // ← REGRA APLICADA AQUI
+            
             if (mod > 0 && carteiraEsferas.gastos >= carteiraEsferas.total) { alert("Limite de 6 pontos iniciais atingido!"); return; }
+            
             esf[esfera] = nValor;
             carteiraEsferas.gastos += mod;
             renderizarEsferasFase4();
@@ -736,10 +775,41 @@
             if (!(carteiraAtributos.fisicos.total && carteiraAtributos.sociais.total && carteiraAtributos.mentais.total)) { painelRegras.innerHTML = `Defina as prioridades dos Atributos`; return; }
             if (total > 0) painelRegras.innerHTML = `Distribua os pontos de Atributo.`; else painelRegras.innerHTML = `<span style="color:var(--sucesso)">✓ Atributos prontos!</span>`;
         }
+        // Nova função auxiliar para zerar a categoria de Habilidades
+        function resetarCategoriaHabilidade(cat) {
+            // Zera a contagem de gastos daquela carteira
+            carteiraHabilidades[cat].gastos = 0;
+            
+            // Retorna os valores do JSON para 0 e atualiza o texto na tela
+            for (let hab in fichaMagoM20.ficha_mago_a_ascensao.habilidades[cat]) {
+                fichaMagoM20.ficha_mago_a_ascensao.habilidades[cat][hab] = 0;
+                document.getElementById(`txt-hab-${hab}`).innerText = 0;
+            }
+        }
+
+        // Função de gerenciamento atualizada para Habilidades
         function gerenciarPrioridadesHabilidades(catModificada) {
-            const lista = [document.getElementById('prioridade-talentos'), document.getElementById('prioridade-pericias'), document.getElementById('prioridade-conhecimentos')];
-            lista.forEach(sel => { if (sel.id !== `prioridade-${catModificada}` && sel.value === document.getElementById(`prioridade-${catModificada}`).value) sel.value = ""; });
-            ['talentos', 'pericias', 'conhecimentos'].forEach(cat => { const val = document.getElementById(`prioridade-${cat}`).value; carteiraHabilidades[cat].total = val ? parseInt(val) : 0; });
+            const valorSelecionado = document.getElementById(`prioridade-${catModificada}`).value;
+
+            // 1. Sempre que o usuário muda a caixa, reseta imediatamente os pontos daquela coluna
+            resetarCategoriaHabilidade(catModificada);
+
+            // 2. Verifica se houve conflito (duplicidade) e limpa a coluna concorrente
+            const categorias = ['talentos', 'pericias', 'conhecimentos'];
+            categorias.forEach(cat => {
+                const sel = document.getElementById(`prioridade-${cat}`);
+                if (cat !== catModificada && sel.value !== "" && sel.value === valorSelecionado) {
+                    sel.value = ""; // Tira a seleção da outra caixa duplicada
+                    resetarCategoriaHabilidade(cat); // Reseta as bolinhas da caixa que perdeu o status
+                }
+            });
+
+            // 3. Atualiza o total lógico das carteiras
+            categorias.forEach(cat => { 
+                const val = document.getElementById(`prioridade-${cat}`).value; 
+                carteiraHabilidades[cat].total = val ? parseInt(val) : 0; 
+            });
+            
             atualizarPainelHabilidades();
         }
         function alterarHabilidade(cat, chave, mod) {
@@ -757,7 +827,7 @@
 
         // --- ESTADOS DE TRANSIÇÃO E POST FINAL ---
         async function alternarPasso(direcao) {
-            if (direcao === 1 && passoAtual === 1) {
+            if (direcao === 1 && passoAtual === 5) {
                 const campos = ['cab-nome', 'cab-natureza', 'cab-comportamento', 'cab-essencia', 'cab-afiliacao', 'cab-conceito'];
                 let valido = true; campos.forEach(id => { if(!document.getElementById(id).value) valido = false; });
                 if (!valido) { alert("Preencha os campos obrigatórios."); return; }
@@ -784,25 +854,35 @@
             if (direcao === 1 && passoAtual === 5) {
                 if (obterSaldoBonus() < 0) { alert("Seu saldo está negativo!"); return; }
                 
+                // ================= CORREÇÃO DO PAYLOAD =================
                 const payloadFinal = {
-                    nome: fichaMagoM20.ficha_mago_a_ascensao.cabecalho.nome,
-                    tradicao: fichaMagoM20.ficha_mago_a_ascensao.cabecalho.afiliacao,
-                    conceito: fichaMagoM20.ficha_mago_a_ascensao.cabecalho.conceito,
-                    natureza: fichaMagoM20.ficha_mago_a_ascensao.cabecalho.natureza,
-                    comportamento: fichaMagoM20.ficha_mago_a_ascensao.cabecalho.comportamento,
+                    // O '|| "Desconhecido"' impede que um campo vazio vire 'null' e quebre o banco
+                    nome: fichaMagoM20.ficha_mago_a_ascensao.cabecalho.nome || "Sem Nome",
+                    tradicao: fichaMagoM20.ficha_mago_a_ascensao.cabecalho.afiliacao || "Órfão",
+                    essencia: fichaMagoM20.ficha_mago_a_ascensao.cabecalho.essencia || "Desconhecida", 
+                    conceito: fichaMagoM20.ficha_mago_a_ascensao.cabecalho.conceito || "Desconhecido",
+                    natureza: fichaMagoM20.ficha_mago_a_ascensao.cabecalho.natureza || "Desconhecida",
+                    comportamento: fichaMagoM20.ficha_mago_a_ascensao.cabecalho.comportamento || "Desconhecido",
                     arete: fichaMagoM20.ficha_mago_a_ascensao.vantagens.arete,
-                    dados_completo: fichaMagoM20.ficha_mago_a_ascensao
+                    
+                    exp_total: 0,
+                    exp_gasta: 0,
+                    
+                    // Enviamos com os DOIS nomes. Assim o backend pega o 'dados_completo' 
+                    // e a tela de evolução consegue ler o conteúdo perfeitamente depois.
+                    dados_completo: fichaMagoM20.ficha_mago_a_ascensao,
+                    dados_ficha: fichaMagoM20.ficha_mago_a_ascensao 
                 };
 
-            const resposta = await fetch('/personagens', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    // Busca o token direto do armazenamento do navegador
-                    'Authorization': `Bearer ${localStorage.getItem('token_m20')}` 
-                },
-                body: JSON.stringify(payloadFinal)
-            });
+                const resposta = await fetch('/personagens', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        // Corrigido o nome da chave do LocalStorage para 'm20_token'
+                        'Authorization': `Bearer ${localStorage.getItem('m20_token')}` 
+                    },
+                    body: JSON.stringify(payloadFinal)
+                });
 
                 if (resposta.ok) {
                     alert("🔮 Mago salvo no banco de dados!");

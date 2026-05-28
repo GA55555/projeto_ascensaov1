@@ -48,57 +48,65 @@
     <script>
         // Carrega apenas os personagens salvos
         async function carregarMagos() {
-    // 1. Recupera o token que você salvou no login
-    const token = localStorage.getItem('token_m20');
-    console.log("Token enviado:", token); 
-    if (!token) {
-        console.error("Token não encontrado! Você está logado?");
-        return;
-    }
+            // 1. Recupera o token com o nome correto ('m20_token' em vez de 'token_m20')
+            const token = localStorage.getItem('m20_token');
+            console.log("Token enviado:", token);
+            if (!token) {
+                console.error("Token não encontrado! Você está logado?");
+                return;
+            }
 
-    // 2. Faz o fetch incluindo o cabeçalho de autorização
-    const resposta = await fetch('/personagens', {
-        headers: {
-            'Authorization': `Bearer ${token}`
+            // 2. Faz o fetch incluindo o cabeçalho de autorização
+            const resposta = await fetch('/personagens', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            // 3. Verifica se o servidor autorizou e respondeu ok
+            if (!resposta.ok) {
+                console.error("Erro ao carregar magos. Status:", resposta.status);
+                return; 
+            }
+
+            const magos = await resposta.json();
+            const lista = document.getElementById('lista-magos');
+            lista.innerHTML = '';
+
+            if (magos.length === 0) {
+                lista.innerHTML = '<p style="color: #8d8d99; text-align: center; margin-top: 40px;">Nenhum mago despertou nesta crônica ainda.</p>';
+                return;
+            }
+
+            // 4. Agora sim, percorre os dados com segurança
+            magos.forEach(mago => {
+                lista.innerHTML += `
+                    <div class="card-mago">
+                        <h3>${mago.nome}</h3>
+                        <p><strong>Tradição/Afiliação:</strong> ${mago.tradicao} | <strong>Conceito:</strong> ${mago.conceito}</p>
+                        <p><strong>Natureza:</strong> ${mago.natureza} | <strong>Comportamento:</strong> ${mago.comportamento}</p>
+                        <p><strong>Arete:</strong> ${mago.arete}</p>
+                        <small>ID Seguro (UUID): ${mago.id}</small>
+                        <div class="acoes">
+                            <a href="/evoluir_mago.html?id=${mago.id}" class="btn-evoluir">Evoluir com EXP</a>
+                            <button class="btn-excluir" onclick="deletarMago('${mago.id}')">Excluir Ficha</button>
+                        </div>
+                    </div>
+                `;
+            });
         }
-    });
-
-    // 3. Verifica se o servidor autorizou e respondeu ok
-    if (!resposta.ok) {
-        console.error("Erro ao carregar magos. Status:", resposta.status);
-        return; // Para a execução aqui se der erro
-    }
-
-    const magos = await resposta.json();
-    const lista = document.getElementById('lista-magos');
-    lista.innerHTML = '';
-
-    if (magos.length === 0) {
-        lista.innerHTML = '<p style="color: #8d8d99; text-align: center; margin-top: 40px;">Nenhum mago despertou nesta crônica ainda.</p>';
-        return;
-    }
-
-    // 4. Agora sim, percorre os dados com segurança
-    magos.forEach(mago => {
-        lista.innerHTML += `
-            <div class="card-mago">
-                <h3>${mago.nome}</h3>
-                <p><strong>Tradição/Afiliação:</strong> ${mago.tradicao} | <strong>Conceito:</strong> ${mago.conceito}</p>
-                <p><strong>Natureza:</strong> ${mago.natureza} | <strong>Comportamento:</strong> ${mago.comportamento}</p>
-                <p><strong>Arete:</strong> ${mago.arete}</p>
-                <small>ID Seguro (UUID): ${mago.id}</small>
-                <div class="acoes">
-                    <a href="/evoluir_mago.html?id=${mago.id}" class="btn-evoluir">Evoluir com EXP</a>
-                    <button class="btn-excluir" onclick="deletarMago('${mago.id}')">Excluir Ficha</button>
-                </div>
-            </div>
-        `;
-    });
-}
 
         async function deletarMago(id) {
             if (confirm("Deseja apagar permanentemente este Mago do Grimório?")) {
-                const resposta = await fetch(`/personagens/${id}`, { method: 'DELETE' });
+                // Recupera o token e envia no cabeçalho para ter permissão de deletar
+                const token = localStorage.getItem('m20_token'); 
+                const resposta = await fetch(`/personagens/${id}`, { 
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
                 if (resposta.ok) {
                     carregarMagos();
                 } else {
@@ -108,7 +116,6 @@
         }
 
         carregarMagos();
-        
     </script>
 </body>
 </html>

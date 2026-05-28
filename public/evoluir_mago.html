@@ -53,6 +53,10 @@
         
         .btn-salvar { background: var(--sucesso); color: #121214; padding: 15px 30px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 16px; display: block; margin: 30px 0 0 auto; }
         .btn-salvar:hover { opacity: 0.9; }
+
+        /* Estilos do Modal de Histórico */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); justify-content: center; align-items: center; z-index: 9999; }
+        .modal-box { background: var(--bg-card); padding: 25px; border-radius: 8px; border: 1px solid var(--roxo-mago); width: 500px; max-width: 90%; max-height: 85vh; overflow-y: auto; }
     </style>
 </head>
 <body>
@@ -61,7 +65,10 @@
 
     <div class="painel-exp">
         <div>
-            <h1 id="nome-mago" style="margin: 0;">Evolução do Desperto</h1>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <h1 id="nome-mago" style="margin: 0;">Evolução do Desperto</h1>
+                <button type="button" class="btn-acao" style="background: transparent; border: 1px solid var(--texto-mutado); color: var(--texto-claro); font-size: 12px;" onclick="abrirModalHistorico()">⏱️ Ver Histórico / Backups</button>
+            </div>
             <p style="color: var(--texto-mutado); font-size: 12px; margin: 2px 0 0 0;">O botão de ( - ) cinza devolve a EXP. Alterações em Vontade e Antecedentes têm opções para perdas reais.</p>
         </div>
         <div style="text-align: right;">
@@ -175,6 +182,18 @@
                 <button type="button" class="btn-acao" style="background: var(--bg-card); border: 1px solid var(--roxo-mago); color: var(--roxo-mago);" onclick="adicionarNovoAntecedente(false)">Dar Grátis</button>
             </div>
         </div>
+    </div>      
+
+    <div id="modal-historico" class="modal-overlay">
+        <div class="modal-box">
+            <h3 style="margin-top:0;">⏱️ Histórico de Alterações</h3>
+            <p style="font-size: 12px; color: var(--texto-mutado);">Escolha uma data para restaurar. O estado da ficha no momento atual será salvo como um novo backup automático.</p>
+            
+            <div id="lista-historico" style="max-height: 350px; overflow-y: auto; margin-top: 15px;">
+                </div>
+            
+            <button type="button" onclick="document.getElementById('modal-historico').style.display = 'none'" class="btn-acao" style="margin-top: 15px; width: 100%; background: var(--borda);">Fechar</button>
+        </div>
     </div>
 
     <button type="button" class="btn-salvar" onclick="salvarEvolucaoNoBanco()">✓ Consolidar Ficha Oficial</button>
@@ -192,11 +211,30 @@
 
         async function inicializarSistema() {
             if (!magoId) return alert("ID não encontrado!");
-            const resposta = await fetch(`/personagens/${magoId}`);
+            
+            // Pega a credencial do jogador
+            const token = localStorage.getItem('m20_token');
+            if (!token) {
+                alert("Você precisa estar logado!");
+                window.location.href = "/login.html";
+                return;
+            }
+
+            // Envia a credencial no cabeçalho da requisição
+            const resposta = await fetch(`/personagens/${magoId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (!resposta.ok) {
+                alert("Ficha inválida, não encontrada ou sem permissão de acesso.");
+                window.location.href = "/painel_mago.html";
+                return;
+            }
+
             const data = await resposta.json();
 
             if (!data || !data.dados_ficha) {
-                alert("Ficha inválida ou muito antiga. Crie uma nova ficha no sistema.");
+                alert("Ficha corrompida. Crie uma nova ficha no sistema.");
                 window.location.href = "/painel_mago.html";
                 return;
             }
@@ -647,6 +685,7 @@
         }
 
         // --- SALVAMENTO NO BANCO POSTGRES (CONGELAMENTO DE SESSÃO) ---
+        
         async function salvarEvolucaoNoBanco() {
             // Converte objetos temporários de especialidade em strings normais permanentes
             for (let chave in fichaMago.dados_ficha.especialidades_dinamicas) {
@@ -664,9 +703,14 @@
                 arete: fichaMago.dados_ficha.vantagens.arete
             };
 
+            const token = localStorage.getItem('m20_token');
+
             const resposta = await fetch(`/personagens/${magoId}/evoluir`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}` // Autorização adicionada aqui!
+                },
                 body: JSON.stringify(payload)
             });
 
@@ -678,6 +722,71 @@
             }
         }
 
+        // ================= SISTEMA DE HISTÓRICO =================
+        function abrirModalHistorico() {
+            carregarHistoricoDaFicha();
+            document.getElementById('modal-historico').style.display = 'flex';
+        }
+
+        async function carregarHistoricoDaFicha() {
+            const token = localStorage.getItem('m20_token');
+            const lista = document.getElementById('lista-historico');
+            lista.innerHTML = '<p style="text-align:center; color:var(--texto-mutado);">Buscando nos registros akáshicos...</p>';
+
+            try {
+                const res = await fetch(`/personagens/${magoId}/historico`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (res.ok) {
+                    const dados = await res.json();
+                    if (dados.length === 0) {
+                        lista.innerHTML = '<p style="text-align:center; color:var(--texto-mutado);">Nenhum registro de evolução salvo ainda.</p>';
+                        return;
+                    }
+
+                    lista.innerHTML = dados.map(h => {
+                        const dataFormatada = new Date(h.criado_em).toLocaleString('pt-BR');
+                        return `
+                            <div style="background: var(--bg-principal); padding: 12px; margin-bottom: 10px; border: 1px solid var(--borda); border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <strong style="color: var(--texto-claro);">Salvo em: ${dataFormatada}</strong><br>
+                                    <span style="font-size: 11px; color: var(--texto-mutado);">XP Total: ${h.exp_total} | XP Gasta: ${h.exp_gasta}</span>
+                                </div>
+                                <button type="button" class="btn-acao" style="background: var(--aviso); color: #121214; font-size: 11px;" onclick="restaurarFichaParaBackup('${h.id}')">Restaurar</button>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    lista.innerHTML = '<p style="color: var(--erro);">Erro de permissão ou conexão.</p>';
+                }
+            } catch (error) {
+                lista.innerHTML = '<p style="color: var(--erro);">Ocorreu um erro ao carregar os dados.</p>';
+            }
+        }
+
+        async function restaurarFichaParaBackup(historicoId) {
+            if (!confirm("⚠️ ATENÇÃO: Deseja realmente desfazer suas alterações e voltar para essa versão do passado?")) return;
+            
+            const token = localStorage.getItem('m20_token');
+            
+            try {
+                const res = await fetch(`/personagens/${magoId}/restaurar/${historicoId}`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (res.ok) {
+                    alert("Paradoxo Evitado! Ficha restaurada com sucesso.");
+                    window.location.reload(); // Recarrega a página inteira para puxar a versão do banco
+                } else {
+                    alert("Falha ao restaurar backup.");
+                }
+            } catch (error) {
+                alert("Erro de conexão ao restaurar backup.");
+            }
+        }
+        
         inicializarSistema();
     </script>
 </body>

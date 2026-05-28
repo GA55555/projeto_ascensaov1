@@ -244,5 +244,114 @@ router.put('/:cronicaId/automacoes/:id/toggle', verificarToken, async (req, res)
     } catch (err) { res.status(500).json({ erro: 'Erro ao alterar estado.' }); }
 });
 
+// Rota: Buscar Fichas da Crônica (Com Controle de Visibilidade)
+router.get('/:id/fichas', verificarToken, async (req, res) => {
+    const cronicaId = req.params.id;
+    const usuarioId = req.usuario.id;
+
+    try {
+        // 1. Descobrir o papel do usuário NESTA crônica específica (Isolamento)
+        const membroQuery = await pool.query(
+            'SELECT papel FROM cronica_membros WHERE cronica_id = $1 AND usuario_id = $2',
+            [cronicaId, usuarioId]
+        );
+
+        if (membroQuery.rows.length === 0) {
+            return res.status(403).json({ erro: 'Você não faz parte desta crônica.' });
+        }
+
+        const papel = membroQuery.rows[0].papel;
+
+        // 2. Aplicar a Regra de Acesso
+        let fichasQuery;
+        if (papel === 'narrador') {
+            // Narrador vê TODAS as fichas da mesa
+            fichasQuery = await pool.query(
+                'SELECT * FROM personagens WHERE cronica_id = $1',
+                [cronicaId]
+            );
+        } else {
+            // Jogador vê APENAS a sua ficha
+            fichasQuery = await pool.query(
+                'SELECT * FROM personagens WHERE cronica_id = $1 AND usuario_id = $2',
+                [cronicaId, usuarioId]
+            );
+        }
+
+        res.json({ papel, fichas: fichasQuery.rows });
+
+    } catch (err) {
+        console.error('Erro ao buscar fichas da crônica:', err);
+        res.status(500).json({ erro: 'Erro no servidor.' });
+    }
+});
+
+// Rota: Buscar Fichas da Crônica (Com Controle de Visibilidade)
+router.get('/:id/fichas', verificarToken, async (req, res) => {
+    const cronicaId = req.params.id;
+    const usuarioId = req.usuario.id;
+
+    try {
+        // 1. Descobrir o papel do usuário NESTA crônica específica (Isolamento)
+        const membroQuery = await pool.query(
+            'SELECT papel FROM cronica_membros WHERE cronica_id = $1 AND usuario_id = $2',
+            [cronicaId, usuarioId]
+        );
+
+        if (membroQuery.rows.length === 0) {
+            return res.status(403).json({ erro: 'Você não faz parte desta crônica.' });
+        }
+
+        const papel = membroQuery.rows[0].papel;
+
+        // 2. Aplicar a Regra de Acesso
+        let fichasQuery;
+        if (papel === 'narrador') {
+            // Narrador vê TODAS as fichas da mesa
+            fichasQuery = await pool.query(
+                'SELECT * FROM personagens WHERE cronica_id = $1',
+                [cronicaId]
+            );
+        } else {
+            // Jogador vê APENAS a sua ficha
+            fichasQuery = await pool.query(
+                'SELECT * FROM personagens WHERE cronica_id = $1 AND usuario_id = $2',
+                [cronicaId, usuarioId]
+            );
+        }
+
+        res.json({ papel, fichas: fichasQuery.rows });
+
+    } catch (err) {
+        console.error('Erro ao buscar fichas da crônica:', err);
+        res.status(500).json({ erro: 'Erro no servidor.' });
+    }
+});
+
+// Rota: Vincular uma Ficha da Gaveta à Crônica
+router.put('/:id/vincular-ficha', verificarToken, async (req, res) => {
+    const cronicaId = req.params.id;
+    const usuarioId = req.usuario.id;
+    const { personagem_id } = req.body;
+
+    try {
+        // Verifica se o usuário é membro da crônica
+        const membro = await pool.query('SELECT 1 FROM cronica_membros WHERE cronica_id = $1 AND usuario_id = $2', [cronicaId, usuarioId]);
+        if (membro.rows.length === 0) return res.status(403).json({ erro: 'Acesso negado.' });
+
+        // Atualiza a ficha (garantindo que ela pertence a este usuário)
+        const update = await pool.query(
+            'UPDATE personagens SET cronica_id = $1 WHERE id = $2 AND usuario_id = $3 RETURNING *',
+            [cronicaId, personagem_id, usuarioId]
+        );
+
+        if (update.rows.length === 0) return res.status(404).json({ erro: 'Ficha não encontrada ou não pertence a você.' });
+        
+        res.json({ mensagem: 'Ficha vinculada com sucesso!', ficha: update.rows[0] });
+    } catch (err) {
+        res.status(500).json({ erro: 'Erro ao vincular ficha.' });
+    }
+});
+
 // Exporta o roteador
 module.exports = router;

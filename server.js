@@ -50,23 +50,6 @@ app.get('/auth/dashboard-resumo', verificarToken, async (req, res) => {
     }
 });
 
-app.put('/personagens/:id/evoluir', verificarToken, async (req, res) => {
-    const { id } = req.params;
-    const donoId = req.usuario.id;
-    const { dados_ficha, exp_total, exp_gasta, arete } = req.body;
-    try {
-        const atualizacao = await pool.query(
-            `UPDATE personagens SET dados_ficha = $1, exp_total = $2, exp_gasta = $3, arete = $4 
-             WHERE id = $5 AND usuario_id = $6 RETURNING *`,
-            [dados_ficha, exp_total, exp_gasta, arete, id, donoId]
-        );
-        if (atualizacao.rowCount === 0) return res.status(403).json({ erro: 'Sem permissão para editar.'});
-        res.json({ mensagem: "Evolução salva!" });
-    } catch (err) {
-        res.status(500).send(err.message);
-    }
-});
-
 app.delete('/personagens/:id', verificarToken, async (req, res) => {
     const { id } = req.params;
     const donoId = req.usuario.id;
