@@ -1372,7 +1372,15 @@ app.get('/cronicas/:cronicaId/sessoes', verificarToken, async (req, res) => {
              ORDER BY s.data_sessao DESC, s.criado_em DESC`,
             [cronicaId]
         );
-        res.json(query.rows); // sempre retorna um array
+        // Garante que os campos JSONB sejam retornados como arrays
+        const sessoes = query.rows.map(s => ({
+            ...s,
+            entidades: s.entidades || [],
+            eventos: s.eventos || [],
+            automacoes: s.automacoes || [],
+            desfechos: s.desfechos || []
+        }));
+        res.json(sessoes);
     } catch (err) {
         console.error('Erro ao buscar sessões:', err);
         res.status(500).json({ erro: 'Erro ao buscar sessões.' });
@@ -1382,13 +1390,24 @@ app.get('/cronicas/:cronicaId/sessoes', verificarToken, async (req, res) => {
 // Criar sessão (com nucleo_id)
 app.post('/cronicas/:cronicaId/sessoes', verificarToken, async (req, res) => {
     const { cronicaId } = req.params;
-    const { titulo, data_sessao, resumo, status, nucleo_id } = req.body;
+    const { titulo, data_sessao, resumo, status, nucleo_id, entidades, eventos, automacoes, desfechos } = req.body;
     if (!titulo || titulo.trim() === '') return res.status(400).json({ erro: 'Título obrigatório.' });
     try {
         const nova = await pool.query(
-            `INSERT INTO sessoes (cronica_id, titulo, data_sessao, resumo, status, nucleo_id)
-             VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`,
-            [cronicaId, titulo.trim(), data_sessao || null, resumo || null, status || 'planejada', nucleo_id || null]
+            `INSERT INTO sessoes (cronica_id, titulo, data_sessao, resumo, status, nucleo_id, entidades, eventos, automacoes, desfechos)
+             VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,$8::jsonb,$9::jsonb,$10::jsonb) RETURNING id`,
+            [
+                cronicaId,
+                titulo.trim(),
+                data_sessao || null,
+                resumo || null,
+                status || 'planejada',
+                nucleo_id || null,
+                JSON.stringify(entidades || []),
+                JSON.stringify(eventos || []),
+                JSON.stringify(automacoes || []),
+                JSON.stringify(desfechos || [])
+            ]
         );
         res.status(201).json({ mensagem: 'Sessão criada.', id: nova.rows[0].id });
     } catch (err) {
@@ -1400,25 +1419,33 @@ app.post('/cronicas/:cronicaId/sessoes', verificarToken, async (req, res) => {
 // Editar sessão (com nucleo_id)
 app.put('/cronicas/:cronicaId/sessoes/:sessaoId', verificarToken, async (req, res) => {
     const { sessaoId } = req.params;
-    const { titulo, data_sessao, resumo, status, nucleo_id } = req.body;
-    if (!titulo || titulo.trim() === '') {
-        return res.status(400).json({ erro: 'Título é obrigatório.' });
-    }
+    const { titulo, data_sessao, resumo, status, nucleo_id, entidades, eventos, automacoes, desfechos } = req.body;
+    if (!titulo || titulo.trim() === '') return res.status(400).json({ erro: 'Título é obrigatório.' });
     try {
         const result = await pool.query(
             `UPDATE sessoes
-             SET titulo = $1, data_sessao = $2, resumo = $3, status = $4, nucleo_id = $5
-             WHERE id = $6
+             SET titulo = $1, data_sessao = $2, resumo = $3, status = $4, nucleo_id = $5,
+                 entidades = $6::jsonb, eventos = $7::jsonb, automacoes = $8::jsonb, desfechos = $9::jsonb
+             WHERE id = $10
              RETURNING *`,
-            [titulo.trim(), data_sessao || null, resumo || null, status || 'planejada', nucleo_id || null, sessaoId]
+            [
+                titulo.trim(),
+                data_sessao || null,
+                resumo || null,
+                status || 'planejada',
+                nucleo_id || null,
+                JSON.stringify(entidades || []),
+                JSON.stringify(eventos || []),
+                JSON.stringify(automacoes || []),
+                JSON.stringify(desfechos || []),
+                sessaoId
+            ]
         );
-        if (result.rows.length === 0) {
-            return res.status(404).json({ erro: 'Sessão não encontrada.' });
-        }
+        if (result.rows.length === 0) return res.status(404).json({ erro: 'Sessão não encontrada.' });
         res.json({ mensagem: 'Sessão atualizada.', sessao: result.rows[0] });
     } catch (err) {
         console.error('Erro ao atualizar sessão:', err);
-        res.status(500).json({ erro: 'Erro interno ao atualizar sessão.', detalhe: err.message });
+        res.status(500).json({ erro: 'Erro ao atualizar sessão.', detalhe: err.message });
     }
 });
 

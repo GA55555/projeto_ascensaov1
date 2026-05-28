@@ -46,7 +46,7 @@
     background: rgba(0,0,0,0.85); 
     justify-content: center; 
     align-items: center; 
-    z-index: 1000; 
+    z-index: 9999; 
 }
 .modal-overlay.show { display: flex; }
 
@@ -90,6 +90,28 @@
     margin-bottom: 4px; 
     color: var(--texto-mutado); 
     font-size: 12px; 
+}
+
+
+/* --- ESTILO PARA CHECKBOXES E RADIOS NAS MODAIS --- */
+.checkbox-label, .radio-label {
+    display: flex;
+    align-items: center; 
+    gap: 10px;
+    font-size: 14px;
+    padding: 6px 0;
+    cursor: pointer;
+    color: var(--texto-claro);
+}
+
+.modal-box input[type="checkbox"],
+.modal-box input[type="radio"] {
+    width: auto !important;
+    height: 16px;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    flex-shrink: 0;
 }
     </style>
 </head>
@@ -163,12 +185,39 @@
                 <option value="">Todos os núcleos</option>
             </select>
             <button class="btn btn-primary btn-sm" onclick="gerenciarNucleos('sessao')">⚙️ Núcleos</button>
-            <button class="btn btn-primary" onclick="abrirModal('modal-sessao')">+ Nova Sessão</button>
+            <button class="btn btn-primary" onclick="abrirModalSessao()">+ Nova Sessão</button>
         </div>
     </div>
     
     <div id="grid-sessoes">Carregando...</div>
-</div>
+
+    <!-- Container de Leitura da Sessão (Oculto por padrão) -->
+    <div id="sessao-detalhes" style="display: none; background: var(--bg-card); padding: 30px; border-radius: 8px; border: 1px solid var(--borda); margin-top: 15px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <button class="btn btn-sm" onclick="fecharDetalhesSessao()" style="background: transparent; color: var(--texto-mutado); border: 1px solid var(--borda);">← Voltar ao Índice</button>
+    <button class="btn btn-primary btn-sm" id="btn-editar-sessao-detalhe">✏️ Editar Sessão</button>
+    </div>
+  
+    <h2 id="detalhe-titulo" style="color: var(--destaque); margin-top: 0; font-size: 24px;"></h2>
+    <p id="detalhe-meta" style="color: var(--texto-mutado); font-size: 12px; margin-bottom: 20px;"></p>
+  
+    <h4 style="color: var(--roxo-mago); border-bottom: 1px solid var(--borda); padding-bottom: 5px;">📜 Resumo dos Acontecimentos</h4>
+    <p id="detalhe-resumo" style="white-space: pre-wrap; line-height: 1.6; color: var(--texto-claro); margin-bottom: 30px;"></p>
+
+    <div class="grid-2">
+    <div>
+      <h4 style="color: var(--roxo-mago); border-bottom: 1px solid var(--borda); padding-bottom: 5px;">🌍 Entidades Envolvidas</h4>
+      <ul id="detalhe-entidades" style="font-size: 13px; color: var(--texto-claro); line-height: 1.8; padding-left: 20px;"></ul>
+    </div>
+    <div>
+      <h4 style="color: var(--roxo-mago); border-bottom: 1px solid var(--borda); padding-bottom: 5px;">⚙️ Eventos e Automações</h4>
+      <ul id="detalhe-eventos" style="font-size: 13px; color: var(--texto-claro); line-height: 1.8; padding-left: 20px;"></ul>
+    </div>
+    </div>
+
+    <h4 style="color: var(--roxo-mago); border-bottom: 1px solid var(--borda); padding-bottom: 5px; margin-top: 20px;">🎯 Desfechos da Cena</h4>
+    <ol id="detalhe-desfechos" style="font-size: 14px; color: var(--texto-claro); line-height: 1.8; padding-left: 20px;"></ol>
+    </div> </div> 
 
     <!-- ============ MODAIS ============ -->
     
@@ -295,13 +344,13 @@
         </div>
     </div>
 
-    <!-- Modal de Criação/Edição de Sessão -->
+<!-- Modal de Criação/Edição de Sessão -->
 <div id="modal-sessao" class="modal-overlay">
     <div class="modal-box">
         <h3 id="modal-sessao-titulo">Nova Sessão</h3>
         <label>Núcleo (Organização)</label>
         <select id="sessao-nucleo-id">
-        <option value="">Nenhum / Geral</option>
+            <option value="">Nenhum / Geral</option>
         </select>
         <input type="hidden" id="sessao-id">
         <label>Título</label>
@@ -316,6 +365,26 @@
             <option value="em_andamento">Em andamento</option>
             <option value="concluida">Concluída</option>
         </select>
+
+        <!-- Seção de Vínculos (agora FORA do select) -->
+        <details style="margin-top: 15px;">
+            <summary style="cursor: pointer; color: var(--roxo-mago);">🔗 Vínculos Narrativos</summary>
+
+            <label>Entidades (Ctrl+clique para selecionar várias)</label>
+            <select id="sessao-entidades" multiple style="height: 80px;">
+                <!-- Preenchido via JS -->
+            </select>
+
+            <label>Eventos</label>
+            <select id="sessao-eventos" multiple style="height: 80px;"></select>
+
+            <label>Automações</label>
+            <select id="sessao-automacoes" multiple style="height: 80px;"></select>
+
+            <label>Desfechos (um por linha)</label>
+            <textarea id="sessao-desfechos" rows="3" placeholder="Digite um desfecho por linha..."></textarea>
+        </details>
+
         <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
             <button class="btn btn-danger" onclick="fecharModal('modal-sessao')">Cancelar</button>
             <button class="btn btn-primary" onclick="salvarSessao()">Salvar</button>
@@ -334,6 +403,7 @@
     let nodesCache = [];
     let eventosCache = []; 
     let abasCache = [];
+    let automacoesCache = [];
 
     // ✅ VERIFICA ACESSO (SÓ NARRADOR)
     async function verificarAcesso() {
@@ -365,13 +435,22 @@
     } else if (tab === 'automacoes') {
         carregarAutomacoes();
     } else if (tab === 'sessoes') {
-        carregarSessoes();
-        carregarNucleos('sessao');
-    }
+    carregarSessoes();
+    carregarNucleos('sessao');
+}
+    
 }
 
     // ============ MODAIS ============
-    function abrirModal(id) { document.getElementById(id).classList.add('show'); }
+    function abrirModal(id) {
+    const modal = document.getElementById(id);
+    if (!modal) {
+        console.error('Modal não encontrado:', id);
+        return;
+    }
+    modal.classList.add('show');
+    console.log('Modal aberto:', id);
+}
     function fecharModal(id) { document.getElementById(id).classList.remove('show'); }
 
     // ============ CONTROLE DE MUNDO ============
@@ -975,44 +1054,42 @@ async function salvarEvento() {
     // JS: SISTEMA DE AUTOMAÇÃO
     // ==========================================
 
-    async function carregarAutomacoes() {
-        const grid = document.getElementById('grid-automacoes');
-        try {
-            // Requisita as automações já criadas
-            const res = await fetch(`/cronicas/${cronicaId}/automacoes`, { headers: { 'Authorization': `Bearer ${token}` } });
-            const automacoes = await res.json();
+   async function carregarAutomacoes() {
+    try {
+        const res = await fetch(`/cronicas/${cronicaId}/automacoes`, { headers: { 'Authorization': `Bearer ${token}` } });
+        if (!res.ok) return;
+        const automacoes = await res.json();
+        automacoesCache = automacoes || [];
 
-            if (automacoes.length === 0) {
-                grid.innerHTML = '<p style="color: var(--texto-mutado); grid-column: span 2; text-align: center;">Nenhuma automação vinculada a esta crônica.</p>';
+        const grid = document.getElementById('grid-automacoes');
+        // Só renderiza se a aba de automações estiver ativa
+        if (grid && document.getElementById('tab-automacoes').classList.contains('ativa')) {
+            if (automacoesCache.length === 0) {
+                grid.innerHTML = '<p style="color: var(--texto-mutado);">Nenhuma automação.</p>';
                 return;
             }
-
-            grid.innerHTML = automacoes.map(auto => {
+            grid.innerHTML = automacoesCache.map(auto => {
                 let badgeTxt = auto.tipo_nome === 'alterar_flag' ? '🚩 Flag' : (auto.tipo_nome === 'postar_em_aba' ? '📜 Post' : '📅 Evento');
-                
                 return `
                 <div class="card">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
                         <div>
-                            <span class="badge badge-evento" style="display: block; width: fit-content; margin-bottom: 5px;">Gatilho: ${auto.evento_nome}</span>
+                            <span class="badge" style="display: block; width: fit-content; margin-bottom: 5px;">Gatilho: ${auto.evento_nome}</span>
                             <strong style="font-size: 15px; color: var(--texto-claro);">Ação: ${badgeTxt}</strong>
                         </div>
-                        <button class="btn btn-danger btn-sm" onclick="deletarAutomacao('${auto.id}')" title="Apagar automação">🗑️</button>
+                        <button class="btn btn-danger btn-sm" onclick="deletarAutomacao('${auto.id}')">🗑️</button>
                     </div>
                     <div style="font-size: 12px; color: var(--texto-mutado); margin-top: 10px; background: var(--bg-principal); padding: 8px; border-radius: 4px; font-family: monospace;">
-                        ${JSON.stringify(auto.parametros, null, 2).replace(/\\n/g, '<br>')}
-                    </div>
-                    <div style="margin-top: 10px;">
-                        <label class="checkbox-label" style="font-size: 12px;">
-                            <input type="checkbox" ${auto.ativo ? 'checked' : ''} onchange="toggleAutomacao('${auto.id}', this.checked)"> Automação Ativa
-                        </label>
+                        ${JSON.stringify(auto.parametros, null, 2)}
                     </div>
                 </div>`;
             }).join('');
-        } catch (err) {
-            grid.innerHTML = '<p style="color: var(--erro);">Erro ao carregar automações.</p>';
         }
+    } catch (err) {
+        console.warn('Não foi possível carregar automações:', err);
+        automacoesCache = [];
     }
+}
 
     async function abrirModalAutomacao() {
         // Popula as caches necessárias para desenhar os formulários se estiverem vazias
@@ -1025,8 +1102,7 @@ async function salvarEvento() {
             const dadosA = await resA.json();
             abasCache = dadosA.abas || [];
         }
-
-        // Popula os eventos no Select
+        // Popula os eventos no Select com os dados fresquinhos
         const selectEvento = document.getElementById('auto-evento-id');
         selectEvento.innerHTML = '<option value="">Selecione o Evento que vai engatilhar...</option>';
         eventosCache.forEach(e => selectEvento.innerHTML += `<option value="${e.id}">${e.nome}</option>`);
@@ -1036,7 +1112,7 @@ async function salvarEvento() {
         renderizarCamposAutomacao();
         
         abrirModal('modal-automacao');
-    }
+        }
 
     function renderizarCamposAutomacao() {
         const tipo = document.getElementById('auto-tipo').value;
@@ -1186,32 +1262,44 @@ function renderizarSessoes(listaParaRenderizar = sessoesCache) {
     }
     
     grid.innerHTML = listaParaRenderizar.map(s => {
-        const dataFormatada = formatarData(s.data_sessao); 
-        const campos = (s.campos || []).map(c => `<span style="font-size:11px; color: var(--roxo-mago);">${c.chave}: ${c.valor}</span>`).join(' | ');
-
+        const dataFormatada = formatarData(s.data_sessao);
         return `
-        <div class="card" style="background-color: var(--bg-card); color: #ffffff; word-wrap: break-word; overflow-wrap: break-word; word-break: break-word; max-width: 100%; border: 1px solid var(--borda);">
+        <div class="card" onclick="abrirDetalhesSessao('${s.id}')" style="cursor: pointer; transition: 0.2s; border: 1px solid var(--borda);" onmouseover="this.style.borderColor='var(--roxo-mago)'" onmouseout="this.style.borderColor='var(--borda)'">
             <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
-                <strong style="word-break: break-all;">${s.titulo}</strong>
-                <span style="color: #cccccc; white-space: nowrap;">${dataFormatada} [${s.status}]</span>
+                <strong style="font-size: 16px;">${s.titulo}</strong>
+                <span style="color: var(--texto-mutado); font-size: 12px;">${dataFormatada}</span>
             </div>
-            <p style="font-size:12px; margin:5px 0; color: #ffffff; word-wrap: break-word; overflow-wrap: break-word; word-break: break-word;">${s.resumo || ''}</p>
-            <div style="margin-top: 5px;">${campos}</div>
-            <div style="display: flex; gap: 5px; margin-top: 10px;">
-                <button class="btn btn-primary btn-sm" onclick="editarSessao('${s.id}')">✏️</button>
-                <button class="btn btn-danger btn-sm" onclick="excluirSessao('${s.id}')">🗑️</button>
-            </div>
+            <p style="font-size:12px; margin:10px 0 0 0; color: var(--texto-mutado); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                ${s.resumo || 'Clique para ler os registros...'}
+            </p>
         </div>`;
     }).join('');
 }
 
 
 async function abrirModalSessao(id = null) {
-    // Primeiro, garanta que os núcleos de sessão estão carregados
+    // Garante que os núcleos e o mundo base estão carregados
     if (!nucleosCache['sessao'] || nucleosCache['sessao'].length === 0) {
         await carregarNucleos('sessao');
     }
+    if (nodesCache.length === 0) await carregarMundo();
     
+    // 👇 MUDANÇA AQUI: Removemos o "if (eventosCache.length === 0)". 
+    // Agora ele FORÇA a busca direto do banco de dados sempre.
+    const resE = await fetch(`/cronicas/${cronicaId}/eventos`, { headers: { 'Authorization': `Bearer ${token}` } });
+    if (resE.ok) eventosCache = await resE.json();
+
+    // 👇 MUDANÇA AQUI: Forçamos a busca de automações frescas também.
+    try { 
+        const resA = await fetch(`/cronicas/${cronicaId}/automacoes`, { headers: { 'Authorization': `Bearer ${token}` } });
+        if (resA.ok) automacoesCache = await resA.json(); 
+    } catch(e) { 
+        automacoesCache = []; 
+    }
+
+    // Preenche os selects de vínculos com os dados novos e atualizados
+    preencherSelectsVinculos();
+
     if (id) {
         const s = sessoesCache.find(s => s.id === id);
         if (!s) return;
@@ -1220,19 +1308,36 @@ async function abrirModalSessao(id = null) {
         document.getElementById('sessao-data').value = s.data_sessao || '';
         document.getElementById('sessao-resumo').value = s.resumo || '';
         document.getElementById('sessao-status').value = s.status || 'planejada';
-        document.getElementById('sessao-nucleo-id').value = s.nucleo_id || ''; // ← ADICIONE
+        document.getElementById('sessao-nucleo-id').value = s.nucleo_id || '';
         document.getElementById('modal-sessao-titulo').innerText = 'Editar Sessão';
+
+        // Pré-seleciona vínculos
+        const selectEnt = document.getElementById('sessao-entidades');
+        const selectEv = document.getElementById('sessao-eventos');
+        const selectAuto = document.getElementById('sessao-automacoes');
+        const txtDesfechos = document.getElementById('sessao-desfechos');
+
+        for (let opt of selectEnt.options) opt.selected = (s.entidades || []).includes(opt.value);
+        for (let opt of selectEv.options) opt.selected = (s.eventos || []).includes(opt.value);
+        for (let opt of selectAuto.options) opt.selected = (s.automacoes || []).includes(opt.value);
+        txtDesfechos.value = (s.desfechos || []).join('\n');
     } else {
         document.getElementById('sessao-id').value = '';
         document.getElementById('sessao-titulo').value = '';
         document.getElementById('sessao-data').value = '';
         document.getElementById('sessao-resumo').value = '';
         document.getElementById('sessao-status').value = 'planejada';
-        document.getElementById('sessao-nucleo-id').value = ''; // ← ADICIONE
+        document.getElementById('sessao-nucleo-id').value = '';
         document.getElementById('modal-sessao-titulo').innerText = 'Nova Sessão';
+        // Limpa seleções
+        document.getElementById('sessao-entidades').selectedIndex = -1;
+        document.getElementById('sessao-eventos').selectedIndex = -1;
+        document.getElementById('sessao-automacoes').selectedIndex = -1;
+        document.getElementById('sessao-desfechos').value = '';
     }
     abrirModal('modal-sessao');
 }
+
 
 async function salvarSessao() {
     const id = document.getElementById('sessao-id').value;
@@ -1244,7 +1349,12 @@ async function salvarSessao() {
 
     if (!titulo) return alert('Título obrigatório.');
 
-    const body = { titulo, data_sessao, resumo, status, nucleo_id };
+    const entidades = Array.from(document.getElementById('sessao-entidades').selectedOptions).map(o => o.value);
+    const eventos = Array.from(document.getElementById('sessao-eventos').selectedOptions).map(o => o.value);
+    const automacoes = Array.from(document.getElementById('sessao-automacoes').selectedOptions).map(o => o.value);
+    const desfechos = document.getElementById('sessao-desfechos').value.split('\n').filter(l => l.trim() !== '');
+
+    const body = { titulo, data_sessao, resumo, status, nucleo_id, entidades, eventos, automacoes, desfechos };
     const method = id ? 'PUT' : 'POST';
     const url = id ? `/cronicas/${cronicaId}/sessoes/${id}` : `/cronicas/${cronicaId}/sessoes`;
 
@@ -1291,24 +1401,133 @@ function filtrarPorNucleoSessao() {
     }
 }
 
-// Exemplo de como preencher apenas com núcleos da categoria 'sessao'
-function atualizarSelectsDeSessoes(todosOsNucleosDaCronica) {
-    // Isola os núcleos de sessão do resto
-    const nucleosSessao = todosOsNucleosDaCronica.filter(n => n.tipo_referencia === 'sessao' || n.categoria === 'sessao');
-    
-    const optionsHtml = '<option value="">Todos os núcleos</option>' + 
-        nucleosSessao.map(n => `<option value="${n.id}">${n.nome}</option>`).join('');
-        
-    const optionsModalHtml = '<option value="">Nenhum / Geral</option>' + 
-        nucleosSessao.map(n => `<option value="${n.id}">${n.nome}</option>`).join('');
+// ============ NAVEGAÇÃO DETALHES DA SESSÃO ============
+// ============ NAVEGAÇÃO DETALHES DA SESSÃO ============
+async function abrirDetalhesSessao(id) {
+    const s = sessoesCache.find(x => x.id === id);
+    if (!s) return;
 
-    // Preenche o filtro da página
-    const selectFiltro = document.getElementById('filtro-nucleo-sessao');
-    if(selectFiltro) selectFiltro.innerHTML = optionsHtml;
+    // 👇 FORÇA A ATUALIZAÇÃO DOS CACHES ANTES DE LER A SESSÃO 👇
+    if (nodesCache.length === 0) await carregarMundo();
+    try {
+        const resE = await fetch(`/cronicas/${cronicaId}/eventos`, { headers: { 'Authorization': `Bearer ${token}` } });
+        if (resE.ok) eventosCache = await resE.json();
+        
+        const resA = await fetch(`/cronicas/${cronicaId}/automacoes`, { headers: { 'Authorization': `Bearer ${token}` } });
+        if (resA.ok) automacoesCache = await resA.json();
+    } catch (e) {
+        console.warn("Aviso: Falha ao puxar eventos/automações atualizados.", e);
+    }
+    // 👆 ==================================================== 👆
+
+    // Esconde o índice (grid + cabeçalho) e mostra a página de leitura
+    document.getElementById('grid-sessoes').style.display = 'none';
     
-    // Preenche o select dentro da modal
-    const selectModal = document.getElementById('sessao-nucleo-id');
-    if(selectModal) selectModal.innerHTML = optionsModalHtml;
+    // Ocultar o cabeçalho da tab (o primeiro elemento filho direto)
+    const tabCabecalho = document.querySelector('#tab-sessoes > div:first-child');
+    if (tabCabecalho) tabCabecalho.style.display = 'none';
+    
+    document.getElementById('sessao-detalhes').style.display = 'block';
+
+    // Preenche os dados
+    document.getElementById('detalhe-titulo').innerText = s.titulo;
+    document.getElementById('detalhe-meta').innerText = `Data: ${formatarData(s.data_sessao)} | Status: ${s.status.toUpperCase()}`;
+    document.getElementById('detalhe-resumo').innerText = s.resumo || 'Ainda não há registros escritos para este encontro.';
+
+    // Entidades
+    const ulEntidades = document.getElementById('detalhe-entidades');
+    const entidadesIds = s.entidades || [];
+    ulEntidades.innerHTML = entidadesIds.map(nodeId => {
+        const node = nodesCache.find(n => n.id === nodeId);
+        return `<li>👤 ${node ? node.nome : 'Entidade Desconhecida'}</li>`;
+    }).join('') || '<li style="color: var(--texto-mutado);">Nenhuma entidade atrelada.</li>';
+
+    // Eventos e Automações
+    const ulEventos = document.getElementById('detalhe-eventos');
+    const eventosIds = s.eventos || [];
+    let eventosHtml = eventosIds.map(evId => {
+        const ev = eventosCache.find(e => e.id === evId);
+        return `<li>📅 <strong style="color: var(--destaque);">${ev ? ev.nome : 'Evento Desconhecido'}</strong></li>`;
+    }).join('');
+    
+    const automacoesIds = s.automacoes || [];
+    let automacoesHtml = automacoesIds.map(autoId => {
+        const auto = automacoesCache.find(a => a.id === autoId);
+        return `<li>⚡ Automação: ${auto ? (auto.tipo_nome + ' via ' + auto.evento_nome) : 'Desconhecida'}</li>`;
+    }).join('');
+    
+    ulEventos.innerHTML = eventosHtml + automacoesHtml || '<li style="color: var(--texto-mutado);">Nenhum evento ou automação.</li>';
+
+    // Desfechos
+    const ulDesfechos = document.getElementById('detalhe-desfechos');
+    const desfechos = s.desfechos || [];
+    ulDesfechos.innerHTML = desfechos.map(d => `<li>${d}</li>`).join('') || '<li style="color: var(--texto-mutado);">Nenhum desfecho registrado.</li>';
+
+    // Configura botão de editar
+    document.getElementById('btn-editar-sessao-detalhe').onclick = () => editarSessao(s.id);
+
+    // Atualiza hash da URL (opcional)
+    window.location.hash = `sessao-${s.id}`;
+}
+
+function fecharDetalhesSessao() {
+    document.getElementById('sessao-detalhes').style.display = 'none';
+    document.getElementById('grid-sessoes').style.display = 'grid';
+    const tabCabecalho = document.querySelector('#tab-sessoes > div:first-child');
+    if (tabCabecalho) tabCabecalho.style.display = 'flex';
+    window.location.hash = ''; // limpa hash
+}
+
+// Verifica hash ao carregar a página ou ao mudar
+window.addEventListener('hashchange', () => {
+    const hash = window.location.hash;
+    if (hash.startsWith('#sessao-')) {
+        const id = hash.replace('#sessao-', '');
+        if (sessoesCache.length > 0) {
+            abrirDetalhesSessao(id);
+        } else {
+            carregarSessoes().then(() => abrirDetalhesSessao(id));
+        }
+    }
+});
+
+// Durante a inicialização, verifica se já há hash
+(async function iniciar() {
+    const temAcesso = await verificarAcesso();
+    if (temAcesso) {
+        await carregarMundo();
+        await carregarNucleos('entidade');
+        await carregarNucleos('sessao');
+        // Se houver hash de sessão, abrir após carregar
+        if (window.location.hash.startsWith('#sessao-')) {
+            const id = window.location.hash.replace('#sessao-', '');
+            if (sessoesCache.length === 0) await carregarSessoes();
+            abrirDetalhesSessao(id);
+        }
+    }
+})();
+
+function preencherSelectsVinculos() {
+    // Entidades
+    const selectEnt = document.getElementById('sessao-entidades');
+    selectEnt.innerHTML = '';
+    nodesCache.forEach(n => {
+        selectEnt.innerHTML += `<option value="${n.id}">${n.nome} (${n.tipo})</option>`;
+    });
+    
+    // Eventos
+    const selectEv = document.getElementById('sessao-eventos');
+    selectEv.innerHTML = '';
+    eventosCache.forEach(e => {
+        selectEv.innerHTML += `<option value="${e.id}">${e.nome}</option>`;
+    });
+    
+    // Automações (precisa ter automacoesCache carregado)
+    const selectAuto = document.getElementById('sessao-automacoes');
+    selectAuto.innerHTML = '';
+    (automacoesCache || []).forEach(a => {
+        selectAuto.innerHTML += `<option value="${a.id}">${a.tipo_nome} (${a.evento_nome})</option>`;
+    });
 }
 
 </script>
