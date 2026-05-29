@@ -566,36 +566,6 @@ app.post('/cronicas/:cronicaId/nodes', verificarToken, async (req, res) => {
 });
 
 // ==========================================
-// MODERAÇÃO DE CONTEÚDO (WORKFLOW)
-// ==========================================
-
-app.get('/cronicas/:cronicaId/moderacao', verificarToken, async (req, res) => {
-    const { cronicaId } = req.params;
-    try {
-        const query = await pool.query(`
-            SELECT * FROM world_nodes 
-            WHERE cronica_id = $1 AND status = 'pendente'
-            ORDER BY criado_em ASC
-        `, [cronicaId]);
-        res.json(query.rows);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ erro: 'Erro ao buscar fila de moderação.' });
-    }
-});
-
-app.put('/cronicas/:cronicaId/nodes/:nodeId/aprovar', verificarToken, async (req, res) => {
-    const { nodeId } = req.params;
-    try {
-        await pool.query("UPDATE world_nodes SET status = 'aprovado' WHERE id = $1", [nodeId]);
-        res.json({ mensagem: 'Entidade aprovada.' });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ erro: 'Erro ao aprovar.' });
-    }
-});
-
-// ==========================================
 // AGENDA DE EVENTOS E POOLS DE TENSÃO
 // ==========================================
 

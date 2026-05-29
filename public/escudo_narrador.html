@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escudo do Narrador</title>
+    <style>
+        :root { 
+            --bg-principal: #121214; 
+            --bg-card: #202024; 
+            --roxo-mago: #9871f5; 
+            --roxo-hover: #7f57df; 
+            --texto-claro: #e1e1e6; 
+            --texto-mutado: #8d8d99; 
+            --borda: #29292e; 
+            --destaque: #50fa7b; 
+            --erro: #f75a68; 
+        }
+        * { box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            background: var(--bg-principal); 
+            color: var(--texto-claro); 
+            margin: 0; 
+            padding: 20px; 
+            height: 100vh; 
+        }
+        .btn { 
+            padding: 8px 16px; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            font-size: 13px; 
+        }
+        .btn-primary { background: var(--roxo-mago); color: #fff; }
+        .btn-primary:hover { background: var(--roxo-hover); }
+        .btn-danger { background: transparent; border: 1px solid #ff5555; color: #ff5555; }
+        .btn-sm { padding: 4px 10px; font-size: 11px; }
+
+        .card { 
+            background: var(--bg-card); 
+            padding: 12px; 
+            border-radius: 8px; 
+            border: 1px solid var(--borda); 
+            margin-bottom: 8px; 
+        }
+        .barra-vida {
+            width: 100%; height: 6px; background: #333; margin-top: 4px; border-radius: 3px; overflow: hidden;
+        }
+        .barra-preenchida {
+            height: 100%; width: 100%; background: var(--destaque); transition: width 0.3s;
+        }
+        .modal-overlay { 
+            display: none; 
+            position: fixed; 
+            inset: 0; 
+            background: rgba(0,0,0,0.85); 
+            justify-content: center; 
+            align-items: center; 
+            z-index: 1000; 
+        }
+        .modal-overlay.show { display: flex; }
+        .modal-box { 
+            background: var(--bg-card); 
+            padding: 25px; 
+            border-radius: 8px; 
+            border: 1px solid var(--roxo-mago); 
+            width: 450px; 
+            max-width: 90%; 
+            max-height: 85vh; 
+            overflow-y: auto; 
+        }
+        .modal-box input, 
+        .modal-box select { 
+            width: 100%; 
+            padding: 10px; 
+            margin-bottom: 10px; 
+            background: var(--bg-principal); 
+            border: 1px solid var(--borda); 
+            color: #fff; 
+            border-radius: 4px;
+        }
+        .modal-box label { 
+            display: block; 
+            margin-bottom: 4px; 
+            color: var(--texto-mutado); 
+            font-size: 12px; 
+        }
+    </style>
+</head>
+<body>
+    <h2>🛡️ Escudo do Narrador Digital</h2>
+
+    <div style="display: flex; gap: 20px; height: calc(100vh - 120px);">
+        <!-- Coluna Esquerda: Iniciativa -->
+        <div style="flex: 1; background: var(--bg-card); border-radius: 8px; padding: 15px; display: flex; flex-direction: column;">
+            <h3 style="color: var(--destaque); margin-bottom: 10px;">⚔️ Iniciativa</h3>
+            <div id="iniciativa-lista" style="flex: 1; overflow-y: auto; margin-bottom: 10px;"></div>
+            <button class="btn btn-primary" onclick="abrirModalAdicionarCombatente()">+ Adicionar Combatente</button>
+            <button class="btn btn-primary" style="margin-top: 5px;" onclick="proximoTurno()">▶️ Próximo Turno</button>
+            <button class="btn btn-sm" style="margin-top: 5px; background: transparent; border: 1px solid var(--borda); color: var(--texto-mutado);" onclick="reiniciarTurnos()">🔄 Reiniciar Turnos</button>
+        </div>
+
+        <div style="flex: 2; background: var(--bg-card); border-radius: 8px; padding: 15px;">
+            <h3 style="color: var(--destaque);">📋 Cena Atual</h3>
+            <p style="color: var(--texto-mutado);">(futuro: eventos ativos, notas rápidas)</p>
+        </div>
+
+        <div style="flex: 1; background: var(--bg-card); border-radius: 8px; padding: 15px;">
+            <h3 style="color: var(--destaque);">📊 Recursos</h3>
+            <p style="color: var(--texto-mutado);">(futuro: barras de vida, tags de efeitos)</p>
+        </div>
+    </div>
+
+    <!-- Modal para adicionar combatente -->
+    <div id="modal-add-combatente" class="modal-overlay">
+        <div class="modal-box">
+            <h3>Adicionar à Iniciativa</h3>
+            <label>Tipo</label>
+            <select id="add-tipo" onchange="atualizarOpcoesCombatente()">
+                <option value="npc">NPC / Entidade</option>
+                <option value="jogador">Jogador (Personagem)</option>
+                <option value="monstro">Monstro / Inimigo Genérico</option>
+            </select>
+            <label>Selecione</label>
+            <select id="add-nome"></select>
+            <div id="form-monstro" style="display: none;">
+                <label>Nome do Monstro</label>
+                <input type="text" id="monstro-nome" placeholder="Ex: Esqueleto Arcano">
+                <label>Vida Máxima</label>
+                <input type="number" id="monstro-vida" value="20" min="1">
+                <label>Iniciativa</label>
+                <input type="number" id="monstro-iniciativa" value="10">
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px;">
+                <button class="btn btn-danger" onclick="fecharModal('modal-add-combatente')">Cancelar</button>
+                <button class="btn btn-primary" onclick="confirmarAdicionarCombatente()">Adicionar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('m20_token');
+        if (!token) window.location.href = '/login.html';
+        const cronicaId = new URLSearchParams(window.location.search).get('id');
+        if (!cronicaId) window.location.href = '/profile.html';
+
+        let nodesCache = [];
+        let personagensCache = [];
+        let iniciativa = [];
+        let turnoAtual = 0;
+
+        function abrirModal(id) { document.getElementById(id).classList.add('show'); }
+        function fecharModal(id) { document.getElementById(id).classList.remove('show'); }
+
+        async function carregarNodes() {
+            try {
+                const res = await fetch(`/cronicas/${cronicaId}/nodes`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) nodesCache = await res.json();
+            } catch (err) { console.warn('Erro ao carregar entidades:', err); }
+        }
+
+        async function carregarPersonagens() {
+            try {
+                const res = await fetch(`/cronicas/${cronicaId}/personagens`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) personagensCache = await res.json();
+            } catch (err) { console.warn('Erro ao carregar personagens:', err); }
+        }
+
+        function abrirModalAdicionarCombatente() {
+            atualizarOpcoesCombatente();
+            abrirModal('modal-add-combatente');
+        }
+
+        function atualizarOpcoesCombatente() {
+            const tipo = document.getElementById('add-tipo').value;
+            const selectNome = document.getElementById('add-nome');
+            const formMonstro = document.getElementById('form-monstro');
+
+            if (tipo === 'monstro') {
+                selectNome.style.display = 'none';
+                formMonstro.style.display = 'block';
+                return;
+            }
+
+            // NPC ou Jogador
+            selectNome.style.display = 'block';
+            formMonstro.style.display = 'none';
+            selectNome.innerHTML = '';
+
+            if (tipo === 'npc') {
+                nodesCache.forEach(n => {
+                    const option = document.createElement('option');
+                    option.value = n.id;
+                    option.textContent = `${n.nome} (${n.tipo})`;
+                    selectNome.appendChild(option);
+                });
+            } else if (tipo === 'jogador') {
+                personagensCache.forEach(p => {
+                    const option = document.createElement('option');
+                    option.value = p.id;
+                    option.textContent = p.nome;
+                    selectNome.appendChild(option);
+                });
+            }
+        }
+
+        async function confirmarAdicionarCombatente() {
+            const tipo = document.getElementById('add-tipo').value;
+
+            if (tipo === 'monstro') {
+                const nome = document.getElementById('monstro-nome').value.trim();
+                if (!nome) return alert('Digite o nome do monstro.');
+                const vidaMax = parseInt(document.getElementById('monstro-vida').value) || 20;
+                iniciativa.push({
+                    id: 'monstro_' + Date.now(),
+                    nome,
+                    tipo: 'monstro',
+                    agiu: false,
+                    recursos: { vida: { atual: vidaMax, max: vidaMax } }
+                });
+                fecharModal('modal-add-combatente');
+                renderizarIniciativa();
+                return;
+            }
+
+            const id = document.getElementById('add-nome').value;
+            if (!id) return alert('Selecione um combatente.');
+
+            let nome = '';
+            if (tipo === 'npc') {
+                const node = nodesCache.find(n => n.id === id);
+                nome = node ? node.nome : 'NPC';
+            } else if (tipo === 'jogador') {
+                const pers = personagensCache.find(p => p.id === id);
+                nome = pers ? pers.nome : 'Jogador';
+                // Aqui você pode fazer fetch extra para recursos da ficha
+            }
+
+            iniciativa.push({ id, nome, tipo, agiu: false, recursos: { vida: { atual: 10, max: 10 } } });
+            fecharModal('modal-add-combatente');
+            renderizarIniciativa();
+        }
+
+        function renderizarIniciativa() {
+            const container = document.getElementById('iniciativa-lista');
+            if (iniciativa.length === 0) {
+                container.innerHTML = '<p style="color: var(--texto-mutado);">Nenhum combatente na iniciativa.</p>';
+                return;
+            }
+
+            container.innerHTML = iniciativa.map((c, index) => {
+                const ativo = index === turnoAtual ? '2px solid var(--destaque)' : '1px solid var(--borda)';
+                const bg = c.agiu ? 'rgba(255,255,255,0.03)' : 'rgba(152,113,245,0.1)';
+                let recursosHtml = '';
+                if (c.recursos && c.recursos.vida) {
+                    const vida = c.recursos.vida;
+                    const pct = Math.round((vida.atual / vida.max) * 100);
+                    const cor = pct > 50 ? 'var(--destaque)' : pct > 25 ? 'orange' : 'red';
+                    recursosHtml = `
+                        <div style="display: flex; align-items: center; gap: 5px; margin-top: 4px;">
+                            <button class="btn btn-sm" style="padding: 0 6px;" onclick="ajustarRecurso(${index}, 'vida', -1)">-</button>
+                            <div class="barra-vida" style="flex:1;">
+                                <div class="barra-preenchida" style="width: ${pct}%; background: ${cor};"></div>
+                            </div>
+                            <span style="font-size:12px; min-width:40px;">${vida.atual}/${vida.max}</span>
+                            <button class="btn btn-sm" style="padding: 0 6px;" onclick="ajustarRecurso(${index}, 'vida', 1)">+</button>
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="card" draggable="true" data-index="${index}"
+                         style="cursor: grab; margin-bottom: 8px; border: ${ativo}; background: ${bg};"
+                         ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="drop(event)">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 14px;">${c.nome} <small style="color: var(--texto-mutado);">(${c.tipo})</small></span>
+                            <div style="display: flex; gap: 5px; align-items: center;">
+                                <button class="btn btn-sm" style="background: transparent; border: none; font-size: 16px;" onclick="toggleAgido(${index})">
+                                    ${c.agiu ? '✅' : '⏳'}
+                                </button>
+                                <button class="btn btn-danger btn-sm" style="padding: 2px 6px;" onclick="removerCombatente(${index})">✕</button>
+                            </div>
+                        </div>
+                        ${recursosHtml}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function ajustarRecurso(index, recurso, delta) {
+            const combatente = iniciativa[index];
+            if (!combatente.recursos || !combatente.recursos[recurso]) return;
+            const rec = combatente.recursos[recurso];
+            rec.atual = Math.min(rec.max, Math.max(0, rec.atual + delta));
+            renderizarIniciativa();
+            // Persistir para jogadores se necessário (endpoint futuro)
+        }
+
+        // Drag and Drop
+        let draggedIndex = null;
+        function dragStart(e) { draggedIndex = parseInt(e.target.closest('.card').dataset.index); e.dataTransfer.effectAllowed = 'move'; }
+        function dragOver(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }
+        function drop(e) {
+            e.preventDefault();
+            const targetCard = e.target.closest('.card');
+            if (!targetCard || draggedIndex === null) return;
+            const targetIndex = parseInt(targetCard.dataset.index);
+            if (draggedIndex === targetIndex) return;
+            const [moved] = iniciativa.splice(draggedIndex, 1);
+            iniciativa.splice(targetIndex, 0, moved);
+            if (turnoAtual === draggedIndex) turnoAtual = targetIndex;
+            else if (draggedIndex < turnoAtual && targetIndex >= turnoAtual) turnoAtual--;
+            else if (draggedIndex > turnoAtual && targetIndex <= turnoAtual) turnoAtual++;
+            draggedIndex = null;
+            renderizarIniciativa();
+        }
+
+        function toggleAgido(index) { iniciativa[index].agiu = !iniciativa[index].agiu; renderizarIniciativa(); }
+        function removerCombatente(index) {
+            if (!confirm(`Remover ${iniciativa[index].nome} da iniciativa?`)) return;
+            iniciativa.splice(index, 1);
+            if (turnoAtual >= iniciativa.length) turnoAtual = Math.max(0, iniciativa.length - 1);
+            renderizarIniciativa();
+        }
+        function proximoTurno() {
+            if (iniciativa.length === 0) return;
+            turnoAtual = (turnoAtual + 1) % iniciativa.length;
+            if (turnoAtual === 0) iniciativa.forEach(c => c.agiu = false);
+            renderizarIniciativa();
+        }
+        function reiniciarTurnos() { turnoAtual = 0; iniciativa.forEach(c => c.agiu = false); renderizarIniciativa(); }
+
+        (async function iniciar() {
+            await Promise.all([carregarNodes(), carregarPersonagens()]);
+            renderizarIniciativa();
+        })();
+    </script>
+</body>
+</html>
