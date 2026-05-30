@@ -91,6 +91,9 @@
 </head>
 <body>
     <h2>🛡️ Escudo do Narrador Digital</h2>
+    <div style="margin-bottom: 15px;">
+    <a href="/painel_narrador.html?id=${cronicaId}" id="btn-voltar-comunidade" style="color: var(--texto-mutado); text-decoration: none; font-size: 14px; display: inline-block; padding: 6px 12px; background: var(--bg-card); border: 1px solid var(--borda); border-radius: 4px; transition: 0.2s;" onmouseover="this.style.borderColor='var(--roxo-mago)'; this.style.color='var(--roxo-mago)'" onmouseout="this.style.borderColor='var(--borda)'; this.style.color='var(--texto-mutado)'">← Voltar à Comunidade</a>
+    </div>
     <div style="display: flex; gap: 20px; height: calc(100vh - 120px);">
         <div style="flex: 1; background: var(--bg-card); border-radius: 8px; padding: 15px; display: flex; flex-direction: column;">
             <h3 style="color: var(--destaque); margin-bottom: 10px;">⚔️ Iniciativa</h3>
@@ -147,6 +150,8 @@
         if (!token) window.location.href = '/login.html';
         const cronicaId = new URLSearchParams(window.location.search).get('id');
         if (!cronicaId) window.location.href = '/profile.html';
+
+        document.getElementById('btn-voltar-comunidade').href = `/painel_narrador.html?id=${cronicaId}`;
 
         let nodesCache = [];
         let personagensCache = [];
