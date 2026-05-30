@@ -353,5 +353,45 @@ router.put('/:id/vincular-ficha', verificarToken, async (req, res) => {
     }
 });
 
+// Vincular personagem a uma crônica
+router.put('/:cronicaId/vincular-personagem', verificarToken, async (req, res) => {
+    const { cronicaId } = req.params;
+    const { personagem_id } = req.body;
+    const usuarioId = req.usuario.id;
+
+    try {
+        // Verifica se o usuário é membro da crônica
+        const membro = await pool.query(
+            'SELECT 1 FROM cronica_jogadores WHERE cronica_id = $1 AND usuario_id = $2',
+            [cronicaId, usuarioId]
+        );
+        if (membro.rows.length === 0) {
+            return res.status(403).json({ erro: 'Você não está registrado nesta crônica.' });
+        }
+
+        // Verifica se o personagem pertence ao usuário
+        const personagem = await pool.query(
+            'SELECT 1 FROM personagens WHERE id = $1 AND usuario_id = $2',
+            [personagem_id, usuarioId]
+        );
+        if (personagem.rows.length === 0) {
+            return res.status(404).json({ erro: 'Personagem não encontrado ou não pertence a você.' });
+        }
+
+        // Vincula o personagem à crônica
+        // (assumindo que a tabela personagens tem uma coluna cronica_id)
+        await pool.query(
+            'UPDATE personagens SET cronica_id = $1 WHERE id = $2',
+            [cronicaId, personagem_id]
+        );
+
+        res.json({ mensagem: 'Personagem vinculado à mesa com sucesso!' });
+    } catch (err) {
+        console.error('Erro ao vincular personagem:', err);
+        res.status(500).json({ erro: 'Erro ao vincular personagem.' });
+    }
+});
+
+
 // Exporta o roteador
 module.exports = router;

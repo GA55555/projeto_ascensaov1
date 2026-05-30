@@ -37,63 +37,61 @@
         .btn-primary:hover { background: var(--roxo-hover); }
         .btn-danger { background: transparent; border: 1px solid #ff5555; color: #ff5555; }
         .btn-sm { padding: 4px 10px; font-size: 11px; }
-
         .card { 
             background: var(--bg-card); 
             padding: 12px; 
             border-radius: 8px; 
             border: 1px solid var(--borda); 
             margin-bottom: 8px; 
+            user-select: none;
         }
-        .barra-vida {
-            width: 100%; height: 6px; background: #333; margin-top: 4px; border-radius: 3px; overflow: hidden;
+        .barra-vida-container {
+            width: 100%; height: 18px; background: #333; margin-top: 6px; border-radius: 4px;
+            cursor: pointer; position: relative; overflow: visible;
         }
         .barra-preenchida {
-            height: 100%; width: 100%; background: var(--destaque); transition: width 0.3s;
+            height: 100%; border-radius: 4px; transition: width 0.1s ease;
+            pointer-events: none;
         }
+        .barra-label {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 11px; font-weight: bold; color: #fff; text-shadow: 0 0 2px #000;
+            pointer-events: none;
+        }
+        .niveis-container {
+            display: flex; gap: 4px; margin-top: 6px; align-items: center;
+        }
+        .nivel-box {
+            width: 24px; height: 24px; border: 1px solid var(--borda); border-radius: 3px;
+            background: var(--bg-principal); cursor: pointer; display: flex;
+            align-items: center; justify-content: center; font-size: 14px; font-weight: bold;
+            transition: 0.2s;
+        }
+        .nivel-vazio { color: transparent; }
+        .nivel-contusivo { background: rgba(80,250,123,0.3); color: var(--destaque); }
+        .nivel-letal { background: rgba(255,165,0,0.3); color: orange; }
+        .nivel-agravado { background: rgba(255,85,85,0.3); color: #ff5555; }
+        .penalidade-texto { font-size: 11px; color: var(--texto-mutado); margin-left: 8px; }
         .modal-overlay { 
-            display: none; 
-            position: fixed; 
-            inset: 0; 
-            background: rgba(0,0,0,0.85); 
-            justify-content: center; 
-            align-items: center; 
-            z-index: 1000; 
+            display: none; position: fixed; inset: 0; 
+            background: rgba(0,0,0,0.85); justify-content: center; align-items: center; z-index: 1000; 
         }
         .modal-overlay.show { display: flex; }
         .modal-box { 
-            background: var(--bg-card); 
-            padding: 25px; 
-            border-radius: 8px; 
-            border: 1px solid var(--roxo-mago); 
-            width: 450px; 
-            max-width: 90%; 
-            max-height: 85vh; 
-            overflow-y: auto; 
+            background: var(--bg-card); padding: 25px; border-radius: 8px; 
+            border: 1px solid var(--roxo-mago); width: 450px; max-width: 90%; max-height: 85vh; overflow-y: auto; 
         }
-        .modal-box input, 
-        .modal-box select { 
-            width: 100%; 
-            padding: 10px; 
-            margin-bottom: 10px; 
-            background: var(--bg-principal); 
-            border: 1px solid var(--borda); 
-            color: #fff; 
-            border-radius: 4px;
+        .modal-box input, .modal-box select { 
+            width: 100%; padding: 10px; margin-bottom: 10px; 
+            background: var(--bg-principal); border: 1px solid var(--borda); color: #fff; border-radius: 4px;
         }
-        .modal-box label { 
-            display: block; 
-            margin-bottom: 4px; 
-            color: var(--texto-mutado); 
-            font-size: 12px; 
-        }
+        .modal-box label { display: block; margin-bottom: 4px; color: var(--texto-mutado); font-size: 12px; }
     </style>
 </head>
 <body>
     <h2>🛡️ Escudo do Narrador Digital</h2>
-
     <div style="display: flex; gap: 20px; height: calc(100vh - 120px);">
-        <!-- Coluna Esquerda: Iniciativa -->
         <div style="flex: 1; background: var(--bg-card); border-radius: 8px; padding: 15px; display: flex; flex-direction: column;">
             <h3 style="color: var(--destaque); margin-bottom: 10px;">⚔️ Iniciativa</h3>
             <div id="iniciativa-lista" style="flex: 1; overflow-y: auto; margin-bottom: 10px;"></div>
@@ -101,19 +99,17 @@
             <button class="btn btn-primary" style="margin-top: 5px;" onclick="proximoTurno()">▶️ Próximo Turno</button>
             <button class="btn btn-sm" style="margin-top: 5px; background: transparent; border: 1px solid var(--borda); color: var(--texto-mutado);" onclick="reiniciarTurnos()">🔄 Reiniciar Turnos</button>
         </div>
-
         <div style="flex: 2; background: var(--bg-card); border-radius: 8px; padding: 15px;">
             <h3 style="color: var(--destaque);">📋 Cena Atual</h3>
-            <p style="color: var(--texto-mutado);">(futuro: eventos ativos, notas rápidas)</p>
+            <p style="color: var(--texto-mutado);">(futuro)</p>
         </div>
-
         <div style="flex: 1; background: var(--bg-card); border-radius: 8px; padding: 15px;">
             <h3 style="color: var(--destaque);">📊 Recursos</h3>
-            <p style="color: var(--texto-mutado);">(futuro: barras de vida, tags de efeitos)</p>
+            <p style="color: var(--texto-mutado);">(futuro)</p>
         </div>
     </div>
 
-    <!-- Modal para adicionar combatente -->
+    <!-- Modal Adicionar Combatente -->
     <div id="modal-add-combatente" class="modal-overlay">
         <div class="modal-box">
             <h3>Adicionar à Iniciativa</h3>
@@ -125,11 +121,17 @@
             </select>
             <label>Selecione</label>
             <select id="add-nome"></select>
+            <div id="form-vida" style="display: none;">
+                <label>Vida Máxima</label>
+                <input type="number" id="vida-max" value="10" min="1">
+            </div>
             <div id="form-monstro" style="display: none;">
                 <label>Nome do Monstro</label>
                 <input type="text" id="monstro-nome" placeholder="Ex: Esqueleto Arcano">
-                <label>Vida Máxima</label>
-                <input type="number" id="monstro-vida" value="20" min="1">
+                <div id="monstro-vida-container">
+                    <label>Vida Máxima</label>
+                    <input type="number" id="monstro-vida" value="20" min="1">
+                </div>
                 <label>Iniciativa</label>
                 <input type="number" id="monstro-iniciativa" value="10">
             </div>
@@ -148,6 +150,7 @@
 
         let nodesCache = [];
         let personagensCache = [];
+        let sistemaCrônica = 'padrão';
         let iniciativa = [];
         let turnoAtual = 0;
 
@@ -155,21 +158,27 @@
         function fecharModal(id) { document.getElementById(id).classList.remove('show'); }
 
         async function carregarNodes() {
-            try {
-                const res = await fetch(`/cronicas/${cronicaId}/nodes`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (res.ok) nodesCache = await res.json();
-            } catch (err) { console.warn('Erro ao carregar entidades:', err); }
+        try {
+            const res = await fetch(`/cronicas/${cronicaId}/nodes`, { headers: { 'Authorization': `Bearer ${token}` } });
+            if (res.ok) nodesCache = await res.json();
+        } catch (err) { /* silencioso */ }
         }
 
         async function carregarPersonagens() {
-            try {
-                const res = await fetch(`/cronicas/${cronicaId}/personagens`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (res.ok) personagensCache = await res.json();
-            } catch (err) { console.warn('Erro ao carregar personagens:', err); }
+        try {
+        const res = await fetch(`/cronicas/${cronicaId}/personagens`, { headers: { 'Authorization': `Bearer ${token}` } });
+        if (res.ok) personagensCache = await res.json();
+        } catch (err) { /* silencioso */ }
+        }
+
+        async function detectarSistema() {
+        try {
+        const res = await fetch(`/cronicas/${cronicaId}/comunidade`, { headers: { 'Authorization': `Bearer ${token}` } });
+        if (res.ok) {
+            const dados = await res.json();
+            sistemaCrônica = dados.cronica?.sistema || 'padrão';
+        }
+        } catch (err) { /* silencioso */ }
         }
 
         function abrirModalAdicionarCombatente() {
@@ -181,18 +190,23 @@
             const tipo = document.getElementById('add-tipo').value;
             const selectNome = document.getElementById('add-nome');
             const formMonstro = document.getElementById('form-monstro');
+            const formVida = document.getElementById('form-vida');
+            const monstroVidaContainer = document.getElementById('monstro-vida-container');
+
+            formMonstro.style.display = (tipo === 'monstro') ? 'block' : 'none';
+            selectNome.style.display = (tipo === 'monstro') ? 'none' : 'block';
 
             if (tipo === 'monstro') {
-                selectNome.style.display = 'none';
-                formMonstro.style.display = 'block';
-                return;
+                monstroVidaContainer.style.display = (sistemaCrônica === 'mago_m20') ? 'none' : 'block';
             }
 
-            // NPC ou Jogador
-            selectNome.style.display = 'block';
-            formMonstro.style.display = 'none';
-            selectNome.innerHTML = '';
+            if (tipo === 'npc' || tipo === 'jogador') {
+                formVida.style.display = (sistemaCrônica === 'mago_m20') ? 'none' : 'block';
+            }
 
+            if (tipo === 'monstro') return;
+
+            selectNome.innerHTML = '';
             if (tipo === 'npc') {
                 nodesCache.forEach(n => {
                     const option = document.createElement('option');
@@ -201,6 +215,10 @@
                     selectNome.appendChild(option);
                 });
             } else if (tipo === 'jogador') {
+                if (personagensCache.length === 0) {
+                    selectNome.innerHTML = '<option value="">Nenhum personagem vinculado à mesa</option>';
+                    return;
+                }
                 personagensCache.forEach(p => {
                     const option = document.createElement('option');
                     option.value = p.id;
@@ -212,39 +230,40 @@
 
         async function confirmarAdicionarCombatente() {
             const tipo = document.getElementById('add-tipo').value;
+            let nome, id, recursos;
 
             if (tipo === 'monstro') {
-                const nome = document.getElementById('monstro-nome').value.trim();
+                nome = document.getElementById('monstro-nome').value.trim();
                 if (!nome) return alert('Digite o nome do monstro.');
-                const vidaMax = parseInt(document.getElementById('monstro-vida').value) || 20;
-                iniciativa.push({
-                    id: 'monstro_' + Date.now(),
-                    nome,
-                    tipo: 'monstro',
-                    agiu: false,
-                    recursos: { vida: { atual: vidaMax, max: vidaMax } }
-                });
-                fecharModal('modal-add-combatente');
-                renderizarIniciativa();
-                return;
+                id = 'monstro_' + Date.now();
+                recursos = (sistemaCrônica === 'mago_m20') ? criarRecursosStoryteller() : criarRecursosBarra(parseInt(document.getElementById('monstro-vida').value) || 20);
+            } else {
+                const selectNome = document.getElementById('add-nome');
+                const selectedId = selectNome.value;
+                if (!selectedId) return alert('Selecione um combatente.');
+
+                if (tipo === 'npc') {
+                    const node = nodesCache.find(n => n.id === selectedId);
+                    nome = node ? node.nome : 'NPC';
+                } else if (tipo === 'jogador') {
+                    const pers = personagensCache.find(p => p.id === selectedId);
+                    nome = pers ? pers.nome : 'Jogador';
+                }
+                id = selectedId;
+                recursos = (sistemaCrônica === 'mago_m20') ? criarRecursosStoryteller() : criarRecursosBarra(parseInt(document.getElementById('vida-max').value) || 10);
             }
 
-            const id = document.getElementById('add-nome').value;
-            if (!id) return alert('Selecione um combatente.');
-
-            let nome = '';
-            if (tipo === 'npc') {
-                const node = nodesCache.find(n => n.id === id);
-                nome = node ? node.nome : 'NPC';
-            } else if (tipo === 'jogador') {
-                const pers = personagensCache.find(p => p.id === id);
-                nome = pers ? pers.nome : 'Jogador';
-                // Aqui você pode fazer fetch extra para recursos da ficha
-            }
-
-            iniciativa.push({ id, nome, tipo, agiu: false, recursos: { vida: { atual: 10, max: 10 } } });
+            iniciativa.push({ id, nome, tipo, agiu: false, recursos });
             fecharModal('modal-add-combatente');
             renderizarIniciativa();
+        }
+
+        function criarRecursosStoryteller() {
+            return { vida: { tipo: 'storyteller', niveis: [0,0,0,0,0,0,0] } };
+        }
+
+        function criarRecursosBarra(max) {
+            return { vida: { tipo: 'barra', atual: max, max } };
         }
 
         function renderizarIniciativa() {
@@ -253,37 +272,20 @@
                 container.innerHTML = '<p style="color: var(--texto-mutado);">Nenhum combatente na iniciativa.</p>';
                 return;
             }
-
             container.innerHTML = iniciativa.map((c, index) => {
                 const ativo = index === turnoAtual ? '2px solid var(--destaque)' : '1px solid var(--borda)';
                 const bg = c.agiu ? 'rgba(255,255,255,0.03)' : 'rgba(152,113,245,0.1)';
                 let recursosHtml = '';
-                if (c.recursos && c.recursos.vida) {
-                    const vida = c.recursos.vida;
-                    const pct = Math.round((vida.atual / vida.max) * 100);
-                    const cor = pct > 50 ? 'var(--destaque)' : pct > 25 ? 'orange' : 'red';
-                    recursosHtml = `
-                        <div style="display: flex; align-items: center; gap: 5px; margin-top: 4px;">
-                            <button class="btn btn-sm" style="padding: 0 6px;" onclick="ajustarRecurso(${index}, 'vida', -1)">-</button>
-                            <div class="barra-vida" style="flex:1;">
-                                <div class="barra-preenchida" style="width: ${pct}%; background: ${cor};"></div>
-                            </div>
-                            <span style="font-size:12px; min-width:40px;">${vida.atual}/${vida.max}</span>
-                            <button class="btn btn-sm" style="padding: 0 6px;" onclick="ajustarRecurso(${index}, 'vida', 1)">+</button>
-                        </div>
-                    `;
+                if (c.recursos?.vida) {
+                    recursosHtml = (c.recursos.vida.tipo === 'storyteller') ? renderizarNiveisSaude(c, index) : renderizarBarraVida(c, index);
                 }
-
                 return `
-                    <div class="card" draggable="true" data-index="${index}"
-                         style="cursor: grab; margin-bottom: 8px; border: ${ativo}; background: ${bg};"
+                    <div class="card" draggable="true" data-index="${index}" style="cursor: grab; margin-bottom: 8px; border: ${ativo}; background: ${bg};"
                          ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="drop(event)">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <span style="font-size: 14px;">${c.nome} <small style="color: var(--texto-mutado);">(${c.tipo})</small></span>
                             <div style="display: flex; gap: 5px; align-items: center;">
-                                <button class="btn btn-sm" style="background: transparent; border: none; font-size: 16px;" onclick="toggleAgido(${index})">
-                                    ${c.agiu ? '✅' : '⏳'}
-                                </button>
+                                <button class="btn btn-sm" style="background: transparent; border: none; font-size: 16px;" onclick="toggleAgido(${index})">${c.agiu ? '✅' : '⏳'}</button>
                                 <button class="btn btn-danger btn-sm" style="padding: 2px 6px;" onclick="removerCombatente(${index})">✕</button>
                             </div>
                         </div>
@@ -293,16 +295,63 @@
             }).join('');
         }
 
-        function ajustarRecurso(index, recurso, delta) {
-            const combatente = iniciativa[index];
-            if (!combatente.recursos || !combatente.recursos[recurso]) return;
-            const rec = combatente.recursos[recurso];
-            rec.atual = Math.min(rec.max, Math.max(0, rec.atual + delta));
-            renderizarIniciativa();
-            // Persistir para jogadores se necessário (endpoint futuro)
+        function renderizarBarraVida(c, index) {
+            const vida = c.recursos.vida;
+            const pct = Math.round((vida.atual / vida.max) * 100);
+            const cor = pct > 50 ? 'var(--destaque)' : pct > 25 ? 'orange' : 'red';
+            return `<div class="barra-vida-container" onmousedown="iniciarArrasteVida(event, ${index})">
+                <div class="barra-preenchida" style="width: ${pct}%; background: ${cor};"></div>
+                <div class="barra-label">${vida.atual}/${vida.max}</div>
+            </div>`;
         }
 
-        // Drag and Drop
+        function renderizarNiveisSaude(c, index) {
+            const niveis = c.recursos.vida.niveis;
+            let boxesHtml = '';
+            niveis.forEach((n, i) => {
+                let classe = 'nivel-vazio', simbolo = '';
+                if (n === 1) { classe = 'nivel-contusivo'; simbolo = '/'; }
+                else if (n === 2) { classe = 'nivel-letal'; simbolo = 'X'; }
+                else if (n === 3) { classe = 'nivel-agravado'; simbolo = '*'; }
+                boxesHtml += `<div class="nivel-box ${classe}" onclick="ciclarNivelSaude(${index}, ${i})">${simbolo}</div>`;
+            });
+            const danoCount = niveis.filter(n => n > 0).length;
+            let penalidade = 0, penalidadeStr = '';
+            if (danoCount >= 7) penalidadeStr = '💀 Morto';
+            else if (danoCount >= 6) penalidadeStr = '🚫 Incapacitado';
+            else {
+                if (danoCount >= 5) penalidade = 5;
+                else if (danoCount >= 4) penalidade = 2;
+                else if (danoCount >= 2) penalidade = 1;
+                penalidadeStr = penalidade > 0 ? `-${penalidade} dados` : (danoCount === 1 ? 'Machucado' : 'Saudável');
+            }
+            return `<div class="niveis-container">${boxesHtml}<span class="penalidade-texto">${penalidadeStr}</span></div>`;
+        }
+
+        function ciclarNivelSaude(idx, nivIdx) {
+            iniciativa[idx].recursos.vida.niveis[nivIdx] = (iniciativa[idx].recursos.vida.niveis[nivIdx] + 1) % 4;
+            renderizarIniciativa();
+        }
+
+        function iniciarArrasteVida(e, index) {
+            e.stopPropagation();
+            const container = e.currentTarget, rect = container.getBoundingClientRect(), maxVida = iniciativa[index].recursos.vida.max;
+            const atualizar = (clientX) => {
+                let pct = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+                iniciativa[index].recursos.vida.atual = Math.round(pct * maxVida);
+                const pre = container.querySelector('.barra-preenchida'), lab = container.querySelector('.barra-label');
+                if (pre) { pre.style.width = Math.round(pct*100)+'%'; pre.style.background = pct > 0.5 ? 'var(--destaque)' : pct > 0.25 ? 'orange' : 'red'; }
+                if (lab) lab.textContent = `${iniciativa[index].recursos.vida.atual}/${maxVida}`;
+            };
+            document.addEventListener('mousemove', function move(e) { e.preventDefault(); atualizar(e.clientX); });
+            document.addEventListener('mouseup', function up() {
+                document.removeEventListener('mousemove', move);
+                document.removeEventListener('mouseup', up);
+                renderizarIniciativa();
+            }, { once: true });
+            atualizar(e.clientX);
+        }
+
         let draggedIndex = null;
         function dragStart(e) { draggedIndex = parseInt(e.target.closest('.card').dataset.index); e.dataTransfer.effectAllowed = 'move'; }
         function dragOver(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }
@@ -320,7 +369,6 @@
             draggedIndex = null;
             renderizarIniciativa();
         }
-
         function toggleAgido(index) { iniciativa[index].agiu = !iniciativa[index].agiu; renderizarIniciativa(); }
         function removerCombatente(index) {
             if (!confirm(`Remover ${iniciativa[index].nome} da iniciativa?`)) return;
@@ -337,7 +385,7 @@
         function reiniciarTurnos() { turnoAtual = 0; iniciativa.forEach(c => c.agiu = false); renderizarIniciativa(); }
 
         (async function iniciar() {
-            await Promise.all([carregarNodes(), carregarPersonagens()]);
+            await Promise.all([carregarNodes(), carregarPersonagens(), detectarSistema()]);
             renderizarIniciativa();
         })();
     </script>

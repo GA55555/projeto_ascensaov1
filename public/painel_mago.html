@@ -80,21 +80,22 @@
 
             // 4. Agora sim, percorre os dados com segurança
             magos.forEach(mago => {
-                lista.innerHTML += `
-                    <div class="card-mago">
-                        <h3>${mago.nome}</h3>
-                        <p><strong>Tradição/Afiliação:</strong> ${mago.tradicao} | <strong>Conceito:</strong> ${mago.conceito}</p>
-                        <p><strong>Natureza:</strong> ${mago.natureza} | <strong>Comportamento:</strong> ${mago.comportamento}</p>
-                        <p><strong>Arete:</strong> ${mago.arete}</p>
-                        <small>ID Seguro (UUID): ${mago.id}</small>
-                        <div class="acoes">
-                            <a href="/evoluir_mago.html?id=${mago.id}" class="btn-evoluir">Evoluir com EXP</a>
-                            <button class="btn-excluir" onclick="deletarMago('${mago.id}')">Excluir Ficha</button>
-                        </div>
-                    </div>
-                `;
+            lista.innerHTML += `
+            <div class="card-mago">
+            <h3>${mago.nome}</h3>
+            <p><strong>Tradição/Afiliação:</strong> ${mago.tradicao} | <strong>Conceito:</strong> ${mago.conceito}</p>
+            <p><strong>Natureza:</strong> ${mago.natureza} | <strong>Comportamento:</strong> ${mago.comportamento}</p>
+            <p><strong>Arete:</strong> ${mago.arete}</p>
+            <small>ID Seguro (UUID): ${mago.id}</small>
+            <div class="acoes">
+                <a href="/evoluir_mago.html?id=${mago.id}" class="btn-evoluir">Evoluir com EXP</a>
+                <button style="background: #29292e; border: 1px solid #50fa7b; color: #50fa7b; font-size: 12px; padding: 6px 12px; cursor: pointer; border-radius: 4px;" onclick="abrirModalVinculacao('${mago.id}')">🔗 Vincular a Mesa</button>
+                <button class="btn-excluir" onclick="deletarMago('${mago.id}')">Excluir Ficha</button>
+            </div>
+            </div>
+            `;
             });
-        }
+        }   
 
         async function deletarMago(id) {
             if (confirm("Deseja apagar permanentemente este Mago do Grimório?")) {
@@ -114,8 +115,84 @@
                 }
             }
         }
+// Abre o modal de vinculação, carregando as crônicas do jogador
+async function abrirModalVinculacao(personagemId) {
+    document.getElementById('vincular-personagem-id').value = personagemId;
+    document.getElementById('modal-vincular').style.display = 'flex';
 
+    const select = document.getElementById('vincular-cronica-id');
+    select.innerHTML = '<option value="">Carregando...</option>';
+
+    try {
+        const token = localStorage.getItem('m20_token');
+        const res = await fetch('/cronicas/jogador', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error('Erro ao carregar mesas.');
+        
+        const cronicas = await res.json();
+        select.innerHTML = '<option value="">Selecione uma mesa...</option>';
+        cronicas.forEach(c => {
+            select.innerHTML += `<option value="${c.id}">${c.nome} (${c.sistema || 'Sistema'})</option>`;
+        });
+
+        if (cronicas.length === 0) {
+            select.innerHTML = '<option value="">Você não está registrado em nenhuma mesa.</option>';
+        }
+    } catch (err) {
+        select.innerHTML = '<option value="">Erro ao carregar mesas.</option>';
+        console.error(err);
+    }
+}
+
+// Vincula o personagem à crônica selecionada
+async function vincularPersonagem() {
+    const personagemId = document.getElementById('vincular-personagem-id').value;
+    const cronicaId = document.getElementById('vincular-cronica-id').value;
+
+    if (!cronicaId) return alert('Selecione uma mesa.');
+
+    try {
+        const token = localStorage.getItem('m20_token');
+        const res = await fetch(`/cronicas/${cronicaId}/vincular-personagem`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ personagem_id: personagemId })
+        });
+
+        if (res.ok) {
+            alert('Personagem vinculado à mesa com sucesso!');
+            document.getElementById('modal-vincular').style.display = 'none';
+        } else {
+            const erro = await res.json();
+            alert(erro.erro || 'Erro ao vincular.');
+        }
+    } catch (err) {
+        alert('Erro de conexão.');
+    }
+}
         carregarMagos();
     </script>
+
+    <!-- Modal de Vinculação -->
+<div id="modal-vincular" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 1000;">
+    <div style="background: #202024; padding: 30px; border-radius: 8px; border: 1px solid #9871f5; width: 450px; max-width: 90%;">
+        <h3 style="color: #50fa7b; margin-top: 0;">🔗 Vincular Mago a uma Mesa</h3>
+        <p style="color: #8d8d99; font-size: 13px;">Selecione a mesa onde este personagem será usado.</p>
+        <input type="hidden" id="vincular-personagem-id">
+        <label style="display: block; margin-bottom: 5px; color: #8d8d99;">Mesa (Crônica)</label>
+        <select id="vincular-cronica-id" style="width: 100%; padding: 10px; margin-bottom: 20px; background: #121214; border: 1px solid #29292e; color: #fff; border-radius: 4px;">
+            <option value="">Carregando mesas...</option>
+        </select>
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+            <button onclick="document.getElementById('modal-vincular').style.display='none'" style="padding: 10px 15px; background: transparent; border: 1px solid #8d8d99; color: #e1e1e6; border-radius: 4px; cursor: pointer;">Cancelar</button>
+            <button onclick="vincularPersonagem()" style="padding: 10px 15px; background: #9871f5; border: none; color: white; border-radius: 4px; cursor: pointer; font-weight: bold;">Vincular</button>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>

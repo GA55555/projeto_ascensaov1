@@ -1469,6 +1469,40 @@ app.delete('/cronicas/:cronicaId/sessao-nucleos/:nucleoId', verificarToken, asyn
     } catch (err) { res.status(500).json({ erro: 'Erro ao excluir núcleo.' }); }
 });
 
+// Listar crônicas onde o jogador está registrado
+app.get('/cronicas/jogador', verificarToken, async (req, res) => {
+    const usuarioId = req.usuario.id;
+    try {
+        const query = await pool.query(`
+            SELECT c.id, c.nome, c.sistema
+            FROM cronicas c
+            JOIN cronica_jogadores cj ON c.id = cj.cronica_id
+            WHERE cj.usuario_id = $1
+            ORDER BY c.nome ASC
+        `, [usuarioId]);
+        res.json(query.rows);
+    } catch (err) {
+        console.error('Erro ao buscar crônicas do jogador:', err);
+        res.status(500).json({ erro: 'Erro ao buscar crônicas.' });
+    }
+});
+
+// Listar personagens vinculados a uma crônica (para o Escudo do Narrador)
+app.get('/cronicas/:cronicaId/personagens', verificarToken, async (req, res) => {
+    const { cronicaId } = req.params;
+    try {
+        const query = await pool.query(`
+            SELECT p.id, p.nome, p.arete, p.dados_ficha
+            FROM personagens p
+            WHERE p.cronica_id = $1
+            ORDER BY p.nome ASC
+        `, [cronicaId]);
+        res.json(query.rows);
+    } catch (err) {
+        console.error('Erro ao buscar personagens:', err);
+        res.status(500).json({ erro: 'Erro ao buscar personagens.' });
+    }
+});
 
 app.use('/auth', authRoutes);
 app.use('/personagens', personagensRoutes);
