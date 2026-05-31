@@ -21,52 +21,32 @@
             font-family: 'Segoe UI', sans-serif; 
             background: var(--bg-principal); 
             color: var(--texto-claro); 
-            margin: 0; 
-            padding: 20px; 
-            height: 100vh; 
+            margin: 0; padding: 20px; height: 100vh; 
         }
-        .btn { 
-            padding: 8px 16px; 
-            border: none; 
-            border-radius: 4px; 
-            cursor: pointer; 
-            font-weight: bold; 
-            font-size: 13px; 
-        }
+        .btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px; }
         .btn-primary { background: var(--roxo-mago); color: #fff; }
         .btn-primary:hover { background: var(--roxo-hover); }
         .btn-danger { background: transparent; border: 1px solid #ff5555; color: #ff5555; }
         .btn-sm { padding: 4px 10px; font-size: 11px; }
         .card { 
-            background: var(--bg-card); 
-            padding: 12px; 
-            border-radius: 8px; 
-            border: 1px solid var(--borda); 
-            margin-bottom: 8px; 
-            user-select: none;
+            background: var(--bg-card); padding: 12px; border-radius: 8px; 
+            border: 1px solid var(--borda); margin-bottom: 8px; user-select: none;
         }
         .barra-vida-container {
             width: 100%; height: 18px; background: #333; margin-top: 6px; border-radius: 4px;
             cursor: pointer; position: relative; overflow: visible;
         }
-        .barra-preenchida {
-            height: 100%; border-radius: 4px; transition: width 0.1s ease;
-            pointer-events: none;
-        }
+        .barra-preenchida { height: 100%; border-radius: 4px; transition: width 0.1s ease; pointer-events: none; }
         .barra-label {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             display: flex; align-items: center; justify-content: center;
-            font-size: 11px; font-weight: bold; color: #fff; text-shadow: 0 0 2px #000;
-            pointer-events: none;
+            font-size: 11px; font-weight: bold; color: #fff; text-shadow: 0 0 2px #000; pointer-events: none;
         }
-        .niveis-container {
-            display: flex; gap: 4px; margin-top: 6px; align-items: center;
-        }
+        .niveis-container { display: flex; gap: 4px; margin-top: 6px; align-items: center; }
         .nivel-box {
             width: 24px; height: 24px; border: 1px solid var(--borda); border-radius: 3px;
             background: var(--bg-principal); cursor: pointer; display: flex;
-            align-items: center; justify-content: center; font-size: 14px; font-weight: bold;
-            transition: 0.2s;
+            align-items: center; justify-content: center; font-size: 14px; font-weight: bold; transition: 0.2s;
         }
         .nivel-vazio { color: transparent; }
         .nivel-contusivo { background: rgba(80,250,123,0.3); color: var(--destaque); }
@@ -87,25 +67,67 @@
             background: var(--bg-principal); border: 1px solid var(--borda); color: #fff; border-radius: 4px;
         }
         .modal-box label { display: block; margin-bottom: 4px; color: var(--texto-mutado); font-size: 12px; }
+        .save-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px; background: var(--bg-principal); border-radius: 4px; margin-bottom: 5px;
+            cursor: pointer; transition: 0.2s;
+        }
+        .save-item:hover { background: #29292e; }
+        .iniciativa-input-card {
+            width: 60px; padding: 4px 6px; background: var(--bg-principal); border: 1px solid var(--borda);
+            color: #fff; border-radius: 4px; text-align: center; font-size: 13px; font-weight: bold;
+        }
+        #editor-cena:empty::before {
+            content: attr(placeholder);
+            color: var(--texto-mutado);
+            pointer-events: none;
+        }
+        #editor-cena img {
+            max-width: 100%;
+            border-radius: 4px;
+        }
+        .nucleo-badge {
+            font-size: 10px; background: var(--roxo-mago); color: #fff;
+            padding: 1px 6px; border-radius: 3px; margin-left: 6px;
+        }
     </style>
 </head>
 <body>
     <h2>🛡️ Escudo do Narrador Digital</h2>
+    
     <div style="margin-bottom: 15px;">
-    <a href="/painel_narrador.html?id=${cronicaId}" id="btn-voltar-comunidade" style="color: var(--texto-mutado); text-decoration: none; font-size: 14px; display: inline-block; padding: 6px 12px; background: var(--bg-card); border: 1px solid var(--borda); border-radius: 4px; transition: 0.2s;" onmouseover="this.style.borderColor='var(--roxo-mago)'; this.style.color='var(--roxo-mago)'" onmouseout="this.style.borderColor='var(--borda)'; this.style.color='var(--texto-mutado)'">← Voltar à Comunidade</a>
+        <a href="/painel_narrador.html" id="btn-voltar-comunidade" style="color: var(--texto-mutado); text-decoration: none; font-size: 14px; display: inline-block; padding: 6px 12px; background: var(--bg-card); border: 1px solid var(--borda); border-radius: 4px; transition: 0.2s;" onmouseover="this.style.borderColor='var(--roxo-mago)'; this.style.color='var(--roxo-mago)'" onmouseout="this.style.borderColor='var(--borda)'; this.style.color='var(--texto-mutado)'">← Voltar à Comunidade</a>
     </div>
-    <div style="display: flex; gap: 20px; height: calc(100vh - 120px);">
+
+    <div style="display: flex; gap: 20px; height: calc(100vh - 170px);">
+        <!-- Coluna Esquerda: Iniciativa -->
         <div style="flex: 1; background: var(--bg-card); border-radius: 8px; padding: 15px; display: flex; flex-direction: column;">
             <h3 style="color: var(--destaque); margin-bottom: 10px;">⚔️ Iniciativa</h3>
             <div id="iniciativa-lista" style="flex: 1; overflow-y: auto; margin-bottom: 10px;"></div>
             <button class="btn btn-primary" onclick="abrirModalAdicionarCombatente()">+ Adicionar Combatente</button>
             <button class="btn btn-primary" style="margin-top: 5px;" onclick="proximoTurno()">▶️ Próximo Turno</button>
             <button class="btn btn-sm" style="margin-top: 5px; background: transparent; border: 1px solid var(--borda); color: var(--texto-mutado);" onclick="reiniciarTurnos()">🔄 Reiniciar Turnos</button>
+            <!-- Salvamento de Iniciativa -->
+            <div style="display: flex; gap: 5px; margin-top: 10px;">
+                <button class="btn btn-sm" style="flex: 1; background: transparent; border: 1px solid var(--destaque); color: var(--destaque);" onclick="abrirModalSalvarIniciativa()">💾 Salvar Iniciativa</button>
+                <button class="btn btn-sm" style="flex: 1; background: transparent; border: 1px solid var(--roxo-mago); color: var(--roxo-mago);" onclick="abrirModalCarregarIniciativa()">📂 Carregar Iniciativa</button>
+            </div>
         </div>
-        <div style="flex: 2; background: var(--bg-card); border-radius: 8px; padding: 15px;">
-            <h3 style="color: var(--destaque);">📋 Cena Atual</h3>
-            <p style="color: var(--texto-mutado);">(futuro)</p>
+        
+        <!-- Coluna Central: Editor de Cena -->
+        <div style="flex: 2; background: var(--bg-card); border-radius: 8px; padding: 15px; display: flex; flex-direction: column;">
+            <h3 style="color: var(--destaque); margin-bottom: 10px;">📋 Cena Atual</h3>
+            <div id="editor-cena" contenteditable="true" placeholder="Descreva a cena aqui..."
+                 style="flex: 1; padding: 10px; background: var(--bg-principal); border: 1px solid var(--borda); border-radius: 4px; overflow-y: auto; color: var(--texto-claro); outline: none; word-wrap: break-word;">
+            </div>
+            <!-- Salvamento de Cena -->
+            <div style="display: flex; gap: 5px; margin-top: 5px;">
+                <button class="btn btn-sm" style="flex: 1; background: transparent; border: 1px solid var(--destaque); color: var(--destaque);" onclick="abrirModalSalvarCena()">💾 Salvar Cena</button>
+                <button class="btn btn-sm" style="flex: 1; background: transparent; border: 1px solid var(--roxo-mago); color: var(--roxo-mago);" onclick="abrirModalCarregarCena()">📂 Carregar Cena</button>
+            </div>
         </div>
+        
+        <!-- Coluna Direita: Recursos -->
         <div style="flex: 1; background: var(--bg-card); border-radius: 8px; padding: 15px;">
             <h3 style="color: var(--destaque);">📊 Recursos</h3>
             <p style="color: var(--texto-mutado);">(futuro)</p>
@@ -115,33 +137,91 @@
     <!-- Modal Adicionar Combatente -->
     <div id="modal-add-combatente" class="modal-overlay">
         <div class="modal-box">
-            <h3>Adicionar à Iniciativa</h3>
-            <label>Tipo</label>
-            <select id="add-tipo" onchange="atualizarOpcoesCombatente()">
-                <option value="npc">NPC / Entidade</option>
-                <option value="jogador">Jogador (Personagem)</option>
-                <option value="monstro">Monstro / Inimigo Genérico</option>
+        <h3>Adicionar à Iniciativa</h3>
+        <label>Tipo</label>
+        <select id="add-tipo" onchange="atualizarOpcoesCombatente()">
+            <option value="npc">NPC / Entidade</option>
+            <option value="jogador">Jogador (Personagem)</option>
+            <option value="monstro">Monstro / Inimigo Genérico</option>
+        </select>
+        
+        <div id="filtro-nucleo-container" style="display: none;">
+            <label>Filtrar por Núcleo (opcional)</label>
+            <select id="filtro-nucleo-add" onchange="atualizarOpcoesCombatente()">
+                <option value="">Todos os núcleos</option>
             </select>
-            <label>Selecione</label>
-            <select id="add-nome"></select>
-            <div id="form-vida" style="display: none;">
+        </div>
+        
+        <label>Selecione</label>
+        <select id="add-nome"></select>
+        <div id="form-vida" style="display: none;">
+            <label>Vida Máxima</label>
+            <input type="number" id="vida-max" value="10" min="1">
+        </div>
+        <div id="form-monstro" style="display: none;">
+            <label>Nome do Monstro</label>
+            <input type="text" id="monstro-nome" placeholder="Ex: Esqueleto Arcano">
+            <div id="monstro-vida-container">
                 <label>Vida Máxima</label>
-                <input type="number" id="vida-max" value="10" min="1">
+                <input type="number" id="monstro-vida" value="20" min="1">
             </div>
-            <div id="form-monstro" style="display: none;">
-                <label>Nome do Monstro</label>
-                <input type="text" id="monstro-nome" placeholder="Ex: Esqueleto Arcano">
-                <div id="monstro-vida-container">
-                    <label>Vida Máxima</label>
-                    <input type="number" id="monstro-vida" value="20" min="1">
-                </div>
-                <label>Iniciativa</label>
-                <input type="number" id="monstro-iniciativa" value="10">
-            </div>
+        </div>
+        <label>Iniciativa (valor numérico)</label>
+        <input type="number" id="add-iniciativa" value="10" min="0" max="99">
+        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px;">
+            <button class="btn btn-danger" onclick="fecharModal('modal-add-combatente')">Cancelar</button>
+            <button class="btn btn-primary" onclick="confirmarAdicionarCombatente()">Adicionar</button>
+        </div>
+        </div>
+    </div>
+
+    <!-- Modal Salvar Iniciativa -->
+    <div id="modal-salvar-iniciativa" class="modal-overlay">
+        <div class="modal-box">
+            <h3>💾 Salvar Iniciativa</h3>
+            <label>Nome do Save</label>
+            <input type="text" id="save-iniciativa-nome" placeholder="Ex: Combate contra o Dragão">
+            <label>Vincular a Sessão (opcional)</label>
+            <select id="save-iniciativa-sessao-id"><option value="">Nenhuma</option></select>
+            <label>Núcleo (opcional)</label>
+            <select id="save-iniciativa-nucleo-id">
+                <option value="">Nenhum</option>
+            </select>
             <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px;">
-                <button class="btn btn-danger" onclick="fecharModal('modal-add-combatente')">Cancelar</button>
-                <button class="btn btn-primary" onclick="confirmarAdicionarCombatente()">Adicionar</button>
+                <button class="btn btn-danger" onclick="fecharModal('modal-salvar-iniciativa')">Cancelar</button>
+                <button class="btn btn-primary" onclick="salvarIniciativa()">Salvar</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Modal Carregar Iniciativa -->
+    <div id="modal-carregar-iniciativa" class="modal-overlay">
+        <div class="modal-box">
+            <h3>📂 Carregar Iniciativa</h3>
+            <div id="lista-saves-iniciativa" style="max-height: 300px; overflow-y: auto; margin-bottom: 10px;"><p style="color: var(--texto-mutado);">Carregando...</p></div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;"><button class="btn btn-danger" onclick="fecharModal('modal-carregar-iniciativa')">Cancelar</button></div>
+        </div>
+    </div>
+
+    <!-- Modal Salvar Cena -->
+    <div id="modal-salvar-cena" class="modal-overlay">
+        <div class="modal-box">
+            <h3>💾 Salvar Cena</h3>
+            <label>Nome da Cena</label>
+            <input type="text" id="save-cena-nome" placeholder="Ex: Descrição da Taverna">
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px;">
+                <button class="btn btn-danger" onclick="fecharModal('modal-salvar-cena')">Cancelar</button>
+                <button class="btn btn-primary" onclick="salvarCena()">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Carregar Cena -->
+    <div id="modal-carregar-cena" class="modal-overlay">
+        <div class="modal-box">
+            <h3>📂 Carregar Cena</h3>
+            <div id="lista-saves-cena" style="max-height: 300px; overflow-y: auto; margin-bottom: 10px;"><p style="color: var(--texto-mutado);">Carregando...</p></div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;"><button class="btn btn-danger" onclick="fecharModal('modal-carregar-cena')">Cancelar</button></div>
         </div>
     </div>
 
@@ -155,242 +235,316 @@
 
         let nodesCache = [];
         let personagensCache = [];
-        let sistemaCrônica = 'padrão';
+        let sistemaCrônica = 'mago_m20';
         let iniciativa = [];
         let turnoAtual = 0;
+        const editor = document.getElementById('editor-cena');
 
         function abrirModal(id) { document.getElementById(id).classList.add('show'); }
         function fecharModal(id) { document.getElementById(id).classList.remove('show'); }
 
+        let nucleosCache = { entidade: [], evento: [], sessao: [] };
+
+        async function carregarNucleos(tipo) {
+            const endpointMap = { 'entidade': 'entidade-nucleos', 'evento': 'evento-nucleos', 'sessao': 'sessao-nucleos' };
+            const endpoint = endpointMap[tipo];
+            if (!endpoint) return;
+            try {
+                const res = await fetch(`/cronicas/${cronicaId}/${endpoint}`, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (res.ok) nucleosCache[tipo] = await res.json();
+            } catch (err) {}
+        }
+
+        // ============ DADOS ============
         async function carregarNodes() {
-        try {
-            const res = await fetch(`/cronicas/${cronicaId}/nodes`, { headers: { 'Authorization': `Bearer ${token}` } });
-            if (res.ok) nodesCache = await res.json();
-        } catch (err) { /* silencioso */ }
+            try {
+                const res = await fetch(`/cronicas/${cronicaId}/nodes`, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (res.ok) nodesCache = await res.json();
+            } catch (err) {}
         }
 
         async function carregarPersonagens() {
-        try {
-        const res = await fetch(`/cronicas/${cronicaId}/personagens`, { headers: { 'Authorization': `Bearer ${token}` } });
-        if (res.ok) personagensCache = await res.json();
-        } catch (err) { /* silencioso */ }
+            try {
+                const res = await fetch(`/cronicas/${cronicaId}/personagens`, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (res.ok) personagensCache = await res.json();
+            } catch (err) {}
         }
 
         async function detectarSistema() {
-        try {
-        const res = await fetch(`/cronicas/${cronicaId}/comunidade`, { headers: { 'Authorization': `Bearer ${token}` } });
-        if (res.ok) {
-            const dados = await res.json();
-            sistemaCrônica = dados.cronica?.sistema || 'padrão';
-        }
-        } catch (err) { /* silencioso */ }
+            try {
+                const res = await fetch(`/cronicas/${cronicaId}/comunidade`, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (res.ok) { const dados = await res.json(); sistemaCrônica = dados.cronica?.sistema || 'mago_m20'; }
+            } catch (err) {}
         }
 
+        // ============ INICIATIVA ============
+        function ordenarPorIniciativa() { iniciativa.sort((a, b) => b.iniciativa - a.iniciativa); }
+
         function abrirModalAdicionarCombatente() {
+            // Preenche o select de núcleos
+            const selectNucleo = document.getElementById('filtro-nucleo-add');
+            selectNucleo.innerHTML = '<option value="">Todos os núcleos</option>';
+            (nucleosCache?.entidade || []).forEach(n => {
+                selectNucleo.innerHTML += `<option value="${n.id}">${n.nome}</option>`;
+            });
             atualizarOpcoesCombatente();
             abrirModal('modal-add-combatente');
         }
 
         function atualizarOpcoesCombatente() {
-            const tipo = document.getElementById('add-tipo').value;
-            const selectNome = document.getElementById('add-nome');
-            const formMonstro = document.getElementById('form-monstro');
-            const formVida = document.getElementById('form-vida');
-            const monstroVidaContainer = document.getElementById('monstro-vida-container');
+    const tipo = document.getElementById('add-tipo').value;
+    const selectNome = document.getElementById('add-nome');
+    const formMonstro = document.getElementById('form-monstro');
+    const formVida = document.getElementById('form-vida');  // ← DECLARAÇÃO AQUI
+    const monstroVidaContainer = document.getElementById('monstro-vida-container');
+    const filtroContainer = document.getElementById('filtro-nucleo-container');
+    
+    // Controle de exibição
+    filtroContainer.style.display = (tipo === 'npc') ? 'block' : 'none';
+    formMonstro.style.display = (tipo === 'monstro') ? 'block' : 'none';
+    selectNome.style.display = (tipo === 'monstro') ? 'none' : 'block';
+    // Vida máxima só aparece para jogador se NÃO for Mago M20
+    formVida.style.display = (tipo === 'jogador' && sistemaCrônica !== 'mago_m20') ? 'block' : 'none';
+    if (tipo === 'monstro') {
+        monstroVidaContainer.style.display = (sistemaCrônica === 'mago_m20') ? 'none' : 'block';
+    } else {
+        monstroVidaContainer.style.display = 'none';
+    }
 
-            formMonstro.style.display = (tipo === 'monstro') ? 'block' : 'none';
-            selectNome.style.display = (tipo === 'monstro') ? 'none' : 'block';
-
-            if (tipo === 'monstro') {
-                monstroVidaContainer.style.display = (sistemaCrônica === 'mago_m20') ? 'none' : 'block';
-            }
-
-            if (tipo === 'npc' || tipo === 'jogador') {
-                formVida.style.display = (sistemaCrônica === 'mago_m20') ? 'none' : 'block';
-            }
-
-            if (tipo === 'monstro') return;
-
-            selectNome.innerHTML = '';
-            if (tipo === 'npc') {
-                nodesCache.forEach(n => {
-                    const option = document.createElement('option');
-                    option.value = n.id;
-                    option.textContent = `${n.nome} (${n.tipo})`;
-                    selectNome.appendChild(option);
-                });
-            } else if (tipo === 'jogador') {
-                if (personagensCache.length === 0) {
-                    selectNome.innerHTML = '<option value="">Nenhum personagem vinculado à mesa</option>';
-                    return;
-                }
-                personagensCache.forEach(p => {
-                    const option = document.createElement('option');
-                    option.value = p.id;
-                    option.textContent = p.nome;
-                    selectNome.appendChild(option);
-                });
-            }
+    // Preenchimento das opções
+    if (tipo === 'npc') {
+        selectNome.innerHTML = '';
+        const nucleoFiltro = document.getElementById('filtro-nucleo-add')?.value || '';
+        const filtrados = nucleoFiltro 
+            ? nodesCache.filter(n => n.nucleo_id === nucleoFiltro)
+            : nodesCache;
+        if (filtrados.length === 0) {
+            selectNome.innerHTML = '<option value="">Nenhum NPC encontrado</option>';
+            return;
         }
+        filtrados.forEach(n => {
+            const option = document.createElement('option');
+            option.value = n.id;
+            option.textContent = `${n.nome} (${n.tipo})`;
+            selectNome.appendChild(option);
+        });
+        return;
+    }
+    
+    if (tipo === 'monstro') return;
+    
+    if (tipo === 'jogador') {
+        selectNome.innerHTML = '';
+        if (personagensCache.length === 0) {
+            selectNome.innerHTML = '<option value="">Nenhum personagem vinculado</option>';
+            return;
+        }
+        personagensCache.forEach(p => {
+            const o = document.createElement('option');
+            o.value = p.id;
+            o.textContent = p.nome;
+            selectNome.appendChild(o);
+        });
+    }
+}
 
         async function confirmarAdicionarCombatente() {
             const tipo = document.getElementById('add-tipo').value;
+            const iniciativaVal = parseInt(document.getElementById('add-iniciativa').value) || 10;
             let nome, id, recursos;
-
             if (tipo === 'monstro') {
                 nome = document.getElementById('monstro-nome').value.trim();
                 if (!nome) return alert('Digite o nome do monstro.');
                 id = 'monstro_' + Date.now();
                 recursos = (sistemaCrônica === 'mago_m20') ? criarRecursosStoryteller() : criarRecursosBarra(parseInt(document.getElementById('monstro-vida').value) || 20);
             } else {
-                const selectNome = document.getElementById('add-nome');
-                const selectedId = selectNome.value;
-                if (!selectedId) return alert('Selecione um combatente.');
-
-                if (tipo === 'npc') {
-                    const node = nodesCache.find(n => n.id === selectedId);
-                    nome = node ? node.nome : 'NPC';
-                } else if (tipo === 'jogador') {
-                    const pers = personagensCache.find(p => p.id === selectedId);
-                    nome = pers ? pers.nome : 'Jogador';
-                }
-                id = selectedId;
+                const sel = document.getElementById('add-nome').value;
+                if (!sel) return alert('Selecione um combatente.');
+                if (tipo === 'npc') { const n = nodesCache.find(x => x.id === sel); nome = n ? n.nome : 'NPC'; }
+                else { const p = personagensCache.find(x => x.id === sel); nome = p ? p.nome : 'Jogador'; }
+                id = sel;
                 recursos = (sistemaCrônica === 'mago_m20') ? criarRecursosStoryteller() : criarRecursosBarra(parseInt(document.getElementById('vida-max').value) || 10);
             }
-
-            iniciativa.push({ id, nome, tipo, agiu: false, recursos });
+            iniciativa.push({ id, nome, tipo, agiu: false, recursos, iniciativa: iniciativaVal });
+            ordenarPorIniciativa();
             fecharModal('modal-add-combatente');
+            document.getElementById('add-iniciativa').value = 10;
             renderizarIniciativa();
         }
 
-        function criarRecursosStoryteller() {
-            return { vida: { tipo: 'storyteller', niveis: [0,0,0,0,0,0,0] } };
-        }
+        function criarRecursosStoryteller() { return { vida: { tipo: 'storyteller', niveis: [0,0,0,0,0,0,0] } }; }
+        function criarRecursosBarra(max) { return { vida: { tipo: 'barra', atual: max, max } }; }
 
-        function criarRecursosBarra(max) {
-            return { vida: { tipo: 'barra', atual: max, max } };
-        }
+        function atualizarIniciativaCard(index, novoValor) { iniciativa[index].iniciativa = parseInt(novoValor) || 0; ordenarPorIniciativa(); renderizarIniciativa(); }
 
         function renderizarIniciativa() {
-            const container = document.getElementById('iniciativa-lista');
-            if (iniciativa.length === 0) {
-                container.innerHTML = '<p style="color: var(--texto-mutado);">Nenhum combatente na iniciativa.</p>';
-                return;
-            }
-            container.innerHTML = iniciativa.map((c, index) => {
-                const ativo = index === turnoAtual ? '2px solid var(--destaque)' : '1px solid var(--borda)';
-                const bg = c.agiu ? 'rgba(255,255,255,0.03)' : 'rgba(152,113,245,0.1)';
-                let recursosHtml = '';
-                if (c.recursos?.vida) {
-                    recursosHtml = (c.recursos.vida.tipo === 'storyteller') ? renderizarNiveisSaude(c, index) : renderizarBarraVida(c, index);
-                }
-                return `
-                    <div class="card" draggable="true" data-index="${index}" style="cursor: grab; margin-bottom: 8px; border: ${ativo}; background: ${bg};"
-                         ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="drop(event)">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <span style="font-size: 14px;">${c.nome} <small style="color: var(--texto-mutado);">(${c.tipo})</small></span>
-                            <div style="display: flex; gap: 5px; align-items: center;">
-                                <button class="btn btn-sm" style="background: transparent; border: none; font-size: 16px;" onclick="toggleAgido(${index})">${c.agiu ? '✅' : '⏳'}</button>
-                                <button class="btn btn-danger btn-sm" style="padding: 2px 6px;" onclick="removerCombatente(${index})">✕</button>
-                            </div>
-                        </div>
-                        ${recursosHtml}
-                    </div>
-                `;
+            const c = document.getElementById('iniciativa-lista');
+            if (iniciativa.length === 0) { c.innerHTML = '<p style="color: var(--texto-mutado);">Nenhum combatente.</p>'; return; }
+            c.innerHTML = iniciativa.map((x, i) => {
+                const ativo = i === turnoAtual ? '2px solid var(--destaque)' : '1px solid var(--borda)';
+                const bg = x.agiu ? 'rgba(255,255,255,0.03)' : 'rgba(152,113,245,0.1)';
+                let rh = x.recursos?.vida ? (x.recursos.vida.tipo === 'storyteller' ? renderizarNiveisSaude(x, i) : renderizarBarraVida(x, i)) : '';
+                return `<div class="card" draggable="true" data-index="${i}" style="cursor: grab; margin-bottom: 8px; border: ${ativo}; background: ${bg};" ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="drop(event)"><div style="display: flex; align-items: center; gap: 8px;"><input type="number" class="iniciativa-input-card" value="${x.iniciativa}" onchange="atualizarIniciativaCard(${i}, this.value)" onclick="event.stopPropagation();"><span style="font-size: 14px; flex: 1;">${x.nome} <small style="color: var(--texto-mutado);">(${x.tipo})</small></span><div style="display: flex; gap: 5px;"><button class="btn btn-sm" style="background: transparent; border: none; font-size: 16px;" onclick="toggleAgido(${i})">${x.agiu ? '✅' : '⏳'}</button><button class="btn btn-danger btn-sm" style="padding: 2px 6px;" onclick="removerCombatente(${i})">✕</button></div></div>${rh}</div>`;
             }).join('');
         }
 
-        function renderizarBarraVida(c, index) {
-            const vida = c.recursos.vida;
-            const pct = Math.round((vida.atual / vida.max) * 100);
-            const cor = pct > 50 ? 'var(--destaque)' : pct > 25 ? 'orange' : 'red';
-            return `<div class="barra-vida-container" onmousedown="iniciarArrasteVida(event, ${index})">
-                <div class="barra-preenchida" style="width: ${pct}%; background: ${cor};"></div>
-                <div class="barra-label">${vida.atual}/${vida.max}</div>
-            </div>`;
-        }
+        function renderizarBarraVida(c, i) { const v = c.recursos.vida; const p = Math.round((v.atual/v.max)*100); const cor = p>50?'var(--destaque)':p>25?'orange':'red'; return `<div class="barra-vida-container" onmousedown="iniciarArrasteVida(event,${i})"><div class="barra-preenchida" style="width:${p}%;background:${cor};"></div><div class="barra-label">${v.atual}/${v.max}</div></div>`; }
+        function renderizarNiveisSaude(c, i) { const n = c.recursos.vida.niveis; let b=''; n.forEach((x,j)=>{ let cl='nivel-vazio',s=''; if(x===1){cl='nivel-contusivo';s='/';}else if(x===2){cl='nivel-letal';s='X';}else if(x===3){cl='nivel-agravado';s='*';} b+=`<div class="nivel-box ${cl}" onclick="ciclarNivelSaude(${i},${j})">${s}</div>`; }); const d=n.filter(x=>x>0).length; let ps=''; if(d>=7)ps='💀 Morto'; else if(d>=6)ps='🚫 Incapacitado'; else{let p=0; if(d>=5)p=5;else if(d>=4)p=2;else if(d>=2)p=1; ps=p>0?`-${p} dados`:d===1?'Machucado':'Saudável';} return `<div class="niveis-container">${b}<span class="penalidade-texto">${ps}</span></div>`; }
+        function ciclarNivelSaude(a,b){ iniciativa[a].recursos.vida.niveis[b]=(iniciativa[a].recursos.vida.niveis[b]+1)%4; renderizarIniciativa(); }
+        function iniciarArrasteVida(e,i){ e.stopPropagation(); const c=e.currentTarget,r=c.getBoundingClientRect(),m=iniciativa[i].recursos.vida.max; const u=(x)=>{let p=Math.min(1,Math.max(0,(x-r.left)/r.width)); iniciativa[i].recursos.vida.atual=Math.round(p*m); const f=c.querySelector('.barra-preenchida'),l=c.querySelector('.barra-label'); if(f){f.style.width=Math.round(p*100)+'%';f.style.background=p>.5?'var(--destaque)':p>.25?'orange':'red';} if(l)l.textContent=`${iniciativa[i].recursos.vida.atual}/${m}`;}; document.addEventListener('mousemove',function mv(e){e.preventDefault();u(e.clientX);}); document.addEventListener('mouseup',function up(){document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);renderizarIniciativa();},{once:true}); u(e.clientX); }
 
-        function renderizarNiveisSaude(c, index) {
-            const niveis = c.recursos.vida.niveis;
-            let boxesHtml = '';
-            niveis.forEach((n, i) => {
-                let classe = 'nivel-vazio', simbolo = '';
-                if (n === 1) { classe = 'nivel-contusivo'; simbolo = '/'; }
-                else if (n === 2) { classe = 'nivel-letal'; simbolo = 'X'; }
-                else if (n === 3) { classe = 'nivel-agravado'; simbolo = '*'; }
-                boxesHtml += `<div class="nivel-box ${classe}" onclick="ciclarNivelSaude(${index}, ${i})">${simbolo}</div>`;
+        let draggedIndex=null;
+        function dragStart(e){draggedIndex=parseInt(e.target.closest('.card').dataset.index);e.dataTransfer.effectAllowed='move';}
+        function dragOver(e){e.preventDefault();e.dataTransfer.dropEffect='move';}
+        function drop(e){e.preventDefault();const t=e.target.closest('.card');if(!t||draggedIndex===null)return;const ti=parseInt(t.dataset.index);if(draggedIndex===ti)return;const[m]=iniciativa.splice(draggedIndex,1);iniciativa.splice(ti,0,m);if(turnoAtual===draggedIndex)turnoAtual=ti;else if(draggedIndex<turnoAtual&&ti>=turnoAtual)turnoAtual--;else if(draggedIndex>turnoAtual&&ti<=turnoAtual)turnoAtual++;draggedIndex=null;renderizarIniciativa();}
+        function toggleAgido(i){iniciativa[i].agiu=!iniciativa[i].agiu;renderizarIniciativa();}
+        function removerCombatente(i){if(!confirm(`Remover ${iniciativa[i].nome}?`))return;iniciativa.splice(i,1);if(turnoAtual>=iniciativa.length)turnoAtual=Math.max(0,iniciativa.length-1);renderizarIniciativa();}
+        function proximoTurno(){if(iniciativa.length===0)return;turnoAtual=(turnoAtual+1)%iniciativa.length;if(turnoAtual===0)iniciativa.forEach(c=>c.agiu=false);renderizarIniciativa();}
+        function reiniciarTurnos(){turnoAtual=0;iniciativa.forEach(c=>c.agiu=false);renderizarIniciativa();}
+
+        // ============ SALVAR/CARREGAR INICIATIVA ============
+        async function abrirModalSalvarIniciativa() {
+            // Preenche sessões
+            try {
+                const r = await fetch(`/cronicas/${cronicaId}/sessoes`, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (r.ok) {
+                    const s = await r.json();
+                    const sel = document.getElementById('save-iniciativa-sessao-id');
+                    sel.innerHTML = '<option value="">Nenhuma</option>';
+                    s.forEach(x => sel.innerHTML += `<option value="${x.id}">${x.titulo}</option>`);
+                }
+            } catch(e) {}
+
+            // Preenche núcleos
+            const selectNucleo = document.getElementById('save-iniciativa-nucleo-id');
+            selectNucleo.innerHTML = '<option value="">Nenhum</option>';
+            (nucleosCache?.entidade || []).forEach(n => {
+                selectNucleo.innerHTML += `<option value="${n.id}">${n.nome}</option>`;
             });
-            const danoCount = niveis.filter(n => n > 0).length;
-            let penalidade = 0, penalidadeStr = '';
-            if (danoCount >= 7) penalidadeStr = '💀 Morto';
-            else if (danoCount >= 6) penalidadeStr = '🚫 Incapacitado';
-            else {
-                if (danoCount >= 5) penalidade = 5;
-                else if (danoCount >= 4) penalidade = 2;
-                else if (danoCount >= 2) penalidade = 1;
-                penalidadeStr = penalidade > 0 ? `-${penalidade} dados` : (danoCount === 1 ? 'Machucado' : 'Saudável');
+
+            abrirModal('modal-salvar-iniciativa');
+        }
+
+        async function salvarIniciativa() {
+            const nome = document.getElementById('save-iniciativa-nome').value.trim();
+            if(!nome) return alert('Digite um nome.');
+            const sid = document.getElementById('save-iniciativa-sessao-id').value || null;
+            const nucleoId = document.getElementById('save-iniciativa-nucleo-id')?.value || null;
+            try {
+                const r = await fetch(`/cronicas/${cronicaId}/escudo-saves`, { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, 
+                    body: JSON.stringify({ 
+                        nome, 
+                        iniciativa, 
+                        turno_atual: turnoAtual, 
+                        sistema: sistemaCrônica, 
+                        sessao_id: sid, 
+                        nucleo_id: nucleoId,
+                        cena_html: '' 
+                    }) 
+                });
+                if(r.ok){ 
+                    alert('Iniciativa salva! ✅'); 
+                    document.getElementById('save-iniciativa-nome').value=''; 
+                    fecharModal('modal-salvar-iniciativa'); 
+                } else { 
+                    const e = await r.json(); 
+                    alert(e.erro||'Erro.'); 
+                }
+            } catch(e){ 
+                alert('Erro de conexão.'); 
             }
-            return `<div class="niveis-container">${boxesHtml}<span class="penalidade-texto">${penalidadeStr}</span></div>`;
         }
 
-        function ciclarNivelSaude(idx, nivIdx) {
-            iniciativa[idx].recursos.vida.niveis[nivIdx] = (iniciativa[idx].recursos.vida.niveis[nivIdx] + 1) % 4;
-            renderizarIniciativa();
+        async function abrirModalCarregarIniciativa() {
+            abrirModal('modal-carregar-iniciativa');
+            const div = document.getElementById('lista-saves-iniciativa');
+            div.innerHTML = '<p style="color: var(--texto-mutado);">Carregando...</p>';
+            try {
+                const r = await fetch(`/cronicas/${cronicaId}/escudo-saves`, { headers: { 'Authorization': `Bearer ${token}` } });
+                if(r.ok){
+                    const saves = await r.json();
+                    if(saves.length===0){ div.innerHTML='<p style="color: var(--texto-mutado);">Nenhum save.</p>'; return; }
+                    div.innerHTML = saves.map(s => {
+                        const nucleoNome = s.nucleo_id ? nucleosCache.entidade.find(n => n.id === s.nucleo_id)?.nome : null;
+                        const badge = nucleoNome ? `<span class="nucleo-badge">🔗 ${nucleoNome}</span>` : '';
+                        return `<div class="save-item">
+                            <div style="flex:1;" onclick="carregarIniciativa('${s.id}')">
+                                <strong>${s.nome}</strong>${badge}
+                                <div style="font-size:11px;color:var(--texto-mutado);">${new Date(s.criado_em).toLocaleString('pt-BR')}</div>
+                            </div>
+                            <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deletarSave('${s.id}')">🗑️</button>
+                        </div>`;
+                    }).join('');
+                }
+            } catch(e){ div.innerHTML='<p style="color: var(--erro);">Erro.</p>'; }
         }
 
-        function iniciarArrasteVida(e, index) {
-            e.stopPropagation();
-            const container = e.currentTarget, rect = container.getBoundingClientRect(), maxVida = iniciativa[index].recursos.vida.max;
-            const atualizar = (clientX) => {
-                let pct = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
-                iniciativa[index].recursos.vida.atual = Math.round(pct * maxVida);
-                const pre = container.querySelector('.barra-preenchida'), lab = container.querySelector('.barra-label');
-                if (pre) { pre.style.width = Math.round(pct*100)+'%'; pre.style.background = pct > 0.5 ? 'var(--destaque)' : pct > 0.25 ? 'orange' : 'red'; }
-                if (lab) lab.textContent = `${iniciativa[index].recursos.vida.atual}/${maxVida}`;
-            };
-            document.addEventListener('mousemove', function move(e) { e.preventDefault(); atualizar(e.clientX); });
-            document.addEventListener('mouseup', function up() {
-                document.removeEventListener('mousemove', move);
-                document.removeEventListener('mouseup', up);
-                renderizarIniciativa();
-            }, { once: true });
-            atualizar(e.clientX);
+        async function carregarIniciativa(saveId) {
+            try {
+                const r = await fetch(`/cronicas/${cronicaId}/escudo-saves/${saveId}`, { headers: { 'Authorization': `Bearer ${token}` } });
+                if(r.ok){
+                    const save = await r.json(); const d = save.dados;
+                    if(d.iniciativa && Array.isArray(d.iniciativa)){ 
+                        iniciativa = d.iniciativa; 
+                        turnoAtual = d.turno_atual||0; 
+                        sistemaCrônica = d.sistema||'padrão'; 
+                        renderizarIniciativa(); 
+                        fecharModal('modal-carregar-iniciativa'); 
+                        alert('Iniciativa carregada! ⚔️'); 
+                    }
+                }
+            } catch(e){ alert('Erro.'); }
         }
 
-        let draggedIndex = null;
-        function dragStart(e) { draggedIndex = parseInt(e.target.closest('.card').dataset.index); e.dataTransfer.effectAllowed = 'move'; }
-        function dragOver(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }
-        function drop(e) {
-            e.preventDefault();
-            const targetCard = e.target.closest('.card');
-            if (!targetCard || draggedIndex === null) return;
-            const targetIndex = parseInt(targetCard.dataset.index);
-            if (draggedIndex === targetIndex) return;
-            const [moved] = iniciativa.splice(draggedIndex, 1);
-            iniciativa.splice(targetIndex, 0, moved);
-            if (turnoAtual === draggedIndex) turnoAtual = targetIndex;
-            else if (draggedIndex < turnoAtual && targetIndex >= turnoAtual) turnoAtual--;
-            else if (draggedIndex > turnoAtual && targetIndex <= turnoAtual) turnoAtual++;
-            draggedIndex = null;
-            renderizarIniciativa();
+        async function deletarSave(saveId) {
+            if(!confirm('Deletar?')) return;
+            try { 
+                const r = await fetch(`/cronicas/${cronicaId}/escudo-saves/${saveId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } }); 
+                if(r.ok) abrirModalCarregarIniciativa(); 
+            } catch(e){}
         }
-        function toggleAgido(index) { iniciativa[index].agiu = !iniciativa[index].agiu; renderizarIniciativa(); }
-        function removerCombatente(index) {
-            if (!confirm(`Remover ${iniciativa[index].nome} da iniciativa?`)) return;
-            iniciativa.splice(index, 1);
-            if (turnoAtual >= iniciativa.length) turnoAtual = Math.max(0, iniciativa.length - 1);
-            renderizarIniciativa();
-        }
-        function proximoTurno() {
-            if (iniciativa.length === 0) return;
-            turnoAtual = (turnoAtual + 1) % iniciativa.length;
-            if (turnoAtual === 0) iniciativa.forEach(c => c.agiu = false);
-            renderizarIniciativa();
-        }
-        function reiniciarTurnos() { turnoAtual = 0; iniciativa.forEach(c => c.agiu = false); renderizarIniciativa(); }
 
+        // ============ SALVAR/CARREGAR CENA ============
+        function abrirModalSalvarCena() { abrirModal('modal-salvar-cena'); }
+        function salvarCena() {
+            const nome = document.getElementById('save-cena-nome').value.trim();
+            if(!nome) return alert('Digite um nome para a cena.');
+            const cenas = JSON.parse(localStorage.getItem('cenas_'+cronicaId) || '[]');
+            cenas.push({ nome, html: editor.innerHTML, data: new Date().toISOString() });
+            localStorage.setItem('cenas_'+cronicaId, JSON.stringify(cenas));
+            alert('Cena salva!');
+            document.getElementById('save-cena-nome').value = '';
+            fecharModal('modal-salvar-cena');
+        }
+        function abrirModalCarregarCena() {
+            abrirModal('modal-carregar-cena');
+            const div = document.getElementById('lista-saves-cena');
+            const cenas = JSON.parse(localStorage.getItem('cenas_'+cronicaId) || '[]');
+            if(cenas.length===0){ div.innerHTML='<p style="color: var(--texto-mutado);">Nenhuma cena salva.</p>'; return; }
+            div.innerHTML = cenas.map((c,i) => `<div class="save-item" onclick="carregarCena(${i})"><strong>${c.nome}</strong><div style="font-size:11px;color:var(--texto-mutado);">${new Date(c.data).toLocaleString('pt-BR')}</div><button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deletarCena(${i})">🗑️</button></div>`).join('');
+        }
+        function carregarCena(index) {
+            const cenas = JSON.parse(localStorage.getItem('cenas_'+cronicaId) || '[]');
+            if(cenas[index]){ editor.innerHTML = cenas[index].html; fecharModal('modal-carregar-cena'); alert('Cena carregada!'); }
+        }
+        function deletarCena(index) {
+            if(!confirm('Deletar esta cena?')) return;
+            const cenas = JSON.parse(localStorage.getItem('cenas_'+cronicaId) || '[]');
+            cenas.splice(index,1);
+            localStorage.setItem('cenas_'+cronicaId, JSON.stringify(cenas));
+            abrirModalCarregarCena();
+        }
+
+        // ============ INICIALIZAÇÃO ============
         (async function iniciar() {
-            await Promise.all([carregarNodes(), carregarPersonagens(), detectarSistema()]);
+            await Promise.all([
+                carregarNodes(),
+                carregarPersonagens(),
+                detectarSistema(),
+                carregarNucleos('entidade')
+            ]);
             renderizarIniciativa();
         })();
     </script>

@@ -1504,6 +1504,97 @@ app.get('/cronicas/:cronicaId/personagens', verificarToken, async (req, res) => 
     }
 });
 
+// ============ SAVES DO ESCUDO DO NARRADOR ============
+
+// Listar todos os saves de uma crônica
+app.get('/cronicas/:cronicaId/escudo-saves', verificarToken, async (req, res) => {
+    const { cronicaId } = req.params;
+    const { sessao_id } = req.query;
+    try {
+        let query = `SELECT id, nome, criado_em, sessao_id FROM escudo_saves WHERE cronica_id = $1`;
+        const params = [cronicaId];
+        if (sessao_id) {
+            query += ` AND sessao_id = $2`;
+            params.push(sessao_id);
+        }
+        query += ` ORDER BY criado_em DESC`;
+        const result = await pool.query(query, params);
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Erro ao buscar saves:', err);
+        res.status(500).json({ erro: 'Erro ao buscar saves.' });
+    }
+});
+
+// Salvar estado atual do escudo
+app.post('/cronicas/:cronicaId/escudo-saves', verificarToken, async (req, res) => {
+    const { cronicaId } = req.params;
+    const { nome, iniciativa, turno_atual, sistema, sessao_id } = req.body;
+
+    if (!nome || nome.trim() === '') {
+        return res.status(400).json({ erro: 'Nome do save é obrigatório.' });
+    }
+
+    try {
+        const novo = await pool.query(
+            `INSERT INTO escudo_saves (cronica_id, nome, dados, sessao_id)
+             VALUES ($1, $2, $3::jsonb, $4)
+             RETURNING id, nome, criado_em`,
+            [cronicaId, nome.trim(), JSON.stringify({ iniciativa, turno_atual, sistema }), sessao_id || null]
+        );
+        res.status(201).json(novo.rows[0]);
+    } catch (err) {
+        console.error('Erro ao salvar escudo:', err);
+        res.status(500).json({ erro: 'Erro ao salvar estado do escudo.' });
+    }
+});
+
+// Carregar um save específico
+app.get('/cronicas/:cronicaId/escudo-saves/:saveId', verificarToken, async (req, res) => {
+    const { saveId } = req.params;
+    try {
+        const query = await pool.query(
+            'SELECT * FROM escudo_saves WHERE id = $1',
+            [saveId]
+        );
+        if (query.rows.length === 0) {
+            return res.status(404).json({ erro: 'Save não encontrado.' });
+        }
+        res.json(query.rows[0]);
+    } catch (err) {
+        console.error('Erro ao carregar save:', err);
+        res.status(500).json({ erro: 'Erro ao carregar save.' });
+    }
+});
+
+// Deletar um save
+app.delete('/cronicas/:cronicaId/escudo-saves/:saveId', verificarToken, async (req, res) => {
+    const { saveId } = req.params;
+    try {
+        await pool.query('DELETE FROM escudo_saves WHERE id = $1', [saveId]);
+        res.json({ mensagem: 'Save deletado.' });
+    } catch (err) {
+        console.error('Erro ao deletar save:', err);
+        res.status(500).json({ erro: 'Erro ao deletar save.' });
+    }
+});
+
+// Vincular/desvincular save a uma sessão
+app.put('/cronicas/:cronicaId/escudo-saves/:saveId/vincular-sessao', verificarToken, async (req, res) => {
+    const { saveId } = req.params;
+    const { sessao_id } = req.body; // null para desvincular
+    try {
+        await pool.query(
+            'UPDATE escudo_saves SET sessao_id = $1 WHERE id = $2',
+            [sessao_id || null, saveId]
+        );
+        res.json({ mensagem: 'Vínculo atualizado.' });
+    } catch (err) {
+        console.error('Erro ao vincular save:', err);
+        res.status(500).json({ erro: 'Erro ao vincular save.' });
+    }
+});
+
 app.use('/auth', authRoutes);
 app.use('/personagens', personagensRoutes);
 app.use('/cronicas', cronicasRoutes);

@@ -50,6 +50,7 @@ router.get('/:id/comunidade', verificarToken, async (req, res) => {
     try {
         // Busca a crônica
         const cronica = await pool.query('SELECT * FROM cronicas WHERE id = $1', [id]);
+        console.log('🔍 Dados da crônica:', cronica.rows[0]);
         if (cronica.rows.length === 0) return res.status(404).json({ erro: 'Crônica não encontrada.' });
 
         // Verifica acesso
