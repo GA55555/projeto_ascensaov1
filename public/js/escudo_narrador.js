@@ -178,6 +178,7 @@ async function inicializarGridModular() {
             window.atualizarDisposicaoModulos(layout);
         }
     } catch (err) { console.error("Falha ao carregar layout estrutural:", err); }
+    document.querySelector('.grid-stack').classList.add('pronto');
 }
 
 window.persistirLayoutGrid = async function() {

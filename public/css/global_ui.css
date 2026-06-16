@@ -406,6 +406,16 @@ label {
 }
 
 /* ── GRIDSTACK ─────────────────────────────────────────── */
+
+.grid-stack {
+    opacity: 0;
+    transition: opacity 0.4s ease-in-out;
+}
+
+.grid-stack.pronto {
+    opacity: 1;
+}
+
 .grid-container {
     background: transparent;
     padding: 8px;

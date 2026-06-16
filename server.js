@@ -28,8 +28,9 @@ const rateLimit = require('express-rate-limit');
 // =========================================================================
 // CONFIGURAÇÃO DE SEGURANÇA E CORS (LÊ DO .ENV)
 // =========================================================================
+// O .map(d => d.trim()) remove quaisquer espaços acidentais deixados no ficheiro .env
 const dominiosCORS = process.env.CORS_ORIGINS 
-    ? process.env.CORS_ORIGINS.split(',') 
+    ? process.env.CORS_ORIGINS.split(',').map(d => d.trim()) 
     : ['http://localhost:3000'];
 
 // middlewares base (HELMET REATIVADO E DINÂMICO)
@@ -39,12 +40,14 @@ app.use(
             useDefaults: false,
             directives: {
                 defaultSrc:    ["'self'", ...dominiosCORS],
-                scriptSrc:     ["'self'", "'unsafe-inline'", ...dominiosCORS],
+                // Autoriza o script de estatísticas da Cloudflare
+                scriptSrc:     ["'self'", "'unsafe-inline'", "https://static.cloudflareinsights.com", ...dominiosCORS],
                 scriptSrcAttr: ["'self'", "'unsafe-inline'"],
                 styleSrc:      ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
                 fontSrc:       ["'self'", "https://fonts.gstatic.com", "data:"],
                 imgSrc:        ["'self'", "data:", "blob:", "https:", "http:"],
-                connectSrc:    ["'self'", "ws:", "wss:", ...dominiosCORS],
+                // Autoriza o envio dos dados de volta para os servidores da Cloudflare
+                connectSrc:    ["'self'", "ws:", "wss:", "https://cloudflareinsights.com", ...dominiosCORS],
                 objectSrc:     ["'self'"],
             },
         },
@@ -60,6 +63,8 @@ app.use(cors({
         if (!origin || origin === 'http://localhost:3000' || origin === 'http://127.0.0.1:3000' || dominiosCORS.includes(origin)) {
             callback(null, true);
         } else {
+            // Log para o terminal alertar sobre qual IP/Domínio tentou forçar a entrada
+            console.error(`🔴 Bloqueado pelo CORS: '${origin}'`);
             callback(new Error('Bloqueado pelo CORS'));
         }
     },
