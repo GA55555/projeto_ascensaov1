@@ -57,7 +57,7 @@ app.use(
 app.use(cors({
     origin: function (origin, callback) {
         // Permite chamadas sem origin (ex: Postman), localhost genérico, ou domínios configurados no .env
-        if (!origin || origin.includes('localhost') || origin.includes('127.0.0.1') || dominiosCORS.includes(origin)) {
+        if (!origin || origin === 'http://localhost:3000' || origin === 'http://127.0.0.1:3000' || dominiosCORS.includes(origin)) {
             callback(null, true);
         } else {
             callback(new Error('Bloqueado pelo CORS'));
