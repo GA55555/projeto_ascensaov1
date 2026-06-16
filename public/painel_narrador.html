@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comunidade da Crônica</title>
+    <link rel="stylesheet" href="/css/global_ui.css">
+</head>
+<body>
+
+    <div class="banner-comunidade" id="banner-cronica">
+        <div class="banner-overlay">
+            <h1 class="banner-titulo" id="titulo-cronica">Carregando...</h1>
+            <a href="/profile.html" class="btn btn-outline btn-sm"><i data-lucide="arrow-left"></i> Sair da Mesa</a>
+        </div>
+    </div>
+
+    <div class="container-social">
+        
+        <div class="menu-abas">
+        <div class="titulo-menu">Salas da Comunidade</div>
+        <ul class="lista-abas" id="lista-abas"></ul>
+        </div>
+    
+        <div class="feed-container">
+            <div class="caixa-postar">
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <button onclick="selecionarTipoPost('normal')" id="btn-tipo-normal" class="btn btn-primary btn-sm"><i data-lucide="file-text"></i> Normal</button>
+                <button onclick="selecionarTipoPost('album')" id="btn-tipo-album" class="btn btn-outline btn-sm"><i data-lucide="image"></i> Álbum</button>
+                <button onclick="selecionarTipoPost('votacao')" id="btn-tipo-votacao" class="btn btn-outline btn-sm"><i data-lucide="check-square"></i> Votação</button>
+            </div>
+        
+            <div id="form-post-normal">
+                <textarea id="texto-post" placeholder="Escreva algo..."></textarea>
+                <input type="file" id="input-imagem" accept="image/*">
+            </div>
+        
+            <div id="form-post-album" style="display: none;">
+                <div id="album-itens"></div>
+                <button onclick="adicionarItemAlbum()" class="btn btn-outline-primary" style="width: 100%; justify-content: center;"><i data-lucide="plus-circle"></i> Adicionar Imagem ao Álbum</button>
+            </div>
+        
+            <div id="form-post-votacao" style="display: none;">
+                <input type="text" id="votacao-pergunta" placeholder="Pergunta da votação..." style="width: 100%; margin-bottom: 10px;">
+                <div id="votacao-opcoes">
+                    <input type="text" class="opcao-votacao" placeholder="Opção 1" style="width: 100%; margin-bottom: 5px;">
+                    <input type="text" class="opcao-votacao" placeholder="Opção 2" style="width: 100%; margin-bottom: 5px;">
+                </div>
+                <button onclick="adicionarOpcaoVotacao()" class="btn btn-outline-primary btn-sm"><i data-lucide="plus"></i> Opção</button>
+            </div>
+        
+            <button class="btn btn-primary" onclick="publicarPost()" style="margin-top: 10px;"><i data-lucide="send"></i> Publicar</button>
+        </div>
+
+            <div id="lista-posts">
+                <p style="color: var(--texto-mutado); text-align: center;">Carregando mensagens do éter...</p>
+            </div>
+        </div>
+    </div>
+    
+   
+
+    <div id="modal-vinculo" class="modal">
+        <div class="modal-box" style="width: 400px;">
+            <h3 class="texto-destaque" style="margin-top: 0;"><i data-lucide="link"></i> Vincular Causa ao Evento</h3>
+            <input type="hidden" id="vinculo-event-id">
+            <label style="display: block; margin-bottom: 5px; color: var(--texto-mutado);">Escolha o Núcleo (Entidade)</label>
+            <select id="vinculo-node-id" onchange="atualizarListaDeFlagsVinculo()" style="width: 100%; margin-bottom: 15px;"></select>
+            <label style="display: block; margin-bottom: 5px; color: var(--texto-mutado);">Selecione a Flag</label>
+            <select id="vinculo-flag-key" style="width: 100%; margin-bottom: 15px;">
+                <option value="">Selecione um núcleo primeiro...</option>
+            </select>
+            <label style="display: block; margin-bottom: 5px; color: var(--texto-mutado);">Peso de Tensão (Quantos pontos soma se for TRUE?)</label>
+            <input type="number" id="vinculo-peso" value="1" min="1" style="width: 100%; margin-bottom: 25px;">
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button onclick="fecharModalVinculo()" class="btn btn-outline">Cancelar</button>
+                <button onclick="salvarVinculo()" class="btn btn-primary"><i data-lucide="link"></i> Vincular</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-permissoes" class="modal">
+        <div class="modal-box" style="width: 500px;">
+            <h3 class="texto-destaque" style="margin-top: 0;"><i data-lucide="lock"></i> Controle de Acesso da Aba</h3>
+            <input type="hidden" id="perm-aba-id">
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <select id="perm-jogador-id" style="flex: 1;">
+                    <option value="">Selecione um Jogador...</option>
+                </select>
+                <select id="perm-nivel" style="width: 100%; margin-bottom: 20px;">
+                    <option value="leitura">Somente Leitura</option>
+                    <option value="comentar">Ler e Comentar</option>
+                    <option value="editor">Editor (Postar e Editar)</option>
+                </select>
+                <button onclick="salvarPermissaoAba()" class="btn btn-primary">Conceder</button>
+            </div>
+            <h4 style="margin-bottom: 10px; color: var(--texto-mutado); overflow-y: auto; border-bottom: 1px solid var(--borda); padding-bottom: 5px;">Jogadores com Acesso</h4>
+            <div id="lista-permissoes-atuais" style="max-height: 200px; overflow-y: auto; margin-bottom: 20px;"></div>
+            <div style="display: flex; justify-content: flex-end;">
+                <button onclick="fecharModalPermissoes()" class="btn btn-outline">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-imagem" class="modal" style="flex-direction: column;" onclick="fecharModalImagem()">
+        <div style="position: absolute; top: 20px; right: 30px; color: white; font-size: 40px; font-weight: bold; cursor: pointer; z-index: 10001;" onclick="fecharModalImagem()">&times;</div>
+        
+        <div id="modal-btn-esq" style="position: absolute; left: 20px; top: 50%; transform: translateY(-50%); color: white; font-size: 50px; cursor: pointer; user-select: none; padding: 20px; z-index: 10000; transition: 0.2s;" onmouseover="this.style.color='var(--destaque)'" onmouseout="this.style.color='white'" onclick="event.stopPropagation(); mudarImagem(-1)">&#10094;</div>
+        
+        <img id="imagem-ampliada" src="" style="max-width: 90%; max-height: 85%; border-radius: 8px; box-shadow: 0 0 30px rgba(0,0,0,0.8); object-fit: contain; transition: opacity 0.2s;">
+        
+        <div id="modal-btn-dir" style="position: absolute; right: 20px; top: 50%; transform: translateY(-50%); color: white; font-size: 50px; cursor: pointer; user-select: none; padding: 20px; z-index: 10000; transition: 0.2s;" onmouseover="this.style.color='var(--destaque)'" onmouseout="this.style.color='white'" onclick="event.stopPropagation(); mudarImagem(1)">&#10095;</div>
+        
+        <div id="modal-contador" style="color: var(--texto-mutado); margin-top: 15px; font-size: 16px; font-weight: bold; letter-spacing: 1px;"></div>
+    </div>
+    
+    <div id="modal-editar-post" class="modal">
+    <div class="modal-box" style="width: 600px;">
+        <h3 class="texto-destaque" style="margin-top: 0;"><i data-lucide="pencil"></i> Editar Postagem</h3>
+        <input type="hidden" id="edit-post-id">
+        <input type="hidden" id="edit-post-index">
+        <textarea id="edit-post-texto" style="width: 100%; height: 250px; resize: vertical; margin-bottom: 20px;"></textarea>
+        <div style="display: flex; justify-content: flex-end; gap: 10px;">
+            <button onclick="document.getElementById('modal-editar-post').style.display='none'" class="btn btn-outline">Cancelar</button>
+            <button onclick="confirmarEdicaoPost()" class="btn btn-primary"><i data-lucide="save"></i> Salvar Alterações</button>
+        </div>
+    </div>
+    </div>
+
+   <script src="/js/lucide.min.js"></script>
+<script src="/js/api.js"></script>
+    <script src="/js/painel_comunidade.js"></script>
+        <script src="/js/toast.js"></script>
+    <script src="/js/modalConfirmacao.js"></script>
+</body>
+</html>

@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escudo do Narrador</title>
+    
+    <link href="/js/gridstack.min.css" rel="stylesheet"/>
+    <script src="/js/gridstack-all.js"></script>
+
+    <style>
+    /* GAVETA LATERAL RETRÁTIL */
+    .gaveta-container {
+        position: fixed; top: 0; right: 0; width: 400px; height: 100vh;
+        background: var(--bg-card); border-left: 2px solid var(--roxo-mago);
+        transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 999; padding: 20px; display: flex; flex-direction: column;
+        box-shadow: -5px 0 25px rgba(0,0,0,0.5);
+    }
+    .gaveta-container.aberta { transform: translateX(0); }
+
+    .gaveta-lingueta {
+        position: absolute; left: -40px; top: 100px; width: 40px; height: 120px;
+        background: var(--roxo-mago); color: white; writing-mode: vertical-rl;
+        text-align: center; line-height: 40px; font-weight: bold; font-size: 12px;
+        border-radius: 8px 0 0 8px; cursor: pointer; user-select: none;
+        box-shadow: -3px 2px 10px rgba(0,0,0,0.3); transition: background 0.2s;
+    }
+    .gaveta-lingueta:hover { background: var(--roxo-hover); }
+
+    /* === GAVETA MESTRA E TELETRANSPORTE === */
+    .painel-mestre {
+        position: fixed; top: 0; right: 0; width: 450px; height: 100vh;
+        background: var(--bg-card); border-left: 2px solid var(--roxo-mago);
+        transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 999; display: flex; flex-direction: column;
+        box-shadow: -10px 0 30px rgba(0,0,0,0.7);
+    }
+    .painel-mestre.aberto { transform: translateX(0); }
+
+    .painel-conteudo { flex: 1; padding: 20px; overflow-y: auto; display: none; }
+    .painel-conteudo.ativo { display: block; }
+
+    /* Bloco guardado na gaveta: exibe só o cabeçalho */
+    .bloco-arquivado {
+        background: var(--bg-principal); border: 1px solid var(--borda);
+        border-radius: 6px; margin-bottom: 10px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+        overflow: hidden;
+    }
+    .bloco-arquivado .grid-stack-item-content { padding: 10px 15px !important; }
+    .bloco-arquivado .grid-stack-item-content > *:not(:first-child) { display: none !important; }
+    .bloco-arquivado .grid-stack-item-content > div:first-child {
+        margin-bottom: 0 !important;
+        padding-bottom: 0 !important;
+        border-bottom: none !important;
+    }
+    .bloco-arquivado .ui-resizable-handle { display: none !important; }
+
+    /* === LUPA E MINIATURAS === */
+    .miniatura-card {
+        transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s;
+        position: relative; z-index: 1;
+    }
+    .miniatura-card:hover {
+        transform: scale(2.5); z-index: 100;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+    }
+
+    .zoom-container {
+        overflow: hidden; width: 100%; height: 100%;
+        display: flex; justify-content: center; align-items: center;
+        cursor: grab;
+    }
+    .zoom-container:active { cursor: grabbing; }
+    #imagem-expandida-src {
+        transition: transform 0.1s ease-out;
+        transform-origin: center center;
+    }
+
+    /* === SISTEMA DE INICIATIVA E STATUS === */
+    .card { transition: all 0.3s ease; position: relative; }
+
+    .card.ativo {
+        border: 2px solid var(--destaque) !important;
+        box-shadow: 0 0 15px rgba(16, 185, 129, 0.2);
+        transform: scale(1.02); z-index: 2;
+    }
+
+    .card.passou { opacity: 0.5; filter: grayscale(60%); }
+
+    .morto-overlay {
+        position: absolute; inset: 0; background: rgba(0,0,0,0.75);
+        display: flex; justify-content: center; align-items: center;
+        font-size: 3.5rem; border-radius: 6px; z-index: 10;
+        pointer-events: none;
+    }
+
+    /* === BARRA DE HP DESLIZANTE (SLIDER NATIVO) === */
+    .hp-slider {
+        -webkit-appearance: none;
+        width: 100%; height: 14px; border-radius: 4px;
+        outline: none; border: 1px solid #111; cursor: grab; margin: 0;
+    }
+    .hp-slider:active { cursor: grabbing; }
+    .hp-slider::-webkit-slider-thumb {
+        -webkit-appearance: none; appearance: none;
+        width: 6px; height: 14px; background: #ffffff;
+        cursor: pointer; border-radius: 2px;
+        box-shadow: 0 0 5px rgba(0,0,0,0.8);
+    }
+    .hp-slider::-moz-range-thumb {
+        width: 6px; height: 14px; background: #ffffff;
+        cursor: pointer; border: none; border-radius: 2px;
+        box-shadow: 0 0 5px rgba(0,0,0,0.8);
+    }
+    </style>
+    <link rel="stylesheet" href="/css/global_ui.css">
+</head>
+<body>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h2><i data-lucide="shield"></i> Escudo do Narrador Digital (Modular)</h2>
+        <div style="display: flex; gap: 10px;">
+            <button id="btn-carregar-saves" class="btn btn-primary"><i data-lucide="folder-open"></i> Carregar Layout</button>
+            <button id="btn-abrir-modal-salvar" class="btn btn-success"><i data-lucide="save"></i> Salvar Layout</button>
+            <a href="#" id="btn-voltar-comunidade" class="btn" style="background: var(--bg-card); border: 1px solid var(--borda); color: var(--texto-mutado); text-decoration: none;">← Sair</a>
+        </div>
+    </div>
+
+    <div id="dropzone-monstro" tabindex="0" style="border: 2px dashed var(--texto-mutado); border-radius: 8px; padding: 20px; text-align: center; margin-bottom: 20px; cursor: pointer; background: rgba(0,0,0,0.2); outline: none;">
+        <strong style="color: var(--texto-claro); font-size: 14px;"><i data-lucide="clipboard-paste"></i> Clique aqui e pressione Ctrl+V ou arraste o print do monstro para forjar uma ameaça</strong>
+    </div>
+
+    <div class="grid-container">
+        <div class="grid-stack">
+            
+            <div class="grid-stack-item" gs-id="bloco-combate" gs-x="0" gs-y="0" gs-w="8" gs-h="4" gs-min-w="3" gs-min-h="4">
+                <div class="grid-stack-item-content">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-weight: bold; color: var(--destaque);"><i data-lucide="swords"></i> Grid de Combate</span>
+                        <div style="display: flex; gap: 5px;">
+                            <button id="btn-turno-anterior" class="btn btn-secondary btn-sm"><i data-lucide="chevron-left"></i></button>
+                            <button id="btn-proximo-turno" class="btn btn-primary btn-sm"><i data-lucide="chevron-right"></i> Próximo</button>
+                            <button id="btn-ordenar-iniciativa" class="btn btn-primary btn-sm" style="margin-left: 10px;"><i data-lucide="arrow-down-up"></i> Ordenar</button>
+                            <button id="btn-guardar-combate" class="btn btn-ghost btn-sm btn-transporte" style="margin-left: 10px;"><i data-lucide="arrow-down-to-line"></i> Guardar</button>
+                        </div>
+                    </div>
+                    <div id="grid-combate" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; overflow-y: auto; flex: 1;"></div>
+                </div>
+            </div>
+
+            <div class="grid-stack-item" gs-id="bloco-regras" gs-x="8" gs-y="0" gs-w="4" gs-h="4" gs-min-w="3">
+                <div class="grid-stack-item-content">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-weight: bold; color: var(--roxo-mago);"><i data-lucide="book-open"></i> Regras Rápidas</span>
+                        <button id="btn-guardar-regras" class="btn btn-ghost btn-sm btn-transporte"><i data-lucide="arrow-down-to-line"></i> Guardar</button>
+                    </div>
+                    <input type="text" id="busca-regras" placeholder="Procurar regra..." style="margin-bottom: 10px;">
+                    <div id="resultados-regras" style="overflow-y: auto; flex: 1; font-size: 12px; color: var(--texto-mutado);">
+                        <p>Digite um termo para buscar.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid-stack-item" gs-id="bloco-resumo" gs-x="0" gs-y="4" gs-w="12" gs-h="3">
+                <div class="grid-stack-item-content">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-weight: bold; color: var(--texto-claro);"><i data-lucide="file-text"></i> Resumo da Sessão e Anotações</span>
+                        <button id="btn-guardar-resumo" class="btn btn-ghost btn-sm btn-transporte"><i data-lucide="arrow-down-to-line"></i> Guardar</button>
+                    </div>
+                    <div id="editor-resumo" contenteditable="true" placeholder="Escreva notas de contexto ou cole imagens de referência da cena aqui..." style="flex: 1; padding: 10px; background: var(--bg-principal); border: 1px solid var(--borda); border-radius: 4px; overflow-y: auto; color: var(--texto-claro); outline: none; word-wrap: break-word;"></div>
+                </div>
+            </div>
+
+            <div class="grid-stack-item" gs-id="bloco-mundo" gs-x="0" gs-y="7" gs-w="6" gs-h="4" gs-min-w="3">
+                <div class="grid-stack-item-content">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-weight: bold; color: var(--texto-claro);"><i data-lucide="map"></i> Engenharia de Mundo</span>
+                        <button id="btn-guardar-mundo" class="btn btn-ghost btn-sm btn-transporte"><i data-lucide="arrow-down-to-line"></i> Guardar</button>
+                    </div>
+
+                    <div style="display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 10px;">
+                        <select id="filtro-nucleo-entidade-escudo" style="flex: 1; font-size: 11px;">
+                            <option value="">Todos os núcleos</option>
+                        </select>
+                        <input type="text" id="busca-mundo-escudo" placeholder="Filtrar por nome..." style="flex: 1; font-size: 11px;">
+                        <button id="btn-gerenciar-nucleos" class="btn btn-primary btn-sm" title="Gerenciar Núcleos"><i data-lucide="settings"></i></button>
+                        <button id="btn-forjar-entidade" class="btn btn-success btn-sm">+ Forjar</button>
+                    </div>
+
+                    <div id="conteudo-mundo" style="flex: 1; overflow-y: auto; padding-right: 5px; display: flex; flex-direction: column; gap: 8px;">
+                        <div class="info-block-vazio">Carregando entidades...</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid-stack-item" gs-id="bloco-eventos" gs-x="6" gs-y="7" gs-w="6" gs-h="4" gs-min-w="3">
+                <div class="grid-stack-item-content">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-weight: bold; color: var(--texto-claro);"><i data-lucide="calendar-clock"></i> Eventos do Mundo</span>
+                        <div style="display: flex; gap: 5px;">
+                            <button id="btn-novo-evento" class="btn btn-success btn-sm">+ Evento</button>
+                            <button id="btn-guardar-eventos" class="btn btn-ghost btn-sm btn-transporte"><i data-lucide="arrow-down-to-line"></i> Guardar</button>
+                        </div>
+                    </div>
+                    <input type="text" id="busca-eventos-escudo" placeholder="Filtrar eventos..." style="margin-bottom: 8px;">
+                    <div id="conteudo-eventos" style="flex: 1; overflow-y: auto; padding-right: 5px; display: flex; flex-direction: column; gap: 6px;">
+                        <div class="info-block-vazio">Aguardando ativação...</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid-stack-item" gs-id="bloco-automacoes" gs-x="0" gs-y="11" gs-w="6" gs-h="4" gs-min-w="3">
+                <div class="grid-stack-item-content">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-weight: bold; color: var(--destaque);"><i data-lucide="zap"></i> Automações</span>
+                        <div style="display: flex; gap: 5px;">
+                            <button id="btn-nova-automacao" class="btn btn-success btn-sm">+ Automação</button>
+                            <button id="btn-guardar-automacoes" class="btn btn-ghost btn-sm btn-transporte"><i data-lucide="arrow-down-to-line"></i> Guardar</button>
+                        </div>
+                    </div>
+                    <div id="conteudo-automacoes" style="flex: 1; overflow-y: auto; padding-right: 5px; display: flex; flex-direction: column; gap: 6px;">
+                        <div class="info-block-vazio">Aguardando ativação...</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+
+    <div id="modal-novo-monstro" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <h3 style="margin-bottom: 15px;">Nova Ameaça Detectada</h3>
+            <div style="text-align: center; background: rgba(0,0,0,0.3); border-radius: 8px; padding: 10px; margin-bottom: 15px;">
+                <img id="preview-monstro" src="" style="max-width: 100%; max-height: 200px; border-radius: 4px; display: none;">
+                <div id="loading-upload" style="color: var(--texto-mutado); font-size: 13px; padding: 20px;"><span class="spinner"></span> Gravando na Trama...</div>
+            </div>
+            <input type="hidden" id="url-imagem-monstro">
+            <label style="font-size: 12px; color: var(--texto-mutado);">Nome da Ameaça</label>
+            <input type="text" id="nome-monstro" placeholder="Ex: Orc Guerreiro">
+            <label style="font-size: 12px; color: var(--texto-mutado);">HP Máximo</label>
+            <input type="number" id="hp-monstro" value="10">
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button id="btn-cancelar-monstro" class="btn btn-danger">Cancelar</button>
+                <button id="btn-salvar-monstro" class="btn btn-success" style="flex: 1;" disabled>Forjar Card</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-imagem-expandida" class="modal">
+        <button id="btn-fechar-imagem-expandida" style="position: absolute; top: 20px; right: 30px; background: rgba(0,0,0,0.5); border: 1px solid var(--borda); color: white; padding: 10px 15px; border-radius: 4px; cursor: pointer; z-index: 1001; font-weight: bold;"><i data-lucide="x"></i> Fechar Modo Estudo</button>
+        <div class="modal-content" style="max-width: 95vw; max-height: 95vh; width: 95vw; height: 95vh; background: transparent; border: none; padding: 0;">
+            <div id="zoom-container" class="zoom-container">
+                <img id="imagem-expandida-src" src="" style="max-width: 90vw; max-height: 90vh; border-radius: 8px;">
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-salvar-escudo" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <h3 style="margin-bottom: 15px;"><i data-lucide="save"></i> Salvar Estado do Escudo</h3>
+            <p style="font-size: 12px; color: var(--texto-mutado); margin-bottom: 15px;">Isto irá memorizar o layout dos painéis, a iniciativa atual e a cena aberta.</p>
+            <label style="font-size: 12px; color: var(--texto-mutado);">Nome do Save (Ex: Combate do Dragão)</label>
+            <input type="text" id="nome-save-escudo" placeholder="Digite um nome memorável...">
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <button id="btn-cancelar-salvar-escudo" class="btn btn-danger">Cancelar</button>
+                <button id="btn-confirmar-salvar-escudo" class="btn btn-success" style="flex: 1;">Guardar na Trama</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-carregar-escudo" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <h3 style="margin-bottom: 15px;"><i data-lucide="folder-open"></i> Carregar Estado do Escudo</h3>
+            <div id="lista-saves-escudo" style="max-height: 300px; overflow-y: auto; margin-bottom: 15px; border: 1px solid var(--borda); padding: 10px; border-radius: 4px; background: rgba(0,0,0,0.2);">
+                <div class="info-block-vazio">Carregando memórias...</div>
+            </div>
+            <div style="display: flex; justify-content: flex-end;">
+                <button id="btn-fechar-carregar-escudo" class="btn btn-danger">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-forja-escudo" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <h3 style="color: var(--destaque); margin-top: 0; margin-bottom: 15px;"><i data-lucide="hammer"></i> Forjar Entidade</h3>
+            <label style="font-size: 12px; color: var(--texto-mutado);">Nome</label>
+            <input type="text" id="forja-nome-escudo" placeholder="Ex: Guarda da Cidade">
+            <label style="font-size: 12px; color: var(--texto-mutado);">Categoria</label>
+            <select id="forja-tipo-escudo">
+                <option value="npc">NPC</option>
+                <option value="protagonista">Protagonista</option>
+                <option value="faccao">Facção</option>
+                <option value="local">Local</option>
+                <option value="cenario">Cenário Macro</option>
+            </select>
+            <label style="font-size: 12px; color: var(--texto-mutado);">Núcleo (opcional)</label>
+            <select id="forja-nucleo-escudo"><option value="">Nenhum</option></select>
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px;">
+                <button id="btn-cancelar-forja" class="btn btn-danger">Cancelar</button>
+                <button id="btn-confirmar-forja" class="btn btn-success">Criar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-nucleos-escudo" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <h3 style="color: var(--destaque); margin-top: 0; margin-bottom: 15px;"><i data-lucide="settings"></i> Gerenciar Núcleos</h3>
+            <div id="lista-nucleos-escudo" style="max-height: 200px; overflow-y: auto; margin-bottom: 15px;"></div>
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="novo-nucleo-nome-escudo" placeholder="Nome do novo núcleo" style="flex: 1;">
+                <button id="btn-criar-nucleo" class="btn btn-primary btn-sm">+ Criar</button>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px;">
+                <button id="btn-fechar-nucleos" class="btn btn-danger">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-mover-nucleo-escudo" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <h3 style="color: var(--destaque); margin-top: 0; margin-bottom: 15px;">Mover Entidade</h3>
+            <div id="lista-nucleos-mover-escudo" style="max-height: 200px; overflow-y: auto; margin-bottom: 15px; color: white;"></div>
+            <input type="hidden" id="mover-node-id-escudo">
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button id="btn-cancelar-mover-nucleo" class="btn btn-danger">Cancelar</button>
+                <button id="btn-confirmar-mover-nucleo" class="btn btn-success">Mover</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="gaveta-mestre" class="painel-mestre">
+        <div id="lingueta-gaveta-mestre" class="gaveta-lingueta" style="top: 240px; height: 160px; line-height: 40px;">
+            <i data-lucide="archive"></i> COMPÊNDIO
+        </div>
+
+        <div style="padding: 20px 20px 0 20px; border-bottom: 1px solid var(--borda);">
+            <h3 style="color: var(--roxo-mago); margin: 0 0 15px 0;"><i data-lucide="component"></i> Módulos do Sistema</h3>
+        </div>
+
+        <div id="aba-modulos" class="painel-conteudo ativo" style="padding-top: 15px;">
+            <h4 style="color: var(--destaque); margin-top: 0;">Módulos Inativos</h4>
+            <p style="font-size: 12px; color: var(--texto-mutado); margin-bottom: 20px;">Clique em "Despertar" para enviar o painel para a tela de jogo.</p>
+            <div id="deposito-blocos">
+                </div>
+        </div>
+    </div>
+
+    <div id="modal-novo-evento" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <h3 style="margin-top: 0; margin-bottom: 15px;"><i data-lucide="calendar-clock"></i> Novo Evento</h3>
+            <label style="font-size: 12px; color: var(--texto-mutado);">Nome do Evento</label>
+            <input type="text" id="evento-nome" placeholder="Ex: A Conspiração das Sombras">
+            <label style="font-size: 12px; color: var(--texto-mutado);">Descrição (opcional)</label>
+            <input type="text" id="evento-descricao" placeholder="Breve descrição do evento...">
+            <label style="font-size: 12px; color: var(--texto-mutado);">Pool Máxima</label>
+            <input type="number" id="evento-pool" value="10" min="1">
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px;">
+                <button id="btn-cancelar-novo-evento" class="btn btn-danger">Cancelar</button>
+                <button id="btn-confirmar-novo-evento" class="btn btn-success">Criar Evento</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-nova-automacao" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <h3 style="margin-top: 0; margin-bottom: 15px;"><i data-lucide="zap"></i> Nova Automação</h3>
+            <label style="font-size: 12px; color: var(--texto-mutado);">Evento Gatilho</label>
+            <select id="automacao-evento-id">
+                <option value="">Carregando eventos...</option>
+            </select>
+            <label style="font-size: 12px; color: var(--texto-mutado);">Tipo de Ação</label>
+            <select id="automacao-tipo">
+                <option value="criar_flag">Criar Flag</option>
+                <option value="alterar_flag">Alterar Flag</option>
+                <option value="postar_em_aba">Postar em Aba</option>
+                <option value="criar_evento">Criar Evento</option>
+                <option value="criar_entidade">Criar Entidade</option>
+            </select>
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px;">
+                <button id="btn-cancelar-nova-automacao" class="btn btn-danger">Cancelar</button>
+                <button id="btn-confirmar-nova-automacao" class="btn btn-success">Criar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vincular Flag ao Evento -->
+    <div id="modal-vinculo" class="modal">
+        <div class="modal-box" style="width: 450px; max-height: 85vh;">
+            <h3 class="texto-destaque" style="margin-top: 0;"><i data-lucide="link"></i> Vincular Causa ao Evento</h3>
+            <input type="hidden" id="vinculo-event-id">
+            <label>Entidade (Nó)</label>
+            <select id="vinculo-node-id"></select>
+            <label>Flag</label>
+            <select id="vinculo-flag-key"><option value="">Selecione um nó primeiro...</option></select>
+            <label>Peso</label>
+            <input type="number" id="vinculo-peso" value="1" min="1">
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button id="btn-cancelar-vinculo" class="btn btn-outline">Cancelar</button>
+                <button id="btn-confirmar-vinculo" class="btn btn-primary">Vincular</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/lucide.min.js"></script>
+<script src="/js/api.js"></script>
+    <script src="/js/api/mundoApi.js"></script>
+    <script src="/js/api/eventosApi.js"></script>
+    <script src="/js/api/automacoesApi.js"></script>
+    <script src="/js/toast.js"></script>
+    <script src="/js/modalConfirmacao.js"></script>
+    <script src="/js/motor_regras.js"></script>
+    <script src="/js/escudo_narrador.js"></script>
+</body>
+</html>

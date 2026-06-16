@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minha Gaveta - Mochila do Aventureiro</title>
+    <script>
+        (function() {
+            var tema = localStorage.getItem('m20_tema');
+            if (tema && tema !== 'padrao') document.documentElement.classList.add(tema);
+        })();
+    </script>
+    <link rel="stylesheet" href="/css/global_ui.css">
+    <style>
+        .pagina-gaveta      { max-width: 1000px; margin: 40px auto; padding: 20px; }
+        .gaveta-grid        { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+        .gaveta-titulo      { margin-bottom: 5px; }
+        .gaveta-subtitulo   { margin-bottom: 30px; }
+        .ficha-item         { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-card-glass); border: 1px solid var(--borda-glass); border-radius: 4px; margin-bottom: 10px; }
+        .ficha-item-info    { display: flex; align-items: center; gap: 10px; }
+        .ficha-item-info i  { color: var(--roxo-mago); }
+        .card-titulo        { font-size: 1.2rem; margin-bottom: 15px; border-bottom: 1px solid var(--borda); padding-bottom: 10px; }
+        .card-topo          { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--borda); padding-bottom: 10px; margin-bottom: 15px; }
+        .card-topo h2       { font-size: 1.2rem; margin: 0; }
+        .btn-voltar         { text-decoration: none; display: inline-flex; align-items: center; gap: 8px; margin-bottom: 20px; }
+        .btn-upload         { display: inline-flex; align-items: center; gap: 5px; }
+        .ficha-item-acoes   { display: flex; align-items: center; gap: 6px; }
+        @media (max-width: 768px) { .gaveta-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body class="pagina-gaveta">
+
+    <a href="/profile.html" class="btn btn-ghost btn-voltar">
+        <i data-lucide="arrow-left"></i> Voltar para o Perfil
+    </a>
+
+    <h1 class="texto-roxo gaveta-titulo"><span data-icon-rpg="backpack"></span> Minha Gaveta</h1>
+    <p class="texto-mutado gaveta-subtitulo">Baixe modelos em branco ou guarde as suas fichas editáveis em segurança.</p>
+
+    <div class="gaveta-grid">
+
+        <!-- LADO ESQUERDO: Modelos Disponíveis -->
+        <div class="card">
+            <h2 class="card-titulo"><i data-lucide="file-text"></i> Modelos Disponíveis</h2>
+            <div id="lista-modelos">
+                <div class="ficha-item">
+                    <div class="ficha-item-info">
+                        <i data-lucide="file-down"></i>
+                        <span>Mago: A Ascensão (M20)</span>
+                    </div>
+                    <a href="/modelos/ficha_mago_m20.pdf" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline">Abrir PDF</a>
+                </div>
+                <div class="ficha-item">
+                    <div class="ficha-item-info">
+                        <i data-lucide="file-down"></i>
+                        <span>D&amp;D 5ª Edição</span>
+                    </div>
+                    <a href="/modelos/ficha_dnd5e.pdf" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline">Abrir PDF</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- LADO DIREITO: Fichas Salvas -->
+        <div class="card">
+            <div class="card-topo">
+                <h2><i data-lucide="folder-lock"></i> Minhas Fichas Salvas</h2>
+                <button id="btn-nova-ficha" class="btn btn-sm btn-primary btn-upload">
+                    <i data-lucide="upload-cloud"></i> Nova Ficha
+                </button>
+                <input type="file" id="input-upload-pdf" accept="application/pdf" style="display:none;">
+            </div>
+            <div id="lista-minhas-fichas">
+                <div class="info-block-vazio">
+                    <i data-lucide="file-question"></i>
+                    <p>Nenhuma ficha salva ainda.</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="/js/lucide.min.js"></script>
+    <script>
+        const token = localStorage.getItem('m20_token');
+        if (!token) window.location.href = '/login.html';
+        lucide.createIcons();
+    </script>
+    <script src="/js/toast.js"></script>
+    <script src="/js/modalConfirmacao.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/api/gavetaApi.js"></script>
+    <script src="/js/gaveta.js"></script>
+</body>
+</html>

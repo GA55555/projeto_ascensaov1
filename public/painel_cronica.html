@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mochila do Aventureiro - Gerenciar Crônica</title>
+    <link rel="stylesheet" href="/css/global_ui.css">
+</head>
+<body style="max-width: 800px; margin: 40px auto; padding: 20px;">
+
+    <div class="header-painel" style="border-bottom: 1px solid var(--borda); padding-bottom: 20px;">
+        <h1 class="texto-roxo">Gerenciar Crônica</h1>
+        <a href="/profile.html" class="btn btn-outline btn-sm"><i data-lucide="arrow-left"></i> Voltar ao Hub</a>
+    </div>
+
+    <div class="card" style="margin-bottom: 20px;">
+        <h3 class="texto-roxo">Convidar Desperto</h3>
+        <p class="texto-mutado" style="font-size: 14px; margin-top: 5px;">Digite o e-mail cadastrado do jogador para adicioná-lo à mesa.</p>
+        <div class="form-convite">
+            <input type="email" id="email-novo-jogador" placeholder="email@do-jogador.com">
+            <button class="btn btn-primary" onclick="adicionarJogador()"><i data-lucide="user-plus"></i> Adicionar</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3 class="texto-roxo">Jogadores na Mesa</h3>
+        <ul class="lista-sem-estilo" id="lista-jogadores">
+            <p class="texto-mutado">Carregando membros da cabala...</p>
+        </ul>
+    </div>
+
+    <script src="/js/lucide.min.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/painel_cronica.js"></script>
+    <script src="/js/toast.js"></script>
+    <script src="/js/modalConfirmacao.js"></script>
+    <script>lucide.createIcons();</script>
+</body>
+</html>

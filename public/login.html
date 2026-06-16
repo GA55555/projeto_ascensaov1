@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mochila do Aventureiro - Login</title>
+    <link rel="stylesheet" href="/css/global_ui.css">
+</head>
+<body class="container-centro">
+
+    <div class="caixa-auth card">
+        <h2 class="texto-roxo" style="text-align: center; margin-bottom: 24px;">Acesso ao Grimório</h2>
+        <div id="msg-erro" class="texto-erro" style="display: none;"></div>
+
+        <form id="form-login">
+            <div class="campo">
+                <label>E-mail</label>
+                <input type="email" id="login-email" required>
+            </div>
+            <div class="campo">
+                <label>Senha</label>
+                <input type="password" id="login-senha" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; margin-top: 8px;">
+                <i data-lucide="log-in"></i> Entrar
+            </button>
+        </form>
+
+        <div class="link-rodape">
+            Ainda não é um Desperto? <a href="/registro.html">Crie sua conta</a>
+        </div>
+    </div>
+
+    <script src="/js/lucide.min.js"></script>
+    <script>
+        lucide.createIcons();
+        document.getElementById('form-login').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const email = document.getElementById('login-email').value;
+            const senha = document.getElementById('login-senha').value;
+            const msgErro = document.getElementById('msg-erro');
+
+            msgErro.style.display = 'none';
+
+            try {
+                const resposta = await fetch('/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, senha })
+                });
+
+                const data = await resposta.json();
+
+                if (!resposta.ok) throw new Error(data.erro || 'Erro ao fazer login.');
+
+                // A MÁGICA ACONTECE AQUI: Salva o token JWT no cofre do navegador
+                // Mude as chaves para o padrão m20_
+                localStorage.setItem('m20_token', data.token);
+                localStorage.setItem('m20_role', data.role || data.usuario?.papel);
+                localStorage.setItem('m20_user', JSON.stringify(data.usuario));
+                localStorage.setItem('m20_tema', data.usuario?.tema_interface || 'padrao');
+
+                // Redirecionamento baseado na Role (Se for narrador, vai pro painel dele)
+                const role = data.role || data.usuario?.papel;
+                if (role === 'narrador') {
+                window.location.href = '/profile.html';  // ou painel específico
+                } else {
+                window.location.href = '/profile.html';
+                }
+
+        } catch (err) {
+            msgErro.innerText = err.message;
+            msgErro.style.display = 'block';
+        }
+    });
+    </script>
+    <script src="/js/toast.js"></script>
+    <script src="/js/modalConfirmacao.js"></script>
+</body>
+</html>

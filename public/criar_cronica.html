@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mochila do Aventureiro - Forjar Crônica</title>
+    <link rel="stylesheet" href="/css/global_ui.css">
+</head>
+<body style="max-width: 800px; margin: 40px auto; padding: 20px;">
+
+    <div class="header-painel">
+        <a href="/profile.html" class="texto-mutado"><i data-lucide="arrow-left"></i> Voltar ao Perfil</a>
+        <h2 class="texto-roxo" style="margin: 0;">Forjar Nova Crônica</h2>
+    </div>
+
+    <div class="card">
+        <form id="form-cronica">
+            <div class="campo">
+                <label>Nome da Crônica</label>
+                <input type="text" id="cro-nome" placeholder="Ex: Sombras de Belo Horizonte" required>
+            </div>
+
+            <div class="campo">
+                <label>Sistema de Regras</label>
+                <select id="cro-sistema" required>
+                    <option value="">Carregando sistemas...</option>
+                </select>
+            </div>
+
+            <div class="campo">
+                <label>Sinopse / Descrição da Aventura</label>
+                <textarea id="cro-descricao" placeholder="Escreva um breve resumo do que aguarda os jogadores nesta crônica..."></textarea>
+            </div>
+
+            <div class="campo">
+                <label>Arte de Capa (Banner da Comunidade)</label>
+                <input type="file" id="cro-capa" accept=".jpg, .jpeg, .png, .webp" onchange="mostrarPreviewCapa(this)">
+                <div class="preview-capa" id="preview-container">
+                    <span>Nenhuma imagem selecionada</span>
+                    <img id="img-preview" src="">
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="btn-submit" style="width: 100%; justify-content: center; margin-top: 8px;">
+                <i data-lucide="wand-2"></i> Criar Crônica e Iniciar Comunidade
+            </button>
+        </form>
+    </div>
+
+    <script src="/js/lucide.min.js"></script>
+    <script src="/js/api.js"></script>
+    <script>
+        lucide.createIcons();
+
+        function mostrarPreviewCapa(input) {
+            const container = document.getElementById('preview-container');
+            const img = document.getElementById('img-preview');
+            const span = container.querySelector('span');
+
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    img.src = e.target.result;
+                    img.style.display = 'block';
+                    span.style.display = 'none';
+                    container.style.border = 'none';
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        async function carregarSistemas() {
+            const select = document.getElementById('cro-sistema');
+            try {
+                const resposta = await API.fetch('/sistemas');
+                const sistemas = await resposta.json();
+
+                const optionsHTML = sistemas.map(s =>
+                    `<option value="${escapeHTML(String(s.id))}">${escapeHTML(s.nome)}</option>`
+                ).join('');
+
+                select.innerHTML = '<option value="">Selecione um sistema</option>' + optionsHTML;
+
+            } catch (err) {
+                console.error("Erro ao carregar sistemas:", err);
+                select.innerHTML = '<option value="">Erro ao carregar sistemas</option>';
+            }
+        }
+        carregarSistemas();
+
+        document.getElementById('form-cronica').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const btn = document.getElementById('btn-submit');
+            const inputCapa = document.getElementById('cro-capa');
+            const inputNome = document.getElementById('cro-nome');
+            const inputSistema = document.getElementById('cro-sistema');
+            const inputDescricao = document.getElementById('cro-descricao');
+
+            if (inputCapa.files.length > 0) {
+                const tamanhoMB = inputCapa.files[0].size / (1024 * 1024);
+                if (tamanhoMB > 5) {
+                    alert("A imagem selecionada é muito grande! O limite máximo é de 5MB.");
+                    inputCapa.value = "";
+                    document.getElementById('preview-container').style.border = '2px dashed var(--borda)';
+                    document.getElementById('img-preview').style.display = 'none';
+                    document.getElementById('preview-container').querySelector('span').style.display = 'block';
+                    return;
+                }
+            }
+
+            btn.disabled = true;
+            btn.innerText = 'A Forjar a Realidade (Aguarde...)...';
+            inputNome.disabled = true;
+            inputSistema.disabled = true;
+            inputDescricao.disabled = true;
+            inputCapa.disabled = true;
+
+            try {
+                let capa_url = null;
+
+                if (inputCapa.files.length > 0) {
+                    const formData = new FormData();
+                    formData.append('imagens', inputCapa.files[0]);
+
+                    const resUpload = await API.fetch('/midia/upload/capas', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const dadosUpload = await resUpload.json();
+                    if (!resUpload.ok) throw new Error(dadosUpload.erro || 'Falha no upload da capa.');
+
+                    capa_url = dadosUpload.urls[0];
+                }
+
+                const payload = {
+                    nome: inputNome.value,
+                    descricao: inputDescricao.value,
+                    sistema_id: inputSistema.value,
+                    capa_url
+                };
+
+                const resCronica = await API.fetch('/cronicas', {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+
+                if (!resCronica.ok) {
+                    const dadosErro = await resCronica.json();
+                    throw new Error(dadosErro.erro || dadosErro.error || 'Erro ao criar a crónica no banco de dados.');
+                }
+
+                alert("Mundo criado com sucesso! O Feed Geral já está online.");
+                window.location.href = '/profile.html';
+
+            } catch (err) {
+                console.error(err);
+                alert(err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = 'Criar Crónica e Iniciar Comunidade';
+                inputNome.disabled = false;
+                inputSistema.disabled = false;
+                inputDescricao.disabled = false;
+                inputCapa.disabled = false;
+            }
+        });
+    </script>
+    <script src="/js/toast.js"></script>
+    <script src="/js/modalConfirmacao.js"></script>
+</body>
+</html>

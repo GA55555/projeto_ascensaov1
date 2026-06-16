@@ -1,0 +1,1286 @@
+[
+    {
+        "titulo": "Queda",
+        "categoria": "Combate",
+        "texto": "Um personagem sofre 1 dado de dano contundente por andar (3 metros) de altura da queda, até um máximo de 10 dados. O dano é absorvido normalmente.",
+        "pagina": 123
+    },    
+    {
+    "titulo": "Testes e Dificuldades",
+    "categoria": "Regras Gerais",
+    "texto": "Rola-se uma quantidade de d10 igual à soma do Atributo e Habilidade ou Parada de Dados equivalente [1]. A dificuldade padrão é 6, e os dados que a igualam ou superam determinam a quantidade de sucessos da ação [2, 3].",
+    "pagina": 386
+  },
+  {
+    "titulo": "Falha Crítica (Botch)",
+    "categoria": "Regras Gerais",
+    "texto": "Ocorre se nenhum sucesso for obtido na rolagem e pelo menos um dado mostrar o resultado '1' [4]. Isso resulta em consequências desastrosas para a ação ou no acúmulo severo de Paradoxo em casos de conjuração mágica [5, 6].",
+    "pagina": 390
+  },
+  {
+    "titulo": "Limiares (Thresholds)",
+    "categoria": "Regras Gerais",
+    "texto": "Para dificuldades que ultrapassariam 9, a regra opcional de limiar pode ser aplicada [7]. Cada ponto extra de dificuldade exige um sucesso adicional (além do primeiro) para que a ação funcione minimamente [8, 9].",
+    "pagina": 387
+  },
+  {
+    "titulo": "Força de Vontade",
+    "categoria": "Regras Gerais",
+    "texto": "O personagem pode gastar um ponto de Força de Vontade temporária por turno para forçar seus limites normais [10]. Na magia, isso também pode ser usado para adiar temporariamente um backlash de Paradoxo [11].",
+    "pagina": 330
+  },
+  {
+    "titulo": "Iniciativa",
+    "categoria": "Combate",
+    "texto": "No início do turno, rola-se 1d10 e soma-se à Pontuação de Iniciativa, que é a soma de Destreza + Raciocínio [12]. O personagem com o maior valor age primeiro na rodada [13].",
+    "pagina": 399
+  },
+  {
+    "titulo": "Rolagem de Ataque e Defesa",
+    "categoria": "Combate",
+    "texto": "O atacante rola Destreza + Habilidade de combate (como Briga ou Armas de Fogo) para atingir o alvo [12]. O defensor pode tentar Esquivar, Bloquear ou Aparar rolando Destreza + Habilidade (dificuldade 6), e seus sucessos subtraem os sucessos obtidos pelo atacante [14].",
+    "pagina": 410
+  },
+  {
+    "titulo": "Cálculo de Dano",
+    "categoria": "Combate",
+    "texto": "A rolagem de dano tem dificuldade 6 e a parada de dados base depende da arma utilizada [14]. Para cada sucesso extra na rolagem de ataque além do primeiro, adiciona-se um dado extra à parada de dano [15].",
+    "pagina": 412
+  },
+  {
+    "titulo": "Tipos de Dano",
+    "categoria": "Dano e Cura",
+    "texto": "Existem três tipos de dano: Contusão (impactos e quedas curtas), Letal (cortes, tiros e traumas sérios) e Agravado (fogo místico ou destruição sobrenatural de Padrão) [16-18]. Cada tipo difere severamente no tempo necessário para recuperação, indo de horas a meses [19].",
+    "pagina": 406
+  },
+  {
+    "titulo": "Absorção de Dano (Soak)",
+    "categoria": "Dano e Cura",
+    "texto": "Rola-se o Atributo Vigor (dificuldade 6) para reduzir o dano, com cada sucesso anulando um nível de ferimento recebido [20]. Humanos podem absorver Contusão, mas Letal ou Agravado geralmente exigem magia (como Vida 3) ou armadura especial [14].",
+    "pagina": 412
+  },
+  {
+    "titulo": "Dano Cinematográfico (Regra Opcional)",
+    "categoria": "Dano e Cura",
+    "texto": "Permite que humanos e magos tentem absorver dano Letal comum rolando Vigor contra uma dificuldade 8 [21, 22]. Esta opção heróica, no entanto, não permite a absorção de dano Agravado sem proteções místicas [22].",
+    "pagina": 412
+  },
+  {
+    "titulo": "Penalidades de Ferimento",
+    "categoria": "Dano e Cura",
+    "texto": "À medida que acumula dano em sua barra de vitalidade, o personagem sofre penalidades crescentes (-1, -2, -5) em suas paradas de dados para ações [23]. Essas penalidades de dor, contudo, nunca afetam as rolagens de Arete ou de absorção de dano [24].",
+    "pagina": 406
+  },
+  {
+    "titulo": "Conjuração de Magia",
+    "categoria": "Magia",
+    "texto": "O jogador rola a característica Arete para lançar efeitos mágicos na realidade [25]. A dificuldade da rolagem é a Esfera mais alta + 3 para magia Coincidente, + 4 para Vulgar sem testemunhas e + 5 para Vulgar com testemunhas dormentes [25].",
+    "pagina": 501
+  },
+  {
+    "titulo": "Limites de Modificadores Mágicos",
+    "categoria": "Magia",
+    "texto": "A dificuldade de um efeito mágico na Terra nunca cai abaixo de 3, nem ultrapassa 10 (ou 9 se usando a regra de Limiares) [8, 26]. O máximo de modificadores (de bônus ou penalidade) aplicáveis na rolagem por instrumentos e condições é de -3 a +3 [27].",
+    "pagina": 503
+  },
+  {
+    "titulo": "Dano Mágico Base",
+    "categoria": "Magia",
+    "texto": "Magias diretas causam 2 níveis de dano se rolarem dois sucessos, escalando a partir daí [28]. A Esfera Forças adiciona sempre um sucesso automático ao dano, e o uso da Esfera Primórdio 2 + 1 ponto de Quintessência torna qualquer ataque mágico do tipo Agravado [29, 30].",
+    "pagina": 504
+  },
+  {
+    "titulo": "Magia Rápida em Combate (Fast-Casting)",
+    "categoria": "Magia",
+    "texto": "Improvisar magia na tensão da iniciativa e velocidade do combate aumenta a dificuldade da rolagem de Arete em +1 [31]. Efeitos que já foram preparados antecipadamente em rituais não sofrem essa penalidade [31].",
+    "pagina": 415
+  },
+  {
+    "titulo": "Rituais (Magia Estendida)",
+    "categoria": "Magia",
+    "texto": "Trata-se de rolagens múltiplas que acumulam sucessos para mágicas complexas, consumindo horas ou turnos estendidos [32]. Se o mago falhar em uma rolagem durante o ritual, as rolagens subsequentes sofrem +1 de dificuldade cumulativa [32].",
+    "pagina": 538
+  },
+  {
+    "titulo": "Contramágica",
+    "categoria": "Magia",
+    "texto": "O alvo usa uma ação para rolar Arete (dificuldade 7) para se defender ativamente de feitiços inimigos, precisando possuir pelo menos 1 ponto na Esfera usada no ataque [33, 34]. Cada sucesso do defensor anula diretamente um sucesso da rolagem de conjuração do atacante [33, 34].",
+    "pagina": 545
+  },
+  {
+    "titulo": "Acúmulo de Paradoxo",
+    "categoria": "Paradoxo",
+    "texto": "Magias vulgares sempre geram no mínimo 1 ponto de Paradoxo, mesmo quando bem-sucedidas [35]. Falhas críticas geram pontos baseados no nível da Esfera utilizada (1 ponto por nível em mágicas coincidentes, com agravantes severos nas vulgares) [5, 6].",
+    "pagina": 501
+  },
+  {
+    "titulo": "Explosão de Paradoxo (Backlash)",
+    "categoria": "Paradoxo",
+    "texto": "Quando Paradoxo se acumula excessivamente (geralmente acima de 5 pontos), o Narrador rola 1 dado por ponto acumulado contra dificuldade 6 [36, 37]. Sucessos descarregam a energia, mas punem o mago com Queimadura (dano contusivo, letal ou agravado), Defeitos Temporais/Físicos ou Silêncio (Quiet) [38].",
+    "pagina": 548
+  },
+  {
+    "titulo": "Atrasar o Paradoxo",
+    "categoria": "Paradoxo",
+    "texto": "Um mago pode sentir a explosão de Paradoxo vindo e pode gastar 1 ponto de Força de Vontade para adiá-la até o fim da cena [11]. Contudo, quaisquer pontos extras de Paradoxo gerados nesse período de carência somarão dados na explosão inevitável [39].",
+    "pagina": 549
+  },
+  {
+    "titulo": "Correspondência: Nível 1 (Percepção)",
+    "categoria": "Esferas",
+    "texto": "O mago percebe relações espaciais, distâncias e direções de forma intuitiva. Pode sentir a localização de portais, teletransportes recentes ou objetos conectados por correspondência.",
+    "pagina": 512
+  },
+  {
+    "titulo": "Correspondência: Nível 2 (Sutil Manipulação)",
+    "categoria": "Esferas",
+    "texto": "Permite mover pequenos objetos à distância, abrir fechaduras remotamente ou observar um local conhecido através de um ponto de vista fantasma (alcance visual).",
+    "pagina": 513
+  },
+  {
+    "titulo": "Correspondência: Nível 3 (Abençoado por Hermes)",
+    "categoria": "Esferas",
+    "texto": "Teletransporte dentro do campo de visão, criar portais temporários, tocar objetos à distância ou 'dobrar' o espaço para que dois lugares coincidam brevemente.",
+    "pagina": 514
+  },
+  {
+    "titulo": "Correspondência: Nível 4 (Chaves do Reino)",
+    "categoria": "Esferas",
+    "texto": "Teletransporte para qualquer lugar já visitado, abrir portais para reinos umbralinos, encurtar longas distâncias em viagens ou criar becos sem saída espaciais.",
+    "pagina": 515
+  },
+  {
+    "titulo": "Correspondência: Nível 5 (Senhor do Espaço)",
+    "categoria": "Esferas",
+    "texto": "Pode estar em vários lugares simultaneamente (clonagem espacial), viajar para qualquer lugar do mundo real ou da Umbra, distorcer a geometria de uma área inteira.",
+    "pagina": 516
+  },
+  {
+    "titulo": "Entropia: Nível 1 (Pressentimento da Ruína)",
+    "categoria": "Esferas",
+    "texto": "Percepção de probabilidades, pontos fracos, falhas iminentes e decadência. O mago sabe quando algo está prestes a quebrar ou uma pessoa à beira do colapso.",
+    "pagina": 517
+  },
+  {
+    "titulo": "Entropia: Nível 2 (Toque da Decomposição)",
+    "categoria": "Esferas",
+    "texto": "Acelera a deterioração de objetos (ferrugem, apodrecimento), provoca pequenos acidentes (tropeçar, derrubar algo) ou aumenta ligeiramente o azar do oponente.",
+    "pagina": 518
+  },
+  {
+    "titulo": "Entropia: Nível 3 (Dança da Probabilidade)",
+    "categoria": "Esferas",
+    "texto": "Controla o caos: pode fazer uma arma falhar, um veículo enguiçar, uma estrutura ruir de forma espetacular ou dar extrema sorte/azar em ações simples.",
+    "pagina": 519
+  },
+  {
+    "titulo": "Entropia: Nível 4 (Mestre do Destino)",
+    "categoria": "Esferas",
+    "texto": "Influencia eventos em larga escala (apagões, quebra de máquinas, falência de empresas), envelhece instantaneamente um alvo ou causa deterioração maciça.",
+    "pagina": 520
+  },
+  {
+    "titulo": "Entropia: Nível 5 (Senhor da Entropia)",
+    "categoria": "Esferas",
+    "texto": "Desintegra matéria (transforma em pó), cria zonas de acaso absoluto (todas as rolagens são imprevisíveis), ou concede verdadeira imortalidade ao impedir sua própria decadência.",
+    "pagina": 521
+  },
+  {
+    "titulo": "Forças: Nível 1 (Detecção de Energia)",
+    "categoria": "Esferas",
+    "texto": "Percebe campos eletromagnéticos, calor, radiação, ondas sonoras, gravidade, etc. Pode identificar fontes de energia e seus fluxos.",
+    "pagina": 522
+  },
+  {
+    "titulo": "Forças: Nível 2 (Manipulação Menor)",
+    "categoria": "Esferas",
+    "texto": "Amplifica ou abafa sons, cria luz fria, gera pequenas faíscas, aquece ou resfria levemente um objeto, desvia levemente projéteis.",
+    "pagina": 523
+  },
+  {
+    "titulo": "Forças: Nível 3 (Controle Elemental)",
+    "categoria": "Esferas",
+    "texto": "Cria fogo, raios, ondas de choque, ventania, escudos de energia, levitação (controlando gravidade) ou invisibilidade (desviando luz).",
+    "pagina": 524
+  },
+  {
+    "titulo": "Forças: Nível 4 (Manipulação em Larga Escala)",
+    "categoria": "Esferas",
+    "texto": "Controla clima local, produz terremotos menores, absorve energia de ataques, voo sustentado, ou transforma um tipo de energia em outro (calor em eletricidade).",
+    "pagina": 525
+  },
+  {
+    "titulo": "Forças: Nível 5 (Senhor das Forças)",
+    "categoria": "Esferas",
+    "texto": "Cria tempestades, terremotos, explosões nucleares em pequena escala, manipula gravidade para esmagar, cria campos de força quase impenetráveis.",
+    "pagina": 526
+  },
+  {
+    "titulo": "Vida: Nível 1 (Percepção da Vida)",
+    "categoria": "Esferas",
+    "texto": "Sente a presença de seres vivos, identifica doenças, lesões, estado geral de saúde, tipo de criatura (animal, vegetal, humano).",
+    "pagina": 527
+  },
+  {
+    "titulo": "Vida: Nível 2 (Autotransformação Menor)",
+    "categoria": "Esferas",
+    "texto": "Cura ferimentos leves em si mesmo, muda traços superficiais (cor dos olhos, cabelo), aguça sentidos, ganha garras/dentes temporariamente.",
+    "pagina": 528
+  },
+  {
+    "titulo": "Vida: Nível 3 (Curar e Transformar Outros)",
+    "categoria": "Esferas",
+    "texto": "Cura ferimentos moderados em outros, transforma partes do corpo (brânquias, asas), metamorfose completa para animal de tamanho similar, regenera membros.",
+    "pagina": 529
+  },
+  {
+    "titulo": "Vida: Nível 4 (Criação e Degeneração)",
+    "categoria": "Esferas",
+    "texto": "Cria formas de vida simples (vermes, bactérias), altera drasticamente biologia (tornar alguém resistente a venenos), causa doenças ou envelhecimento acelerado.",
+    "pagina": 530
+  },
+  {
+    "titulo": "Vida: Nível 5 (Senhor da Carne)",
+    "categoria": "Esferas",
+    "texto": "Cria quimeras biológicas complexas (quimeras), concede habilidades sobre-humanas (força, velocidade), imortalidade biológica, ou desintegra organismos vivos.",
+    "pagina": 531
+  },
+  {
+    "titulo": "Matéria: Nível 1 (Percepção da Matéria)",
+    "categoria": "Esferas",
+    "texto": "Identifica composição, densidade, pureza, estrutura molecular de objetos inanimados. Detecta metais preciosos, falhas internas, venenos.",
+    "pagina": 532
+  },
+  {
+    "titulo": "Matéria: Nível 2 (Transmutação Menor)",
+    "categoria": "Esferas",
+    "texto": "Altera estado físico (sólido/líquido/gasoso) sem mudar substância, amolece metal, endurece tecido, muda cor ou opacidade.",
+    "pagina": 533
+  },
+  {
+    "titulo": "Matéria: Nível 3 (Transmutação de Substância)",
+    "categoria": "Esferas",
+    "texto": "Converte um material em outro (chumbo em ouro, madeira em aço), dentro de complexidade similar (elementos químicos próximos).",
+    "pagina": 534
+  },
+  {
+    "titulo": "Matéria: Nível 4 (Criação de Matéria)",
+    "categoria": "Esferas",
+    "texto": "Cria objetos inertes do nada (desde que conheça estrutura), altera completamente a composição (transformar ar em diamante), encantar objetos com propriedades mágicas.",
+    "pagina": 535
+  },
+  {
+    "titulo": "Matéria: Nível 5 (Senhor da Matéria)",
+    "categoria": "Esferas",
+    "texto": "Cria estruturas complexas (máquinas, armas de fogo), altera densidade para tornar algo intangível ou ultra-pesado, desintegra matéria em energia.",
+    "pagina": 536
+  },
+  {
+    "titulo": "Mente: Nível 1 (Percepção Mental)",
+    "categoria": "Esferas",
+    "texto": "Lê emoções superficiais, detecta presença de mentes conscientes, sente intenções fortes (hostilidade, medo), comunica imagens simples.",
+    "pagina": 537
+  },
+  {
+    "titulo": "Mente: Nível 2 (Controle Leve)",
+    "categoria": "Esferas",
+    "texto": "Envia sugestões subliminares, causa distração, induz sono leve, melhora própria memória ou concentração, lê pensamentos superficiais.",
+    "pagina": 538
+  },
+  {
+    "titulo": "Mente: Nível 3 (Manipulação Plena)",
+    "categoria": "Esferas",
+    "texto": "Controla ações de um alvo (como marionete), cria ilusões sensoriais completas, apaga/modifica memórias recentes, concede habilidades temporárias.",
+    "pagina": 539
+  },
+  {
+    "titulo": "Mente: Nível 4 (Domínio Coletivo)",
+    "categoria": "Esferas",
+    "texto": "Afeta múltiplas mentes simultaneamente (emissão de ordem em uma multidão), constrói personalidades artificiais, telepatia em área, 'telefone mental'.",
+    "pagina": 540
+  },
+  {
+    "titulo": "Mente: Nível 5 (Senhor da Psique)",
+    "categoria": "Esferas",
+    "texto": "Reescreve completamente a personalidade de alguém, transfere consciência para outro corpo, cria lobotomia ou catalepsia, acessa conhecimento ancestral.",
+    "pagina": 541
+  },
+  {
+    "titulo": "Primórdio: Nível 1 (Visão do Padrão)",
+    "categoria": "Esferas",
+    "texto": "Percebe o tecido da realidade, vê concentrações de Quintessência, identifica nós de poder, detecta magia residual e paradoxo ativo.",
+    "pagina": 542
+  },
+  {
+    "titulo": "Primórdio: Nível 2 (Canalizar Quintessência)",
+    "categoria": "Esferas",
+    "texto": "Absorve Quintessência de nódulos ou fontes, infunde objetos com energia, dissipa pequenas quantidades de Paradoxo, cria faíscas de força bruta.",
+    "pagina": 543
+  },
+  {
+    "titulo": "Primórdio: Nível 3 (Forja do Avatar)",
+    "categoria": "Esferas",
+    "texto": "Cria talismãs (objetos que guardam Quintessência), transfere energia entre pessoas, aumenta temporariamente Arete de outro mago, 'fuel' para outros feitiços.",
+    "pagina": 544
+  },
+  {
+    "titulo": "Primórdio: Nível 4 (Manipulação do Paradoxo)",
+    "categoria": "Esferas",
+    "texto": "Absorve Paradoxo de outrem (assumindo o fardo), transforma Paradoxo em Quintessência (arriscado), anula efeitos de magia vulgar, 'purifica' ressonâncias.",
+    "pagina": 545
+  },
+  {
+    "titulo": "Primórdio: Nível 5 (Criação e Aniquilação)",
+    "categoria": "Esferas",
+    "texto": "Cria Quintessência do nada (Arete expandido), aniquila completamente matéria/energia (difícil), reaviva avatares destruídos, 'reza' mágica de nível divino.",
+    "pagina": 546
+  },
+  {
+    "titulo": "Espírito: Nível 1 (Percepção Espiritual)",
+    "categoria": "Esferas",
+    "texto": "Vê e ouve espíritos na Umbra ou no mundo físico (se manifestados), sente portais umbralinos, identifica ressonâncias espirituais.",
+    "pagina": 547
+  },
+  {
+    "titulo": "Espírito: Nível 2 (Interação com Espíritos)",
+    "categoria": "Esferas",
+    "texto": "Comunica-se com espíritos, faz oferendas para apaziguá-los, toca entidades incorpóreas, convoca espíritos menores (grigori, elementais fracos).",
+    "pagina": 548
+  },
+  {
+    "titulo": "Espírito: Nível 3 (Atravessar o Véu)",
+    "categoria": "Esferas",
+    "texto": "Permite que o mago entre na Umbra (ou traga outros), invoca espíritos poderosos, cria selos ou pactos, 'possessão consentida' por espíritos.",
+    "pagina": 549
+  },
+  {
+    "titulo": "Espírito: Nível 4 (Domínio Umbralino)",
+    "categoria": "Esferas",
+    "texto": "Manipula o ambiente da Umbra (cria estruturas), banir ou aprisionar espíritos, forçar possessão hostil, transformar objetos em talismãs espirituais.",
+    "pagina": 550
+  },
+  {
+    "titulo": "Espírito: Nível 5 (Senhor dos Reinos de Além)",
+    "categoria": "Esferas",
+    "texto": "Cria ou destrói portais permanentes, manifesta espíritos como seres físicos, torna-se um espírito temporariamente, altera o 'Gauntlet' (Fronteira).",
+    "pagina": 551
+  },
+  {
+    "titulo": "Tempo: Nível 1 (Percepção Temporal)",
+    "categoria": "Esferas",
+    "texto": "Sabe a hora exata, sente distorções temporais, percebe passado recente (horas) em um local, detecta paradoxo temporal.",
+    "pagina": 552
+  },
+  {
+    "titulo": "Tempo: Nível 2 (Acelerar/Desacelerar)",
+    "categoria": "Esferas",
+    "texto": "Acelera sua própria percepção (agindo primeiro), desacelera um alvo (movimentos lentos), faz objetos envelhecerem rápido ou pararem no tempo.",
+    "pagina": 553
+  },
+  {
+    "titulo": "Tempo: Nível 3 (Visão do Passado)",
+    "categoria": "Esferas",
+    "texto": "Projeta a mente para o passado (observa eventos históricos), cria ecos temporais, concede 'premonição' (ver segundos no futuro), pequenas voltas no tempo (um turno).",
+    "pagina": 554
+  },
+  {
+    "titulo": "Tempo: Nível 4 (Viagem no Tempo)",
+    "categoria": "Esferas",
+    "texto": "Viaja fisicamente para o passado ou futuro (com riscos de paradoxo), cria loops temporais, 'congela' uma área fora do fluxo do tempo, envelhece grupos inteiros.",
+    "pagina": 555
+  },
+  {
+    "titulo": "Tempo: Nível 5 (Senhor do Tempo)",
+    "categoria": "Esferas",
+    "texto": "Para o tempo em uma área enorme, cria realidades temporais alternativas, revisa eventos passados (mudando a história, perigosíssimo), vive fora da linha temporal.",
+    "pagina": 556
+  },
+  {
+    "titulo": "Esferas: Regras Gerais",
+    "categoria": "Esferas",
+    "texto": "Cada Esfera tem 5 níveis (1 a 5). Para efeitos acima do nível 5 (mestres lendários), custos e dificuldades aumentam drasticamente. Feitiços combinam duas ou mais Esferas. A dificuldade base é 6 + modificadores de vulgaridade, alcance, duração, etc.",
+    "pagina": 500
+  },
+  {
+    "titulo": "Esferas: Níveis 6+ (Arcano Avançado)",
+    "categoria": "Esferas",
+    "texto": "Níveis 6 a 9 representam poder quase divino: nível 6 (mudanças regionais), nível 7 (continental), nível 8 (planetário), nível 9 (realidade universal). Exigem Arete equivalente e rituais de meses/anos. Exemplo: Correspondência 6 - teletransporte interplanetário; Vida 9 - criar espécies inteiras.",
+    "pagina": 558
+  },
+  {
+    "titulo": "O que é Paradoxo",
+    "categoria": "Paradoxo",
+    "texto": "Paradoxo é o custo por violar as leis da realidade consensual. Acumula-se quando um mago realiza magia vulgar diante de testemunhas não iniciadas (ou em locais de alta Sintonização). Representa a reação do universo contra a arrogância de redefinir a realidade.",
+    "pagina": 540
+  },
+  {
+    "titulo": "Magia Vulgar vs. Coincidente",
+    "categoria": "Paradoxo",
+    "texto": "Magia coincidente é aquela que pode ser explicada como improvável, mas possível (ex.: um freio falhar). Magia vulgar é claramente impossível (ex.: bolas de fogo). Vulgar + testemunhas = +1 ponto de Paradoxo por sucesso (mínimo 1). Vulgar sem testemunhas = 1 ponto por sucesso.",
+    "pagina": 541
+  },
+  {
+    "titulo": "Acumulação de Paradoxo",
+    "categoria": "Paradoxo",
+    "texto": "Sempre que um mago rola Arete para um feitiço vulgar, adiciona Pontos de Paradoxo iguais aos sucessos obtidos (se houver testemunhas, +1 por sucesso). O Paradoxo acumula-se em uma trilha. Quando atinge 10, ocorre um backlash imediato.",
+    "pagina": 542
+  },
+  {
+    "titulo": "Falha Catastrófica e Paradoxo",
+    "categoria": "Paradoxo",
+    "texto": "Em uma falha catastrófica (botch) na rolagem de Arete, o mago sofre um backlash de Paradoxo imediato, independentemente da trilha. Além disso, ganha 1d10 pontos de Paradoxo adicionais. O Mestre define o efeito, que pode ser físico, mental ou de distorção da realidade.",
+    "pagina": 543
+  },
+  {
+    "titulo": "Backlash (Reação do Paradoxo)",
+    "categoria": "Paradoxo",
+    "texto": "Quando a trilha de Paradoxo atinge 10 ou mais, ocorre um backlash. O mago rola 1d10 + Pontos de Paradoxo acumulados (dif 8). Cada sucesso causa 1 nível de dano agravado e um efeito colateral (ex.: parte do corpo vira vidro, chuva de sapos, perda de memória). Após o backlash, os pontos zeram.",
+    "pagina": 544
+  },
+  {
+    "titulo": "Quiet (Silêncio)",
+    "categoria": "Paradoxo",
+    "texto": "Quiet é um tipo especial de backlash que afeta a sanidade. Subdivide-se em Quiet de Passagem (distorções temporárias de percepção) e Quiet de Permanência (insanidade duradoura). O mago pode adquirir Defeitos como Medo de Magia, Alucinações ou Personalidade Múltipla.",
+    "pagina": 545
+  },
+  {
+    "titulo": "Reduzindo o Paradoxo",
+    "categoria": "Paradoxo",
+    "texto": "O Paradoxo diminui naturalmente com o tempo: 1 ponto por dia em santuário ou local calmo, ou 1 ponto por semana em atividades normais. Pode ser drenado por rituais de Primórdio (nível 4), por certos Talismãs ou através de um avatar com alta Essência. Apagar completamente exige sacrifícios ou aventuras.",
+    "pagina": 546
+  },
+  {
+    "titulo": "Defeitos de Paradoxo",
+    "categoria": "Paradoxo",
+    "texto": "Magos com alto Paradoxo acumulado (acima de 5) podem sofrer defeitos temporários ou permanentes: Pederneira (falhas em equipamentos), Interdição (não pode usar um instrumento), Resíduo de Paradoxo (aura distorcida), ou Toque do Paradoxo (feridas que não cicatrizam).",
+    "pagina": 547
+  },
+  {
+    "titulo": "Paradoxo na Umbra",
+    "categoria": "Paradoxo",
+    "texto": "Dentro da Umbra, a magia nunca é vulgar (não há testemunhas consensuais). No entanto, espíritos poderosos podem impor um Paradoxo local chamado 'Ressonância Hostil' se o mago violar as leis do reino. O Paradoxo acumulado no mundo físico persiste na Umbra, mas não piora.",
+    "pagina": 548
+  },
+  {
+    "titulo": "Paradoxo e Maras",
+    "categoria": "Paradoxo",
+    "texto": "Maras são criaturas do Paradoxo, manifestações de backlashes extremos. Caçam magos com alto Paradoxo e podem ser invocadas acidentalmente. Possuem poderes anti-magia (Anulação de Arete) e são imunes a dano normal. São os algozes do universo contra os arrogantes.",
+    "pagina": 549
+  },
+  {
+    "titulo": "Regra Opcional: Paradoxo por Intensidade",
+    "categoria": "Paradoxo",
+    "texto": "Para feitiços muito poderosos (acima de 5 sucessos), o Mestre pode cobrar Paradoxo adicional: +1 ponto por nível de intensidade acima de 5. Ex.: um feitiço com 8 sucessos gera +3 pontos de Paradoxo além do normal. Isso evita abusos de magia vulgar extremamente potente.",
+    "pagina": 550
+  },
+  {
+    "titulo": "Atributos: Visão Geral",
+    "categoria": "Criação de Personagem",
+    "texto": "Atributos medem as capacidades inatas do personagem. Dividem-se em três categorias: Físicos (Vigor, Destreza, Vigor), Sociais (Carisma, Manipulação, Apresentação) e Mentais (Percepção, Raciocínio, Prontidão). Cada um varia de 1 a 5 (humano normal).",
+    "pagina": 120
+  },
+  {
+    "titulo": "Atributos: Pontuação Inicial",
+    "categoria": "Criação de Personagem",
+    "texto": "O jogador distribui 6/4/3 pontos entre as três categorias (Físicos, Sociais, Mentais) na ordem escolhida. Exemplo: 6 pontos em Físicos, 4 em Sociais, 3 em Mentais. Nenhum atributo pode começar acima de 5.",
+    "pagina": 121
+  },
+  {
+    "titulo": "Habilidades: Categorias",
+    "categoria": "Criação de Personagem",
+    "texto": "Habilidades dividem-se em Talentos (natos, como Prontidão ou Esquiva), Perícias (treinadas, como Armas de Fogo ou Condução) e Conhecimentos (estudadas, como Computador ou Ocultismo). Cada uma varia de 0 a 5.",
+    "pagina": 122
+  },
+  {
+    "titulo": "Habilidades: Distribuição Inicial",
+    "categoria": "Criação de Personagem",
+    "texto": "O personagem começa com 11/7/4 pontos para distribuir entre Talentos, Perícias e Conhecimentos (ordem a critério do jogador). Ex.: 11 pontos em Talentos, 7 em Perícias, 4 em Conhecimentos. Nenhuma habilidade pode exceder 3 no início.",
+    "pagina": 123
+  },
+  {
+    "titulo": "Exemplos de Talentos",
+    "categoria": "Criação de Personagem",
+    "texto": "Prontidão (iniciativa), Esquiva (defesa), Briga (luta corporal), Lábia (persuasão), Intuição (pressentimentos), Liderança (motivar grupos), etc.",
+    "pagina": 124
+  },
+  {
+    "titulo": "Exemplos de Perícias",
+    "categoria": "Criação de Personagem",
+    "texto": "Armas Brancas, Armas de Fogo, Condução (veículos), Furtividade, Performance (música/atuar), Investigação (cena de crime), etc.",
+    "pagina": 125
+  },
+  {
+    "titulo": "Exemplos de Conhecimentos",
+    "categoria": "Criação de Personagem",
+    "texto": "Computador, Finanças, Direito, Medicina, Ocultismo (magia teórica), Ciência, História, Linguística, etc.",
+    "pagina": 126
+  },
+  {
+    "titulo": "Especializações em Habilidades",
+    "categoria": "Criação de Personagem",
+    "texto": "Quando uma habilidade atinge 4 ou 5, o personagem pode escolher uma especialização (um foco, ex.: Briga: Boxe, ou Ocultismo: Rituais Herméticos). Em rolagens que se encaixam na especialização, pode-se rolar novamente um dado falho por teste (opcional).",
+    "pagina": 127
+  },
+  {
+    "titulo": "Arete Inicial",
+    "categoria": "Criação de Personagem",
+    "texto": "Arete representa a capacidade de moldar a realidade. Começa em 1 para todos os magos iniciantes (recém-despertados). Alguns antecedentes ou certas histórias podem permitir começar com Arete 2, mediante aprovação do Mestre.",
+    "pagina": 130
+  },
+  {
+    "titulo": "Esferas Iniciais",
+    "categoria": "Criação de Personagem",
+    "texto": "O mago recebe 3 pontos para distribuir entre as nove Esferas. Nenhuma Esfera pode começar com nível superior a 3. A combinação determina o tipo de magia que o personagem pode realizar (ex.: Vida 2, Forças 1).",
+    "pagina": 131
+  },
+  {
+    "titulo": "Antecedentes (Backgrounds)",
+    "categoria": "Criação de Personagem",
+    "texto": "Antecedentes são recursos externos, sociais ou místicos. O jogador recebe 5 pontos para distribuí-los, com cada antecedente variando de 0 a 5. Ex.: Aliados (2), Santuário (1), Avatar (2).",
+    "pagina": 132
+  },
+  {
+    "titulo": "Antecedente: Aliados",
+    "categoria": "Criação de Personagem",
+    "texto": "Aliados são pessoas ou grupos que ajudam o mago. Nível 1: um aliado modesto (policial, repórter). Nível 3: equipe pequena (mercenários). Nível 5: organização poderosa (máfia, conspiração).",
+    "pagina": 133
+  },
+  {
+    "titulo": "Antecedente: Contatos",
+    "categoria": "Criação de Personagem",
+    "texto": "Contatos são fontes de informação. Cada ponto concede um contato útil em uma área (crime, política, sobrenatural). Rola-se Carisma + Lábia para obter informações valiosas.",
+    "pagina": 134
+  },
+  {
+    "titulo": "Antecedente: Recursos",
+    "categoria": "Criação de Personagem",
+    "texto": "Recursos representam renda mensal (em dólares). Nível 1: $500, Nível 3: $5.000, Nível 5: $100.000+. Permite comprar equipamentos, subornos, manter estilo de vida.",
+    "pagina": 135
+  },
+  {
+    "titulo": "Antecedente: Santuário",
+    "categoria": "Criação de Personagem",
+    "texto": "Santuário é um local seguro para rituais e recuperação. Reduz dificuldades de magia (até -2) e acelera cura de Paradoxo (1 ponto/dia). Quanto maior o nível, mais protegido e bem equipado.",
+    "pagina": 136
+  },
+  {
+    "titulo": "Antecedente: Talismã",
+    "categoria": "Criação de Personagem",
+    "texto": "Talismã é um objeto mágico com pontos de Quintessência (5 por nível) e poderes fixos. Ex.: Anel de Proteção (Forças 3). Custo em XP para criar. Nível 1: pequena magia de utilidade; Nível 5: artefato lendário.",
+    "pagina": 137
+  },
+  {
+    "titulo": "Antecedente: Avatar",
+    "categoria": "Criação de Personagem",
+    "texto": "Avatar é a centelha divina do mago. Nível 1: conexão fraca, recupera 1 Quintessência/dia. Nível 5: avatar poderoso, recupera 5/dia e concede insights (bônus em Arete em momentos críticos).",
+    "pagina": 138
+  },
+  {
+    "titulo": "Outros Antecedentes Comuns",
+    "categoria": "Criação de Personagem",
+    "texto": "Além dos citados: Biblioteca (grimórios, -1 dificuldade em pesquisas), Familiar (animal mágico), Nódulo (fonte de Quintessência), Mentor (mestre que ensina Esferas mais rápido), Influência (poder político/econômico).",
+    "pagina": 139
+  },
+  {
+    "titulo": "Paradigma",
+    "categoria": "Criação de Personagem",
+    "texto": "Paradigma é a crença fundamental sobre como a realidade funciona e a magia opera. Ex.: O mundo é um sonho (Marauder), A ciência controla tudo (Tecnocracia), A natureza é sagrada (Verbena). Define o que é possível sem violar o próprio foco.",
+    "pagina": 140
+  },
+  {
+    "titulo": "Prática (Practice)",
+    "categoria": "Criação de Personagem",
+    "texto": "Prática é o método específico pelo qual o mago aplica seu paradigma. Ex.: Alquimia, Invocação de espíritos, Programação de realidade, Meditação marcial, Rituais de caos. A prática determina os instrumentos usados.",
+    "pagina": 141
+  },
+  {
+    "titulo": "Instrumentos (Instruments)",
+    "categoria": "Criação de Personagem",
+    "texto": "Instrumentos são ferramentas que canalizam a magia (ex.: varinha, grimório, dança, computador, ervas). Um mago precisa de pelo menos um instrumento disponível para lançar magia sem penalidade. Perder todos os instrumentos ou violar o paradigma impede a conjuração.",
+    "pagina": 142
+  },
+  {
+    "titulo": "Foco e Penalidades",
+    "categoria": "Criação de Personagem",
+    "texto": "Usar um instrumento correto (dentro do paradigma) não impõe penalidade. Usar um instrumento improvisado ou fora do paradigma impõe +1 de dificuldade na rolagem de Arete. Sem nenhum instrumento, a dificuldade sobe em +3 (mágico nu).",
+    "pagina": 143
+  },
+  {
+    "titulo": "Força de Vontade Inicial",
+    "categoria": "Criação de Personagem",
+    "texto": "Força de Vontade é igual a Prontidão (Atributo Mental). Pontos temporários iniciais igual ao valor permanente. Usa-se para ações heróicas, resistir a controle mental, adiar Paradoxo, etc.",
+    "pagina": 128
+  },
+  {
+    "titulo": "Quintessência Inicial",
+    "categoria": "Criação de Personagem",
+    "texto": "A Quintessência máxima que o mago pode armazenar é igual a Avatar x 2 (mínimo 1). Inicialmente, o mago começa com a reserva cheia (ex.: Avatar 2 = 4 pontos de Quintessência).",
+    "pagina": 129
+  },
+  {
+    "titulo": "Qualidade: Vidente (Oracle)",
+    "categoria": "Qualidades e Defeitos",
+    "texto": "Custo: 4 pontos. O personagem tem visões espontâneas do futuro ou de eventos distantes. Uma vez por sessão, o Mestre pode conceder uma visão útil. Rolar Percepção + Ocultismo (dif 7) para interpretar. Visões nunca são 100% claras.",
+    "pagina": 300
+  },
+  {
+    "titulo": "Qualidade: Sensibilidade à Magia (Magic Sensitivity)",
+    "categoria": "Qualidades e Defeitos",
+    "texto": "Custo: 3 pontos. O personagem sente a presença de magia ativa, ressonâncias, portais e paradoxo em um raio de 10 metros. Rola Percepção + Prontidão (dif 7) para identificar detalhes. Não funciona em magia coincidente muito sutil.",
+    "pagina": 301
+  },
+  {
+    "titulo": "Qualidade: Memória Fotográfica (Eidetic Memory)",
+    "categoria": "Qualidades e Defeitos",
+    "texto": "Custo: 2 pontos. O personagem recorda tudo o que viu ou ouviu com precisão quase total. Recebe +2 em rolagens de Raciocínio + Conhecimentos para lembrar informações. Pode memorizar textos completos após uma leitura rápida.",
+    "pagina": 302
+  },
+  {
+    "titulo": "Qualidade: Sangue Frio (Iron Will)",
+    "categoria": "Qualidades e Defeitos",
+    "texto": "Custo: 3 pontos. O personagem é imune a intimidação e tem +3 de dificuldade para ser afetado por magias de Mente que controlem emoções ou causem medo. Pode gastar Força de Vontade para ignorar completamente um efeito mental.",
+    "pagina": 303
+  },
+  {
+    "titulo": "Qualidade: Afinidade com Esfera (Sphere Affinity)",
+    "categoria": "Qualidades e Defeitos",
+    "texto": "Custo: 2 pontos por Esfera. Escolha uma Esfera. Sempre que usar essa Esfera, reduza a dificuldade da rolagem de Arete em 1 (máximo -3 com outros modificadores). Não se aplica a magias combinadas que usem outras Esferas no mesmo nível.",
+    "pagina": 304
+  },
+  {
+    "titulo": "Qualidade: Sortudo (Lucky)",
+    "categoria": "Qualidades e Defeitos",
+    "texto": "Custo: 3 pontos. O personagem pode repetir uma rolagem falha uma vez por sessão (à escolha do jogador antes de saber a consequência). Também pode rolar novamente dados de dano que resultaram em 1.",
+    "pagina": 305
+  },
+  {
+    "titulo": "Qualidade: Recurso Secreto (Secret Resource)",
+    "categoria": "Qualidades e Defeitos",
+    "texto": "Custo: 2 a 5 pontos (define nível). O personagem tem acesso a um item mágico, biblioteca proibida, ou aliado poderoso não coberto por Antecedentes normais. Nível 2: grimório raro. Nível 5: artefato lendário ou acesso a reino umbralino secreto.",
+    "pagina": 306
+  },
+  {
+    "titulo": "Qualidade: Ressonância Pura (Pure Resonance)",
+    "categoria": "Qualidades e Defeitos",
+    "texto": "Custo: 2 pontos. Escolha um tipo de ressonância (Dinâmica, Estática ou Entrópica). O mago emana essa ressonância de forma tão forte que recebe -1 dificuldade em magias que combinem com ela e +1 dificuldade em magias opostas.",
+    "pagina": 307
+  },
+  {
+    "titulo": "Defeito: Pacto Sombrio (Dark Pact)",
+    "categoria": "Qualidades e Defeitos",
+    "texto": "Valor: -5 pontos. O personagem fez um pacto com uma entidade do Abismo ou Maras. Deve realizar ações malignas periódicas (sacrifício, espalhar paradoxo). Se recusar, sofre um backlash imediato de 5 pontos de Paradoxo e perde Força de Vontade permanente.",
+    "pagina": 320
+  },
+  {
+    "titulo": "Defeito: Suscetibilidade ao Ferro (Iron Susceptibility)",
+    "categoria": "Qualidades e Defeitos",
+    "texto": "Valor: -2 pontos. O personagem sofre 1 nível de dano agravado extra ao ser atingido por ferro frio (armas de ferro puro ou aço antigo). Também não pode tocar ferro sem enluvas sem sentir dor intensa (penalidade de -2 em ações).",
+    "pagina": 321
+  },
+  {
+    "titulo": "Defeito: Medo de Magia (Fear of Magic)",
+    "categoria": "Qualidades e Defeitos",
+    "texto": "Valor: -3 pontos. O personagem tem fobia de magia (sua ou alheia). Sempre que testemunha um efeito vulgar, deve rolar Prontidão (dif 7) ou entrar em pânico (foge ou congela). Magia coincidente causa repulsa, mas sem pânico.",
+    "pagina": 322
+  },
+  {
+    "titulo": "Defeito: Avatar Rebelde (Rebellious Avatar)",
+    "categoria": "Qualidades e Defeitos",
+    "texto": "Valor: -3 pontos. O avatar do mago tem vontade própria e pode se recusar a canalizar Quintessência em momentos críticos (rolagem de Arete com dificuldade +2, à escolha do Mestre 1/sessão). Pode também causar visões perturbadoras.",
+    "pagina": 323
+  },
+  {
+    "titulo": "Defeito: Cicatriz de Paradoxo (Paradox Scar)",
+    "categoria": "Qualidades e Defeitos",
+    "texto": "Valor: -2 a -5 pontos. Um backlash deixou uma marca física ou mística. Nível 2: marca visível (tatuagem brilhante) que causa medo em dormentes. Nível 5: membro transformado em matéria estranha (vidro, metal) que não funciona normalmente (-2 em ações manuais).",
+    "pagina": 324
+  },
+  {
+    "titulo": "Defeito: Interdição (Taboo)",
+    "categoria": "Qualidades e Defeitos",
+    "texto": "Valor: -2 pontos. O mago não pode usar um tipo específico de instrumento ou realizar certa ação (ex.: não pode falar seu nome verdadeiro, não pode tocar dinheiro). Se violar, perde acesso à magia por 1 dia ou sofre +3 de dificuldade até fazer um ritual de purificação.",
+    "pagina": 325
+  },
+  {
+    "titulo": "Defeito: Rival (Rival)",
+    "categoria": "Qualidades e Defeitos",
+    "texto": "Valor: -2 pontos por rival. Existe um outro mago (ou organização) que busca atrapalhar o personagem ativamente. O rival tem poder equivalente (nível médio da cabala). Uma vez por arco, o rival causa um problema direto.",
+    "pagina": 326
+  },
+  {
+    "titulo": "Defeito: Vínculo Sanguíneo (Blood Bond)",
+    "categoria": "Qualidades e Defeitos",
+    "texto": "Valor: -3 pontos. O personagem compartilha uma conexão mágica com um familiar ou aliado. Se este sofre dano, o mago sofre metade (arredondado para cima). Se o vínculo morrer, o mago sofre 5 níveis de dano letal e perde 1 ponto permanente de Força de Vontade.",
+    "pagina": 327
+  },
+  {
+    "titulo": "Defeito: Notório (Infamous)",
+    "categoria": "Qualidades e Defeitos",
+    "texto": "Valor: -2 pontos. O personagem tem má reputação no mundo sobrenatural (Tecnocracia, seita rival ou umbral). Qualquer interação diplomática sofre +2 de dificuldade. Em certos locais, pode ser atacado à vista.",
+    "pagina": 328
+  },
+  {
+    "titulo": "Qualidade e Defeito Regras Gerais",
+    "categoria": "Qualidades e Defeitos",
+    "texto": "Qualidades custam pontos de bônus na criação (1-7 pontos). Defeitos concedem pontos extras (máximo de 7 pontos de defeitos no total). O Mestre pode aprovar combinações. Defeitos devem impactar o jogo regularmente, não apenas no papel.",
+    "pagina": 299
+  },
+  {
+    "titulo": "Custo de Aumento: Arete",
+    "categoria": "Sistema de Experiência",
+    "texto": "Arete (novo nível) x 8 em pontos de experiência. Ex.: Arete 2 custa 16 XP; Arete 3 custa 24 XP. Máximo normal é 5 (ou 6+ com autorização).",
+    "pagina": 477
+  },
+  {
+    "titulo": "Custo de Aumento: Esferas",
+    "categoria": "Sistema de Experiência",
+    "texto": "Nova classificação da Esfera x 7. Ex.: de 2 para 3 custa 21 XP. Não pode exceder o nível de Arete. Esferas acima de 5 custam 10 XP por nível adicional (com Arete equivalente).",
+    "pagina": 478
+  },
+  {
+    "titulo": "Custo de Aumento: Atributos",
+    "categoria": "Sistema de Experiência",
+    "texto": "Novo valor x 5 (para atributos secundários). Ex.: de 3 para 4 custa 20 XP. Atributos primários (Físicos/Sociais/Mentais) seguem a mesma regra.",
+    "pagina": 479
+  },
+  {
+    "titulo": "Custo de Aumento: Habilidades e Força de Vontade",
+    "categoria": "Sistema de Experiência",
+    "texto": "Habilidades: novo valor x 3 (ex.: de 2 para 3 = 9 XP). Especializações em habilidades custam 3 XP fixos. Força de Vontade: novo valor x 2 (ex.: de 4 para 5 = 10 XP).",
+    "pagina": 480
+  },
+  {
+    "titulo": "Custo de Aumento: Antecedentes e Quintessência",
+    "categoria": "Sistema de Experiência",
+    "texto": "Antecedentes: novo nível x 2 (ex.: Recursos 3 para 4 = 8 XP). Quintessência máxima armazenada: novo nível (Avatar x 2) – aumenta automaticamente com Avatar, não comprado diretamente.",
+    "pagina": 481
+  },
+  {
+    "titulo": "Ganho de Experiência: Por Sessão",
+    "categoria": "Sistema de Experiência",
+    "texto": "Base: 1 XP por hora de jogo (ou 3-5 por sessão de 4h). Bônus: +1 por roleplay excepcional, +1 por superar desafio importante, +2 por conclusão de arco de história, +1 por sacrifício heróico.",
+    "pagina": 482
+  },
+  {
+    "titulo": "Ganho de Experiência: Objetivos e Estórias",
+    "categoria": "Sistema de Experiência",
+    "texto": "Missão pessoal: +3 XP. Objetivo de cabala (grupal): +2 XP por membro. Completar uma Estória (3-5 sessões): +5 XP adicional. Fracasso heróico também pode render XP.",
+    "pagina": 483
+  },
+  {
+    "titulo": "Antecedente: Avatar – Níveis e Recuperação",
+    "categoria": "Antecedentes Detalhados",
+    "texto": "Nível 1: recupera 1 Quintessência/dia (descanso). Nível 3: 3/dia e pode meditar para recuperar +2. Nível 5: 5/dia + visões oraculares 1/semana. Máximo de Quintessência armazenada = Avatar x 2.",
+    "pagina": 340
+  },
+  {
+    "titulo": "Antecedente: Santuário – Bônus e Redução de Paradoxo",
+    "categoria": "Antecedentes Detalhados",
+    "texto": "Nível 1: sala trancada, -1 dificuldade rituais. Nível 3: casa protegida, -2 dificuldade e reduz Paradoxo em 1 ponto/dia. Nível 5: local sagrado, -3 dificuldade, 2 pontos/dia de redução, cerca mágica.",
+    "pagina": 342
+  },
+  {
+    "titulo": "Antecedente: Talismã – Criação e Poderes",
+    "categoria": "Antecedentes Detalhados",
+    "texto": "Talismãs armazenam Quintessência (5 por nível). Criar exige Primórdio 3, Forja do Avatar, custo de 1 XP por ponto de poder e 1 Quintessência por nível. Ex.: nível 2 (10 pts) custa 2 XP e 10 Quintessência, tempo 1 semana.",
+    "pagina": 344
+  },
+  {
+    "titulo": "Antecedente: Nódulo – Geração de Quintessência",
+    "categoria": "Antecedentes Detalhados",
+    "texto": "Nódulo é uma fonte de Quintessência natural. Nível 1: 1 Quintessência/dia. Nível 3: 5/dia. Nível 5: 15/dia + efeitos especiais. Difícil de encontrar (Percepção + Ocultismo dif 8). Proteção por espíritos.",
+    "pagina": 346
+  },
+  {
+    "titulo": "Armas Corpo a Corpo: Tabela Resumida",
+    "categoria": "Equipamento e Armas",
+    "texto": "Soco: dano Letal 0, alcance toque; Faca: dano Letal 1; Espada curta: Letal 2; Machado: Letal 3; Porrete: Contusão 2; Besta: Letal 3, alcance 20m.",
+    "pagina": 440
+  },
+  {
+    "titulo": "Armas de Fogo: Tabela Resumida",
+    "categoria": "Equipamento e Armas",
+    "texto": "Revólver .38: Letal 3, alcance 15m, munição 6; Pistola 9mm: Letal 3, alcance 20m, 15 balas; Rifle de assalto: Letal 4, alcance 100m, rajada; Espingarda: Letal 4 (contusão 5 a curta distância), 50m.",
+    "pagina": 441
+  },
+  {
+    "titulo": "Armaduras e Proteções",
+    "categoria": "Equipamento e Armas",
+    "texto": "Jaqueta de couro: absorve 1 dado de dano contusão; Colete balístico: absorve 3 dados de dano letal; Cota de malha mágica: absorve 2 letal + 1 agravado; Escudo: +2 de defesa corpo a corpo.",
+    "pagina": 442
+  },
+  {
+    "titulo": "Itens Tecnológicos e Místicos",
+    "categoria": "Equipamento e Armas",
+    "texto": "Computador (+2 em pesquisas), Grimório (contém roteiros: -1 dificuldade para feitiços listados), Foco pessoal (instrumento, sem bônus), Rádio tático, Kit de primeiros socorros (cura 1 nível contusão).",
+    "pagina": 444
+  },
+  {
+    "titulo": "Manobra: Agarrar",
+    "categoria": "Regras Avançadas de Combate",
+    "texto": "Rolagem de Briga ou Força (dif 6). Sucessos seguram o oponente. Alvo agarrado não pode se mover, sofre -2 em ações físicas. Para escapar, rola Força ou Destreza contra os sucessos do agarrador.",
+    "pagina": 414
+  },
+  {
+    "titulo": "Manobra: Desarmar e Derrubar",
+    "categoria": "Regras Avançadas de Combate",
+    "texto": "Desarmar: rola Briga ou Arma Branca (dif 7), tira a arma do oponente com 2 sucessos. Derrubar: rola Força + Briga (dif 6), sucessos derrubam. Caído: -2 em defesa corpo a corpo, -4 em ataques de longo alcance.",
+    "pagina": 415
+  },
+  {
+    "titulo": "Múltiplas Ações e Penalidades",
+    "categoria": "Regras Avançadas de Combate",
+    "texto": "Um personagem pode realizar duas ações por turno, mas a segunda sofre -2 dados (e -4 para terceira, etc.). Todas as ações devem ser declaradas antes de rolar. Ações extras só com sucessos adicionais em rolagens de iniciativa.",
+    "pagina": 400
+  },
+  {
+    "titulo": "Cobertura e Camuflagem",
+    "categoria": "Regras Avançadas de Combate",
+    "texto": "Cobertura parcial: +2 defesa; total: +4; atirador emboscado (camuflagem) impõe +2 dificuldade para ser detectado. Iluminação: escuro total = +3 dificuldade para ataques; penumbra = +1.",
+    "pagina": 416
+  },
+  {
+    "titulo": "Fogo Automático e Rajadas",
+    "categoria": "Regras Avançadas de Combate",
+    "texto": "Rajada curta (3-5 balas): +2 dados de ataque, mas consome munição. Rajada longa (10+ balas): rola dano base +2 sucessos automáticos, mas só pode acertar múltiplos alvos adjacentes (máx 3).",
+    "pagina": 417
+  },
+  {
+    "titulo": "Cura: Tempo de Cicatrização",
+    "categoria": "Regras de Cura e Recuperação",
+    "texto": "Contusão: 1 nível a cada 2 horas de descanso. Letal: 1 nível por dia (descanso completo) ou 3 dias (atividade leve). Agravado: 1 nível por semana com tratamento mágico; sem magia, 1 mês ou mais.",
+    "pagina": 408
+  },
+  {
+    "titulo": "Cura com Esfera Vida",
+    "categoria": "Regras de Cura e Recuperação",
+    "texto": "Vida 2: cura contusão (1 sucesso = 1 nível). Vida 3: cura letal (2 sucessos = 1 nível). Vida 4: cura agravado (3 sucessos = 1 nível). Também pode regenerar membros com Vida 4 + 4 sucessos e 1 ponto de Quintessência.",
+    "pagina": 530
+  },
+  {
+    "titulo": "Cuidados Médicos Mundanos",
+    "categoria": "Regras de Cura e Recuperação",
+    "texto": "Primeiros socorros (Raciocínio + Medicina, dif 7): estabiliza um moribundo, evita sangramento. Cirurgia: reduz tempo de cura de letal pela metade (rolagem extendida, 5 sucessos). Sem cuidados, infecção possível.",
+    "pagina": 409
+  },
+  {
+    "titulo": "Perder o Foco (Violar Paradigma)",
+    "categoria": "Foco, Paradigma e Instrumentos",
+    "texto": "Se um mago age contra seu paradigma (ex.: Hermético agindo como caótico), perde acesso à magia por 1 hora ou até fazer um ritual de realinhamento. Ser desarmado (sem instrumentos) impossibilita magia (penalidade de +3 dificuldade).",
+    "pagina": 535
+  },
+  {
+    "titulo": "Penalidades por Instrumentos Improvisados",
+    "categoria": "Foco, Paradigma e Instrumentos",
+    "texto": "Usar instrumento incorreto: +1 dificuldade. Sem instrumentos: +3 dificuldade. Usar instrumento que viola o paradigma (ex.: uma pistola para um druida): +2 dificuldade e risco de backlash.",
+    "pagina": 536
+  },
+  {
+    "titulo": "Exemplos de Paradigmas e Instrumentos",
+    "categoria": "Foco, Paradigma e Instrumentos",
+    "texto": "Hermético: grimórios, círculos mágicos, varinha. Verbena: sangue, ervas, faca ritual. Tecnocracia: computadores, algoritmos, dispositivos de medição. Akashic: meditação, katana, respiração. Eutanatos: moeda, foice, relógio.",
+    "pagina": 537
+  },
+  {
+    "titulo": "Usos da Quintessência: Reduzir Dificuldade",
+    "categoria": "Quintessência e Nódulos",
+    "texto": "Antes de rolar Arete, o mago pode gastar até 3 pontos de Quintessência para reduzir a dificuldade da rolagem em -1 por ponto (mínimo dificuldade 3). Não pode ser combinado com outros redutores além do limite de -3.",
+    "pagina": 470
+  },
+  {
+    "titulo": "Usos da Quintessência: Sucessos Automáticos",
+    "categoria": "Quintessência e Nódulos",
+    "texto": "Pode gastar 1 ponto de Quintessência para ganhar 1 sucesso automático na rolagem de Arete (limitado ao nível de Arete). Ex.: Arete 3 pode comprar até 3 sucessos. Útil para garantir magias críticas.",
+    "pagina": 471
+  },
+  {
+    "titulo": "Recuperação de Quintessência",
+    "categoria": "Quintessência e Nódulos",
+    "texto": "Descanso em santuário: recupera 1 por noite. Meditação (Willpower roll dif 7): 1 por sucesso. Drenagem de nódulo: absorve taxas do nódulo. Avatar (nível alto) recupera automaticamente.",
+    "pagina": 472
+  },
+  {
+    "titulo": "Regras de Nódulos: Acesso e Superexploração",
+    "categoria": "Quintessência e Nódulos",
+    "texto": "Acessar nódulo exige rolagem de Arete + Espírito (dif 6). Taxa de regeneração: 1-15 Quintessência/dia. Superexploração (drenar mais que a taxa) danifica o nódulo: -1d taxa por semana; zerado, o nódulo se torna um Maras.",
+    "pagina": 473
+  },
+  {
+    "titulo": "Ressonância: Tipos e Efeitos",
+    "categoria": "Ressonância",
+    "texto": "Dinâmica (caos, criatividade), Estática (ordem, controle), Entrópica (decadência, libertação). Magias com ressonância igual à sua têm -1 dificuldade; oposta tem +1. Ex.: Estática vs. Dinâmica.",
+    "pagina": 548
+  },
+  {
+    "titulo": "Ressonância como Assinatura Detectável",
+    "categoria": "Ressonância",
+    "texto": "Magos com Primórdio 1 podem sentir ressonância. Após 3 usos de magia com a mesma ressonância em um local, um traço permanente fica (detectável por Percepção + Ocultismo dif 7). Pode ser usado para rastrear o mago.",
+    "pagina": 549
+  },
+  {
+    "titulo": "Umbra e Véu (Gauntlet)",
+    "categoria": "Umbra e Viagem Espiritual",
+    "texto": "Véu é a barreira entre mundo físico e Umbra. Dificuldade para atravessar: Espírito 3 + Arete, dif base 8. Modificadores: local de poder (-2), noite de lua cheia (-1), área tecnocrática (+2).",
+    "pagina": 560
+  },
+  {
+    "titulo": "Penumbras e Reinos Umbralinos",
+    "categoria": "Umbra e Viagem Espiritual",
+    "texto": "Penumbra: camada mais próxima (reflexo sombrio do mundo real). Reinos mais profundos: Abismo, Paraíso dos Sonhos, etc. Cada reino tem regras próprias (gravidade, tempo, magia). Entrar sem guia espiritual pode causar perda de orientação.",
+    "pagina": 562
+  },
+  {
+    "titulo": "Perigos da Umbra",
+    "categoria": "Umbra e Viagem Espiritual",
+    "texto": "Espíritos hostis (Atacantes): 4-8 dados em atributos. Maras: caçam magos com Paradoxo. Perda de orientação: rolamento de Percepção + Sobrevivência dif 8 para não se perder. Ficar perdido por dias no mundo real pode significar semanas na Umbra.",
+    "pagina": 564
+  },
+  {
+    "titulo": "Rituais para Portais Permanentes",
+    "categoria": "Umbra e Viagem Espiritual",
+    "texto": "Exige Espírito 4 + Correspondência 4, ritual estendido com 20 sucessos acumulados, 10 pontos de Quintessência, 1 semana de preparo. O portal fica ativo até ser desfeito ou consumir energia do local.",
+    "pagina": 566
+  },
+  {
+    "titulo": "Antagonista: Tecnocrata (Agente da NWO)",
+    "categoria": "Personagens Não-Jogadores e Ameaças",
+    "texto": "Atributos: Físicos 3/3/3, Sociais 4/4/3, Mentais 4/3/3. Habilidades: Computador 4, Armas de Fogo 4, Prontidão 4. Dispositivos: neutralizador de magia (dif +2 para magias próximas). Arete 3 (Esferas: Matéria 3, Forças 2).",
+    "pagina": 620
+  },
+  {
+    "titulo": "Criatura do Paradoxo: Mara (Estatísticas)",
+    "categoria": "Personagens Não-Jogadores e Ameaças",
+    "texto": "Forças 6, Vigor 5, Destreza 5. Dano agravado (garras). Poderes: Anulação de Arete (cancela magia tocando o alvo), Imune a dano normal (apenas mágico ou agravado). Fúria: +3 dados de ataque por cada ponto de Paradoxo no alvo.",
+    "pagina": 624
+  },
+  {
+    "titulo": "Regras para Espíritos",
+    "categoria": "Personagens Não-Jogadores e Ameaças",
+    "texto": "Espíritos têm Gnose (similar a Arete) e Poderes. Invocação: Espírito 3 + ritual (dif 7, 3 sucessos). Banimento: rolar Arete + Espírito contra a Gnose do espírito (dif 8). Espíritos hostis podem ser contidos com círculos mágicos.",
+    "pagina": 626
+  },
+  {
+    "titulo": "Rituais Estendidos: Limite de Sucessos",
+    "categoria": "Regras de Longo Prazo (Projetos e Rituais)",
+    "texto": "Um ritual estendido permite acumular sucessos ao longo de várias rolagens (cada rolagem = 1 hora). Limite máximo de sucessos = Arete x 5. Ex.: Arete 3 pode acumular até 15 sucessos. Falha crítica interrompe o ritual.",
+    "pagina": 538
+  },
+  {
+    "titulo": "Construção de Talismãs",
+    "categoria": "Regras de Longo Prazo (Projetos e Rituais)",
+    "texto": "Requer Primórdio 3, Forja do Avatar. Custo: 1 XP por nível do talismã + 2 Quintessência por nível. Tempo: 1 dia por nível. Ex.: talismã nível 3 = 3 XP + 6 Quintessência, 3 dias. Sucesso: rolagem de Arete dif 8, 5 sucessos.",
+    "pagina": 539
+  },
+  {
+    "titulo": "Pesquisas em Grimórios e Bibliotecas",
+    "categoria": "Regras de Longo Prazo (Projetos e Rituais)",
+    "texto": "Grimório reduz dificuldade de pesquisa sobre feitiços específicos em -2. Biblioteca (Antecedente) permite rolagens estendidas de Raciocínio + Conhecimentos (dif base 7) para aprender novas Esferas ou criar roteiros: 5 sucessos/semana.",
+    "pagina": 540
+  },
+  {
+    "titulo": "Regra Opcional: Limiares (Thresholds)",
+    "categoria": "Regras Opcionais Relevantes",
+    "texto": "Quando a dificuldade de uma rolagem ultrapassaria 9, usa-se Limiares: dificuldade fixa 9, mas cada ponto acima de 9 exige 1 sucesso adicional além do primeiro. Ex.: dificuldade 11 vira dificuldade 9 + 2 sucessos extras necessários.",
+    "pagina": 387
+  },
+  {
+    "titulo": "Regra Opcional: Dano Cinematográfico (Exemplos)",
+    "categoria": "Regras Opcionais Relevantes",
+    "texto": "Personagens heroicos podem absorver dano letal com Vigor (dif 8) sucesso a sucesso, como se fosse contusão. Ex.: levar um tiro e continuar lutando (reduz dano letal pela metade). Não se aplica a dano agravado sem proteção mágica.",
+    "pagina": 412
+  },
+  {
+    "titulo": "Regra Opcional: Sistema de Conspiração (Tecnocracia)",
+    "categoria": "Regras Opcionais Relevantes",
+    "texto": "Campanhas tecnocráticas usam Parafísica (ciência) no lugar de magia. Dispositivos requerem manutenção e são vulneráveis a paradoxo se muito avançados. Os agentes têm Hierarquia (substituto de Arete) e Esferas renomeadas (ex.: Análise de Dados no lugar de Mente).",
+    "pagina": 690
+  },
+  {
+    "titulo": "Pontos de Bônus na Criação",
+    "categoria": "Criação de Personagem",
+    "texto": "Além dos pontos de atributos, habilidades e antecedentes, o jogador recebe 15 pontos de bônus para personalização. Custos: +1 Atributo = 5 pts, +1 Habilidade = 2 pts, +1 Esfera = 7 pts, +1 Arete = 8 pts, +1 Antecedente = 1 pt por nível, +3 pts para uma Qualidade (ou -3 para Defeito).",
+    "pagina": 145
+  },
+  {
+    "titulo": "Idade e Efeitos",
+    "categoria": "Criação de Personagem",
+    "texto": "Idade inicial: 18-30 anos (jovem adulto). Magos mais velhos (50+) podem começar com XP adicional (+15) mas ganham um Defeito obrigatório (ex.: Saúde Frágil). Idade mínima para despertar: 12 anos (raro).",
+    "pagina": 146
+  },
+  {
+    "titulo": "Duração de Efeitos Mágicos",
+    "categoria": "Magia",
+    "texto": "Sucessos na rolagem de Arete determinam a duração: 1 sucesso = 1 turno, 2 = 1 cena, 3 = 1 dia, 4 = 1 semana, 5 = 1 mês, 6+ = 1 ano ou permanente (para efeitos sustentados). Efeitos permanentes exigem 5+ sucessos e Quintessência (1 ponto por ano pretendido).",
+    "pagina": 505
+  },
+  {
+    "titulo": "Alcance de Efeitos Mágicos",
+    "categoria": "Magia",
+    "texto": "Toque = padrão. Curto (10m) = +1 dificuldade. Médio (100m) = +2. Longo (1km) = +3. Extremo (10km+) = +4. Afetar alvo sem linha de visão exige Correspondência 2 e +1 dificuldade.",
+    "pagina": 506
+  },
+  {
+    "titulo": "Área de Efeito",
+    "categoria": "Magia",
+    "texto": "Área base: 1 metro (padrão). Expandir para 5m = +1 dificuldade, 20m = +2, 100m = +3, 1km = +4. Número de alvos em área = sucessos na rolagem. Danificar múltiplos alvos divide os sucessos de dano igualmente.",
+    "pagina": 507
+  },
+  {
+    "titulo": "Dano Massivo (Morte Instantânea)",
+    "categoria": "Combate",
+    "texto": "Se um único ataque causar dano superior ao dobro do total de pontos de vida do personagem (ex.: 14+ níveis em um alvo com 7), ele morre automaticamente, sem chance de absorção. Para magias, isso exige 6+ sucessos de dano.",
+    "pagina": 413
+  },
+  {
+    "titulo": "Penalidades por Ferimento em Combate",
+    "categoria": "Combate",
+    "texto": "Além das penalidades padrão (-1, -2, -5), personagens com dano letal ou agravado na última casa (Incapacitado) não podem agir. Se estiverem morrendo (além de Incapacitado), perdem 1 nível de dano por minuto até estabilização (Raciocínio + Medicina dif 7).",
+    "pagina": 407
+  },
+  {
+    "titulo": "Perseguições (Veículos)",
+    "categoria": "Regras Avançadas de Combate",
+    "texto": "Rolagem de Destreza + Condução (dif base 6). Cada sucesso aumenta ou diminui a distância em 10m por turno. Manobras arriscadas (curva fechada, fechar passagem) impõem +2 dificuldade. Veículos têm pontos de estrutura (dano letal). Colisão causa 1 dado de dano por 20km/h.",
+    "pagina": 418
+  },
+  {
+    "titulo": "Movimento e Ações Físicas",
+    "categoria": "Regras Gerais",
+    "texto": "Deslocamento base: 7m por turno (Velocidade = Destreza + 5). Correr: +2m por sucesso em Vigor + Esportes (dif 6). Nadar: Destreza + Esportes (dif 7). Escalar: Força + Esportes (dif 7). Queda: dano conforme regra (1 dado por 3m).",
+    "pagina": 395
+  },
+  {
+    "titulo": "Estado de Espírito (Quiet e Insanidade)",
+    "categoria": "Regras Gerais",
+    "texto": "Quiet (Silêncio) prolongado pode levar a Defeitos permanentes. A cada ponto de Quiet permanente (acumulado em backlashes), o mago rola Prontidão (dif 6) ou adquire uma fobia, alucinação ou compulsão. Tratamento exige Mente 4 ou meses de terapia.",
+    "pagina": 550
+  },
+  {
+    "titulo": "Busca do Avatar (Avatar Quest)",
+    "categoria": "Progressão",
+    "texto": "Para aumentar Arete de 5 para 6 (ou níveis superiores), o mago deve passar pela Busca do Avatar – uma jornada espiritual na Umbra ou no mundo físico. Requer 45 XP (custo base) e a conclusão de uma Estória focada no autoconhecimento. Falha pode destruir o avatar.",
+    "pagina": 484
+  },
+  {
+    "titulo": "Criação de Novos Roteiros (Feitiços)",
+    "categoria": "Regras de Longo Prazo",
+    "texto": "Criar um roteiro (feitiço fixo) exige Raciocínio + Ocultismo (dif 7 + nível da Esfera mais alta). Acumular 10 sucessos (ritual estendido, 1 hora/rolagem). Custo: 1 XP por nível do feitiço. O roteiro pode ser escrito em grimório, reduzindo dificuldade em -1 para futuros usuários.",
+    "pagina": 541
+  },
+  {
+    "titulo": "Rituais de Cabala (Magia em Grupo)",
+    "categoria": "Magia",
+    "texto": "Magos podem combinar Arete em rituais de grupo: somar os valores de Arete (máximo +5 além do maior). Dificuldade base do ritual é a média das dificuldades individuais. Cada participante gasta 1 ponto de Quintessência. Líder do ritual rola Arete, outros podem ceder sucessos.",
+    "pagina": 539
+  },
+  {
+    "titulo": "Veneno e Doenças",
+    "categoria": "Dano e Cura",
+    "texto": "Veneno causa dano letal (1 nível por rodada ou hora, conforme toxina). Resistir: rolar Vigor (dif 7 + gravidade). Doenças: progressão lenta (dano contusão a cada dia). Magia de Vida 3 pode curar ambas com 3 sucessos. Médico mundano: Raciocínio + Medicina dif 7 para estabilizar.",
+    "pagina": 410
+  },
+  {
+    "titulo": "Equipamento: Computadores e Segurança",
+    "categoria": "Equipamento e Armas",
+    "texto": "Notebook comum: +1 em Raciocínio + Computador. Supercomputador: +3 (apenas em laboratório). Sistema de segurança: câmeras, alarmes (dif 7 para invadir com Computador ou Furtividade). Clientes de segurança (nível 2): +2 dificuldade para invasões físicas.",
+    "pagina": 445
+  },
+  {
+    "titulo": "Granadas e Explosivos",
+    "categoria": "Equipamento e Armas",
+    "texto": "Granada de fragmentação: dano Letal 5, área 5m. Cobertura reduz dano pela metade. Rolagem de Destreza + Armas de Fogo (dif 7) para jogar no alvo. Falha crítica: explode na mão. Explosivos de demolição: dano base 7, dobrado se em contato direto.",
+    "pagina": 443
+  },
+  {
+    "titulo": "Modificadores Comuns de Dificuldade",
+    "categoria": "Regras Gerais",
+    "texto": "Tarefa fácil (acender vela): dif 4, média (consertar carro): dif 6, difícil (cirurgia): dif 8, heróica (saltar prédio): dif 10. Bônus comuns: ferramentas adequadas (-1), ajuda especializada (-2), pressão de tempo (+1), estresse (+2), ferimentos (conforme tabela).",
+    "pagina": 389
+  },
+  {
+    "titulo": "Rerrolagem e Uso de Força de Vontade",
+    "categoria": "Regras Gerais",
+    "texto": "Força de Vontade pode ser usada para ganhar 1 sucesso automático em qualquer rolagem (após a rolagem, mas antes de saber o resultado). Não se aplica a rolagens de dano. Também pode ser usada para repetir uma rolagem falha (mas não uma falha crítica), gastando 1 ponto adicional.",
+    "pagina": 331
+  },
+  {
+    "titulo": "Despertar do Avatar (Prelúdio)",
+    "categoria": "Criação de Personagem",
+    "texto": "O Despertar é o momento em que o mago se torna consciente de seu avatar. Mecanicamente, deve-se definir o evento (trauma, epifania, treinamento). O avatar pode se manifestar como voz interior, animal espiritual ou visão. O jogador escolhe o tipo de avatar (Padrão, Dinâmico, Estático, Entrópico).",
+    "pagina": 148
+  },
+  {
+    "titulo": "Tradições e Facções (Resumo)",
+    "categoria": "Lore e Facções",
+    "texto": "As nove Tradições: Akashic Brotherhood, Celestial Chorus, Cult of Ecstasy, Dreamspeakers, Euthanatos, Hollow Ones, Order of Hermes, Sons of Ether, Verbena. Além dos Technocrats (NWO, Iteration X, Progenitors, Syndicate, Void Engineers) e Marauders (caos), Nephandi (corrupção).",
+    "pagina": 260
+  },
+  {
+    "titulo": "Regra Opcional: Fadiga Mágica",
+    "categoria": "Regras Opcionais Relevantes",
+    "texto": "Após usar Quintessência para reduzir dificuldade ou adicionar sucessos, o mago pode ficar fatigado. Se gastar mais do que sua Força de Vontade em Quintessência em uma cena, sofre -1 dado em todas as ações por 10 minutos (acumulativo). Regra útil para limitar abuso de Quintessência.",
+    "pagina": 552
+  },
+  {
+    "titulo": "Regra Opcional: Sanidade (Alternativa ao Quiet)",
+    "categoria": "Regras Opcionais Relevantes",
+    "texto": "Substitui Quiet por uma trilha de Sanidade, similar à de CoC (Call of Cthulhu). Cada backlash causa perda de 1d4 de sanidade. Zerar a sanidade causa loucura permanente. Usar magia vulgar perante testemunhas também pode causar perda. Ideal para jogos de horror místico.",
+    "pagina": 553
+  },
+  {
+    "titulo": "Regra Opcional: Magia Por Níveis de Sucesso (Effect-Based)",
+    "categoria": "Regras Opcionais Relevantes",
+    "texto": "Ao invés de Arete, cada sucesso permite escolher efeitos modulares: 1 sucesso = dano 1, duração 1 turno, alcance toque; 2 sucessos = dano 2, duração cena, alcance curto, etc. Aplica-se a qualquer Esfera. Simplifica para jogadores iniciantes.",
+    "pagina": 554
+  },
+  {
+    "titulo": "Furtividade e Percepção",
+    "categoria": "Regras Gerais",
+    "texto": "Para se esconder, rola Destreza + Furtividade (dif oponente de Percepção + Prontidão). Para perceber algo escondido, rola Percepção + Prontidão (dif modificada por camuflagem, distância). Sucesso: detecta. Falha crítica: acredita em falso alarme.",
+    "pagina": 396
+  },
+  {
+    "titulo": "Interação Social: Persuasão e Intimidação",
+    "categoria": "Regras Gerais",
+    "texto": "Persuadir: Carisma + Lábia (dif alvo = 6 + modificadores de atitude). Intimidar: Carisma + Intimidação ou Força + Briga (dif 7). Sucessos: mudam atitude em um nível (Hostil → Neutro → Amigável → Aliado). Intimidação bem sucedida concede +2 em ações subsequentes.",
+    "pagina": 397
+  },
+  {
+    "titulo": "Clima e Ambiente Extremo",
+    "categoria": "Regras Gerais",
+    "texto": "Calor extremo (40°C+): teste de Vigor dif 7 a cada 30 min, falha causa 1 nível de dano contusão. Frio intenso (abaixo de -10°C): mesmo teste, falha causa 1 letal por hora. Tempestade: visibilidade reduzida (+2 dificuldade ataques). Ventania: Força + Vigor dif 8 para permanecer em pé.",
+    "pagina": 398
+  },
+  {
+    "titulo": "Encantamento de Itens Permanentes",
+    "categoria": "Regras de Longo Prazo",
+    "texto": "Encantar um item exige Primórdio 3 + Esfera relevante (ex.: Forças para espada flamejante). Ritual estendido: 15 sucessos, 5 Quintessência por nível do encantamento, 1 XP por nível. Tempo: 1 semana por nível. Item passa a ter poder fixo (ex.: +2 dano, +1 defesa).",
+    "pagina": 542
+  },
+  {
+    "titulo": "Familiar e Companheiros Mágicos",
+    "categoria": "Antecedentes Detalhados",
+    "texto": "Familiar é um animal ou espírito vinculado. Nível 1: animal comum (corvo, gato) com inteligência limitada. Nível 3: criatura mágica (fada, elemental pequeno) com poderes (ex.: visão no escuro, telepatia). Nível 5: espírito poderoso (draconiano). O familiar compartilha dano (opcional).",
+    "pagina": 348
+  },
+  {
+    "titulo": "Construção de Cabala (Sede e Recursos)",
+    "categoria": "Regras de Longo Prazo",
+    "texto": "Uma cabala pode ter uma sede (santuário compartilhado). Benefícios: dividir custos de manutenção, +1 dado em rituais de grupo, biblioteca coletiva (bônus de -1 em pesquisas). Cada membro contribui com 1 ponto de Antecedente (Recursos, Santuário) para a sede.",
+    "pagina": 460
+  },
+  {
+    "titulo": "Ascensão (Ascension)",
+    "categoria": "Progressão",
+    "texto": "Ascensão é o estado final do mago, transcendendo a realidade consensual. Para alcançar, Arete 9 + Busca do Avatar épica + resolver o paradigma pessoal. Normalmente marca o fim da campanha. Não há regras fixas – o Mestre define a apoteose.",
+    "pagina": 486
+  },
+  {
+    "titulo": "Regra Opcional: Medo e Terror",
+    "categoria": "Regras Opcionais Relevantes",
+    "texto": "Ao encontrar criaturas de pesadelo (Maras, Nephandi, horrores da Umbra), rola Prontidão (dif 7 + nível de medo). Falha: medo (-2 em ações). Falha crítica: pânico (foge ou congela). Mente 3 pode suprimir medo gastando Força de Vontade.",
+    "pagina": 555
+  },
+  {
+    "titulo": "Manobras de Artes Marciais (Desarmado Avançado)",
+    "categoria": "Regras Avançadas de Combate",
+    "texto": "Chute: dano +1 (mas perde equilíbrio). Chave de braço: após agarrar, rola Força + Briga vs Força + Vigor do oponente; se ganha, imobiliza (sem ações por 1d3 turnos). Projeção (judo): derrubar e causar 1 nível de dano contusão extra. Golpe atordoante: dif +2, causa atordoamento (-2 dados 1 rodada).",
+    "pagina": 419
+  },
+  {
+    "titulo": "Experiência para Personagens Avançados (Início)",
+    "categoria": "Sistema de Experiência",
+    "texto": "O Mestre pode permitir começar com XP adicional para campanhas de alto nível: +50 XP (discípulo), +100 XP (mestre), +200 XP (arquimago). Nenhum atributo ou Arete pode ultrapassar 5 sem Busca do Avatar.",
+    "pagina": 485
+  },
+  {
+    "titulo": "Magia em Massa (Efeitos de Área Extrema)",
+    "categoria": "Magia",
+    "texto": "Afetar uma cidade (5 km de diâmetro) exige +5 dificuldade e 10 sucessos base. Um país: +7 dificuldade, 20 sucessos. O mundo: +9 dificuldade, 50 sucessos (ritual de meses, dezenas de magos). Tais feitiços sempre são vulgares e geram Paradoxo massivo (mínimo 10 pontos).",
+    "pagina": 508
+  },
+  {
+    "titulo": "Interação com Vampiros e Lobisomens (Cruzamento)",
+    "categoria": "Lore e Facções",
+    "texto": "Vampiros têm Fortitude (absorção de dano), Celeridade (ações extras) e Presença (controle mental). Lobisomens têm forma crinos (Força +3, Vigor +2, dano agravado com garras). Magia contra eles: dificuldade +1 devido à resistência sobrenatural. Vampiros queimam com fogo (dano agravado).",
+    "pagina": 630
+  },
+  {
+    "titulo": "Sistema de Ponto de Enredo (Story Points)",
+    "categoria": "Regras Opcionais Relevantes",
+    "texto": "Cada jogador começa com 3 Pontos de Enredo por sessão. Gaste 1 para: repetir uma rolagem (mesmo falha crítica), introduzir um fato conveniente (ex.: “eu trouxe uma lanterna”), ou evitar a morte (mago sobrevive com 1 ponto de vida). Recupera 1 ponto por cena heróica.",
+    "pagina": 556
+  },
+  {
+    "titulo": "Percepção de Ameaças (Emboscada)",
+    "categoria": "Regras Gerais",
+    "texto": "Emboscador rola Destreza + Furtividade (dif 6). Vítima rola Percepção + Prontidão (dif = sucessos do emboscador). Se vítima falha, atacante ganha +2 dados no primeiro ataque e vítima não pode se defender (esquiva ou bloqueio). Percepção bem-sucedida anula surpresa.",
+    "pagina": 411
+  },
+  {
+    "titulo": "Afogamento e Sufocamento",
+    "categoria": "Dano e Cura",
+    "texto": "Personagem sem ar pode prender a respiração por (Vigor x 2) turnos (máx 10). Após isso, sofre 1 nível de dano contusão por turno (inevitável). Incapacitado em 5 turnos, morre em 10. Para ser salvo, precisa de respiração boca-a-boca (Raciocínio + Medicina dif 7) ou magia de Vida 2.",
+    "pagina": 408
+  },
+  {
+    "titulo": "Fome, Sede e Exaustão",
+    "categoria": "Regras Gerais",
+    "texto": "Sem água: 1 nível de dano contusão por dia (difícil recuperar). Sem comida: 1 nível após 3 dias, depois 1 nível por dia. Exaustão (sem dormir 24h): penalidade -1 em todas as ações; após 48h, -2; após 72h, -4 e alucinações. Dormir 8h remove 2 níveis de exaustão.",
+    "pagina": 408
+  },
+  {
+    "titulo": "Fogo e Queimaduras",
+    "categoria": "Dano e Cura",
+    "texto": "Fogo causa dano agravado (difícil absorver). Exposição curta: 1 nível por turno (tocha). Fogo intenso: 2-3 níveis por turno (líquido inflamável). Após sair do fogo, o dano continua por mais 1d3 turnos (metade do dano original). Roupas em chamas exigem ação para apagar (Destreza + Prontidão dif 6).",
+    "pagina": 409
+  },
+  {
+    "titulo": "Eletrocussão",
+    "categoria": "Dano e Cura",
+    "texto": "Choque doméstico (110-220V): dano letal 2-3. Fiação industrial: dano letal 5-6. Raio: dano letal 8-10 + chance de parada cardíaca (rolar Vigor dif 8 ou morre). Para cada 3 níveis de dano elétrico, o alvo fica atordoado (-2 dados) por 1d3 turnos. Armadura metálica dobra o dano.",
+    "pagina": 409
+  },
+  {
+    "titulo": "Explosões",
+    "categoria": "Combate",
+    "texto": "Dano base da explosão: 5 (granada) a 20 (caminhão-bomba). Redução por distância: a cada 2 metros do centro, -1 dado (mínimo 1). Proteção (cobertura) reduz dano pela metade. Além do dano, a onda de choque derruba (Força + Vigor dif 8 para ficar em pé). Explosivos de demolição causam dano dobrado contra estruturas.",
+    "pagina": 443
+  },
+  {
+    "titulo": "Loucura e Insanidade Permanente",
+    "categoria": "Regras Gerais",
+    "texto": "Quiet prolongado ou múltiplos backlashes podem gerar Defeitos permanentes (ex.: paranóia, alucinações). Para curar, necessita de magia Mente 4 (terapia psicológica) + 1 mês de tratamento. Sem magia, terapia mundana: Raciocínio + Medicina dif 8, 10 sucessos acumulados em meses. Cada falha crítica piora o quadro.",
+    "pagina": 551
+  },
+  {
+    "titulo": "Avatar: Manifestação e Diálogo",
+    "categoria": "Regras de Longo Prazo",
+    "texto": "Avatar pode se manifestar como voz, visão ou guia. Diálogo consciente exige meditação (Percepção + Ocultismo dif 7). Sucessos: 1 = sensação, 3 = conversa simples, 5 = comunicação plena. Avatar pode dar dicas, alertas ou testar o mago. Em Busca do Avatar, o desafio é imposto pelo avatar.",
+    "pagina": 340
+  },
+  {
+    "titulo": "Hipertecnologia (Dispositivos Tecnocráticos)",
+    "categoria": "Equipamento e Armas",
+    "texto": "Dispositivos tecnocráticos funcionam como talismãs, mas são 'científicos'. Exigem manutenção (Raciocínio + Computador ou Engenharia dif 7, a cada mês). Falha na manutenção: dispositivo perde um poder ou explode (dano letal 5). São vulneráveis a campos de paradoxo e falham em áreas de alta magia.",
+    "pagina": 680
+  },
+  {
+    "titulo": "Criação de Grimórios",
+    "categoria": "Regras de Longo Prazo",
+    "texto": "Um grimório contém roteiros (feitiços fixos). Para criar, precisa de roteiros (ver regra) + encadernação (1 dia). Cada roteiro ocupa 1 página por nível. Bônus: quem usa o grimório reduz dificuldade do feitiço em -1 (se tiver as Esferas necessárias). Grimório pode ser destruído (fogo, água) – fazer cópia leva 1 semana.",
+    "pagina": 541
+  },
+  {
+    "titulo": "Laboratório Alquímico ou Mágico",
+    "categoria": "Equipamento e Armas",
+    "texto": "Laboratório bem equipado (Antecedente Biblioteca nível 3+ ou Santuário 3+) concede -1 dificuldade para pesquisas, poções e encantamentos. Itens básicos: alambique, forno, vidraria (custo $2.000). Avançado: câmara de ressonância ($20.000). Sem laboratório, poções/alquimia têm +2 dificuldade.",
+    "pagina": 444
+  },
+  {
+    "titulo": "Combate Montado (Cavalos e Motos)",
+    "categoria": "Regras Avançadas de Combate",
+    "texto": "Cavalo: Força 4, Vigor 4, velocidade 12m/turno. Motocicleta: velocidade 25m/turno, estrutura 5. Atacante montado tem +2 dados de dano em investida, mas sofre -2 para manobras complexas. Se o animal/veículo é atingido, cavaleiro rola Destreza + Equitação (dif 7) para não cair. Cair causa dano de queda (3m).",
+    "pagina": 418
+  }
+]

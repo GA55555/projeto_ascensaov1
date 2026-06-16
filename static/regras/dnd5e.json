@@ -1,0 +1,2156 @@
+[
+  {
+    "titulo": "Padrão de Jogo (Rhythm of Play)",
+    "categoria": "Regras Gerais",
+    "texto": "O jogo segue um padrão: 1) O Mestre descreve a cena. 2) Os jogadores descrevem o que seus personagens fazem. 3) O Mestre narra os resultados das ações. Este ciclo se repete durante toda a sessão, seja em interação social, exploração ou combate.",
+    "pagina": 5
+  },
+  {
+    "titulo": "Exceções Superam Regras Gerais",
+    "categoria": "Regras Gerais",
+    "texto": "Regras gerais governam cada parte do jogo. Entretanto, elementos como características de classe, talentos, propriedades de armas, magias, itens mágicos e habilidades de monstros podem contradizer uma regra geral. Quando isso ocorre, a exceção prevalece.",
+    "pagina": 5
+  },
+  {
+    "titulo": "As Seis Habilidades (Abilities)",
+    "categoria": "Regras Gerais",
+    "texto": "Força (Físico), Destreza (Agilidade, reflexos e equilíbrio), Constituição (Saúde e resistência), Inteligência (Raciocínio e memória), Sabedoria (Percepção e força mental) e Carisma (Confiança, equilíbrio e encanto).",
+    "pagina": 5
+  },
+  {
+    "titulo": "Pontuação de Habilidade (Ability Score)",
+    "categoria": "Regras Gerais",
+    "texto": "Cada habilidade tem uma pontuação de 1 a 20 (alguns monstros podem ter até 30). 1 é o mínimo possível, 2–9 representa capacidade fraca, 10–11 é a média humana, 12–19 é forte, 20 é o máximo para aventureiros (a menos que uma característica diga o contrário), 21–29 é extraordinário, e 30 é o máximo absoluto.",
+    "pagina": 5
+  },
+  {
+    "titulo": "Modificadores de Habilidade",
+    "categoria": "Regras Gerais",
+    "texto": "Cada pontuação de habilidade possui um modificador que é aplicado em testes de D20. A tabela de modificadores relaciona pontuações de 1–30 a modificadores de -5 a +10.",
+    "pagina": 5
+  },
+  {
+    "titulo": "Testes de D20 (D20 Tests)",
+    "categoria": "Regras Gerais",
+    "texto": "Quando o resultado de uma ação é incerto, o jogo usa uma rolagem de d20 para determinar sucesso ou falha. Existem três tipos: testes de habilidade, testes de resistência e rolagens de ataque. Etapas: 1) Role 1d20. 2) Adicione modificadores (modificador de habilidade relevante, bônus de proficiência se aplicável, e bônus/penalidades circunstanciais). 3) Compare o total com um número alvo (CD para testes de habilidade e resistência; CA para rolagens de ataque).",
+    "pagina": 6
+  },
+  {
+    "titulo": "Testes de Habilidade (Ability Checks)",
+    "categoria": "Regras Gerais",
+    "texto": "Representa o uso de talento e treinamento para superar um desafio. O Mestre pede um teste de habilidade quando o resultado é incerto e narrativamente interessante. O nome do teste é baseado no modificador usado: Força, Destreza, etc. Adicione o bônus de proficiência se for relevante (perícia ou ferramenta). A CD é definida pelo Mestre com base na dificuldade (Muito fácil 5, Fácil 10, Médio 15, Difícil 20, Muito difícil 25, Quase impossível 30).",
+    "pagina": 6
+  },
+  {
+    "titulo": "Testes de Resistência (Saving Throws)",
+    "categoria": "Regras Gerais",
+    "texto": "Representa uma tentativa de evitar ou resistir a uma ameaça (explosão, veneno, magia mental). Você normalmente não escolhe fazer um teste de resistência; é forçado a fazer um. Você pode optar por falhar automaticamente. O modificador de habilidade relevante é usado, e você adiciona o bônus de proficiência se tiver proficiência naquele tipo de save. A CD é determinada pelo efeito ou pelo Mestre.",
+    "pagina": 7
+  },
+  {
+    "titulo": "Rolagens de Ataque (Attack Rolls)",
+    "categoria": "Regras Gerais",
+    "texto": "Determina se um ataque acerta o alvo. Acerta se o total for igual ou superior à CA do alvo. Para ataques corpo a corpo com armas ou desarmados, usa Força. Para ataques à distância com armas, usa Destreza. Para ataques de magia, usa a habilidade de conjuração do conjurador. Adiciona-se o bônus de proficiência se tiver proficiência com a arma (ou com magias).",
+    "pagina": 7
+  },
+  {
+    "titulo": "Classe de Armadura (Armor Class - AC)",
+    "categoria": "Regras Gerais",
+    "texto": "Representa quão bem uma criatura evita ser ferida em combate. A base é 10 + modificador de Destreza. Pode ser modificada por armadura, itens mágicos, magias, etc. Se múltiplas características fornecem maneiras diferentes de calcular a AC, você escolhe qual usar; apenas um cálculo base pode estar em vigor.",
+    "pagina": 7
+  },
+  {
+    "titulo": "Rolar 20 ou 1 (Natural 20/1)",
+    "categoria": "Regras Gerais",
+    "texto": "Se você rolar 20 natural em uma rolagem de ataque, o ataque acerta independentemente de modificadores ou da CA do alvo (é um Acerto Crítico). Se rolar 1 natural em uma rolagem de ataque, o ataque erra independentemente de modificadores ou da CA do alvo.",
+    "pagina": 7
+  },
+  {
+    "titulo": "Vantagem e Desvantagem (Advantage/Disadvantage)",
+    "categoria": "Regras Gerais",
+    "texto": "Vantagem reflete circunstâncias positivas; Desvantagem, negativas. Quando você tem Vantagem, role dois d20 e use o maior. Com Desvantagem, role dois d20 e use o menor. Múltiplas instâncias da mesma não se acumulam. Se você tiver Vantagem e Desvantagem ao mesmo tempo, elas se cancelam e você rola um único d20.",
+    "pagina": 7
+  },
+  {
+    "titulo": "Inspiração Heroica (Heroic Inspiration)",
+    "categoria": "Regras Gerais",
+    "texto": "Você pode gastar Inspiração Heroica para rerrolar qualquer dado imediatamente após rolá-lo, devendo usar o novo resultado. Você só pode ter uma instância de Inspiração Heroica por vez. Se ganhar outra e já tiver uma, pode dá-la a outro personagem do grupo que não a tenha. O Mestre pode concedê-la por ações heroicas, condizentes com o personagem ou divertidas. Humanos começam cada dia com Inspiração Heroica.",
+    "pagina": 8
+  },
+  {
+    "titulo": "Proficiência (Proficiency)",
+    "categoria": "Regras Gerais",
+    "texto": "O Bônus de Proficiência reflete o impacto do treinamento. É aplicado a um Teste de D20 quando a criatura tem proficiência em uma perícia, teste de resistência, ou com um item que usa no teste. Também é usado para ataques de magia e cálculo da CD de saves de magias. O bônus não pode ser adicionado mais de uma vez a uma mesma rolagem (exceto quando multiplicado/dividido por características como Expertise).",
+    "pagina": 8
+  },
+  {
+    "titulo": "Perícias (Skills)",
+    "categoria": "Regras Gerais",
+    "texto": "Maioria dos testes de habilidade envolve uma perícia. Se uma criatura é proficiente em uma perícia, ela adiciona seu Bônus de Proficiência aos testes de habilidade que a envolvem. Sem proficiência, ainda pode fazer o teste, mas sem adicionar o bônus.",
+    "pagina": 8
+  },
+  {
+    "titulo": "Proficiências em Testes de Resistência",
+    "categoria": "Regras Gerais",
+    "texto": "Proficiência em um teste de resistência permite que o personagem adicione seu Bônus de Proficiência aos saves que usam aquela habilidade. Cada classe concede proficiência em pelo menos dois tipos de teste de resistência.",
+    "pagina": 9
+  },
+  {
+    "titulo": "Proficiências com Equipamento",
+    "categoria": "Regras Gerais",
+    "texto": "Armas: qualquer um pode empunhar, mas proficiência permite adicionar o Bônus de Proficiência nas rolagens de ataque. Ferramentas: se você tem proficiência com uma ferramenta, pode adicionar seu Bônus de Proficiência a qualquer teste de habilidade que a utilize. Se também tem proficiência na perícia usada no teste, você tem Vantagem no teste.",
+    "pagina": 9
+  },
+  {
+    "titulo": "Ações (Actions)",
+    "categoria": "Regras Gerais",
+    "texto": "Principais ações: Atacar, Correr (Dash), Desengajar, Esquivar, Ajudar, Esconder-se, Influenciar, Conjurar Magia (Magic), Preparar, Procurar, Estudar, Utilizar (Utilize). Você pode tomar apenas uma ação por vez. Muitas características de classe fornecem opções adicionais de ação.",
+    "pagina": 9
+  },
+  {
+    "titulo": "Ações Bônus (Bonus Actions)",
+    "categoria": "Regras Gerais",
+    "texto": "Você pode tomar uma Ação Bônus apenas quando uma habilidade especial, magia ou outra característica do jogo afirma que você pode fazer algo como uma Ação Bônus. Você só pode tomar uma Ação Bônus no seu turno. Qualquer coisa que o prive de sua ação também impede a Ação Bônus.",
+    "pagina": 10
+  },
+  {
+    "titulo": "Reações (Reactions)",
+    "categoria": "Regras Gerais",
+    "texto": "Uma Reação é uma resposta instantânea a um gatilho, podendo ocorrer no seu turno ou no turno de outro. O Ataque de Oportunidade é o tipo mais comum. Você não pode tomar outra Reação até o início do seu próximo turno.",
+    "pagina": 10
+  },
+  {
+    "titulo": "Interação Social",
+    "categoria": "Regras Gerais",
+    "texto": "A atitude de um NPC em relação ao personagem é Amigável, Indiferente ou Hostil. As interações progridem por meio de interpretação (roleplaying) e testes de habilidade (ação Influenciar). Preste atenção aos objetivos e personalidade do NPC para influenciá-lo.",
+    "pagina": 10
+  },
+  {
+    "titulo": "Exploração",
+    "categoria": "Regras Gerais",
+    "texto": "Envolve adentrar lugares perigosos e cheios de mistério. Equipamentos como escadas, tochas, ferramentas de ladrão e pregos podem ajudar. Regras de visão e luz, esconder-se, interagir com objetos, carregar e quebrar objetos são fornecidas.",
+    "pagina": 11
+  },
+  {
+    "titulo": "Visão e Luz",
+    "categoria": "Exploração",
+    "texto": "Área Levemente Obscura (Luz Fraca): Desvantagem em testes de Sabedoria (Percepção) baseados em visão. Área Totalmente Obscura (Escuridão): condição Cego ao tentar ver algo. Luz Forte permite ver normalmente. Escuridão mágica também é totalmente obscura. Sentidos especiais: Visão no Escuro, Visão Cega, Visão Verdadeira, Tremores.",
+    "pagina": 11
+  },
+  {
+    "titulo": "Esconder-se (Hide)",
+    "categoria": "Exploração",
+    "texto": "Quando você tenta se esconder, tome a ação Esconder. Você deve estar em uma área Totalmente Obscura ou atrás de Cobertura Total ou Três Quartos. Faça um teste de Destreza (Furtividade) CD 15. Em sucesso, você tem a condição Invisível enquanto escondido. Você para de estar escondido se fizer barulho, for encontrado, fizer um ataque ou conjurar uma magia com componente Verbal.",
+    "pagina": 11
+  },
+  {
+    "titulo": "Interagindo com Objetos",
+    "categoria": "Exploração",
+    "texto": "Quando o tempo é curto (ex: combate), você tem uma interação gratuita com um objeto por turno (durante movimento ou ação). Interações adicionais exigem a ação Utilizar. Para encontrar objetos escondidos, geralmente é feito um teste de Sabedoria (Percepção).",
+    "pagina": 11
+  },
+  {
+    "titulo": "Perigos (Hazards)",
+    "categoria": "Exploração",
+    "texto": "Definições de Queimadura, Queda, Sufocamento, Desidratação e Desnutrição são fornecidas nas regras.",
+    "pagina": 12
+  },
+  {
+    "titulo": "Viagem (Travel)",
+    "categoria": "Exploração",
+    "texto": "Grupos podem viajar em ritmo Rápido, Normal ou Lento, afetando a distância percorrida por minuto/hora/dia e impondo Vantagem/Desvantagem em certos testes. O terreno predominante determina o ritmo máximo.",
+    "pagina": 12
+  },
+  {
+    "titulo": "Ordem de Combate (The Order of Combat)",
+    "categoria": "Combate",
+    "texto": "Etapas: 1) Estabelecer posições. 2) Rolar Iniciativa (teste de Destreza). 3) Realizar turnos na ordem de Iniciativa. Quando todos tiverem tido um turno, o round termina e repete-se até o fim do combate.",
+    "pagina": 13
+  },
+  {
+    "titulo": "Iniciativa e Surpresa",
+    "categoria": "Combate",
+    "texto": "Todos os participantes rolam Iniciativa (teste de Destreza). O Mestre rola para monstros. Se um combatente está surpreso com o início do combate, ele tem Desvantagem na rolagem de Iniciativa. Em caso de empate, o Mestre decide a ordem entre monstros, e os jogadores decidem entre personagens; para empate entre monstro e personagem, o Mestre decide.",
+    "pagina": 13
+  },
+  {
+    "titulo": "Seu Turno (Your Turn)",
+    "categoria": "Combate",
+    "texto": "Em seu turno, você pode se mover até seu Deslocamento e tomar uma ação. Você decide se move primeiro ou age primeiro. Você pode se comunicar brevemente de graça. Pode interagir com um objeto de graça (durante movimento ou ação); um segundo objeto exige a ação Utilizar. Se não quiser fazer nada, pode pular seu turno.",
+    "pagina": 13
+  },
+  {
+    "titulo": "Movimento e Posição",
+    "categoria": "Combate",
+    "texto": "Você pode se mover até seu Deslocamento. Pode combinar movimento com escalada, engatinhar, saltar, nadar. Terreno Difícil custa 1 pé extra por pé de movimento. Você pode quebrar seu movimento (ex: mover 10 pés, agir, mover mais 20). Pode ficar deitado (condição Caído) sem gastar ação. O espaço ocupado por uma criatura depende de seu tamanho.",
+    "pagina": 14
+  },
+  {
+    "titulo": "Fazendo um Ataque",
+    "categoria": "Combate",
+    "texto": "1) Escolha um alvo. 2) Determine modificadores (Cobertura, Vantagem/Desvantagem). 3) Resolva o ataque: faça a rolagem de ataque; em caso de acerto, role dano (a menos que especificado o contrário). Ataque à distância em combate próximo tem Desvantagem se você estiver a 5 pés de um inimigo que possa vê-lo e não esteja incapacitado.",
+    "pagina": 14
+  },
+  {
+    "titulo": "Cobertura (Cover)",
+    "categoria": "Combate",
+    "texto": "Três graus: Meia Cobertura (+2 CA e testes de Destreza), Três Quartos de Cobertura (+5 CA e testes de Destreza), Cobertura Total (não pode ser alvo diretamente). Se atrás de múltiplas fontes, apenas o grau mais protetor se aplica.",
+    "pagina": 15
+  },
+  {
+    "titulo": "Ataques Corpo a Corpo (Melee Attacks)",
+    "categoria": "Combate",
+    "texto": "Permite atacar um alvo dentro do seu alcance. Normalmente usa uma arma corpo a corpo ou Ataque Desarmado. Criaturas têm alcance de 5 pés, a menos que especificado o contrário. Ataque de Oportunidade: quando uma criatura que você pode ver sai do seu alcance, você pode usar sua Reação para fazer um ataque corpo a corpo contra ela.",
+    "pagina": 15
+  },
+  {
+    "titulo": "Combate Montado",
+    "categoria": "Combate",
+    "texto": "Uma criatura voluntária pelo menos um tamanho maior que o cavaleiro e com anatomia apropriada pode servir como montaria. Montar ou desmontar custa metade do seu Deslocamento. Uma montaria controlada age no seu turno e só pode realizar as ações Correr, Desengajar e Esquivar. Se ela for movida contra a vontade, você deve fazer um teste de Destreza CD 10 para não cair.",
+    "pagina": 15
+  },
+  {
+    "titulo": "Combate Subaquático",
+    "categoria": "Combate",
+    "texto": "Ataques corpo a corpo com armas têm Desvantagem a menos que a criatura tenha Deslocamento de Natação ou a arma cause dano Perfurante. Ataques à distância com arma falham automaticamente além do alcance normal e têm Desvantagem dentro do alcance normal. Qualquer coisa subaquática tem Resistência a dano de Fogo.",
+    "pagina": 16
+  },
+  {
+    "titulo": "Pontos de Vida (Hit Points)",
+    "categoria": "Dano e Cura",
+    "texto": "Representam durabilidade e vontade de viver. Seu máximo é o número de PV quando não ferido. Quando você sofre dano, subtraia-o dos seus PV atuais. Perda de PV não afeta suas capacidades até chegar a 0 PV. Se você tem metade ou menos dos seus PV, está Sangrando (Bloodied), o que por si só não tem efeito, mas pode ativar outros efeitos.",
+    "pagina": 16
+  },
+  {
+    "titulo": "Descanso (Resting)",
+    "categoria": "Dano e Cura",
+    "texto": "Descanso Curto: 1 hora de inatividade moderada. Você pode gastar Dados de Vida para recuperar PV. Descanso Longo: 8 horas (pelo menos 6 de sono). Ao final, recupera todos os PV, todos os Dados de Vida, reduz níveis de Exaustão e recupera características recarregadas no Descanso Longo. O Descanso Longo é interrompido por rolar Iniciativa, conjurar magia (exceto truque), sofrer dano ou 1 hora de caminhada.",
+    "pagina": 16
+  },
+  {
+    "titulo": "Rolagens de Dano (Damage Rolls)",
+    "categoria": "Dano e Cura",
+    "texto": "Cada arma, magia ou habilidade de monstro especifica o dano. Você rola os dados, adiciona modificadores e aplica ao alvo. Ao atacar com arma, adiciona o mesmo modificador de habilidade usado na rolagem de ataque. Magias especificam seus dados e modificadores.",
+    "pagina": 16
+  },
+  {
+    "titulo": "Acertos Críticos (Critical Hits)",
+    "categoria": "Dano e Cura",
+    "texto": "Quando você rola um 20 natural na rolagem de ataque, causa dano extra. Role todos os dados de dano do ataque duas vezes, some-os e adicione os modificadores normalmente. Se o ataque envolver outros dados de dano (ex: Ataque Furtivo), esses dados também são rolados duas vezes.",
+    "pagina": 16
+  },
+  {
+    "titulo": "Tipos de Dano (Damage Types)",
+    "categoria": "Dano e Cura",
+    "texto": "Ácido, Concussão, Frio, Fogo, Força, Relâmpago, Necrótico, Perfurante, Veneno, Psíquico, Radiante, Cortante, Trovão. Os tipos não têm regras próprias, mas outras regras (como Resistência) dependem deles.",
+    "pagina": 16
+  },
+  {
+    "titulo": "Resistência e Vulnerabilidade",
+    "categoria": "Dano e Cura",
+    "texto": "Resistência: dano do tipo é reduzido à metade (arredondado para baixo). Vulnerabilidade: dano do tipo é dobrado. Múltiplas instâncias de Resistência ou Vulnerabilidade contam como uma única. Ordem de aplicação: ajustes (bônus, penalidades, multiplicadores) primeiro; Resistência segundo; Vulnerabilidade terceiro.",
+    "pagina": 17
+  },
+  {
+    "titulo": "Imunidade (Immunity)",
+    "categoria": "Dano e Cura",
+    "texto": "Imunidade a um tipo de dano significa que você não sofre dano daquele tipo. Imunidade a uma condição significa que você não é afetado por ela.",
+    "pagina": 17
+  },
+  {
+    "titulo": "Cura (Healing)",
+    "categoria": "Dano e Cura",
+    "texto": "Os PV podem ser restaurados por magia (ex: Curar Ferimentos), poções de cura, ou descanso curto/longo. Quando você recebe cura, adicione os PV restaurados aos seus PV atuais. Seus PV não podem exceder seu máximo de PV.",
+    "pagina": 17
+  },
+  {
+    "titulo": "Reduzir uma Criatura a 0 PV (Nocaute)",
+    "categoria": "Dano e Cura",
+    "texto": "Quando você reduziria uma criatura a 0 PV com um ataque corpo a corpo, pode, em vez disso, reduzi-la a 1 PV e dar a ela a condição Inconsciente. Ela então começa um Descanso Curto, no final do qual a condição termina (ou termina mais cedo se recuperar PV ou receber primeiros socorros com CD 10 Medicina).",
+    "pagina": 17
+  },
+  {
+    "titulo": "Caindo a 0 PV (Instant Death e Unconscious)",
+    "categoria": "Dano e Cura",
+    "texto": "Morte instantânea: monstro morre ao chegar a 0 PV (Mestre pode ignorar); personagem morre se o dano restante após reduzir a 0 PV for igual ou superior ao seu máximo de PV; ou se o máximo de PV chegar a 0. Caso contrário, você fica Inconsciente e começa a fazer Testes de Resistência contra a Morte.",
+    "pagina": 17
+  },
+  {
+    "titulo": "Testes de Resistência contra a Morte (Death Saving Throws)",
+    "categoria": "Dano e Cura",
+    "texto": "Quando você começa seu turno com 0 PV, faça um teste de resistência contra a morte (d20). Sucesso (10+) ou falha (9-). Três sucessos: você estabiliza. Três falhas: você morre. Rolar 1 conta como duas falhas; rolar 20 recupera 1 PV. Se sofrer dano com 0 PV, sofre uma falha; se for um Acerto Crítico, duas falhas. Se o dano igualar ou exceder seu máximo de PV, você morre.",
+    "pagina": 17
+  },
+  {
+    "titulo": "Estabilizando um Personagem",
+    "categoria": "Dano e Cura",
+    "texto": "Você pode usar a ação Ajudar para tentar estabilizar uma criatura com 0 PV, exigindo um teste bem-sucedido de Sabedoria (Medicina) CD 10. Uma criatura Estável não precisa fazer Testes de Resistência contra a Morte, mas ainda está Inconsciente. Se não for curada, recupera 1 PV após 1d4 horas.",
+    "pagina": 18
+  },
+  {
+    "titulo": "Pontos de Vida Temporários (Temporary Hit Points)",
+    "categoria": "Dano e Cura",
+    "texto": "Servem como um amortecedor contra a perda de PV reais. Se você tem PV temporários e sofre dano, eles são perdidos primeiro. PV temporários duram até serem esgotados ou até você terminar um Descanso Longo. PV temporários não se acumulam; se receber mais, decide se mantém os atuais ou ganha os novos. Não são PV nem cura, e não restauram a consciência se você estiver com 0 PV.",
+    "pagina": 18
+  },
+  {
+    "titulo": "Criação de Personagem (Passo 1: Escolher Classe)",
+    "categoria": "Criação de Personagem",
+    "texto": "Escolha uma classe (Barbaro, Bardo, Clérigo, Druida, Guerreiro, Monge, Paladino, Ranger, Ladino, Feiticeiro, Bruxo, Mago). Anote o nível (normalmente 1). Anote seus Pontos de Experiência (0 no nível 1). Anote seu treinamento com armaduras.",
+    "pagina": 19
+  },
+  {
+    "titulo": "Criação de Personagem (Passo 2: Origem)",
+    "categoria": "Criação de Personagem",
+    "texto": "Escolha um antecedente (background), que concede um talento de Origem, proficiência em duas perícias e uma ferramenta. Escolha uma espécie (Dragonborn, Anão, Elfo, Gnomo, Goliath, Halfling, Humano, Orc, Tiefling), que define tamanho, deslocamento e traços especiais. Escolha três idiomas: Comum + dois idiomas (padrões ou raros).",
+    "pagina": 19
+  },
+  {
+    "titulo": "Criação de Personagem (Passo 3: Pontuação de Habilidade)",
+    "categoria": "Criação de Personagem",
+    "texto": "Gere seis números usando: Array Padrão (15,14,13,12,10,8), Rolagem Aleatória (4d6 descartando o menor, seis vezes), ou Pontos de Custo (27 pontos para comprar escores conforme tabela). Depois atribua às seis habilidades. Ajuste os escores conforme seu antecedente: aumente um em 2 e outro em 1, ou todos os três em 1. Nenhum pode ultrapassar 20. Determine os modificadores.",
+    "pagina": 20
+  },
+  {
+    "titulo": "Criação de Personagem (Passo 4: Alinhamento)",
+    "categoria": "Criação de Personagem",
+    "texto": "Escolha um dos nove alinhamentos: Leal e Bom, Neutro e Bom, Caótico e Bom, Leal e Neutro, Neutro, Caótico e Neutro, Leal e Mau, Neutro e Mau, Caótico e Mau. Personagens não malignos são assumidos; verifique com o Mestre antes de fazer um maligno.",
+    "pagina": 21
+  },
+  {
+    "titulo": "Criação de Personagem (Passo 5: Detalhes Finais)",
+    "categoria": "Criação de Personagem",
+    "texto": "Registre as características de nível 1 da classe. Anote os bônus de salvaguarda (proficiência + modificador), perícias (proficiência + modificador), Percepção Passiva (10 + modificador de Percepção), PV máximos (conforme classe e Constituição), Dados de Vida, Iniciativa (mod. Destreza), CA (base 10 + Destreza, modificada por armadura/escudo), Ataques (bônus de ataque e dano conforme arma), e Conjuração (CD e bônus de ataque de magia, slots, truques, magias preparadas).",
+    "pagina": 22
+  },
+  {
+    "titulo": "Progressão de Nível (Level Advancement)",
+    "categoria": "Criação de Personagem",
+    "texto": "Quando você ganha XP suficiente (tabela de avanço), sobe de nível. Ao subir: 1) Escolha uma classe (pode ser nova, com multiclasse). 2) Ajuste PV e Dados de Vida (role o dado ou use valor fixo). 3) Registre novas características da classe. 4) Ajuste o Bônus de Proficiência se aplicável. 5) Ajuste modificadores de habilidade (se aumentou escores) e impactos na CA, perícias, etc.",
+    "pagina": 23
+  },
+  {
+    "titulo": "Níveis de Jogo (Tiers of Play)",
+    "categoria": "Criação de Personagem",
+    "texto": "Tier 1 (níveis 1-4): Aventureiros aprendizes, ameaças locais. Tier 2 (5-10): Aventureiros estabelecidos, ameaças a cidades/reinos. Tier 3 (11-16): Poder especiais, ameaças regionais. Tier 4 (17-20): Pinnáculo das classes, destino do mundo/multiverso.",
+    "pagina": 23
+  },
+  {
+    "titulo": "Começando em Níveis Mais Altos",
+    "categoria": "Criação de Personagem",
+    "texto": "Use as mesmas etapas de criação e as regras de avanço de nível. Você começa com o XP mínimo para aquele nível. O Mestre decide o equipamento inicial (possivelmente itens mágicos conforme tabela).",
+    "pagina": 24
+  },
+  {
+    "titulo": "Multiclasse (Multiclassing)",
+    "categoria": "Criação de Personagem",
+    "texto": "Para ganhar um nível em uma nova classe, você deve ter pelo menos 13 na habilidade primária da nova classe e da sua classe atual. Você ganha apenas algumas proficiências iniciais da nova classe. Seus PV e Dados de Vida são somados. Seu Bônus de Proficiência é baseado no nível total. Regras especiais para Características Adicionais de Ataque (não acumulam), Cálculo de CA (escolhe um), e Conjuração (soma níveis das classes conjuradoras para determinar slots; magias preparadas separadamente por classe; Pacto Mágico pode ser usado com slots de Conjuração).",
+    "pagina": 24
+  },
+  {
+    "titulo": "Fúria (Rage) - Bárbaro",
+    "categoria": "Classes",
+    "texto": "Você pode entrar em Fúria como Ação Bônus. Enquanto ativa: Resistência a dano de Concussão, Perfurante e Cortante; bônus no dano ao atacar com Força; Vantagem em testes e salvaguardas de Força; não pode manter Concentração nem conjurar magias. Dura até o final do seu próximo turno; pode ser estendida fazendo ataque ou forçando salvaguarda. Máximo 10 minutos.",
+    "pagina": 28
+  },
+  {
+    "titulo": "Inspiração de Bardo (Bardic Inspiration) - Bardo",
+    "categoria": "Classes",
+    "texto": "Como Ação Bônus, você pode conceder um dado de Inspiração de Bardo a uma criatura (um dado que muda de d6 para d12 nos níveis 5,10,15). Uma vez na próxima hora, quando a criatura falha em um Teste de D20, ela pode rolar o dado e adicionar à rolagem, potencialmente transformando falha em sucesso. Você pode usar esse recurso um número de vezes igual ao seu modificador de Carisma (mínimo 1), recuperando no Descanso Longo.",
+    "pagina": 31
+  },
+  {
+    "titulo": "Canalizar Divindade (Channel Divinity) - Clérigo",
+    "categoria": "Classes",
+    "texto": "Você pode canalizar energia divina diretamente dos Planos Exteriores para alimentar efeitos mágicos. Você começa com Centelha Divina (cura ou dano) e Expulsar Mortos-Vivos. Pode usar duas vezes; recupera um uso no Descanso Curto e todos no Descanso Longo. Ganha usos adicionais em níveis mais altos. Se exigir salvaguarda, a CD é sua CD de magia.",
+    "pagina": 37
+  },
+  {
+    "titulo": "Forma Selvagem (Wild Shape) - Druida",
+    "categoria": "Classes",
+    "texto": "Como Ação Bônus, você se transforma em uma forma de Besta que você aprendeu. Você conhece quatro formas de Besta com CD máxima 1/4 e sem deslocamento de voo. Você ganha PV temporários iguais ao seu nível de Druida. Você mantém suas estatísticas mentais, características de classe, idiomas, talentos e proficiências. Não pode conjurar magias, mas a transformação não quebra Concentração. Equipamento pode cair, se fundir ou ser vestido pela nova forma.",
+    "pagina": 42
+  },
+  {
+    "titulo": "Surto de Ação (Action Surge) - Guerreiro",
+    "categoria": "Classes",
+    "texto": "Você pode se esforçar além de seus limites normais por um momento. No seu turno, você pode tomar uma ação adicional, exceto a ação Conjurar Magia. Uma vez usado, você só pode usá-lo novamente após terminar um Descanso Curto ou Longo. A partir do nível 17, pode usá-lo duas vezes antes de um descanso, mas apenas uma vez por turno.",
+    "pagina": 48
+  },
+  {
+    "titulo": "Pontos de Foco (Focus Points) - Monge",
+    "categoria": "Classes",
+    "texto": "Você tem Pontos de Foco que pode gastar para aprimorar ou alimentar certas características (Rajada de Golpes, Defesa Paciente, Passo Veloz). Seu nível de Monge determina o número de pontos. Você recupera todos os pontos gastos ao final de um Descanso Curto ou Longo. A CD de salvaguarda para características que usam Pontos de Foco é 8 + modificador de Sabedoria + Bônus de Proficiência.",
+    "pagina": 50
+  },
+  {
+    "titulo": "Imposição de Mãos (Lay On Hands) - Paladino",
+    "categoria": "Classes",
+    "texto": "Você tem um reservatório de cura que recupera no Descanso Longo, igual a 5 vezes seu nível de Paladino. Como Ação Bônus, você pode tocar uma criatura (incluindo você) e restaurar um número de PV até o máximo restante no reservatório. Você também pode gastar 5 PV do reservatório para remover a condição Envenenado (esses pontos não restauram PV).",
+    "pagina": 53
+  },
+  {
+    "titulo": "Marca do Caçador (Favored Enemy) - Ranger",
+    "categoria": "Classes",
+    "texto": "Você sempre tem a magia Marca do Caçador preparada. Você pode conjurá-la duas vezes sem gastar slot de magia, recuperando todos os usos dessa habilidade ao final de um Descanso Longo. O número de vezes que você pode conjurar sem slot aumenta nos níveis 5, 9, 13 e 17.",
+    "pagina": 58
+  },
+  {
+    "titulo": "Ataque Furtivo (Sneak Attack) - Ladino",
+    "categoria": "Classes",
+    "texto": "Uma vez por turno, você pode causar um dano extra de 1d6 a uma criatura que acertar com um ataque, se tiver Vantagem na rolagem e usar uma arma com Acuidade ou à distância. Você não precisa de Vantagem se pelo menos um aliado estiver a 5 pés do alvo, sem Incapacitado, e você não tiver Desvantagem. O dano extra aumenta conforme níveis de Ladino (tabela).",
+    "pagina": 61
+  },
+  {
+    "titulo": "Magia Inata (Innate Sorcery) - Feiticeiro",
+    "categoria": "Classes",
+    "texto": "Como Ação Bônus, você libera sua magia latente por 1 minuto, ganhando: +1 na CD de salvaguarda de suas magias de Feiticeiro e Vantagem nas rolagens de ataque de suas magias de Feiticeiro. Você pode usar esta característica duas vezes, recuperando todos os usos após um Descanso Longo.",
+    "pagina": 65
+  },
+  {
+    "titulo": "Invocações Místicas (Eldritch Invocations) - Bruxo",
+    "categoria": "Classes",
+    "texto": "Você descobre Invocações Místicas (ex: Pacto do Tomo). Você ganha uma invocação de sua escolha. Se uma invocação tem pré-requisito (ex: nível 5+ de Bruxo), você deve atendê-lo para aprendê-la. Sempre que ganha um nível de Bruxo, pode substituir uma invocação por outra que atenda os pré-requisitos.",
+    "pagina": 70
+  },
+  {
+    "titulo": "Recuperação Arcana (Arcane Recovery) - Mago",
+    "categoria": "Classes",
+    "texto": "Você pode recuperar parte da sua energia mágica estudando seu grimório. Ao final de um Descanso Curto, você pode recuperar slots de magia com nível combinado igual a no máximo metade do seu nível de Mago (arredondado para cima), e nenhum slot pode ser de nível 6 ou superior. Uma vez usado, você não pode usar novamente até terminar um Descanso Longo.",
+    "pagina": 78
+  },
+  {
+    "titulo": "Talentos de Origem (Origin Feats)",
+    "categoria": "Talentos",
+    "texto": "Alert (Alerta): adicione Bônus de Proficiência na Iniciativa e pode trocar sua Iniciativa com a de um aliado disposto. Magic Initiate: aprenda dois truques e uma magia de 1º nível da lista de Clérigo, Druida ou Mago; pode conjurar a magia uma vez sem slot. Savage Attacker: uma vez por turno, role os dados de dano da arma duas vezes e use o melhor. Skilled: ganhe proficiência em três perícias ou ferramentas à sua escolha (pode repetir).",
+    "pagina": 87
+  },
+  {
+    "titulo": "Talentos Gerais (General Feats)",
+    "categoria": "Talentos",
+    "texto": "Ability Score Improvement: aumente uma habilidade em 2 ou duas em 1 (máx. 20). Grappler: aumente Força ou Destreza em 1, vantagem em ataques contra criatura Agarrda, e não gasta movimento extra para mover criatura Agarrada do seu tamanho ou menor.",
+    "pagina": 87
+  },
+  {
+    "titulo": "Talentos de Estilo de Luta (Fighting Style Feats)",
+    "categoria": "Talentos",
+    "texto": "Archery: +2 em rolagens de ataque com armas à distância. Defense: +1 de CA enquanto usa armadura leve, média ou pesada. Great Weapon Fighting: ao rolar dano com uma arma corpo a corpo empunhada com duas mãos, trata qualquer resultado 1 ou 2 como 3. Two-Weapon Fighting: ao fazer o ataque extra da propriedade Leve, adicione seu modificador de habilidade ao dano.",
+    "pagina": 87
+  },
+  {
+    "titulo": "Talentos de Bênção Épica (Epic Boon Feats)",
+    "categoria": "Talentos",
+    "texto": "Exigem nível 19+. Boon of Combat Prowess: aumente uma habilidade em 1 (máx. 30) e se errar um ataque, acerta em vez disso (uma vez por turno). Boon of Dimensional Travel: teleporte até 30 pés após atacar ou conjurar. Boon of Fate: role 2d4 e aplique como bônus/penalidade em um teste de D20 de você ou aliado a até 60 pés. Boon of Irresistible Offense: seu dano de Concussão, Perfurante e Cortante ignora Resistência. Boon of Spell Recall: ao conjurar magia com slot 1-4, role 1d4; se igual ao nível do slot, o slot não é gasto. Boon of the Night Spirit: torne-se Invisível em Luz Fraca ou Escuridão como Ação Bônus; tem Resistência a todos os danos exceto Psíquico e Radiante nessas condições. Boon of Truesight: ganha Visão Verdadeira 60 pés.",
+    "pagina": 88
+  },
+  {
+    "titulo": "Equipamento - Moedas e Armas",
+    "categoria": "Equipamento",
+    "texto": "Moedas: PC (1/100 PO), PP (1/10), PE (1/2), PO (1), PP (10). Armas: categorias Simples ou Marcial; corpo a corpo ou à distância. Propriedades: Munição, Acuidade, Pesada, Leve, Recarga, Alcance, Alongada, Arremesso, Duas Mãos, Versátil. Propriedades de Maestria: Corte, Raspão, Picada, Empurrão, Seiva, Lentidão, Derrubar, Vexame. Para usar Maestria, você precisa de uma característica que a desbloqueie.",
+    "pagina": 89
+  },
+  {
+    "titulo": "Equipamento - Armaduras",
+    "categoria": "Equipamento",
+    "texto": "Categorias: Leve, Média, Pesada. Escudo é separado. Se você veste armadura e não tem treinamento, tem Desvantagem em testes de Força ou Destreza e não pode conjurar magias. Se usa Escudo sem treinamento, não ganha o bônus de CA. Tabela fornece CA, Força necessária (se aplicável) e Desvantagem em Furtividade.",
+    "pagina": 92
+  },
+  {
+    "titulo": "Equipamento - Ferramentas e Utilidades",
+    "categoria": "Equipamento",
+    "texto": "Ferramentas ajudam em testes de habilidade especializados e/ou criar itens. Se você tem proficiência com uma ferramenta, adiciona seu Bônus de Proficiência aos testes. Se também tem proficiência na perícia usada, tem Vantagem no teste. Lista de ferramentas: Alquimista, Cervejeiro, Calígrafo, Carpinteiro, Cartógrafo, Seleiro, Confeiteiro, Vidreiro, Joalheiro, Coureiro, Pedreiro, Pintor, Oleiro, Ferreiro, Funileiro, Tecelão, Entalhador; também Kit de Disfarce, Kit de Falsificação, Kit de Jogos, Kit de Herbalismo, Instrumento Musical, Kit de Navegação, Kit de Veneno, Ferramentas de Ladrão.",
+    "pagina": 93
+  },
+  {
+    "titulo": "Equipamento - Itens de Aventura",
+    "categoria": "Equipamento",
+    "texto": "Lista de itens comuns: Ácido, Fogo Alquímico, Munição, Antitoxina, Foco Arcano, Mochila, Esferas de Rolamento, Barril, Cesto, Saco de Dormir, Sino, Manta, Moitão, Livro, Garrafa, Balde, Pacotes (Burglar's, Diplomat's, Dungeoneer's, Entertainer's, Explorer's, Priest's, Scholar's), Pregoeiras, Vela, Estojo de Besta, Estojo de Mapa/ Pergaminho, Corrente, Baú, Kit de Escalada, Roupas Finas/ de Viajante, Bolsa de Componentes, Fantasia, Pé de Cabra, Água Benta, Armadilha de Caça, Tinta e Pena, Jarro, Escada, Lâmpada, Lanterna (de facho, fechada), Fechadura, Lupa, Grilhões, Mapa, Espelho, Rede, Óleo, Papel, Pergaminho, Perfume, Veneno Básico, Vara, Panela de Ferro, Poção de Cura, Bolsa, Carrilhão, Besta Portátil, Ração, Manto, Corda, Saco, Pá, Apito de Sinalização, Pergaminho de Magia, Picos de Ferro, Longa-vista, Barbante, Barraca, Isqueira, Tocha, Frasco, Odre.",
+    "pagina": 94
+  },
+  {
+    "titulo": "Montarias e Veículos",
+    "categoria": "Equipamento",
+    "texto": "Montarias: Camelo, Elefante, Cavalo de Carga, Cavalo de Montaria, Mastim, Mula, Pônei, Cavalo de Guerra. Cada uma tem capacidade de carga. Barding (armadura para montaria) custa 4x e pesa o dobro. Selas: Exótica (60 GP), Militar (20 GP), Montaria (10 GP). Veículos: Carruagem, Carroça, Trenó, Vagão. Grandes Veículos: Dirigível, Galé, Bote de Quilha, Dracar, Bote a Remo, Navio à Vela, Navio de Guerra. Estatísticas incluem Velocidade, Tripulação, Passageiros, Carga (toneladas), CA, PV, Limiar de Dano, Custo.",
+    "pagina": 100
+  },
+  {
+    "titulo": "Despesas de Estilo de Vida",
+    "categoria": "Equipamento",
+    "texto": "Miséria (grátis), Precária (1 PP/dia), Pobre (2 PP/dia), Modesto (1 PO/dia), Confortável (2 PO/dia), Rico (4 PO/dia), Aristocrático (10 PO/dia). O Mestre pode considerar o estilo de vida ao determinar riscos ou percepção dos outros.",
+    "pagina": 101
+  },
+  {
+    "titulo": "Serviços de Conjuração",
+    "categoria": "Equipamento",
+    "texto": "Em assentamentos, indivíduos podem conjurar magias por pagamento. Custo base (aumenta com nível da magia): Truque: 30 PO, 1º nível: 50 PO, 2º: 200 PO, 3º: 300 PO, 4º-5º: 2000 PO, 6º-8º: 20000 PO, 9º: 100000 PO. Adicione o custo de componentes caros.",
+    "pagina": 102
+  },
+  {
+    "titulo": "Itens Mágicos - Identificação e Sintonia",
+    "categoria": "Itens Mágicos",
+    "texto": "Manusear um item mágico já dá a sensação de que é extraordinário. Identificar propriedades: magia Identificar ou focar no item durante um Descanso Curto (aprende propriedades e como usá-las, mas não maldições). Alguns itens exigem Sintonia. Você pode se sintonizar com até três itens. A sintonia requer um Descanso Curto focado no item. A sintonia termina se os pré-requisitos não forem mais atendidos, se o item ficar a mais de 100 pés por 24 horas, se você morrer, ou se outro criar sintonia.",
+    "pagina": 102
+  },
+  {
+    "titulo": "Fabricação de Itens Não Mágicos",
+    "categoria": "Equipamento",
+    "texto": "Para fabricar, você precisa da ferramenta apropriada e proficiência com ela. Matéria-prima custa metade do preço de compra (arredondado para baixo). Tempo: divida o custo em PO por 10 (arredondado para cima) para obter dias (8 horas/dia). Personagens podem combinar esforços para reduzir o tempo (normalmente apenas um assistente).",
+    "pagina": 103
+  },
+  {
+    "titulo": "Preparação de Magias",
+    "categoria": "Magia",
+    "texto": "Cada classe tem sua própria forma de preparar magias: Bardo e Feiticeiro podem trocar uma magia ao ganhar nível; Clérigo, Druida, Mago podem trocar qualquer magia ao final de um Descanso Longo; Paladino, Ranger podem trocar uma magia ao final de um Descanso Longo; Bruxo pode trocar uma magia ao ganhar nível. Magias sempre preparadas não contam para o limite de magias preparadas.",
+    "pagina": 104
+  },
+  {
+    "titulo": "Níveis de Magia e Slots",
+    "categoria": "Magia",
+    "texto": "Toda magia tem um nível de 0 a 9 (truques são nível 0). Para conjurar uma magia de nível 1+, você gasta um slot de magia daquele nível ou superior. Um slot de nível superior aumenta o efeito de algumas magias. Você recupera todos os slots gastos após um Descanso Longo. Você só pode gastar um slot de magia por turno (exceto truques).",
+    "pagina": 104
+  },
+  {
+    "titulo": "Concentração (Concentration)",
+    "categoria": "Magia",
+    "texto": "Algumas magias exigem Concentração (indicado no campo Duração). A criatura que está concentrando perde a Concentração se: começar a conjurar outra magia que exija Concentração; sofrer dano (teste de Constituição CD 10 ou metade do dano, o que for maior, máximo CD 30); tiver a condição Incapacitado ou morrer. A criatura pode encerrar a Concentração a qualquer momento (sem ação).",
+    "pagina": 105
+  },
+  {
+    "titulo": "Componentes de Magia (V, S, M)",
+    "categoria": "Magia",
+    "texto": "Verbal (V): entoação de palavras. Somatic (S): gestos com pelo menos uma mão. Material (M): materiais especificados; não são consumidos a menos que a magia diga o contrário. Se a magia não consome o material e não especifica custo, um conjurador pode usar uma Bolsa de Componentes ou um Foco de Conjuração (desde que tenha uma característica que permita).",
+    "pagina": 105
+  },
+  {
+    "titulo": "Alcance e Alvos",
+    "categoria": "Magia",
+    "texto": "Alcance: em pés, Toque, ou Self. Para alvejar algo, você deve ter um caminho claro até o alvo (não pode estar atrás de Cobertura Total). Você pode se escolher como alvo, a menos que exija Hostil ou especificamente outra criatura. Áreas de Efeito: Cone, Cubo, Cilindro, Emanação, Linha, Esfera. A menos que a magia tenha efeito perceptível, a criatura não sabe que foi alvo.",
+    "pagina": 106
+  },
+  {
+    "titulo": "Testes de Resistência e Rolagens de Ataque em Magias",
+    "categoria": "Magia",
+    "texto": "CD de salvaguarda da magia = 8 + modificador de habilidade de conjuração + Bônus de Proficiência. Bônus de ataque da magia = modificador de habilidade de conjuração + Bônus de Proficiência.",
+    "pagina": 106
+  },
+  {
+    "titulo": "Glossário - Termos Principais",
+    "categoria": "Glossário",
+    "texto": "Definições de: Teste de Habilidade, Modificador de Habilidade, Ação, Vantagem, Aventura, Alinhamento, Aliado, Área de Efeito, Classe de Armadura, Treinamento com Armadura, Ação de Ataque, Rolagem de Ataque, Atitude, Sintonia, Condições (Cego, Apavorado, Agarrado, Incapacitado, Invisível, Paralisado, Petrificado, Envenenado, Caído, Restringido, Atordoado, Inconsciente), Visão Cega, Sangrando, Ação Bônus, Quebrar Objetos, Luz Forte, Queimadura, Deslocamento de Escavação, Campanha, Truque, Capacidade de Carga, Desafio (CR), Ficha de Personagem, Condição de Apavorado, Escalada, Deslocamento de Escalada, Concentração, Cobertura, Criatura, Tipo de Criatura, Acerto Crítico, Cubo, Maldições, Cilindro, Teste de D20, Dano, Rolagem de Dano, Limiar de Dano, Tipos de Dano, Escuridão, Visão no Escuro, Ação de Correr, Morto, Condição de Surdo, Teste de Resistência contra a Morte, Desidratação, Terreno Difícil, Classe de Dificuldade, Luz Fraca, Desvantagem, Ação de Desengajar, Ação de Esquivar, Emanação, Encontro, Inimigo, Exaustão, Pontos de Experiência, Perícia (Expertise), Queda, Voo, Deslocamento de Voo, Amigável, Condição de Apavorado, Agarrado, Agarrar, Perigo, Cura, Totalmente Obscuro, Ação de Ajudar, Inspiração Heroica, Ação de Esconder, Salto em Altura, Dados de Vida, Pontos de Vida, Hostil, Pairar, Ilusões, Imunidade, Armas Improvisadas, Ação de Influenciar, Iniciativa, Condição de Invisível, Salto, Nocaute, Levemente Obscuro, Linha, Salto em Distância, Descanso Longo, Ação Conjurar Magia, Efeito Mágico, Desnutrição, Monstro, NPC, Objeto, Espaço Ocupado, Ataque de Oportunidade, Condição de Paralisado, Percepção Passiva, Por Dia, Condição de Petrificado, Personagem do Jogador, Condição de Envenenado, Possessão, Proficiência, Condição de Caído, Alcance, Reação, Ação de Preparar, Resistência, Condição de Restringido, Ritual, Arredondar para Baixo, Teste de Resistência, Ação de Procurar, Forma Alternativa, Descanso Curto, Efeitos Simultâneos, Tamanho, Perícia, Deslocamento, Magia, Ataque de Magia, Foco de Conjuração, Esfera, Estável, Bloco de Estatísticas, Ação de Estudar, Condição de Atordoado, Sufocamento, Surpresa, Natação, Deslocamento de Natação, Alvo, Telepatia, Teleporte, Pontos de Vida Temporários, Tremores, Visão Verdadeira, Ataque Desarmado, Condição de Inconsciente, Espaço Desocupado, Ação Utilizar, Vulnerabilidade, Arma, Ataque com Arma.",
+    "pagina": 176
+  },
+  {
+    "titulo": "Caixa de Ferramentas do Jogo - Ritmo de Viagem e Terreno",
+    "categoria": "Gameplay Toolbox",
+    "texto": "Terreno predominante determina o ritmo máximo (Rápido, Normal, Lento). Estradas boas aumentam um passo. Viajantes mais lentos forçam o grupo a ir a passo Lento. Viagem estendida além de 8 horas por dia exige testes de Constituição (CD 10+1 por hora extra) ou ganha Exaustão. Para conversão de velocidade em taxas de viagem: milhas por hora = Deslocamento/10; milhas por dia (ritmo normal) = milhas por hora × horas viajadas (normalmente 8).",
+    "pagina": 192
+  },
+  {
+    "titulo": "Criando um Antecedente (Background)",
+    "categoria": "Gameplay Toolbox",
+    "texto": "1) Escolha três habilidades apropriadas. 2) Escolha um talento de Origem. 3) Escolha duas perícias. 4) Escolha uma proficiência em ferramenta. 5) Monte um pacote de equipamento no valor de 50 PO (sem armaduras marciais ou armaduras, pois vêm da classe).",
+    "pagina": 192
+  },
+  {
+    "titulo": "Maldições e Contágios Mágicos",
+    "categoria": "Gameplay Toolbox",
+    "texto": "Maldições: podem vir de magia (ex: Bestow Curse), criaturas amaldiçoadas (ex: lobisomem), itens mágicos amaldiçoados, maldições narrativas (por violação de tabu), ou maldições ambientais (ex: Possessão Demoníaca). Contágios mágicos: exemplos incluem Febre das Gargalhadas, Praga do Esgoto, Podridão Visual. Regras para infecção, efeitos, luta contra o contágio e propagação são fornecidas.",
+    "pagina": 193
+  },
+  {
+    "titulo": "Efeitos Ambientais",
+    "categoria": "Gameplay Toolbox",
+    "texto": "Água Profunda, Frio Extremo, Calor Extremo, Água Gélida, Precipitação Forte, Grande Altitude, Gelo Escorregadio, Vento Forte, Gelo Fino. Cada um impõe condições específicas (Exaustão, Desvantagem, etc.).",
+    "pagina": 195
+  },
+  {
+    "titulo": "Medo e Estresse Mental",
+    "categoria": "Gameplay Toolbox",
+    "texto": "Efeitos de Medo: normalmente exigem teste de Sabedoria com CD baseada no quão aterrorizante é a situação; criaturas Apavoradas repetem o save no final de cada turno. Podem sofrer efeitos adicionais como ser forçado a Correr, etc. Estresse Mental: geralmente causa dano Psíquico (teste de Sabedoria, Inteligência ou Carisma). Pode causar efeitos prolongados (curto prazo: condições como Apavorado, Incapacitado, Atordoado por 1d10 minutos; longo prazo: Desvantagem em testes por 1d10×10 horas; indefinido: até ser removido por Restauração Maior).",
+    "pagina": 196
+  },
+  {
+    "titulo": "Veneno (Poison)",
+    "categoria": "Gameplay Toolbox",
+    "texto": "Tipos: Contato, Ingerido, Inalado, Ferimento. Exemplos: Sangue de Assassino (150 PO, ingerido, CD 10), Fumaça de Éter Queimado (500 PO, inalado, CD 13), Muco de Rastejante (200 PO, contato, CD 13), Essência de Éter (300 PO, inalado, CD 15), Malícia (250 PO, inalado, CD 15), Lágrimas da Meia-Noite (1500 PO, ingerido), Óleo de Taggit (400 PO, contato, CD 13), Tintura Pálida (250 PO, ingerido, CD 16), Veneno de Wyrm Púrpura (2000 PO, ferimento, CD 21), Veneno de Serpente (200 PO, ferimento, CD 11), Veneno de Aranha (200 PO, ferimento, CD 13), Torpor (600 PO, ingerido, CD 15), Soro da Verdade (150 PO, ingerido, CD 11), Veneno de Wyvern (1200 PO, ferimento, CD 14).",
+    "pagina": 197
+  },
+  {
+    "titulo": "Armadilhas (Traps)",
+    "categoria": "Gameplay Toolbox",
+    "texto": "Partes: Severidade e Níveis, Gatilho, Duração. Exemplos: Teto Desabando (Mortífero 1-4, CD 13, dano 2d10), Rede Caindo (Incomodo 1-4, CD 10), Estátua Cuspidora de Fogo (Mortífero 1-4, CD 15, dano 2d10), Poço Escondido (Incomodo 1-4, profundidade 10 pés, dano 1d6), Dardos Envenenados (Mortífero 1-4, CD 13), Agulha Envenenada (Incomodo 1-4, CD 11, dano 1d10 + veneno), Pedra Rolante (Mortífero 11-16 / Incomodo 17-20, CD 15, dano 10d10), Poço com Estacas (Mortífero 1-4, profundidade 10 pés, dano 1d6 queda + 2d8 estacas).",
+    "pagina": 199
+  },
+  {
+    "titulo": "Encontros de Combate (Dificuldade)",
+    "categoria": "Gameplay Toolbox",
+    "texto": "Três categorias: Baixa (alguns momentos assustadores, mas vitória sem baixas), Moderada (pode correr mal, chance pequena de morte), Alta (potencialmente letal). Use o Orçamento de XP por personagem baseado no nível e dificuldade desejada. Subtraia o XP dos monstros adicionados. Cuidado com muitas criaturas (mais de duas por personagem), ajustes em voo, CR 0, número de blocos de estatísticas, criaturas poderosas (CR > nível do grupo) e características incomuns.",
+    "pagina": 202
+  },
+  {
+    "titulo": "Itens Mágicos - Categorias Gerais",
+    "categoria": "Itens Mágicos",
+    "texto": "Itens mágicos são divididos em Armaduras, Poções, Anéis, Varas, Pergaminhos, Cajados, Varinhas, Armas e Itens Maravilhosos. Para usar um item mágico, geralmente é necessária uma ação Conjurar Magia. Alguns exigem Sintonia (máximo de 3 itens). Itens consumíveis (poções, pergaminhos) são usados uma vez. Itens com carga recuperam cargas ao amanhecer ou conforme descrito. Itens amaldiçoados geralmente não revelam a maldição ao serem identificados.",
+    "pagina": 204
+  },
+  {
+    "titulo": "Fabricação de Itens Mágicos",
+    "categoria": "Itens Mágicos",
+    "texto": "Para criar um item mágico, você e seus assistentes devem ter proficiência em Arcana e na ferramenta apropriada (ex: ferramentas de ferreiro para armaduras). Você deve ter as magias preparadas a cada dia de fabricação. Tempo e custo dependem da raridade: Comum (5 dias, 50 GP), Incomum (10 dias, 200 GP), Raro (50 dias, 2.000 GP), Muito Raro (125 dias, 20.000 GP), Lendário (250 dias, 100.000 GP). Para itens consumíveis (exceto pergaminhos), tempo e custo são reduzidos à metade.",
+    "pagina": 206
+  },
+  {
+    "titulo": "Itens Mágicos Inteligentes",
+    "categoria": "Itens Mágicos",
+    "texto": "Alguns itens têm senciência e personalidade. Possuem pontuações de Inteligência, Sabedoria e Carisma (rolagem 4d6 descartando o menor). Têm alinhamento, senso de comunicação (emoção, fala, telepatia) e sentidos (visão e/ou visão no escuro). Podem ter um propósito especial. Se o portador age contra o alinhamento ou propósito do item, pode haver conflito (teste de Carisma CD 12 + mod. Carisma do item).",
+    "pagina": 207
+  },
+  {
+    "titulo": "Adamantine Armor",
+    "categoria": "Itens Mágicos",
+    "texto": "Armadura (qualquer média ou pesada, exceto couro batido), incomum. Reforçada com adamantite. Enquanto você a veste, qualquer Acerto Crítico contra você se torna um acerto normal.",
+    "pagina": 209
+  },
+  {
+    "titulo": "Ammunition +1, +2, +3",
+    "categoria": "Itens Mágicos",
+    "texto": "Munição (qualquer), raridade Incomum (+1), Raro (+2), Muito Raro (+3). Você tem bônus nas rolagens de ataque e dano. Após acertar, a munição perde sua magia. Normalmente encontrada em lotes de 10 ou 20.",
+    "pagina": 209
+  },
+  {
+    "titulo": "Ammunition of Slaying",
+    "categoria": "Itens Mágicos",
+    "texto": "Munição (qualquer), Muito Raro. Feita para matar um tipo específico de criatura (escolhido pelo Mestre). Se uma criatura daquele tipo sofre dano da munição, faz CD 17 Constituição, sofrendo 6d10 de dano de Força extra em uma falha (metade em sucesso).",
+    "pagina": 209
+  },
+  {
+    "titulo": "Amulet of Health",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Raro (Requer Sintonia). Sua Constituição se torna 19 enquanto usa este amuleto. Não tem efeito se sua Constituição já for 19 ou mais.",
+    "pagina": 209
+  },
+  {
+    "titulo": "Amulet of Proof against Detection and Location",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum (Requer Sintonia). Enquanto usa este amuleto, você não pode ser alvo de magias de Adivinhação ou percebido por sensores de adivinhação mágica, a menos que permita.",
+    "pagina": 209
+  },
+  {
+    "titulo": "Amulet of the Planes",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Muito Raro (Requer Sintonia). Como ação Conjurar Magia, nomeie um local familiar em outro plano e faça um teste de Inteligência (Arcana) CD 15. Em sucesso, conjura Viagem Planar. Em falha, você e criaturas a até 15 pés são transportados para um destino aleatório (rolar 1d100 na tabela).",
+    "pagina": 209
+  },
+  {
+    "titulo": "Animated Shield",
+    "categoria": "Itens Mágicos",
+    "texto": "Armadura (Escudo), Muito Raro (Requer Sintonia). Como Ação Bônus, você pode fazer o escudo animar-se. Ele flutua no ar, protegendo-o como se você o estivesse empunhando, deixando suas mãos livres por 1 minuto.",
+    "pagina": 209
+  },
+  {
+    "titulo": "Apparatus of the Crab",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Lendário. Aparência de barril de ferro de 500 libras. Com uma alavanca secreta, transforma-se em um veículo tipo lagosta gigante (AC 20, HP 200, Deslocamento 30 pés, natação 30 pés). Requer um piloto. Pode submergir até 900 pés.",
+    "pagina": 210
+  },
+  {
+    "titulo": "Armor +1, +2, +3",
+    "categoria": "Itens Mágicos",
+    "texto": "Armadura (qualquer leve, média ou pesada), Raro (+1), Muito Raro (+2), Lendário (+3). Você tem um bônus na Classe de Armadura enquanto veste esta armadura, determinado pela raridade.",
+    "pagina": 210
+  },
+  {
+    "titulo": "Armor of Invulnerability",
+    "categoria": "Itens Mágicos",
+    "texto": "Armadura (Armadura de Placas), Lendário (Requer Sintonia). Você tem Resistência a dano de Concussão, Perfurante e Cortante. Como ação Conjurar Magia, você pode se tornar Imune a esses danos por 10 minutos (recarrega ao amanhecer).",
+    "pagina": 210
+  },
+  {
+    "titulo": "Armor of Resistance",
+    "categoria": "Itens Mágicos",
+    "texto": "Armadura (qualquer leve, média ou pesada), Raro (Requer Sintonia). Você tem Resistência a um tipo de dano (escolhido pelo Mestre ou rolado na tabela) enquanto veste esta armadura.",
+    "pagina": 210
+  },
+  {
+    "titulo": "Armor of Vulnerability",
+    "categoria": "Itens Mágicos",
+    "texto": "Armadura (qualquer leve, média ou pesada), Raro (Requer Sintonia). Você tem Resistência a Concussão, Perfurante ou Cortante (escolhido). Maldição: você tem Vulnerabilidade aos outros dois tipos. Remover a armadura não termina a maldição.",
+    "pagina": 211
+  },
+  {
+    "titulo": "Arrow-Catching Shield",
+    "categoria": "Itens Mágicos",
+    "texto": "Armadura (Escudo), Raro (Requer Sintonia). Você ganha +2 de CA contra ataques à distância. Quando um atacante faz ataque à distância contra um alvo a até 5 pés de você, você pode usar sua Reação para se tornar o alvo do ataque.",
+    "pagina": 211
+  },
+  {
+    "titulo": "Bag of Beans",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Raro. Contém 3d4 feijões secos. Se você derramar feijões, eles explodem em uma esfera de 10 pés (CD 15 Destreza, 5d4 de dano de Força). Se plantar e regar um feijão, ele produz um efeito aleatório em 1 minuto (tabela de 01 a 100).",
+    "pagina": 211
+  },
+  {
+    "titulo": "Bag of Devouring",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Muito Raro. Parece uma Bolsa de Sustentação, mas é uma abertura para uma criatura extradimensional. Matéria animal ou vegetal é devorada. Se parte de uma criatura viva é colocada, 50% de chance de ser puxada para dentro. Criatura dentro pode tentar escapar (Força CD 15). Inanimados podem ser armazenados, mas a bolsa os engole uma vez por dia.",
+    "pagina": 212
+  },
+  {
+    "titulo": "Bag of Holding",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum. Espaço interior maior (2 pés quadrados, 4 pés de profundidade; comporta 500 libras, 64 pés cúbicos). Pesa 5 libras. Recuperar item exige ação Utilizar. Se sobrecarregada, furada ou rasgada, é destruída e seu conteúdo se perde no Plano Astral. Colocar dentro de outro espaço extradimensional destrói ambos e abre um portal para o Astral.",
+    "pagina": 212
+  },
+  {
+    "titulo": "Bag of Tricks",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum. Bolsa de pano cinza, ferrugem ou bronze. Como ação Conjurar Magia, você puxa um objeto felpudo e o joga, transformando-se em uma criatura (tabela por cor). A criatura é Amigável, age imediatamente após você. Três objetos podem ser puxados por dia, recuperando ao amanhecer.",
+    "pagina": 212
+  },
+  {
+    "titulo": "Bead of Force",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Raro. Esfera preta de 3/4 de polegada. Como ação Conjurar Magia, jogue a até 60 pés. Explode em esfera de 10 pés (CD 15 Destreza, 5d4 de dano de Força). Uma esfera de força transparente envolve a área por 1 minuto. Criaturas dentro ficam presas. A esfera pode ser movida.",
+    "pagina": 212
+  },
+  {
+    "titulo": "Bead of Nourishment",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Comum. Gelatina sem sabor que se dissolve na língua, fornecendo nutrição equivalente a 1 dia de ração.",
+    "pagina": 213
+  },
+  {
+    "titulo": "Belt of Dwarvenkind",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Raro (Requer Sintonia). Enquanto usa: você sabe Anão; Vantagem em testes de Carisma (Persuasão) com anões e duergar; sua Constituição aumenta em 2 (máx. 20); 50% de chance por dia de crescer barba. Se não for anão ou duergar, ganha Visão no Escuro 60 pés, Resistência a Veneno e Vantagem em saves contra Envenenado.",
+    "pagina": 213
+  },
+  {
+    "titulo": "Belt of Giant Strength",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, raridade varia (Requer Sintonia). Sua Força muda para a pontuação concedida pelo cinto: Colina 21 (Raro), Gelo/Pedra 23 (Muito Raro), Fogo 25 (Muito Raro), Nuvem 27 (Lendário), Tempestade 29 (Lendário). Sem efeito se sua Força já for igual ou maior.",
+    "pagina": 213
+  },
+  {
+    "titulo": "Berserker Axe",
+    "categoria": "Itens Mágicos",
+    "texto": "Arma (Machado de Batalha, Machado Grande ou Alabarda), Raro (Requer Sintonia). Bônus +1 em ataque e dano. Seu máximo de PV aumenta em 1 por nível. Maldição: você não quer se separar da arma. Se sofrer dano de outra criatura, teste de Sabedoria CD 15 ou fica berserker (ataca a criatura mais próxima).",
+    "pagina": 213
+  },
+  {
+    "titulo": "Boots of Elvenkind",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum. Suas passadas não fazem barulho. Você tem Vantagem em testes de Destreza (Furtividade).",
+    "pagina": 213
+  },
+  {
+    "titulo": "Boots of Levitation",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Raro (Requer Sintonia). Enquanto usa, pode conjurar Levitação em si mesmo.",
+    "pagina": 213
+  },
+  {
+    "titulo": "Boots of Speed",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Raro (Requer Sintonia). Como Ação Bônus, clicar os calcanhares dobra seu Deslocamento e dá Desvantagem em Ataques de Oportunidade contra você. Dura até você clicar novamente. Funciona por até 10 minutos por dia (acumulativo).",
+    "pagina": 214
+  },
+  {
+    "titulo": "Boots of Striding and Springing",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum (Requer Sintonia). Seu Deslocamento se torna 30 pés (se maior, mantém o maior). Redução de deslocamento por carga ou armadura pesada não se aplica. Uma vez por turno, você pode saltar até 30 pés gastando apenas 10 pés de movimento.",
+    "pagina": 214
+  },
+  {
+    "titulo": "Boots of the Winterlands",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum (Requer Sintonia). Resistência a dano de Frio, tolera temperaturas de 0°F ou menos, ignora terreno difícil de gelo ou neve.",
+    "pagina": 214
+  },
+  {
+    "titulo": "Bowl of Commanding Water Elementals",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Raro. Enquanto cheio de água e a até 5 pés, você pode conjurar um Elemental da Água (ação Conjurar Magia). Aparece, obedece, age após você por 1 hora. Recarrega ao amanhecer.",
+    "pagina": 214
+  },
+  {
+    "titulo": "Bracers of Archery",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum (Requer Sintonia). Enquanto usa, você tem proficiência com Arcos Longos e Arcos Curtos e ganha +2 no dano com essas armas.",
+    "pagina": 214
+  },
+  {
+    "titulo": "Bracers of Defense",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Raro (Requer Sintonia). Enquanto usa sem armadura e sem escudo, você ganha +2 de CA.",
+    "pagina": 214
+  },
+  {
+    "titulo": "Brazier of Commanding Fire Elementals",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Raro. Semelhante à Taça, mas invoca Elemental do Fogo.",
+    "pagina": 214
+  },
+  {
+    "titulo": "Brooch of Shielding",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum (Requer Sintonia). Resistência a dano de Força e Imunidade a dano da magia Misséis Mágicos.",
+    "pagina": 214
+  },
+  {
+    "titulo": "Broom of Flying",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum (Requer Sintonia). Vassoura de madeira. Com ação Conjurar Magia, você monta nela e ela flutua, dando Deslocamento de Voo de 50 pés (30 pés se carregar mais de 200 libras). Pode enviar sozinha para um destino a até 1 milha.",
+    "pagina": 214
+  },
+  {
+    "titulo": "Candle of Invocation",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Muito Raro (Requer Sintonia). Quando acesa (ação Conjurar Magia), queima por 4 horas. Sheds luz fraca em 30 pés; dentro dela você tem Vantagem em Testes de D20. Clérigos e Druidas podem conjurar magias de 1º nível sem gastar slots. Alternativamente, ao acender pela primeira vez, pode conjurar Portão (destrói a vela).",
+    "pagina": 214
+  },
+  {
+    "titulo": "Cape of the Mountebank",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Raro. Cheira a enxofre. Enquanto usada, você pode conjurar Dimensão Portátil como ação Conjurar Magia. Recarrega ao amanhecer. Ao teleportar, deixa uma nuvem de fumaça.",
+    "pagina": 215
+  },
+  {
+    "titulo": "Carpet of Flying",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Muito Raro. Tapete que flutua e voa conforme seus comandos (ação Conjurar Magia, palavra de comando). Quatro tamanhos: 3x5 pés (200 lb, 80 pés), 4x6 (400 lb, 60 pés), 5x7 (600 lb, 40 pés), 6x9 (800 lb, 30 pés).",
+    "pagina": 215
+  },
+  {
+    "titulo": "Censer of Controlling Air Elementals",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Raro. Invoca um Elemental do Ar.",
+    "pagina": 215
+  },
+  {
+    "titulo": "Chime of Opening",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Raro. Tubo metálico de 1 pé. Como ação Conjurar Magia, bata-o para conjurar Destrancar (audível a 300 pés). Pode ser usado 10 vezes.",
+    "pagina": 215
+  },
+  {
+    "titulo": "Circlet of Blasting",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum. Enquanto usa, pode conjurar Raio Ardente (+5 para acertar). Recarrega ao amanhecer.",
+    "pagina": 215
+  },
+  {
+    "titulo": "Cloak of Arachnida",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Muito Raro (Requer Sintonia). Resistência a Veneno, Deslocamento de Escalada igual ao seu Deslocamento, pode mover-se em teias como terreno difícil, e pode conjurar Teia (CD 13, área dobrada) uma vez por dia.",
+    "pagina": 215
+  },
+  {
+    "titulo": "Cloak of Displacement",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Raro (Requer Sintonia). Projeta uma ilusão fazendo você parecer estar em um lugar próximo, dando Desvantagem em ataques contra você. Se sofrer dano, o efeito cessa até o início do seu próximo turno.",
+    "pagina": 215
+  },
+  {
+    "titulo": "Cloak of Elvenkind",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum (Requer Sintonia). Testes de Percepção para percebê-lo têm Desvantagem, e você tem Vantagem em Furtividade.",
+    "pagina": 215
+  },
+  {
+    "titulo": "Cloak of Invisibility",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Lendário (Requer Sintonia). Tem 3 cargas (recupera 1d3 ao amanhecer). Como ação Conjurar Magia, puxe o capuz e gaste 1 carga para ficar Invisível por 1 hora.",
+    "pagina": 215
+  },
+  {
+    "titulo": "Cloak of Protection",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum (Requer Sintonia). +1 de CA e +1 em testes de resistência.",
+    "pagina": 216
+  },
+  {
+    "titulo": "Cloak of the Bat",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Raro (Requer Sintonia). Vantagem em Furtividade. Em Luz Fraca ou Escuridão, você pode agarrar as bordas e ganhar Deslocamento de Voo 40 pés. Também pode conjurar Polimorfar em si mesmo para se tornar um Morcego uma vez por dia.",
+    "pagina": 216
+  },
+  {
+    "titulo": "Cloak of the Manta Ray",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum (Requer Sintonia). Permite respirar embaixo d'água e concede Deslocamento de Natação 60 pés.",
+    "pagina": 216
+  },
+  {
+    "titulo": "Crystal Ball",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Muito Raro (Requer Sintonia). Permite conjurar Vidência (CD 17).",
+    "pagina": 216
+  },
+  {
+    "titulo": "Crystal Ball of Mind Reading",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Lendário (Requer Sintonia). Conjura Vidência (CD 17) e também Detecta Pensamentos (CD 17) em criaturas a até 30 pés do sensor. O Detecta Pensamentos não requer Concentração.",
+    "pagina": 216
+  },
+  {
+    "titulo": "Crystal Ball of Telepathy",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Lendário (Requer Sintonia). Conjura Vidência e permite comunicação telepática com criaturas a até 30 pés do sensor. Também pode conjurar Sugestão através do sensor uma vez por dia.",
+    "pagina": 216
+  },
+  {
+    "titulo": "Crystal Ball of True Seeing",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Lendário (Requer Sintonia). Conjura Vidência e concede Visão Verdadeira em um raio de 120 pés centrado no sensor.",
+    "pagina": 216
+  },
+  {
+    "titulo": "Cube of Force",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Raro (Requer Sintonia). Cubo de 1 polegada. Cada face tem uma marca. Pressione uma face e gaste cargas para conjurar uma magia (ex: Armadura de Mage, Escudo, Tendão Privado, Esfera Resiliente, Muralha de Força). Começa com 10 cargas, recupera 1d6 ao amanhecer.",
+    "pagina": 216
+  },
+  {
+    "titulo": "Cubic Gate",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Lendário. Cubo de 3 polegadas ligado a diferentes planos. Tem 3 cargas (recupera 1d3 ao amanhecer). Como ação Conjurar Magia, gaste 1 carga para conjurar Portão (para o plano da face) ou Viagem Planar (pressionando a face duas vezes).",
+    "pagina": 216
+  },
+  {
+    "titulo": "Dagger of Venom",
+    "categoria": "Itens Mágicos",
+    "texto": "Arma (Adaga), Raro. +1 em ataque e dano. Como Ação Bônus, pode revestir a lâmina com veneno (dura 1 minuto ou até acertar). A criatura acertada faz CD 15 Constituição ou sofre 2d10 dano de Veneno e fica Envenenada por 1 minuto. Recarrega ao amanhecer.",
+    "pagina": 216
+  },
+  {
+    "titulo": "Dancing Sword",
+    "categoria": "Itens Mágicos",
+    "texto": "Arma (Espada Grande, Espada Longa, Rapieira, Cimitarra, Espada Curta), Muito Raro (Requer Sintonia). Como Ação Bônus, jogue a espada no ar. Ela flutua, voa até 30 pés e ataca. Pode ser comandada como Ação Bônus para se mover e atacar. Após quatro ataques, retorna à sua mão.",
+    "pagina": 217
+  },
+  {
+    "titulo": "Decanter of Endless Water",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum. Frasco de 2 libras. Com ação Conjurar Magia, remova a tampa e diga uma palavra de comando: \"Respingo\" (1 galão), \"Fonte\" (5 galões), \"Geiser\" (30 galões em linha de 30 pés, CD 13 Força para não cair).",
+    "pagina": 217
+  },
+  {
+    "titulo": "Deck of Illusions",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum. Baralho de 34 cartas (32 com criaturas, 2 com espelho). Como ação Conjurar Magia, puxe uma carta aleatória e jogue no chão. Uma ilusão da criatura aparece (tabela). A ilusão não pode causar dano, mas pode ser movida por você enquanto estiver a 120 pés. Dura até a carta ser movida ou a ilusão ser dissipada.",
+    "pagina": 217
+  },
+  {
+    "titulo": "Defender",
+    "categoria": "Itens Mágicos",
+    "texto": "Arma (qualquer corpo a corpo), Lendário (Requer Sintonia). +3 em ataque e dano. No primeiro ataque do seu turno, você pode transferir parte ou todo o bônus para sua CA até o início do seu próximo turno.",
+    "pagina": 218
+  },
+  {
+    "titulo": "Demon Armor",
+    "categoria": "Itens Mágicos",
+    "texto": "Armadura (qualquer leve, média ou pesada), Muito Raro (Requer Sintonia). +1 de CA, sabe Abissal, seus Ataques Desarmados causam 1d8 de dano Cortante, +1 em ataque e dano desarmado. Maldição: não pode ser removida. Desvantagem em ataques contra demônios e em saves contra eles.",
+    "pagina": 218
+  },
+  {
+    "titulo": "Dimensional Shackles",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Raro. Coloque em uma criatura Incapacitada (ação Utilizar). Impede qualquer movimento extradimensional (teleporte, viagem planar). CD 30 Força para quebrar uma vez por mês.",
+    "pagina": 218
+  },
+  {
+    "titulo": "Dragon Orb",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Artefato (Requer Sintonia). Esfera de cristal de 10 polegadas. Como ação Conjurar Magia, olhe dentro e faça CD 15 Carisma. Sucesso: controla a orbe. Falha: fica Enfeitiçado enquanto estiver sintonizado. A orbe pode lançar magias (Cura em Ferimentos, Luz, Proteção contra a Morte, Detectar Magia, Vidência) e pode chamar dragões cromáticos em um raio de 40 milhas.",
+    "pagina": 218
+  },
+  {
+    "titulo": "Dragon Scale Mail",
+    "categoria": "Itens Mágicos",
+    "texto": "Armadura (Escamas), Muito Raro (Requer Sintonia). Feita de escamas de dragão. +1 de CA, Vantagem em saves contra sopros de dragões, Resistência a um tipo de dano conforme o dragão (tabela). Como ação Conjurar Magia, pode discernir a distância e direção do dragão mais próximo do mesmo tipo a até 30 milhas (uma vez por dia).",
+    "pagina": 218
+  },
+  {
+    "titulo": "Dragon Slayer",
+    "categoria": "Itens Mágicos",
+    "texto": "Arma (qualquer simples ou marcial), Raro. +1 em ataque e dano. Causa 3d6 de dano extra do tipo da arma se o alvo for um Dragão.",
+    "pagina": 219
+  },
+  {
+    "titulo": "Dust of Disappearance",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum. Pó fino. Use ação Utilizar para jogar no ar; você e criaturas/objetos em uma emanação de 10 pés ficam Invisíveis por 2d4 minutos. O efeito termina para uma criatura imediatamente após ela fazer um ataque, causar dano ou conjurar magia.",
+    "pagina": 219
+  },
+  {
+    "titulo": "Dust of Dryness",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum. Pacote com 1d6+4 pitadas. Use ação Utilizar para polvilhar sobre água, transformando até um cubo de 15 pés de água em uma pelota. A pelota pode ser quebrada para liberar a água. Polvilhar sobre um Elemental de água (CD 13 Constituição, 10d6 de dano Necrótico).",
+    "pagina": 219
+  },
+  {
+    "titulo": "Dust of Sneezing and Choking",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum. Parece Pó do Desaparecimento. Use ação Utilizar para jogar no ar; você e criaturas em emanação de 30 pés fazem CD 15 Constituição. Falha: ficam espirrando, Incapacitados e sufocando. Repetem o save no final de cada turno.",
+    "pagina": 219
+  },
+  {
+    "titulo": "Dwarven Plate",
+    "categoria": "Itens Mágicos",
+    "texto": "Armadura (Meia-Armadura ou Armadura de Placas), Muito Raro. +2 de CA. Se um efeito o mover contra sua vontade, você pode usar Reação para reduzir a distância em até 10 pés.",
+    "pagina": 219
+  },
+  {
+    "titulo": "Dwarven Thrower",
+    "categoria": "Itens Mágicos",
+    "texto": "Arma (Martelo de Guerra), Muito Raro (Requer Sintonia por anão ou criatura sintonizada com Cinto de Herança Anã). +3 em ataque e dano. Tem propriedade Arremesso (alcance 20/60). Causa 1d8 de dano de Força extra (2d8 contra gigantes). Retorna à mão após o ataque.",
+    "pagina": 219
+  },
+  {
+    "titulo": "Efficient Quiver",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum. Três compartimentos extradimensionais: o menor (60 flechas/virotes), médio (18 dardos), maior (6 objetos longos, como arcos). Permite sacar itens como de uma aljava normal.",
+    "pagina": 219
+  },
+  {
+    "titulo": "Efreeti Bottle",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Muito Raro. Garrafa de latão pintada. Ao remover a tampa (ação Conjurar Magia), um Efreeti aparece. Rolar 1d10: 1 - ataca; 2-9 - obedece por 1 hora; 10 - pode conjurar Desejo uma vez. Após 4 usos, a garrafa perde a magia.",
+    "pagina": 220
+  },
+  {
+    "titulo": "Elemental Gem",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum. Gema que invoca um elemental quando quebrada (ação Utilizar). O elemental obedece por 1 hora. Tipo da gema determina o elemental: Safira Azul (Ar), Esmeralda (Água), Coríndon Vermelho (Fogo), Diamante Amarelo (Terra).",
+    "pagina": 220
+  },
+  {
+    "titulo": "Elixir of Health",
+    "categoria": "Itens Mágicos",
+    "texto": "Poção, Raro. Bebendo, você cura todos os contágios mágicos e termina as condições Cego, Surdo, Paralisado e Envenenado. Líquido vermelho claro com pequenas bolhas de luz.",
+    "pagina": 220
+  },
+  {
+    "titulo": "Elven Chain",
+    "categoria": "Itens Mágicos",
+    "texto": "Armadura (Cota de Malha ou Camisa de Malha), Raro. +1 de CA. Você é considerado treinado com esta armadura mesmo sem proficiência em armaduras médias ou pesadas.",
+    "pagina": 220
+  },
+  {
+    "titulo": "Energy Bow",
+    "categoria": "Itens Mágicos",
+    "texto": "Arma (Arco Longo ou Arco Curto), Muito Raro (Requer Sintonia). +1 em ataque e dano. Não tem corda; flechas de energia aparecem ao puxar. Causa dano de Força. Propriedades: Flecha de Restrição (CD 15 Força para não ficar Restringido), Flecha de Transporte (teletransporta alvo até 60 pés), Escada de Energia (cria escada de rungs luminosos em uma parede).",
+    "pagina": 220
+  },
+  {
+    "titulo": "Eversmoking Bottle",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum. Abrir ou fechar com ação Conjurar Magia. Ao abrir, fumaça grossa enche uma emanação de 60 pés (Totalmente Obscuro). A cada minuto, a emanação aumenta 10 pés até 120 pés. Fechar fixa a nuvem, que dispersa em 10 minutos.",
+    "pagina": 220
+  },
+  {
+    "titulo": "Eyes of Charming",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum (Requer Sintonia). Lentes de cristal com 3 cargas. Permitem conjurar Enfeitiçar Pessoa (CD 13), gastando 1 carga por nível de magia. Recupera cargas ao amanhecer.",
+    "pagina": 221
+  },
+  {
+    "titulo": "Eyes of Minute Seeing",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum. Lentes que melhoram a visão a 1 pé, concedendo Visão no Escuro nesse alcance e Vantagem em testes de Investigação para examinar objetos pequenos.",
+    "pagina": 221
+  },
+  {
+    "titulo": "Eyes of the Eagle",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum. Lentes que dão Vantagem em testes de Percepção baseados em visão. Em condições claras, você pode ver detalhes de criaturas e objetos extremamente distantes (até 2 pés de tamanho).",
+    "pagina": 221
+  },
+  {
+    "titulo": "Feather Token",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, raridade varia. Parece uma pena. Tipos: Âncora (incomum, ancora um navio por 24h), Pássaro (raro, transforma-se em Roca que não ataca, pode carregar 500 libras), Leque (incomum, gera vento para veleiros), Cisne (raro, barco em forma de cisne), Árvore (incomum, cria um carvalho de 60 pés), Chicote (raro, chicote flutuante que ataca).",
+    "pagina": 221
+  },
+  {
+    "titulo": "Figurine of Wondrous Power",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, raridade varia. Estátua pequena que se transforma em criatura quando jogada (ação Conjurar Magia). Tipos: Grifo de Bronze (raro, 6h, recarga 5 dias), Mosca de Ébano (raro, Mosca Gigante, 12h, recarga 2 dias), Leões de Ouro (raro, 1h, recarga 7 dias), Cabras de Marfim (raro, três tipos: Terror, Viagem, Trabalho), Elefante de Mármore (raro, 24h, recarga 7 dias), Corcel de Obsidiana (muito raro, Pesadelo, 24h, recarga 5 dias, 10% chance de ignorar ordens), Cão de Ônix (raro, Mastim, 6h), Coruja Serpentina (raro, Coruja Gigante, 8h, telepatia), Corvo de Prata (incomum, Corvo, 12h).",
+    "pagina": 221
+  },
+  {
+    "titulo": "Flame Tongue",
+    "categoria": "Itens Mágicos",
+    "texto": "Arma (qualquer corpo a corpo), Raro (Requer Sintonia). Como Ação Bônus, diga a palavra de comando para a arma se envolver em chamas (luz forte 40 pés, luz fraca +40 pés). Causa 2d6 de dano de Fogo extra. As chamas duram até você repetir o comando ou largar/embainhar a arma.",
+    "pagina": 223
+  },
+  {
+    "titulo": "Folding Boat",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Raro. Caixa de madeira de 12x6x6 polegadas. Palavras de comando: primeira transforma em Bote a Remo, segunda em Bote de Quilha, terceira dobra de volta. As estatísticas do barco estão em Equipamento.",
+    "pagina": 223
+  },
+  {
+    "titulo": "Frost Brand",
+    "categoria": "Itens Mágicos",
+    "texto": "Arma (Gládio, Espada Grande, Espada Longa, Rapieira, Cimitarra, Espada Curta), Muito Raro (Requer Sintonia). +1d6 de dano de Frio extra. Resistência a dano de Fogo. Em temperaturas congelantes, emite luz forte 10 pés, luz fraca +10 pés. Ao sacar, extingue todas as chamas não mágicas a 30 pés (recarga 1 hora).",
+    "pagina": 223
+  },
+  {
+    "titulo": "Gauntlets of Ogre Power",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum (Requer Sintonia). Sua Força se torna 19 enquanto usa estas manoplas.",
+    "pagina": 223
+  },
+  {
+    "titulo": "Gem of Brightness",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum. Prisma com 50 cargas. Palavras de comando: primeira - luz (sem gastar carga); segunda - feixe de luz (gasta 1 carga, CD 15 Constituição ou cego 1 minuto); terceira - cone de luz (gasta 5 cargas, CD 15).",
+    "pagina": 223
+  },
+  {
+    "titulo": "Gem of Seeing",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Raro (Requer Sintonia). Tem 3 cargas. Como ação Conjurar Magia, gaste 1 carga para ter Visão Verdadeira a 120 pés por 10 minutos. Recupera 1d3 cargas ao amanhecer.",
+    "pagina": 223
+  },
+  {
+    "titulo": "Giant Slayer",
+    "categoria": "Itens Mágicos",
+    "texto": "Arma (qualquer simples ou marcial), Raro. +1 em ataque e dano. Contra gigantes, causa 2d6 de dano extra e o gigante deve fazer CD 15 Força ou cair.",
+    "pagina": 223
+  },
+  {
+    "titulo": "Glamoured Studded Leather",
+    "categoria": "Itens Mágicos",
+    "texto": "Armadura (Couro Batido), Raro. +1 de CA. Como Ação Bônus, você pode fazer a armadura assumir a aparência de roupas normais ou outro tipo de armadura. A ilusão dura até você usar novamente ou tirar a armadura.",
+    "pagina": 223
+  },
+  {
+    "titulo": "Gloves of Missile Snaring",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum (Requer Sintonia). Se você é acertado por uma arma de ataque à distância ou arremessada, pode usar sua Reação para reduzir o dano em 1d10 + seu modificador de Destreza (se tiver mão livre). Se reduzir a 0, pode pegar a munição/arma.",
+    "pagina": 224
+  },
+  {
+    "titulo": "Gloves of Swimming and Climbing",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum (Requer Sintonia). Concede Deslocamento de Escalada e Natação igual ao seu Deslocamento e +5 em testes de Atletismo para escalar ou nadar.",
+    "pagina": 224
+  },
+  {
+    "titulo": "Gloves of Thievery",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum. Luvas imperceptíveis. +5 em testes de Destreza (Prestidigitação).",
+    "pagina": 224
+  },
+  {
+    "titulo": "Goggles of Night",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum. Lentes escuras que concedem Visão no Escuro 60 pés (ou aumentam o alcance em 60 pés se já tiver).",
+    "pagina": 224
+  },
+  {
+    "titulo": "Hammer of Thunderbolts",
+    "categoria": "Itens Mágicos",
+    "texto": "Arma (Malho ou Martelo de Guerra), Lendário (Requer Sintonia). +1 em ataque e dano. Tem 5 cargas. Pode gastar 1 carga para fazer ataque à distância (alcance 20/60). Se acertar, causa trovão audível a 300 pés; criaturas em 30 pés do alvo fazem CD 17 Constituição ou ficam Atordoadas. Recupera 1d4+1 cargas ao amanhecer. Se usado com Cinto de Força de Gigante ou Manoplas do Poder do Ogro, +4 na Força e contra gigantes, rolar 20 causa morte (CD 17 Constituição).",
+    "pagina": 224
+  },
+  {
+    "titulo": "Handy Haversack",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Raro. Mochila com bolsos extradimensionais: laterais (200 lb, 25 pés cúbicos cada), central (500 lb, 64 pés cúbicos). Pesa 5 lb. Recuperar item exige ação Utilizar ou Ação Bônus. Interação com Bolsa de Sustentação ou Buraco Portátil destrói ambos e abre portal para o Astral.",
+    "pagina": 224
+  },
+  {
+    "titulo": "Hat of Disguise",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum (Requer Sintonia). Permite conjurar Disfarçar-se. A magia termina se o chapéu for removido.",
+    "pagina": 224
+  },
+  {
+    "titulo": "Hat of Many Spells",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Muito Raro (Requer Sintonia por Mago). Pode ser usado como Foco de Conjuração. Permite tentar conjurar uma magia que você não conhece (lista de mago, nível que pode conjurar, custo de componente <1000 PO). Faça um teste de Inteligência (Arcana) CD 10 + nível da magia. Sucesso: conjura. Falha: efeito aleatório (tabela).",
+    "pagina": 224
+  },
+  {
+    "titulo": "Headband of Intellect",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum (Requer Sintonia). Sua Inteligência se torna 19.",
+    "pagina": 225
+  },
+  {
+    "titulo": "Helm of Brilliance",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Muito Raro (Requer Sintonia). Tem 1d10 diamantes, 2d10 rubis, 3d10 opalas de fogo, 4d10 opalas. Emite luz contra mortos-vivos (1d6 radiante). Pode incendiar arma (1d6 fogo extra). Resistência a fogo com rubis. Pode conjurar Luz do Dia (opal), Bola de Fogo (opala de fogo), Spray Prismático (diamante), Muralha de Fogo (rubi). Se falhar save contra fogo, rola 1d20: 1 causa explosão.",
+    "pagina": 225
+  },
+  {
+    "titulo": "Helm of Comprehending Languages",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum. Permite conjurar Compreender Idiomas.",
+    "pagina": 226
+  },
+  {
+    "titulo": "Helm of Telepathy",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum (Requer Sintonia). Concede telepatia 30 pés e permite conjurar Detectar Pensamentos ou Sugestão (CD 13). Cada magia pode ser conjurada uma vez por dia.",
+    "pagina": 226
+  },
+  {
+    "titulo": "Helm of Teleportation",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Raro (Requer Sintonia). Tem 3 cargas. Gaste 1 carga para conjurar Teleporte. Recupera 1d3 cargas ao amanhecer.",
+    "pagina": 226
+  },
+  {
+    "titulo": "Holy Avenger",
+    "categoria": "Itens Mágicos",
+    "texto": "Arma (qualquer simples ou marcial), Lendário (Requer Sintonia por Paladino). +3 em ataque e dano. Contra Fiend ou Morto-Vivo, causa 2d10 Radiante extra. Enquanto segurada, cria emanação de 10 pés (30 pés se Paladino nível 17+); você e aliados têm Vantagem em saves contra magias e efeitos mágicos.",
+    "pagina": 226
+  },
+  {
+    "titulo": "Horn of Blasting",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Raro. Sopro (ação Conjurar Magia) emite um trovão em cone de 30 pés (CD 15 Constituição, 5d8 de dano de Trovão, surdo 1 minuto). 20% de chance de explodir (10d6 de Força, destrói a corneta).",
+    "pagina": 226
+  },
+  {
+    "titulo": "Horn of Valhalla",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, raridade varia (Prata: 2 berserkers, Raro; Latão: 3, Raro; Bronze: 4, Muito Raro; Ferro: 5, Lendário). Sopro (ação Conjurar Magia) invoca espíritos guerreiros de Ysgard. Eles usam Berserker, retornam após 1 hora ou 0 PV. Recarga de 7 dias. Se você não atender ao requisito (proficiência com todas armas simples, médias, marciais), eles atacam você.",
+    "pagina": 226
+  },
+  {
+    "titulo": "Horseshoes of a Zephyr",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Muito Raro. Conjunto de quatro ferraduras. Permitem que a criatura se mova normalmente flutuando 4 polegadas acima do solo, ignorando terreno difícil e não deixando rastros.",
+    "pagina": 226
+  },
+  {
+    "titulo": "Horseshoes of Speed",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Raro. Aumenta o Deslocamento da criatura em 30 pés.",
+    "pagina": 227
+  },
+  {
+    "titulo": "Immovable Rod",
+    "categoria": "Itens Mágicos",
+    "texto": "Vara, Incomum. Botão em uma extremidade. Ao pressionar (ação Utilizar), a vara fica magicamente fixa no lugar. Suporta até 8.000 libras. Teste de Força CD 30 para mover até 10 pés.",
+    "pagina": 227
+  },
+  {
+    "titulo": "Instant Fortress",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Raro (Requer Sintonia). Estátua de 1 polegada que cresce para uma torre de adamantite de 20x20 pés e 30 pés de altura. Pode voltar ao tamanho original com palavra de comando. A torre tem AC 20, PV 100, resistências, e pode ser reparada apenas por Desejo.",
+    "pagina": 227
+  },
+  {
+    "titulo": "Ioun Stone",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, raridade varia (Requer Sintonia). Pedras que orbitam sua cabeça. Tipos: Absorção (Muito Raro, cancela magias de nível 4 ou menos até 20 níveis), Agilidade (Muito Raro, Destreza +2 máx 20), Consciência (Raro, Vantagem em Iniciativa e Percepção), Fortitude (Muito Raro, Constituição +2), Grande Absorção (Lendário, cancela nível 8 ou menos), Visão (Muito Raro, Sabedoria +2), Intelecto (Muito Raro, Inteligência +2), Liderança (Muito Raro, Carisma +2), Maestria (Lendário, +1 Bônus de Proficiência), Proteção (Raro, +1 CA), Regeneração (Lendário, recupera 15 PV por hora), Reserva (Raro, armazena até 4 níveis de magias), Força (Muito Raro, Força +2), Sustento (Raro, não precisa comer/beber).",
+    "pagina": 227
+  },
+  {
+    "titulo": "Iron Bands",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Raro. Esfera de ferro de 3 polegadas. Jogue-a (ação Conjurar Magia) em uma criatura Huge ou menor (ataque à distância com bônus = Destreza + Prof). Se acertar, a criatura fica Restringida. CD 20 Força para quebrar as bandas. Recarrega ao amanhecer.",
+    "pagina": 228
+  },
+  {
+    "titulo": "Iron Flask",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Lendário. Frasco de ferro com rolha de latão. Como ação Conjurar Magia, alveje uma criatura nativa de outro plano a até 60 pés. CD 17 Sabedoria ou fica presa no frasco. Pode soltar a criatura, que obedece por 1 hora.",
+    "pagina": 228
+  },
+  {
+    "titulo": "Javelin of Lightning",
+    "categoria": "Itens Mágicos",
+    "texto": "Arma (Dardo), Incomum. Ao acertar, pode causar dano de Relâmpago em vez de Perfurante. Ao arremessar, pode transformar em um raio em linha de 5 pés de largura entre você e o alvo (CD 13 Destreza, 4d6 Relâmpago). Recarrega ao amanhecer.",
+    "pagina": 228
+  },
+  {
+    "titulo": "Lantern of Revealing",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum. Lanterna fechada que queima por 6 horas. Criaturas e objetos invisíveis são visíveis enquanto na luz forte. Pode abaixar o capuz.",
+    "pagina": 228
+  },
+  {
+    "titulo": "Luck Blade",
+    "categoria": "Itens Mágicos",
+    "texto": "Arma (Gládio, Espada Grande, Espada Longa, Rapieira, Cimitarra, Foice, Espada Curta), Lendário (Requer Sintonia). +1 em ataque e dano, +1 em testes de resistência. Pode rerrolar um Teste de D20 falho uma vez por dia. Tem 1d3 cargas para conjurar Desejo (recarrega ao amanhecer).",
+    "pagina": 229
+  },
+  {
+    "titulo": "Mace of Disruption",
+    "categoria": "Itens Mágicos",
+    "texto": "Arma (Maça), Raro (Requer Sintonia). Contra Fiend ou Morto-Vivo, causa 2d6 Radiante extra. Se o alvo tiver 25 PV ou menos após o dano, CD 15 Sabedoria ou é destruído. Em luz, emite luz forte 20 pés, luz fraca +20 pés.",
+    "pagina": 229
+  },
+  {
+    "titulo": "Mace of Smiting",
+    "categoria": "Itens Mágicos",
+    "texto": "Arma (Maça), Raro. +1 em ataque e dano (+3 contra Constructos). Em um 20 natural, causa 7 de dano de Concussão extra (14 contra Constructos). Se um Constructo tiver 25 PV ou menos após o dano, é destruído.",
+    "pagina": 229
+  },
+  {
+    "titulo": "Mace of Terror",
+    "categoria": "Itens Mágicos",
+    "texto": "Arma (Maça), Raro (Requer Sintonia). Tem 3 cargas (recupera 1d3 ao amanhecer). Como ação Conjurar Magia, gaste 1 carga para liberar uma onda de terror (CD 15 Sabedoria, Apavorado por 1 minuto). Enquanto Apavorado, a criatura tenta se afastar de você.",
+    "pagina": 229
+  },
+  {
+    "titulo": "Mantle of Spell Resistance",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Raro (Requer Sintonia). Vantagem em testes de resistência contra magias.",
+    "pagina": 229
+  },
+  {
+    "titulo": "Manual of Bodily Health",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Muito Raro. Livro que, após 48 horas de estudo em até 6 dias, aumenta sua Constituição em 2 (máx. 30). Depois, perde a magia por 100 anos.",
+    "pagina": 229
+  },
+  {
+    "titulo": "Manual of Gainful Exercise",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Muito Raro. Aumenta Força em 2 (máx. 30).",
+    "pagina": 229
+  },
+  {
+    "titulo": "Manual of Golems",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Muito Raro. Tome contém instruções para criar um golem (argila, carne, ferro, pedra). Requer conjurador com slots de 5º nível. Tempo e custo variam (ex: Golem de Argila 30 dias, 65.000 PO). O livro é consumido ao final.",
+    "pagina": 229
+  },
+  {
+    "titulo": "Manual of Quickness of Action",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Muito Raro. Aumenta Destreza em 2 (máx. 30).",
+    "pagina": 230
+  },
+  {
+    "titulo": "Marvelous Pigments",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Muito Raro. Caixa com 1d4 potes de pigmento. Com pincel e 10 minutos, você pode pintar objetos e características do terreno dentro de um cubo de 20 pés. Os objetos se tornam reais. Valor total não pode exceder 500 PO, e nenhum objeto pode valer mais de 25 PO.",
+    "pagina": 230
+  },
+  {
+    "titulo": "Medallion of Thoughts",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum (Requer Sintonia). Tem 5 cargas. Gaste 1 carga para conjurar Detectar Pensamentos (CD 13). Recupera 1d4 cargas ao amanhecer.",
+    "pagina": 230
+  },
+  {
+    "titulo": "Mirror of Life Trapping",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Muito Raro. Espelho de 4x2 pés, AC 11, HP 10. Ativado com palavra de comando. Qualquer criatura que veja seu reflexo a até 30 pés deve fazer CD 15 Carisma ou ser presa em uma das doze células extradimensionais. A célula é um infinito com névoa. O espelho pode libertar uma criatura aleatória se todas as células estiverem ocupadas. Quebrar o espelho libera todos.",
+    "pagina": 230
+  },
+  {
+    "titulo": "Mithral Armor",
+    "categoria": "Itens Mágicos",
+    "texto": "Armadura (qualquer média ou pesada, exceto couro batido), Incomum. Não impõe Desvantagem em Furtividade nem tem requisito de Força.",
+    "pagina": 231
+  },
+  {
+    "titulo": "Mysterious Deck",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Lendário. Baralho de 13 ou 22 cartas. Ao sacar cartas, efeitos aleatórios (tabela). Exemplos: Equilíbrio (aumenta uma habilidade em 2 e diminui outra em 2), Cometa (vantagem em testes de morte por 1 ano), Donjon (aprisiona), Euryale (penalidade de -2 em saves), Destinos (desfaz um evento), Chamas (inimigo poderoso), Louco (desvantagem 72h), Gema (jóias), Bobo (vantagem 72h), Chave (arma mágica), Cavaleiro (serviço de um cavaleiro), Lua (1d3 Desejos), Puzzle (reduz Inteligência ou Sabedoria), Ladino (NPC hostil), Ruína (perde riquezas), Sábio (resposta a uma pergunta), Caveira (Avatar da Morte), Estrela (aumenta habilidade em 2), Sol (item mágico + 10 PV temporários/dia), Garras (itens mágicos desintegram), Trono (proficiência em perícia e uma fortaleza), Vazio (alma aprisionada).",
+    "pagina": 231
+  },
+  {
+    "titulo": "Necklace of Adaptation",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum (Requer Sintonia). Permite respirar normalmente em qualquer ambiente e dá Vantagem em saves contra Envenenado.",
+    "pagina": 232
+  },
+  {
+    "titulo": "Necklace of Fireballs",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Raro. Colar com 1d6+3 contas. Como ação Conjurar Magia, arranque uma conta e jogue a até 60 pés; detona como Bola de Fogo de 3º nível (CD 15). Arremessar várias contas aumenta o dano em 1d6 por conta extra (máx 12d6).",
+    "pagina": 233
+  },
+  {
+    "titulo": "Necklace of Prayer Beads",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Raro (Requer Sintonia por Clérigo, Druida ou Paladino). 1d4+2 contas mágicas. Tipos: Bênção (Benção), Cura (Curar Ferimentos 2º nível), Favor (Restauração Maior), Golpe (Esplendor do Golpe), Invocação (Guardião da Fé), Caminhada dos Ventos (Andar nos Ventos). Cada conta permite conjurar a magia como Ação Bônus.",
+    "pagina": 233
+  },
+  {
+    "titulo": "Nine Lives Stealer",
+    "categoria": "Itens Mágicos",
+    "texto": "Arma (qualquer simples ou marcial), Muito Raro (Requer Sintonia). +2 em ataque e dano. Tem 1d8+1 cargas. Ao rolar 20 natural contra uma criatura com menos de 100 PV, ela deve fazer CD 15 Constituição ou morrer instantaneamente (Constructos e Mortos-Vivos automaticamente passam). Perde 1 carga se a criatura morrer.",
+    "pagina": 233
+  },
+  {
+    "titulo": "Oathbow",
+    "categoria": "Itens Mágicos",
+    "texto": "Arma (Arco Longo ou Arco Curto), Muito Raro (Requer Sintonia). Ao atacar, você pode declarar um inimigo jurado (morre ou 7 dias). Contra esse inimigo: Vantagem, ignora cobertura, sem desvantagem por alcance longo, +3d6 de dano Perfurante. Contra outros, Desvantagem.",
+    "pagina": 233
+  },
+  {
+    "titulo": "Oil of Etherealness",
+    "categoria": "Itens Mágicos",
+    "texto": "Poção, Raro. Aplicar em uma criatura (10 minutos) concede efeito de Eterealidade por 1 hora.",
+    "pagina": 233
+  },
+  {
+    "titulo": "Oil of Sharpness",
+    "categoria": "Itens Mágicos",
+    "texto": "Poção, Muito Raro. Aplicar em uma arma corpo a corpo ou munição (1 minuto) torna a arma +3 ou a munição +3.",
+    "pagina": 233
+  },
+  {
+    "titulo": "Oil of Slipperiness",
+    "categoria": "Itens Mágicos",
+    "texto": "Poção, Incomum. Aplicar em uma criatura (10 minutos) concede Liberdade de Movimento por 8 horas. Ou despeje no chão para criar o efeito de Banha (8 horas).",
+    "pagina": 233
+  },
+  {
+    "titulo": "Pearl of Power",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum (Requer Sintonia por Conjurador). Como ação Conjurar Magia, recupera um slot de magia de 3º nível ou inferior. Uma vez por dia.",
+    "pagina": 234
+  },
+  {
+    "titulo": "Periapt of Health",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum (Requer Sintonia). Como ação Conjurar Magia, recupera 2d4+2 PV. Uma vez por dia. Também dá Vantagem em saves contra Envenenado.",
+    "pagina": 234
+  },
+  {
+    "titulo": "Periapt of Proof against Poison",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Raro (Requer Sintonia). Imunidade a Veneno e à condição Envenenado.",
+    "pagina": 234
+  },
+  {
+    "titulo": "Periapt of Wound Closure",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum (Requer Sintonia). Em testes de resistência contra a morte, rolagem 9 ou menor se torna 10. Ao rolar Dados de Vida, dobra o número de PV recuperados.",
+    "pagina": 234
+  },
+  {
+    "titulo": "Philter of Love",
+    "categoria": "Itens Mágicos",
+    "texto": "Poção, Incomum. Bebendo, a próxima criatura que você vir dentro de 10 minutos fica Enfeitiçada por 1 hora.",
+    "pagina": 234
+  },
+  {
+    "titulo": "Pipes of Haunting",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum. 3 cargas (recupera 1d3 ao amanhecer). Tocar (ação Conjurar Magia) gasta 1 carga: criaturas a 30 pés fazem CD 15 Sabedoria ou ficam Apavoradas por 1 minuto.",
+    "pagina": 234
+  },
+  {
+    "titulo": "Pipes of the Sewers",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum (Requer Sintonia). Ratos normais e gigantes são Indiferentes a você. 3 cargas. Ao tocar (ação Conjurar Magia), pode gastar 1-3 cargas para invocar um Enxame de Ratos por carga (se houver ratos a até meia milha). Os enxames são Amigáveis enquanto você toca.",
+    "pagina": 234
+  },
+  {
+    "titulo": "Plate Armor of Etherealness",
+    "categoria": "Itens Mágicos",
+    "texto": "Armadura (Meia-Armadura ou Armadura de Placas), Lendário (Requer Sintonia). Como ação Conjurar Magia, você pode ganhar os efeitos de Eterealidade até o amanhecer seguinte ou até repetir o comando.",
+    "pagina": 234
+  },
+  {
+    "titulo": "Portable Hole",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Raro. Pano preto fino que se desdobra em um círculo de 6 pés. Quando colocado sobre uma superfície sólida, cria um buraco extradimensional de 10 pés de profundidade. Fechar o pano fecha o buraco. Interagir com Bolsa de Sustentação ou Mochila Haversack destrói ambos e abre portal para o Astral.",
+    "pagina": 234
+  },
+  {
+    "titulo": "Potion of Animal Friendship",
+    "categoria": "Itens Mágicos",
+    "texto": "Poção, Incomum. Permite conjurar Amizade Animal de 3º nível (CD 13).",
+    "pagina": 235
+  },
+  {
+    "titulo": "Potion of Clairvoyance",
+    "categoria": "Itens Mágicos",
+    "texto": "Poção, Raro. Concede efeito de Clarividência (sem Concentração).",
+    "pagina": 235
+  },
+  {
+    "titulo": "Potion of Climbing",
+    "categoria": "Itens Mágicos",
+    "texto": "Poção, Comum. Concede Deslocamento de Escalada igual ao seu Deslocamento por 1 hora e Vantagem em testes de Atletismo para escalar.",
+    "pagina": 235
+  },
+  {
+    "titulo": "Potion of Diminution",
+    "categoria": "Itens Mágicos",
+    "texto": "Poção, Raro. Efeito \"reduzir\" de Ampliar/Reduzir por 1d4 horas (sem Concentração).",
+    "pagina": 235
+  },
+  {
+    "titulo": "Potion of Flying",
+    "categoria": "Itens Mágicos",
+    "texto": "Poção, Muito Raro. Concede Deslocamento de Voo igual ao seu Deslocamento por 1 hora, com pairar.",
+    "pagina": 235
+  },
+  {
+    "titulo": "Potion of Gaseous Form",
+    "categoria": "Itens Mágicos",
+    "texto": "Poção, Raro. Concede efeito de Forma Gasosa por 1 hora (sem Concentração).",
+    "pagina": 235
+  },
+  {
+    "titulo": "Potion of Giant Strength",
+    "categoria": "Itens Mágicos",
+    "texto": "Poção, raridade varia. Muda sua Força por 1 hora: Colina 21 (Incomum), Gelo/Pedra 23 (Raro), Fogo 25 (Raro), Nuvem 27 (Muito Raro), Tempestade 29 (Lendário).",
+    "pagina": 235
+  },
+  {
+    "titulo": "Potion of Growth",
+    "categoria": "Itens Mágicos",
+    "texto": "Poção, Incomum. Efeito \"ampliar\" de Ampliar/Reduzir por 10 minutos.",
+    "pagina": 235
+  },
+  {
+    "titulo": "Potions of Healing",
+    "categoria": "Itens Mágicos",
+    "texto": "Poção, raridade varia. Cura: Comum (2d4+2 PV), Incomum (4d4+4), Raro (8d4+8), Muito Raro (10d4+20).",
+    "pagina": 236
+  },
+  {
+    "titulo": "Potion of Heroism",
+    "categoria": "Itens Mágicos",
+    "texto": "Poção, Raro. Concede 10 PV temporários e efeito de Benção por 1 hora.",
+    "pagina": 236
+  },
+  {
+    "titulo": "Potion of Invisibility",
+    "categoria": "Itens Mágicos",
+    "texto": "Poção, Raro. Fica Invisível por 1 hora (termina se atacar, causar dano ou conjurar magia).",
+    "pagina": 236
+  },
+  {
+    "titulo": "Potion of Invulnerability",
+    "categoria": "Itens Mágicos",
+    "texto": "Poção, Raro. Resistência a todos os danos por 1 minuto.",
+    "pagina": 236
+  },
+  {
+    "titulo": "Potion of Longevity",
+    "categoria": "Itens Mágicos",
+    "texto": "Poção, Muito Raro. Reduz sua idade física em 1d6+6 anos (mínimo 13). Cada uso subsequente tem 10% de chance cumulativo de envelhecer em vez disso.",
+    "pagina": 236
+  },
+  {
+    "titulo": "Potion of Mind Reading",
+    "categoria": "Itens Mágicos",
+    "texto": "Poção, Raro. Concede efeito de Detectar Pensamentos (CD 13) por 10 minutos.",
+    "pagina": 236
+  },
+  {
+    "titulo": "Potion of Poison",
+    "categoria": "Itens Mágicos",
+    "texto": "Poção, Incomum. Parece uma poção benéfica, mas é veneno. Se bebida, causa 4d6 de dano de Veneno e CD 13 Constituição ou fica Envenenado por 1 hora.",
+    "pagina": 236
+  },
+  {
+    "titulo": "Potion of Resistance",
+    "categoria": "Itens Mágicos",
+    "texto": "Poção, Incomum. Concede Resistência a um tipo de dano (rolado na tabela) por 1 hora.",
+    "pagina": 236
+  },
+  {
+    "titulo": "Potion of Speed",
+    "categoria": "Itens Mágicos",
+    "texto": "Poção, Muito Raro. Efeito de Velocidade por 1 minuto (sem a letargia final).",
+    "pagina": 236
+  },
+  {
+    "titulo": "Potion of Vitality",
+    "categoria": "Itens Mágicos",
+    "texto": "Poção, Muito Raro. Remove níveis de Exaustão e a condição Envenenado. Por 24 horas, recupera o máximo de PV ao gastar Dados de Vida.",
+    "pagina": 236
+  },
+  {
+    "titulo": "Potion of Water Breathing",
+    "categoria": "Itens Mágicos",
+    "texto": "Poção, Incomum. Permite respirar embaixo d'água por 24 horas.",
+    "pagina": 236
+  },
+  {
+    "titulo": "Quarterstaff of the Acrobat",
+    "categoria": "Itens Mágicos",
+    "texto": "Arma (Bordão), Muito Raro (Requer Sintonia). +2 em ataque e dano. Pode emitir luz verde fraca. Pode se transformar em uma haste de 6 polegadas ou vara de 10 pés. Enquanto em forma de bordão ou vara, dá Vantagem em Acrobacia. Em forma de bordão, pode usar Reação para ganhar +5 de CA contra um ataque (recarga após descanso curto/longo). Tem arremesso (30/120) e retorna à mão.",
+    "pagina": 237
+  },
+  {
+    "titulo": "Ring of Animal Influence",
+    "categoria": "Itens Mágicos",
+    "texto": "Anel, Raro. 3 cargas (recupera 1d3 ao amanhecer). Pode conjurar Amizade Animal, Medo (afeta apenas Bestas) ou Falar com Animais.",
+    "pagina": 237
+  },
+  {
+    "titulo": "Ring of Djinni Summoning",
+    "categoria": "Itens Mágicos",
+    "texto": "Anel, Lendário (Requer Sintonia). Como ação Conjurar Magia, invoca um Djinni específico por até 1 hora (requer Concentração). Recarga 24 horas.",
+    "pagina": 237
+  },
+  {
+    "titulo": "Ring of Elemental Command",
+    "categoria": "Itens Mágicos",
+    "texto": "Anel, Lendário (Requer Sintonia). Ligado a um plano elemental. Propriedades: Vantagem contra Elementais e eles têm Desvantagem contra você; pode compelir um Elemental (CD 18 Sabedoria). Bônus adicionais conforme o plano: Ar (Resistência a Relâmpago, Deslocamento de Voo), Terra (Resistência a Ácido, move-se através de terra/rocha), Fogo (Imunidade a Fogo), Água (Deslocamento de Natação 60 pés, respirar água). Também pode conjurar magias (gastando cargas).",
+    "pagina": 237
+  },
+  {
+    "titulo": "Ring of Evasion",
+    "categoria": "Itens Mágicos",
+    "texto": "Anel, Raro (Requer Sintonia). 3 cargas (recupera 1d3 ao amanhecer). Quando falha em um teste de Destreza, pode usar Reação e gastar 1 carga para ter sucesso.",
+    "pagina": 238
+  },
+  {
+    "titulo": "Ring of Feather Falling",
+    "categoria": "Itens Mágicos",
+    "texto": "Anel, Raro (Requer Sintonia). Ao cair, você desce 60 pés por rodada e não sofre dano de queda.",
+    "pagina": 238
+  },
+  {
+    "titulo": "Ring of Free Action",
+    "categoria": "Itens Mágicos",
+    "texto": "Anel, Raro (Requer Sintonia). Terreno difícil não custa movimento extra. Magia não pode reduzir seu Deslocamento nem causar Paralisado ou Restringido.",
+    "pagina": 238
+  },
+  {
+    "titulo": "Ring of Invisibility",
+    "categoria": "Itens Mágicos",
+    "texto": "Anel, Lendário (Requer Sintonia). Como ação Conjurar Magia, fica Invisível até remover o anel ou usar Ação Bônus para se tornar visível.",
+    "pagina": 238
+  },
+  {
+    "titulo": "Ring of Jumping",
+    "categoria": "Itens Mágicos",
+    "texto": "Anel, Incomum (Requer Sintonia). Permite conjurar Salto, mas apenas em si mesmo.",
+    "pagina": 238
+  },
+  {
+    "titulo": "Ring of Mind Shielding",
+    "categoria": "Itens Mágicos",
+    "texto": "Anel, Incomum (Requer Sintonia). Imunidade a magia que lê pensamentos, detecta mentiras, alinhamento ou tipo. Pode tornar o anel imperceptível. Se você morrer usando-o, sua alma entra no anel e pode se comunicar telepaticamente com quem o usar.",
+    "pagina": 238
+  },
+  {
+    "titulo": "Ring of Protection",
+    "categoria": "Itens Mágicos",
+    "texto": "Anel, Raro (Requer Sintonia). +1 de CA e +1 em testes de resistência.",
+    "pagina": 238
+  },
+  {
+    "titulo": "Ring of Regeneration",
+    "categoria": "Itens Mágicos",
+    "texto": "Anel, Muito Raro (Requer Sintonia). Regenera 1d6 PV a cada 10 minutos se tiver pelo menos 1 PV. Regenera membros perdidos em 1d6+1 dias.",
+    "pagina": 238
+  },
+  {
+    "titulo": "Ring of Resistance",
+    "categoria": "Itens Mágicos",
+    "texto": "Anel, Raro. Resistência a um tipo de dano (indicado pela gema).",
+    "pagina": 238
+  },
+  {
+    "titulo": "Ring of Shooting Stars",
+    "categoria": "Itens Mágicos",
+    "texto": "Anel, Muito Raro (Requer Sintonia). Pode conjurar Luzes Dançantes ou Luz. Tem 6 cargas. Pode conjurar Fogo das Fadas (1 carga), Criar esferas de relâmpago (2 cargas, até 4 esferas, CD 15 Destreza), ou Estrelas Cadentes (1-3 cargas, cada cria cubo de 15 pés, CD 15 Destreza, 5d4 radiante).",
+    "pagina": 238
+  },
+  {
+    "titulo": "Ring of Spell Storing",
+    "categoria": "Itens Mágicos",
+    "texto": "Anel, Raro (Requer Sintonia). Armazena até 5 níveis de magias. Qualquer criatura pode conjurar uma magia no anel. Depois, quem usa o anel pode conjurar a magia armazenada (usando os parâmetros do conjurador original).",
+    "pagina": 239
+  },
+  {
+    "titulo": "Ring of Spell Turning",
+    "categoria": "Itens Mágicos",
+    "texto": "Anel, Lendário (Requer Sintonia). Vantagem em saves contra magias. Se passar em um save de magia de nível 7 ou inferior que alveje apenas você, pode usar Reação para refletir a magia de volta ao conjurador.",
+    "pagina": 239
+  },
+  {
+    "titulo": "Ring of Swimming",
+    "categoria": "Itens Mágicos",
+    "texto": "Anel, Incomum. Concede Deslocamento de Natação de 40 pés.",
+    "pagina": 239
+  },
+  {
+    "titulo": "Ring of Telekinesis",
+    "categoria": "Itens Mágicos",
+    "texto": "Anel, Muito Raro (Requer Sintonia). Permite conjurar Telecinese.",
+    "pagina": 239
+  },
+  {
+    "titulo": "Ring of the Ram",
+    "categoria": "Itens Mágicos",
+    "texto": "Anel, Raro (Requer Sintonia). 3 cargas. Como ação Conjurar Magia, gaste 1-3 cargas para fazer um ataque de magia à distância (+7), causando 2d10 de dano de Força por carga e empurrando 5 pés. Também pode tentar quebrar objetos não mágicos (teste de Força +5 por carga).",
+    "pagina": 239
+  },
+  {
+    "titulo": "Ring of Three Wishes",
+    "categoria": "Itens Mágicos",
+    "texto": "Anel, Lendário. 3 cargas. Gaste 1 carga para conjurar Desejo. Fica não mágico após a última carga.",
+    "pagina": 239
+  },
+  {
+    "titulo": "Ring of Warmth",
+    "categoria": "Itens Mágicos",
+    "texto": "Anel, Incomum (Requer Sintonia). Reduz dano de Frio em 2d8. Protege contra temperaturas de 0°F ou menos.",
+    "pagina": 239
+  },
+  {
+    "titulo": "Ring of Water Walking",
+    "categoria": "Itens Mágicos",
+    "texto": "Anel, Incomum. Permite conjutar Andar na Água em si mesmo.",
+    "pagina": 239
+  },
+  {
+    "titulo": "Ring of X-ray Vision",
+    "categoria": "Itens Mágicos",
+    "texto": "Anel, Raro (Requer Sintonia). Como ação Conjurar Magia, ganha visão de raio-X por 1 minuto (penetra 1 pé de pedra, 1 polegada de metal, 3 pés de madeira/sujeira). Cada uso antes de um descanso longo requer CD 15 Constituição ou ganha Exaustão.",
+    "pagina": 239
+  },
+  {
+    "titulo": "Robe of Eyes",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Raro (Requer Sintonia). Concede Visão em Todo o Redor (Vantagem em Percepção visual), Visão no Escuro e Visão Verdadeira 120 pés. Desvantagem: magia Luz ou Luz do Dia conjurada a 5 pés causa Cegueira por 1 minuto (CD 11 ou 15).",
+    "pagina": 240
+  },
+  {
+    "titulo": "Robe of Scintillating Colors",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Muito Raro (Requer Sintonia). 3 cargas. Como ação Conjurar Magia, gaste 1 carga para exibir padrões coloridos por 1 rodada (luz forte 30 pés, luz fraca +30 pés, Desvantagem em ataques contra você, CD 15 Sabedoria ou Atordoado).",
+    "pagina": 240
+  },
+  {
+    "titulo": "Robe of Stars",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Muito Raro (Requer Sintonia). +1 em testes de resistência. Pode remover uma estrela para conjurar Misséis Mágicos de 5º nível (recupera 1d6 estrelas ao anoitecer). Pode entrar no Plano Astral como ação Conjurar Magia.",
+    "pagina": 240
+  },
+  {
+    "titulo": "Robe of the Archmagi",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Lendário (Requer Sintonia por Feiticeiro, Bruxo ou Mago). CA base 15 + Destreza, Vantagem em saves contra magias, +2 na CD de magia e bônus de ataque.",
+    "pagina": 240
+  },
+  {
+    "titulo": "Robe of Useful Items",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum. Tem remendos. Como ação Conjurar Magia, pode destacar um remendo para se tornar o objeto. Tem dois de cada: lanterna de facho, adaga, espelho, vara, corda, saco. Mais 4d4 remendos aleatórios (tabela).",
+    "pagina": 240
+  },
+  {
+    "titulo": "Rod of Absorption",
+    "categoria": "Itens Mágicos",
+    "texto": "Vara, Muito Raro (Requer Sintonia). Como Reação, absorve uma magia que alveje apenas você (cancelando-a). Armazena níveis de magia (máx 50). Conjurador pode converter energia armazenada em slots de magia.",
+    "pagina": 241
+  },
+  {
+    "titulo": "Rod of Alertness",
+    "categoria": "Itens Mágicos",
+    "texto": "Vara, Muito Raro (Requer Sintonia). Concede Vantagem em Percepção e Iniciativa. Permite conjurar Detectar o Bem e o Mal, Detectar Magia, Detectar Veneno e Doença, Ver Invisibilidade. Como ação Conjurar Magia, pode plantar a vara para criar uma aura de luz forte 60 pés que dá +1 de CA e saves e detecta Invisíveis.",
+    "pagina": 241
+  },
+  {
+    "titulo": "Rod of Lordly Might",
+    "categoria": "Itens Mágicos",
+    "texto": "Vara, Lendário (Requer Sintonia). Funciona como Maça mágica +3. Tem 6 botões que transformam a vara: lâmina flamejante (espada longa/curta +2d6 fogo), machado de batalha (+3), lança (+3), vara de escalada (50 pés), aríete portátil (+10 em Atletismo), bússola magnética. Propriedades: Drenar Vida (CD 17 Constituição ou 4d6 Necrótico), Paralisar (CD 17 Constituição ou Paralisado 1 minuto), Aterrorizar (CD 17 Sabedoria ou Apavorado 1 minuto).",
+    "pagina": 241
+  },
+  {
+    "titulo": "Rod of Resurrection",
+    "categoria": "Itens Mágicos",
+    "texto": "Vara, Lendário (Requer Sintonia). 5 cargas. Pode conjurar Cura (1 carga) ou Ressurreição (5 cargas). Recupera 1 carga ao amanhecer. Se gastar a última, rola 1d20; em 1, desaparece.",
+    "pagina": 242
+  },
+  {
+    "titulo": "Rod of Rulership",
+    "categoria": "Itens Mágicos",
+    "texto": "Vara, Raro (Requer Sintonia). Como ação Conjurar Magia, apresente a vara e comande obediência a criaturas a 120 pés (CD 15 Sabedoria, Enfeitiçado por 8 horas, vendo você como líder confiável). Recarrega ao amanhecer.",
+    "pagina": 242
+  },
+  {
+    "titulo": "Rod of Security",
+    "categoria": "Itens Mágicos",
+    "texto": "Vara, Muito Raro. Como ação Conjurar Magia, transporta você e até 199 criaturas para um semiplano (à sua escolha). Lá, os visitantes recuperam PV como se gastassem Dados de Vida a cada hora, não envelhecem, podem ficar até 200 dias dividido pelo número de criaturas. Recarga de 10 dias.",
+    "pagina": 242
+  },
+  {
+    "titulo": "Rope of Climbing",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum. Corda de 60 pés que suporta 3.000 libras. Como ação Conjurar Magia, comande a outra extremidade para se mover (10 pés por turno). Pode dar nós, desatar, fixar-se. Dá Vantagem em testes de escalada quando knotada. AC 20, HP 20, regenera 1 PV a cada 5 minutos.",
+    "pagina": 242
+  },
+  {
+    "titulo": "Rope of Entanglement",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Raro. Corda de 30 pés. Como ação Conjurar Magia, comande a outra extremidade para enredar uma criatura a até 20 pés (CD 15 Destreza ou Restringido). O alvo pode tentar escapar (CD 15 Força ou Acrobacia). AC 20, HP 20.",
+    "pagina": 242
+  },
+  {
+    "titulo": "Scarab of Protection",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Lendário (Requer Sintonia). +1 de CA. 12 cargas. Se falhar em um save contra magia de Necromancia ou efeito de Morto-Vivo, pode gastar 1 carga para ter sucesso. Vantagem em saves contra magias.",
+    "pagina": 243
+  },
+  {
+    "titulo": "Scimitar of Speed",
+    "categoria": "Itens Mágicos",
+    "texto": "Arma (Cimitarra), Muito Raro (Requer Sintonia). +2 em ataque e dano. Permite fazer um ataque como Ação Bônus em cada turno.",
+    "pagina": 243
+  },
+  {
+    "titulo": "Sending Stones",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum. Par de pedras. Tocando uma, pode conjurar Enviar Mensagem para o portador da outra. Uma vez usadas, recarregam ao amanhecer.",
+    "pagina": 243
+  },
+  {
+    "titulo": "Sentinel Shield",
+    "categoria": "Itens Mágicos",
+    "texto": "Armadura (Escudo), Incomum. Vantagem em Iniciativa e testes de Percepção.",
+    "pagina": 243
+  },
+  {
+    "titulo": "Shield +1, +2, +3",
+    "categoria": "Itens Mágicos",
+    "texto": "Armadura (Escudo), Incomum (+1), Raro (+2), Muito Raro (+3). Bônus na CA adicional ao bônus normal do escudo.",
+    "pagina": 243
+  },
+  {
+    "titulo": "Shield of Missile Attraction",
+    "categoria": "Itens Mágicos",
+    "texto": "Armadura (Escudo), Raro (Requer Sintonia). Resistência a dano de armas à distância. Maldição: você se torna o alvo de qualquer ataque à distância que vise uma criatura a até 10 pés de você.",
+    "pagina": 243
+  },
+  {
+    "titulo": "Shield of the Cavalier",
+    "categoria": "Itens Mágicos",
+    "texto": "Armadura (Escudo), Muito Raro (Requer Sintonia). +2 de CA (além do normal). Pode fazer um ataque com o escudo (2d6+2+Força, empurrão). Como Reação, pode criar uma emanação de 5 pés que bloqueia ataques e efeitos (recarga ao amanhecer).",
+    "pagina": 243
+  },
+  {
+    "titulo": "Slippers of Spider Climbing",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum (Requer Sintonia). Permite mover-se em superfícies verticais e tetos, deixando as mãos livres. Concede Deslocamento de Escalada igual ao seu Deslocamento.",
+    "pagina": 244
+  },
+  {
+    "titulo": "Sovereign Glue",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Lendário. Substância leitosa que forma adesão permanente entre dois objetos. Uma onça cobre 1 pé quadrado. Aplica-se em 1 minuto. Só pode ser quebrada por Solvente Universal, Óleo de Eterealidade ou Desejo.",
+    "pagina": 244
+  },
+  {
+    "titulo": "Spellguard Shield",
+    "categoria": "Itens Mágicos",
+    "texto": "Armadura (Escudo), Muito Raro (Requer Sintonia). Vantagem em saves contra magias e efeitos mágicos; ataques de magia têm Desvantagem contra você.",
+    "pagina": 244
+  },
+  {
+    "titulo": "Spell Scroll",
+    "categoria": "Itens Mágicos",
+    "texto": "Pergaminho, raridade varia. Contém uma magia. Se a magia estiver na sua lista, você pode conjurá-la sem componentes materiais. CD e bônus de ataque dependem do nível da magia (tabela). Magos podem copiar o pergaminho para o grimório (teste de Arcana CD 10 + nível).",
+    "pagina": 244
+  },
+  {
+    "titulo": "Sphere of Annihilation",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Lendário. Esfera negra de 2 pés de diâmetro, um buraco no multiverso. Destrói toda matéria que toca. Criaturas tocadas sofrem 8d10 de dano de Força. Controlá-la exige teste de Inteligência (Arcana) CD 25 a 60 pés. Uma vez controlada, você pode movê-la (5 x Inteligência pés por Ação Bônus). Interage com portais e espaços extradimensionais (tabela).",
+    "pagina": 244
+  },
+  {
+    "titulo": "Staff of Charming",
+    "categoria": "Itens Mágicos",
+    "texto": "Cajado, Raro (Requer Sintonia). 10 cargas. Permite conjurar Enfeitiçar Pessoa, Comando ou Compreender Idiomas. Pode refletir magia de Encantamento (Reação, gasta 1 carga) ou transformar falha em sucesso em um save contra Encantamento (recarga ao amanhecer).",
+    "pagina": 245
+  },
+  {
+    "titulo": "Staff of Fire",
+    "categoria": "Itens Mágicos",
+    "texto": "Cajado, Muito Raro (Requer Sintonia). Resistência a dano de Fogo. 10 cargas. Conjura Mãos em Chamas (1 carga), Bola de Fogo (3 cargas), Muralha de Fogo (4 cargas).",
+    "pagina": 245
+  },
+  {
+    "titulo": "Staff of Frost",
+    "categoria": "Itens Mágicos",
+    "texto": "Cajado, Muito Raro (Requer Sintonia). Resistência a Frio. 10 cargas. Conjura Cone de Frio (5 cargas), Névoa (1 carga), Tempestade de Gelo (4 cargas), Muralha de Gelo (4 cargas).",
+    "pagina": 245
+  },
+  {
+    "titulo": "Staff of Healing",
+    "categoria": "Itens Mágicos",
+    "texto": "Cajado, Raro (Requer Sintonia). 10 cargas. Conjura Curar Ferimentos (1 carga por nível), Restauração Menor (2 cargas), Cura em Massa (5 cargas).",
+    "pagina": 245
+  },
+  {
+    "titulo": "Staff of Power",
+    "categoria": "Itens Mágicos",
+    "texto": "Cajado, Muito Raro (Requer Sintonia). +2 em ataque e dano como Bordão, +2 de CA, saves e ataque de magia. 20 cargas. Conjura várias magias (Cone de Frio, Bola de Fogo, Globo de Invulnerabilidade, etc.). Golpe de Retribuição: quebrar o cajado causa explosão (16x cargas de dano de Força a você, 4x aos outros).",
+    "pagina": 245
+  },
+  {
+    "titulo": "Staff of Striking",
+    "categoria": "Itens Mágicos",
+    "texto": "Cajado, Muito Raro (Requer Sintonia). +3 em ataque e dano como Bordão. 10 cargas. Ao acertar, pode gastar até 3 cargas para causar +1d6 de dano de Força por carga.",
+    "pagina": 246
+  },
+  {
+    "titulo": "Staff of Swarming Insects",
+    "categoria": "Itens Mágicos",
+    "texto": "Cajado, Raro (Requer Sintonia). 10 cargas. Nuvem de Insetos (1 carga): cria enxame de insetos inofensivos em emanação de 30 pés (Totalmente Obscuro para outros). Conjura Inseto Gigante (4 cargas) ou Praga de Insetos (5 cargas).",
+    "pagina": 246
+  },
+  {
+    "titulo": "Staff of the Magi",
+    "categoria": "Itens Mágicos",
+    "texto": "Cajado, Lendário (Requer Sintonia). +2 em ataque e dano como Bordão, +2 em ataque de magia. 50 cargas. Absorve magia (Reação contra magia que alveje apenas você, ganha cargas iguais ao nível). Conjura muitas magias. Golpe de Retribuição: quebrar causa explosão (16x cargas dano a você, 6x aos outros).",
+    "pagina": 246
+  },
+  {
+    "titulo": "Staff of the Python",
+    "categoria": "Itens Mágicos",
+    "texto": "Cajado, Incomum (Requer Sintonia). Como ação Conjurar Magia, jogue o cajado para se tornar uma Cobra Constritora Gigante sob seu controle. Pode voltar ao cajado como Ação Bônus. Se a cobra morrer, o cajado é destruído.",
+    "pagina": 247
+  },
+  {
+    "titulo": "Staff of the Woodlands",
+    "categoria": "Itens Mágicos",
+    "texto": "Cajado, Raro (Requer Sintonia por Druida). +2 em ataque e dano como Bordão, +2 em ataque de magia. 6 cargas. Conjura Amizade Animal, Despertar, Casca Grossa, Localizar Animais ou Plantas, Passar sem Deixar Rastros, Falar com Animais, Falar com Plantas, Muralha de Espinhos. Pode plantar o cajado para se tornar uma árvore (ação Conjurar Magia, gasta 1 carga).",
+    "pagina": 247
+  },
+  {
+    "titulo": "Staff of Thunder and Lightning",
+    "categoria": "Itens Mágicos",
+    "texto": "Cajado, Muito Raro (Requer Sintonia). +2 em ataque e dano. Propriedades (cada uma recarrega ao amanhecer): Relâmpago (+2d6 de dano de Relâmpago), Trovão (CD 17 Constituição ou Atordoado), Trovão e Relâmpago (usa ambos), Raio (linha de 120 pés, CD 17 Destreza, 9d6 Relâmpago), Trovoada (emanação 60 pés, CD 17 Constituição, 2d6 Trovão e surdo).",
+    "pagina": 247
+  },
+  {
+    "titulo": "Staff of Withering",
+    "categoria": "Itens Mágicos",
+    "texto": "Cajado, Raro (Requer Sintonia). 3 cargas. Como Bordão, ao acertar pode gastar 1 carga para +2d10 de dano Necrótico e CD 15 Constituição ou Desvantagem em Força/Constituição por 1 hora.",
+    "pagina": 248
+  },
+  {
+    "titulo": "Stone of Controlling Earth Elementals",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Raro. Enquanto tocando o chão, pode invocar um Elemental da Terra que obedece por 1 hora. Recarrega ao amanhecer.",
+    "pagina": 248
+  },
+  {
+    "titulo": "Stone of Good Luck (Luckstone)",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum (Requer Sintonia). +1 em testes de habilidade e testes de resistência.",
+    "pagina": 248
+  },
+  {
+    "titulo": "Sun Blade",
+    "categoria": "Itens Mágicos",
+    "texto": "Arma (Espada Longa), Raro (Requer Sintonia). Empunhadura sem lâmina. Como Ação Bônus, uma lâmina de radiação aparece (Finesse, +2 ataque/dano, dano Radiante, +1d8 contra Mortos-Vivos). Emite luz solar (luz forte 15 pés, luz fraca +15 pés, expansível/redutível).",
+    "pagina": 248
+  },
+  {
+    "titulo": "Sword of Life Stealing",
+    "categoria": "Itens Mágicos",
+    "texto": "Arma (Gládio, Espada Grande, Espada Longa, Rapieira, Cimitarra, Espada Curta), Raro (Requer Sintonia). Em um 20 natural, causa +15 de dano Necrótico (não contra Constructos ou Mortos-Vivos) e você ganha PV temporários iguais.",
+    "pagina": 248
+  },
+  {
+    "titulo": "Sword of Sharpness",
+    "categoria": "Itens Mágicos",
+    "texto": "Arma (Gládio, Espada Grande, Espada Longa, Cimitarra), Muito Raro (Requer Sintonia). Ao acertar um objeto, maximiza os dados de dano. Em um 20 natural, causa +14 de dano Cortante e o alvo ganha 1 nível de Exaustão.",
+    "pagina": 248
+  },
+  {
+    "titulo": "Sword of Wounding",
+    "categoria": "Itens Mágicos",
+    "texto": "Arma (Gládio, Espada Grande, Espada Longa, Rapieira, Cimitarra, Espada Curta), Raro (Requer Sintonia). Causa +2d6 de dano Necrótico e o alvo faz CD 15 Constituição ou não pode recuperar PV por 1 hora.",
+    "pagina": 248
+  },
+  {
+    "titulo": "Talisman of Pure Good",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Lendário (Requer Sintonia por Clérigo ou Paladino). Símbolo Sagrado (+2 em ataque de magia). Tem 7 cargas. Como ação Conjurar Magia, gaste 1 carga para abrir uma fenda flamejante sob uma criatura no chão a até 120 pés (CD 20 Destreza). Falha: destruída (4d6 Psíquico em sucesso). Contra Fiend ou Morto-Vivo, Desvantagem no save. Última carga destrói o talismã.",
+    "pagina": 248
+  },
+  {
+    "titulo": "Talisman of the Sphere",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Lendário (Requer Sintonia). Vantagem em testes de Arcana para controlar uma Esfera de Aniquilação. Pode mover a esfera 10 + 10 x Inteligência pés (ação Conjurar Magia).",
+    "pagina": 249
+  },
+  {
+    "titulo": "Talisman of Ultimate Evil",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Lendário (Requer Sintonia). Similar ao Talismã do Bem Puro, mas para criaturas malignas. Causa dano a não-Fiend/não-Morto-Vivo que tocar. Pode abrir fenda contra Celestial. Recarga 6 cargas.",
+    "pagina": 249
+  },
+  {
+    "titulo": "Thunderous Greatclub",
+    "categoria": "Itens Mágicos",
+    "texto": "Arma (Grande Clava), Muito Raro (Requer Sintonia). Sua Força se torna 20. Causa +1d8 de dano de Trovão (+3d8 contra objetos). Pode bater no chão para criar cone de 30 pés (CD 15 Força ou caído) ou terremoto (raio 50 pés, CD 20 Destreza ou caído, e pode abrir fenda). Recarga do terremoto ao amanhecer.",
+    "pagina": 249
+  },
+  {
+    "titulo": "Tome of Clear Thought",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Muito Raro. Após 48 horas de estudo, aumenta Inteligência em 2 (máx 30). Recupera a magia após 100 anos.",
+    "pagina": 249
+  },
+  {
+    "titulo": "Tome of Leadership and Influence",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Muito Raro. Aumenta Carisma em 2 (máx 30).",
+    "pagina": 249
+  },
+  {
+    "titulo": "Tome of Understanding",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Muito Raro. Aumenta Sabedoria em 2 (máx 30).",
+    "pagina": 250
+  },
+  {
+    "titulo": "Trident of Fish Command",
+    "categoria": "Itens Mágicos",
+    "texto": "Arma (Tridente), Incomum (Requer Sintonia). 3 cargas. Gaste 1 carga para conjurar Dominar Besta (CD 15) em uma Besta com deslocamento de natação.",
+    "pagina": 250
+  },
+  {
+    "titulo": "Universal Solvent",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Lendário. Líquido leitoso. Derrame sobre adesivo (1 onça por pé quadrado) para dissolvê-lo instantaneamente, incluindo Cola Soberana.",
+    "pagina": 250
+  },
+  {
+    "titulo": "Vicious Weapon",
+    "categoria": "Itens Mágicos",
+    "texto": "Arma (qualquer simples ou marcial), Raro. Causa +2d6 de dano do mesmo tipo da arma a qualquer criatura que acerte.",
+    "pagina": 250
+  },
+  {
+    "titulo": "Vorpal Sword",
+    "categoria": "Itens Mágicos",
+    "texto": "Arma (Gládio, Espada Grande, Espada Longa, Cimitarra), Lendário (Requer Sintonia). +3 em ataque e dano, ignora Resistência a dano Cortante. Em um 20 natural, corta a cabeça da criatura (se ela precisar de cabeça). Criaturas com Resistência Lendária podem usar uma carga para evitar, tomando +30 de dano Cortante.",
+    "pagina": 250
+  },
+  {
+    "titulo": "Wand of Binding",
+    "categoria": "Itens Mágicos",
+    "texto": "Varinha, Raro (Requer Sintonia). 7 cargas. Conjura Aprisionar Monstro (5 cargas) ou Aprisionar Pessoa (2 cargas). CD 17.",
+    "pagina": 250
+  },
+  {
+    "titulo": "Wand of Enemy Detection",
+    "categoria": "Itens Mágicos",
+    "texto": "Varinha, Raro (Requer Sintonia). 7 cargas. Como ação Conjurar Magia, gaste 1 carga para saber a direção da criatura Hostil mais próxima a 60 pés por 1 minuto.",
+    "pagina": 250
+  },
+  {
+    "titulo": "Wand of Fear",
+    "categoria": "Itens Mágicos",
+    "texto": "Varinha, Raro (Requer Sintonia). 7 cargas. Conjura Comando (\"fuja\" ou \"rasteje\" - 1 carga) ou Medo (cone de 60 pés - 3 cargas). CD 15.",
+    "pagina": 250
+  },
+  {
+    "titulo": "Wand of Fireballs",
+    "categoria": "Itens Mágicos",
+    "texto": "Varinha, Raro (Requer Sintonia). 7 cargas. Conjura Bola de Fogo (gasta 1 carga para nível 3, +1 carga por nível adicional, máx 3 cargas). CD 15.",
+    "pagina": 250
+  },
+  {
+    "titulo": "Wand of Lightning Bolts",
+    "categoria": "Itens Mágicos",
+    "texto": "Varinha, Raro (Requer Sintonia). Similar à Varinha de Bolas de Fogo, mas para Raio Relâmpago.",
+    "pagina": 251
+  },
+  {
+    "titulo": "Wand of Magic Detection",
+    "categoria": "Itens Mágicos",
+    "texto": "Varinha, Incomum. 3 cargas. Gaste 1 carga para conjurar Detectar Magia. Recupera 1d3 ao amanhecer.",
+    "pagina": 251
+  },
+  {
+    "titulo": "Wand of Magic Missiles",
+    "categoria": "Itens Mágicos",
+    "texto": "Varinha, Incomum. 7 cargas. Conjura Misséis Mágicos (1 carga para nível 1, +1 carga por nível adicional, máx 3 cargas).",
+    "pagina": 251
+  },
+  {
+    "titulo": "Wand of Paralysis",
+    "categoria": "Itens Mágicos",
+    "texto": "Varinha, Raro (Requer Sintonia). 7 cargas. Como ação Conjurar Magia, gaste 1 carga para disparar um raio azul (CD 15 Constituição ou Paralisado por 1 minuto).",
+    "pagina": 251
+  },
+  {
+    "titulo": "Wand of Polymorph",
+    "categoria": "Itens Mágicos",
+    "texto": "Varinha, Muito Raro (Requer Sintonia). 7 cargas. Conjura Polimorfar (CD 15) por 1 carga.",
+    "pagina": 251
+  },
+  {
+    "titulo": "Wand of Secrets",
+    "categoria": "Itens Mágicos",
+    "texto": "Varinha, Incomum. 3 cargas. Como ação Conjurar Magia, gaste 1 carga; se houver porta secreta ou armadilha a 60 pés, a varinha pulsa e aponta para a mais próxima.",
+    "pagina": 251
+  },
+  {
+    "titulo": "Wand of the War Mage, +1, +2, +3",
+    "categoria": "Itens Mágicos",
+    "texto": "Varinha, Incomum (+1), Raro (+2), Muito Raro (+3) (Requer Sintonia). Bônus em rolagens de ataque de magia. Ignora Meia Cobertura.",
+    "pagina": 251
+  },
+  {
+    "titulo": "Wand of Web",
+    "categoria": "Itens Mágicos",
+    "texto": "Varinha, Incomum (Requer Sintonia). 7 cargas. Conjura Teia (CD 13) por 1 carga.",
+    "pagina": 251
+  },
+  {
+    "titulo": "Wand of Wonder",
+    "categoria": "Itens Mágicos",
+    "texto": "Varinha, Raro (Requer Sintonia). 7 cargas. Como ação Conjurar Magia, gaste 1 carga e escolha um ponto a 120 pés. Role na tabela para determinar o efeito (pode ser magias como Escuridão, Fogo das Fadas, Bola de Fogo, Lentidão, Nuvem Fedorenta, etc.).",
+    "pagina": 251
+  },
+  {
+    "titulo": "Weapon +1, +2, +3",
+    "categoria": "Itens Mágicos",
+    "texto": "Arma (qualquer simples ou marcial), Incomum (+1), Raro (+2), Muito Raro (+3). Bônus em ataque e dano.",
+    "pagina": 253
+  },
+  {
+    "titulo": "Weapon of Warning",
+    "categoria": "Itens Mágicos",
+    "texto": "Arma (qualquer simples ou marcial), Incomum (Requer Sintonia). Enquanto estiver ao seu alcance, você e aliados a até 30 pés têm Vantagem em Iniciativa e são despertados magicamente quando o combate começa (exceto sono mágico).",
+    "pagina": 253
+  },
+  {
+    "titulo": "Well of Many Worlds",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Lendário. Pano preto fino que se desdobra em um círculo de 6 pés. Forma um portal bidirecional para outro mundo ou plano (GM decide onde). Pode ser fechado por uma criatura a 5 pés com ação Conjurar Magia. Recarga de 1d8 horas após uso.",
+    "pagina": 253
+  },
+  {
+    "titulo": "Wind Fan",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum. Permite conjurar Rajada de Vento (CD 13). Cada uso subsequente antes do amanhecer tem 20% de chance de falhar e se desfazer.",
+    "pagina": 253
+  },
+  {
+    "titulo": "Winged Boots",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Incomum (Requer Sintonia). 4 cargas. Como ação Conjurar Magia, gaste 1 carga para ganhar Deslocamento de Voo 30 pés por 1 hora.",
+    "pagina": 253
+  },
+  {
+    "titulo": "Wings of Flying",
+    "categoria": "Itens Mágicos",
+    "texto": "Item Maravilhoso, Raro (Requer Sintonia). Como ação Conjurar Magia, a capa se transforma em asas por 1 hora, dando Deslocamento de Voo 60 pés. Recarga de 1d12 horas após desaparecer.",
+    "pagina": 253
+  }
+]

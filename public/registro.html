@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mochila do Aventureiro - Registro</title>
+    <style>
+        body { display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .caixa-auth { width: 100%; max-width: 400px; }
+        .caixa-auth h2 { text-align: center; margin-bottom: 24px; }
+        .campo { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+        .link-rodape { text-align: center; margin-top: 20px; font-size: 14px; }
+        #msg-erro { display: none; }
+    </style>
+    <link rel="stylesheet" href="/css/global_ui.css">
+</head>
+<body>
+
+    <div class="caixa-auth card">
+        <h2 class="texto-roxo">Despertar Nova Conta</h2>
+        <div id="msg-erro" class="texto-erro"></div>
+
+        <form id="form-registro">
+            <div class="campo">
+                <label>Nome de Usuário</label>
+                <input type="text" id="reg-nome" required>
+            </div>
+            <div class="campo">
+                <label>E-mail</label>
+                <input type="email" id="reg-email" required>
+            </div>
+            <div class="campo">
+                <label>Senha</label>
+                <input type="password" id="reg-senha" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; margin-top: 8px;">
+                <i data-lucide="user-plus"></i> Registrar e Entrar
+            </button>
+        </form>
+
+        <div class="link-rodape">
+            Já possui conta? <a href="/login.html">Faça login aqui</a>
+        </div>
+    </div>
+
+    <script src="/js/lucide.min.js"></script>
+    <script>
+        lucide.createIcons();
+        document.getElementById('form-registro').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const nome_usuario = document.getElementById('reg-nome').value;
+            const email = document.getElementById('reg-email').value;
+            const senha = document.getElementById('reg-senha').value;
+            const msgErro = document.getElementById('msg-erro');
+
+            msgErro.style.display = 'none';
+
+            try {
+                const resposta = await fetch('/auth/registro', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nome: nome_usuario, email, senha }) // Removeu o role do JSON
+                });
+
+                const data = await resposta.json();
+
+                if (!resposta.ok) throw new Error(data.erro || 'Erro ao registrar.');
+
+                alert("Conta criada com sucesso! Faça seu login.");
+                window.location.href = '/login.html';
+
+            } catch (err) {
+                msgErro.innerText = err.message;
+                msgErro.style.display = 'block';
+            }
+        });
+    </script>
+    <script src="/js/toast.js"></script>
+    <script src="/js/modalConfirmacao.js"></script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mochila do Aventureiro - Meu Perfil</title>
+    <link rel="stylesheet" href="/css/global_ui.css">
+</head>
+<body style="max-width: 1200px; margin: 40px auto; padding: 20px;">
+
+    <div class="header-perfil">
+    <div class="user-info">
+    <input type="file" id="input-avatar-perfil" accept="image/*" style="display: none;" onchange="uploadAvatarPerfil()">
+    <img src="/uploads/avatares/default.png" id="img-avatar" class="avatar-perfil" alt="Avatar" 
+         onclick="document.getElementById('input-avatar-perfil').click()" 
+         style="cursor: pointer;" title="Clique para trocar o avatar">
+        <div>
+            <h2 id="txt-boas-vindas" style="margin: 0; color: var(--texto-claro);">Carregando perfil...</h2>
+            <p style="color: var(--texto-mutado); font-size: 14px; margin: 4px 0 8px 0;">Painel de Controle Multissistema</p>
+            <a href="/config_perfil.html" class="btn btn-outline btn-sm"><i data-lucide="settings"></i> Configurações</a>
+        </div>
+    </div>
+    <button class="btn btn-danger btn-sm" onclick="fazerLogout()"><i data-lucide="log-out"></i> Sair</button>
+</div>
+
+    <div class="grid-papeis">
+        
+        <div class="coluna-papel">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="color: var(--roxo-mago); margin: 0;">Como Narrador (DM/GM)</h3>
+                <a href="/criar_cronica.html" class="btn btn-primary btn-sm"><i data-lucide="plus-circle"></i> Nova Crônica</a>
+            </div>
+            <div id="lista-cronicas-narrador">
+                </div>
+        </div>
+
+        <div class="coluna-papel">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="color: var(--destaque); margin: 0;">Como Jogador</h3>
+                <a href="/index.html" class="btn btn-outline btn-sm"><i data-lucide="archive"></i> Minha Gaveta</a>
+            </div>
+            <div id="lista-cronicas-jogador">
+                </div>
+        </div>
+
+    </div>
+
+    <script src="/js/lucide.min.js"></script>
+<script src="/js/api.js"></script>
+    <script src="/js/profile.js"></script>
+        <script src="/js/toast.js"></script>
+    <script src="/js/modalConfirmacao.js"></script>
+</body>
+</html>

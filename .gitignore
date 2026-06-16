@@ -1,0 +1,18 @@
+# Dependências
+node_modules/
+
+# Variáveis de ambiente
+.env
+
+# ==========================================
+# UPLOADS DE USUÁRIOS (Proteção Automática)
+# ==========================================
+# Ignora tudo dentro de uploads e qualquer subpasta futura
+public/uploads/**/*
+
+# Mas mantém a estrutura das pastas lendo os arquivos .gitkeep
+!public/uploads/**/.gitkeep
+
+# Logs
+*.log
+npm-debug.log*
