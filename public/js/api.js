@@ -8,15 +8,7 @@
     }
 })();
 
-window.escapeHTML = function(str) {
-    if (str === null || str === undefined) return '';
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-};
+// escapeHTML vive exclusivamente em utils.js (fonte única — Regra 6.1).
 
 const API = {
     async fetch(url, options = {}) {

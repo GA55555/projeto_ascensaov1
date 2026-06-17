@@ -11,7 +11,7 @@ const criarFichaSchema = z.object({
 
 const atualizarFichaSchema = z.object({
     params: z.object({
-        fichaId: z.string()
+        fichaId: z.string().min(1, 'ID de ficha inválido.')
     }),
     body: z.object({
         nome: z.string().min(2, 'O nome deve ter no mínimo 2 caracteres.').max(100, 'O nome deve ter no máximo 100 caracteres.').optional(),
@@ -22,7 +22,7 @@ const atualizarFichaSchema = z.object({
 
 const deletarFichaSchema = z.object({
     params: z.object({
-        fichaId: z.string()
+        fichaId: z.string().min(1, 'ID de ficha inválido.')
     })
 });
 

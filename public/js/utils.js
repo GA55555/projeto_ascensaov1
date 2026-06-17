@@ -2,7 +2,7 @@
 // Utilidades partilhadas de segurança e sessão. Deve ser carregado ANTES dos scripts principais.
 
 // Sanitização de HTML centralizada (prevenção de XSS — Regra 6.1).
-window.escapeHTML = (s) => String(s).replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+window.escapeHTML = (s) => { if (s === null || s === undefined) return ''; return String(s).replace(/[&<>"']/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); };
 
 // Valida a sessão consultando o backend, que lê o Cookie HttpOnly automaticamente.
 // Retorna true se a sessão é válida; redireciona para login.html e retorna false caso contrário.

@@ -105,7 +105,7 @@ function abrirModalCriarFicha() {
                     <label for="ficha-sistema">Sistema</label>
                     <select id="ficha-sistema">${opcoesSistema}</select>
                 </div>
-                <div class="grid-2col">
+                <div class="grid-2col" id="container-hp-setup">
                     <div class="campo">
                         <label for="ficha-hp-atual"><i data-lucide="heart"></i> HP Atual</label>
                         <input type="number" id="ficha-hp-atual" value="10" min="0">
@@ -127,6 +127,13 @@ function abrirModalCriarFicha() {
     document.body.appendChild(modal);
     lucide.createIcons();
 
+    // Oculta os campos de HP para sistemas que não usam HP (ex: Mago M20 usa Vitalidade).
+    const selectSistema = document.getElementById('ficha-sistema');
+    const containerHP = document.getElementById('container-hp-setup');
+    selectSistema.addEventListener('change', () => {
+        containerHP.style.display = selectSistema.value === 'mago_m20' ? 'none' : 'grid';
+    });
+
     document.getElementById('ficha-nome').focus();
     document.getElementById('btn-cancelar-ficha').addEventListener('click', fecharModalCriarFicha);
     modal.addEventListener('click', (e) => { if (e.target === modal) fecharModalCriarFicha(); });
@@ -138,18 +145,15 @@ async function salvarFicha(e) {
 
     const nome = document.getElementById('ficha-nome').value.trim();
     const sistema = document.getElementById('ficha-sistema').value;
-    const hpAtual = Number(document.getElementById('ficha-hp-atual').value);
-    const hpMaximo = Number(document.getElementById('ficha-hp-maximo').value);
 
-    const payload = {
-        nome,
-        sistema,
-        dados_ficha: {
-            sistema,
-            hp_atual: hpAtual,
-            hp_maximo: hpMaximo
-        }
-    };
+    // Higiene de payload: só injeta HP nos sistemas que usam HP, evitando campos órfãos no JSONB.
+    const dados_ficha = { sistema };
+    if (sistema === 'dnd5e') {
+        dados_ficha.hp_atual = Number(document.getElementById('ficha-hp-atual').value);
+        dados_ficha.hp_maximo = Number(document.getElementById('ficha-hp-maximo').value);
+    }
+
+    const payload = { nome, sistema, dados_ficha };
 
     setLoading('btn-salvar-ficha', true, 'A guardar...');
     try {

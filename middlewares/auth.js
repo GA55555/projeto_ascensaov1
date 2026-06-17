@@ -3,19 +3,8 @@ const jwt = require('jsonwebtoken');
 function verificarToken(req, res, next) {
     const JWT_SECRET = process.env.JWT_SECRET;
 
-    let token = null;
-
-    if (req.cookies && req.cookies.m20_token) {
-        token = req.cookies.m20_token;
-    } else {
-        const authHeader = req.headers['authorization'];
-        if (authHeader) {
-            const partes = authHeader.split(' ');
-            if (partes.length === 2 && partes[0] === 'Bearer') {
-                token = partes[1];
-            }
-        }
-    }
+    // Aceita única e exclusivamente o Cookie HttpOnly assinado pelo backend (sem fallback de header).
+    const token = req.cookies ? req.cookies.m20_token : null;
 
     if (!token) {
         return res.status(401).json({ erro: 'Acesso negado. Token não fornecido.' });
