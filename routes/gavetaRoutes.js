@@ -9,5 +9,6 @@ const { uploadFichaSchema, deletarFichaSchema } = require('../validators/gavetaV
 router.get('/fichas',             verificarToken,                                                   GavetaController.listarFichas);
 router.post('/fichas',            verificarToken, uploadPdf.single('ficha'), validate(uploadFichaSchema), GavetaController.uploadFicha);
 router.delete('/fichas/:fichaId', verificarToken, validate(deletarFichaSchema),                    GavetaController.deletarFicha);
+router.get('/download/:filename', verificarToken, GavetaController.baixarFicha);
 
 module.exports = router;

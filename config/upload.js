@@ -28,9 +28,12 @@ const upload = multer({
     limits: { fileSize: 5 * 1024 * 1024 }
 });
 
-// --- PDFs (Gaveta de Fichas) ---
+// --- PDFs (Gaveta de Fichas) — Armazenamento Privado ---
+const pastaPdfPrivada = path.join(__dirname, '..', 'storage', 'fichas');
+if (!fs.existsSync(pastaPdfPrivada)) fs.mkdirSync(pastaPdfPrivada, { recursive: true });
+
 const storagePdf = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, 'public/uploads/fichas'),
+    destination: (req, file, cb) => cb(null, pastaPdfPrivada),
     filename: (req, file, cb) => cb(null, `${Date.now()}.pdf`)
 });
 
