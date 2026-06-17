@@ -71,9 +71,8 @@
 
     <script src="/js/lucide.min.js"></script>
     <script src="/js/api.js"></script>
+    <script src="/js/utils.js"></script>
     <script>
-        if (!localStorage.getItem('m20_user')) window.location.href = '/login.html';
-
         let nomeOficial = '';
 
         function mostrarMsg(texto, tipo) {
@@ -87,7 +86,7 @@
         async function carregarPerfil() {
             try {
                 const res = await fetch('/perfil', {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    credentials: 'include'
                 });
                 const dados = await res.json();
 
@@ -164,7 +163,7 @@
             try {
                 const res = await fetch('/perfil/tema', {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    headers: { 'Content-Type': 'application/json' }, credentials: 'include',
                     body: JSON.stringify({ tema_interface })
                 });
                 const data = await res.json();
@@ -191,7 +190,7 @@
             try {
                 const res = await fetch('/perfil/dados', {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    headers: { 'Content-Type': 'application/json' }, credentials: 'include',
                     body: JSON.stringify({ nome_usuario, email })
                 });
                 const data = await res.json();
@@ -221,7 +220,7 @@
             try {
                 const res = await fetch('/midia/upload/avatares', {
                     method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` },
+                    credentials: 'include',
                     body: formData
                 });
                 const data = await res.json();
@@ -229,7 +228,7 @@
                 if (res.ok && data.urls && data.urls.length) {
                     await fetch('/perfil/avatar', {
                         method: 'PUT',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        headers: { 'Content-Type': 'application/json' }, credentials: 'include',
                         body: JSON.stringify({ avatar_url: data.urls[0] })
                     });
                     mostrarMsg('Avatar atualizado!', 'sucesso');
@@ -251,7 +250,7 @@
             try {
                 const res = await fetch('/perfil/senha', {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    headers: { 'Content-Type': 'application/json' }, credentials: 'include',
                     body: JSON.stringify({ senha_atual, nova_senha })
                 });
                 const data = await res.json();
@@ -268,7 +267,7 @@
             try {
                 const res = await fetch(`/perfil/cronica/${cronicaId}`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    headers: { 'Content-Type': 'application/json' }, credentials: 'include',
                     body: JSON.stringify({ apelido })
                 });
                 const data = await res.json();
@@ -294,7 +293,7 @@
             try {
                 const res = await fetch('/midia/upload/avatares', {
                     method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` },
+                    credentials: 'include',
                     body: formData
                 });
                 const data = await res.json();
@@ -303,7 +302,7 @@
                     const apelido = document.getElementById(`apelido-${cronicaId}`).value;
                     const resUpdate = await fetch(`/perfil/cronica/${cronicaId}`, {
                         method: 'PUT',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        headers: { 'Content-Type': 'application/json' }, credentials: 'include',
                         body: JSON.stringify({ apelido: apelido, avatar_url: data.urls[0] })
                     });
 
@@ -319,8 +318,11 @@
             }
         }
 
-        lucide.createIcons();
-        carregarPerfil();
+        (async () => {
+            if (!(await verificarSessao())) return;
+            lucide.createIcons();
+            carregarPerfil();
+        })();
     </script>
     <script src="/js/toast.js"></script>
     <script src="/js/modalConfirmacao.js"></script>
