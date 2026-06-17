@@ -244,6 +244,8 @@ function renderizarGridCombate() {
         const hpMax = monstro.hp_max || 1;
         const hpAtual = monstro.hp_atual || 0;
         const pctHP = Math.max(0, Math.min(100, (hpAtual / hpMax) * 100));
+        const hpExtra = Math.max(0, hpAtual - hpMax);
+        const pctExtra = Math.min(100, (hpExtra / hpMax) * 100);
         
         const corHP = pctHP > 50 ? '#2ecc71' : (pctHP > 20 ? '#f1c40f' : '#e74c3c');
         const isMorto = hpAtual <= 0;
@@ -266,23 +268,26 @@ function renderizarGridCombate() {
             <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 12px;">
                 <img src="${escapeHTML(monstro.imagem_url)}" class="miniatura-card" data-action="ver-imagem" data-extra="${escapeHTML(monstro.imagem_url)}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px; cursor: pointer;">
                 <div style="flex: 1;">
-                    <label style="font-size: 10px; color: var(--texto-mutado); display:block;">Iniciativa</label>
-                    <input type="number" value="${monstro.iniciativa || 0}" data-action="alterar-iniciativa" data-id="${monstro.id}" style="width: 100%; padding: 2px; text-align: center; background: var(--bg-principal); border: 1px solid var(--borda); color: white; border-radius: 4px; font-size: 12px;">
+                    <label class="label-iniciativa">Iniciativa</label>
+                    <input type="number" class="input-iniciativa" value="${monstro.iniciativa || 0}" data-action="alterar-iniciativa" data-id="${monstro.id}">
                 </div>
             </div>
 
             <div>
                 <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 3px;">
-                    <span id="hp-text-${monstro.id}">HP: ${hpAtual}/${hpMax}</span>
+                    <span id="hp-text-${monstro.id}">HP: ${hpAtual}/${hpMax}${hpExtra > 0 ? ` (+${hpExtra})` : ''}</span>
                     <div style="display: flex; gap: 3px;">
                         <button class="btn btn-sm" style="padding: 1px 4px; color:#e74c3c;" data-action="alterar-hp" data-id="${monstro.id}" data-extra="-1">-1</button>
                         <button class="btn btn-sm" style="padding: 1px 4px; color:#2ecc71;" data-action="alterar-hp" data-id="${monstro.id}" data-extra="1">+1</button>
                     </div>
                 </div>
 
-                <input type="range" class="hp-slider" min="0" max="${hpMax}" value="${hpAtual}"
-                    style="background: linear-gradient(to right, ${corHP} ${pctHP}%, #3f3f46 ${pctHP}%);"
-                    data-action="hp-slider" data-id="${monstro.id}" data-extra="${hpMax}">
+                <div class="hp-barra-wrap">
+                    <input type="range" class="hp-slider" min="0" max="${hpMax}" value="${hpAtual}"
+                        style="background: linear-gradient(to right, ${corHP} ${pctHP}%, #3f3f46 ${pctHP}%);"
+                        data-action="hp-slider" data-id="${monstro.id}" data-extra="${hpMax}">
+                    <div class="barra-vida-extra ${hpExtra > 0 ? 'ativa' : ''}" style="width: ${pctExtra}%;"></div>
+                </div>
                 <div class="barra-bg" style="margin-top: 4px;">
                     <div class="barra-fill" id="hp-bar-${monstro.id}" style="width: ${pctHP}%; --hp-cor: ${pctHP > 50 ? '#2ecc71' : pctHP > 25 ? '#f1c40f' : '#ff0000'};"></div>
                 </div>
@@ -313,7 +318,9 @@ window.salvarHpSlider = function(id, novoHpStr) {
 window.alterarHP = async function(id, mudanca) {
     const m = monstrosCache.find(x => x.id == id);
     if (!m) return;
-    m.hp_atual = Math.max(0, Math.min(m.hp_max, m.hp_atual + mudanca));
+    // Vida extra (overheal): o +1 pode ultrapassar o hp_max; só o piso (0) é travado.
+    // O slider tem max=hp_max, logo não gera overheal — apenas o botão +1.
+    m.hp_atual = Math.max(0, m.hp_atual + mudanca);
     renderizarGridCombate();
     try { await fetch(`/cronicas/${cronicaId}/monstros/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ hp_atual: m.hp_atual })}); } catch (err) {}
 }
