@@ -147,19 +147,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('btn-confirmar-vinculo')?.addEventListener('click', () => salvarVinculo());
 });
 
-let debounceLayoutTimer;
-
 async function inicializarGridModular() {
     gridStackInstance = GridStack.init({
         cellHeight: 80, margin: 10, animate: true, float: true
     });
 
-    gridStackInstance.on('change', function() {
-        clearTimeout(debounceLayoutTimer);
-        debounceLayoutTimer = setTimeout(() => {
-            persistirLayoutGrid();
-        }, 2000);
-    });
+    // Regra 2.7: PROIBIDO auto-save atrelado a eventos do grid (change/added/removed).
+    // O GridStack manipula apenas o DOM em memória; a persistência é explícita,
+    // via botão "Salvar Layout" -> salvarEstadoCompleto() / persistirLayoutGrid().
 
     try {
         const res = await fetch(`/cronicas/${cronicaId}/layout`, { credentials: 'include' });
@@ -172,7 +167,7 @@ async function inicializarGridModular() {
     document.querySelector('.grid-stack').classList.add('pronto');
 }
 
-window.persistirLayoutGrid = async function() {
+window.persistirLayoutGrid = async function(silencioso = false) {
     const itensGrid = gridStackInstance.getGridItems();
     const payloadLayout = itensGrid.map(el => {
         const node = el.gridstackNode;
@@ -191,7 +186,7 @@ window.persistirLayoutGrid = async function() {
             headers: { 'Content-Type': 'application/json' }, credentials: 'include',
             body: JSON.stringify({ layout: payloadLayout })
         });
-        if (res.ok) mostrarToast('Disposição do painel memorizada na Trama!', 'sucesso');
+        if (res.ok && !silencioso) mostrarToast('Disposição do painel memorizada na Trama!', 'sucesso');
     } catch (err) { console.error(err); }
 }
 
@@ -405,7 +400,11 @@ window.salvarEstadoCompleto = async function() {
             method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
             body: JSON.stringify({ nome: nomeSave, layout: payloadLayout, resumo_html: resumoHtml, monstros: monstrosCache })
         });
-        if (res.ok) { mostrarToast('Estado guardado!', 'sucesso'); fecharModal('modal-salvar-escudo'); document.getElementById('nome-save-escudo').value = ''; }
+        if (res.ok) {
+            // Salvamento manual: também sincroniza a disposição-padrão (PUT /layout) de forma silenciosa.
+            await window.persistirLayoutGrid(true);
+            mostrarToast('Estado guardado!', 'sucesso'); fecharModal('modal-salvar-escudo'); document.getElementById('nome-save-escudo').value = '';
+        }
         else { mostrarToast('Erro ao guardar estado.', 'erro'); }
     } catch (err) { console.error(err); }
 }
