@@ -255,8 +255,11 @@ function coletarDadosFicha(ficha) {
     const modal = document.getElementById('modal-editor-ficha');
     const dados = JSON.parse(JSON.stringify(ficha.dados_ficha || {})); // preserva sistema e campos não editáveis
 
-    modal.querySelectorAll('input[data-path]').forEach(input => {
-        const valor = input.type === 'number' ? Number(input.value) : input.value;
+    // Inclui input, select e textarea; checkboxes capturam o estado booleano (Vitalidade).
+    modal.querySelectorAll('[data-path]').forEach(input => {
+        const valor = input.type === 'checkbox'
+            ? input.checked
+            : (input.type === 'number' ? Number(input.value) : input.value);
         definirCaminho(dados, input.dataset.path, valor);
     });
 
@@ -271,7 +274,7 @@ async function salvarEdicaoFicha(idFicha) {
     const versao = document.getElementById('editor-versao').value.trim();
     const dados_ficha = coletarDadosFicha(ficha);
 
-    const payload = { nome, versao: versao || undefined, dados_ficha };
+    const payload = { nome, versao: versao || null, dados_ficha };
 
     setLoading('btn-salvar-edicao', true, 'A guardar...');
     try {
@@ -295,7 +298,7 @@ async function salvarComoNovaVersao(idFicha) {
     const sistema = dados_ficha.sistema || ficha.dados_ficha?.sistema;
 
     // POST cria um novo registo (nova versão), preservando o original intacto.
-    const payload = { nome, sistema, versao: versao || undefined, dados_ficha };
+    const payload = { nome, sistema, versao: versao || null, dados_ficha };
 
     setLoading('btn-salvar-versao', true, 'A ramificar...');
     try {

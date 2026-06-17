@@ -8,7 +8,6 @@ function escapeHTML(str) {
         .replace(/'/g, '&#39;');
 }
 
-if (!localStorage.getItem('m20_user')) window.location.href = '/login.html';
 const cronicaId = new URLSearchParams(window.location.search).get('id');
 
 if (!cronicaId) window.location.href = '/profile.html';
@@ -66,6 +65,7 @@ window.atualizarDisposicaoModulos = function(layout) {
 // 1. INICIALIZAÇÃO E LAYOUT
 // ==========================================
 document.addEventListener('DOMContentLoaded', async () => {
+    if (!(await verificarSessao())) return;
     await inicializarGridModular();
     carregarCardsCombate();
 
@@ -170,7 +170,7 @@ async function inicializarGridModular() {
     });
 
     try {
-        const res = await fetch(`/cronicas/${cronicaId}/layout`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(`/cronicas/${cronicaId}/layout`, { credentials: 'include' });
         if (res.ok) {
             const layout = await res.json();
             // Sincroniza o estado inicial perfeitamente
@@ -196,7 +196,7 @@ window.persistirLayoutGrid = async function() {
     try {
         const res = await fetch(`/cronicas/${cronicaId}/layout`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            headers: { 'Content-Type': 'application/json' }, credentials: 'include',
             body: JSON.stringify({ layout: payloadLayout })
         });
         if (res.ok) mostrarToast('Disposição do painel memorizada na Trama!', 'sucesso');
@@ -208,7 +208,7 @@ window.persistirLayoutGrid = async function() {
 // ==========================================
 async function carregarCardsCombate() {
     try {
-        const res = await fetch(`/cronicas/${cronicaId}/monstros`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(`/cronicas/${cronicaId}/monstros`, { credentials: 'include' });
         if (res.ok) {
             monstrosCache = await res.json();
             renderizarGridCombate();
@@ -328,14 +328,14 @@ window.alterarHP = async function(id, mudanca) {
     if (!m) return;
     m.hp_atual = Math.max(0, Math.min(m.hp_max, m.hp_atual + mudanca));
     renderizarGridCombate();
-    try { await fetch(`/cronicas/${cronicaId}/monstros/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ hp_atual: m.hp_atual })}); } catch (err) {}
+    try { await fetch(`/cronicas/${cronicaId}/monstros/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ hp_atual: m.hp_atual })}); } catch (err) {}
 }
 
 window.alterarIniciativa = async function(id, novaIni) {
     const m = monstrosCache.find(x => x.id == id);
     if (!m) return;
     m.iniciativa = parseInt(novaIni) || 0;
-    try { await fetch(`/cronicas/${cronicaId}/monstros/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ iniciativa: m.iniciativa })}); } catch (err) {}
+    try { await fetch(`/cronicas/${cronicaId}/monstros/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ iniciativa: m.iniciativa })}); } catch (err) {}
 }
 
 window.deletarMonstro = async function(id) {
@@ -343,7 +343,7 @@ window.deletarMonstro = async function(id) {
     monstrosCache = monstrosCache.filter(m => m.id != id);
     if (turnoAtualIndex >= monstrosCache.length) turnoAtualIndex = 0;
     renderizarGridCombate();
-    try { await fetch(`/cronicas/${cronicaId}/monstros/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }}); } catch (err) {}
+    try { await fetch(`/cronicas/${cronicaId}/monstros/${id}`, { method: 'DELETE', credentials: 'include'}); } catch (err) {}
 }
 
 // ==========================================
@@ -390,7 +390,7 @@ async function processarImagem(arquivo) {
 
     const formData = new FormData(); formData.append('imagens', arquivo, `monstro_${Date.now()}.png`);
     try {
-        const res = await fetch(`/midia/upload/cards`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: formData });
+        const res = await fetch(`/midia/upload/cards`, { method: 'POST', credentials: 'include', body: formData });
         if (!res.ok) throw new Error();
         const dados = await res.json();
         document.getElementById('url-imagem-monstro').value = dados.urls ? dados.urls[0] : (dados.url || dados.caminho);
@@ -410,7 +410,7 @@ window.salvarEstadoCompleto = async function() {
 
     try {
         const res = await fetch(`/cronicas/${cronicaId}/escudo-saves`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
             body: JSON.stringify({ nome: nomeSave, layout: payloadLayout, resumo_html: resumoHtml, monstros: monstrosCache })
         });
         if (res.ok) { mostrarToast('Estado guardado!', 'sucesso'); fecharModal('modal-salvar-escudo'); document.getElementById('nome-save-escudo').value = ''; }
@@ -423,7 +423,7 @@ window.aplicarSaveEscudo = async function(saveId) {
         const gridCombate = document.getElementById('grid-combate');
         if(gridCombate) gridCombate.innerHTML = '<div class="info-block-vazio"><span class="spinner"></span> Restaurando a Trama...</div>';
         
-        const res = await fetch(`/cronicas/${cronicaId}/escudo-saves/${saveId}/restaurar`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(`/cronicas/${cronicaId}/escudo-saves/${saveId}/restaurar`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include' });
         if (res.ok) {
             const payload = await res.json(); const dados = payload.dados || {};
             monstrosCache = dados.monstros || []; turnoAtualIndex = 0; renderizarGridCombate(); 
@@ -443,7 +443,7 @@ window.abrirModalCarregarSaves = async function() {
     abrirModal('modal-carregar-escudo');
     const container = document.getElementById('lista-saves-escudo'); container.innerHTML = '<div class="info-block-vazio">Buscando memórias...</div>';
     try {
-        const res = await fetch(`/cronicas/${cronicaId}/escudo-saves`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(`/cronicas/${cronicaId}/escudo-saves`, { credentials: 'include' });
         if (res.ok) {
             const saves = await res.json();
             if (saves.length === 0) { container.innerHTML = '<div class="info-block-vazio">Nenhuma memória guardada nesta Crônica.</div>'; return; }
@@ -463,7 +463,7 @@ window.abrirModalCarregarSaves = async function() {
 
 window.deletarSaveEscudo = async function(saveId) {
     if (!await abrirModalConfirmacao("Apagar permanentemente esta memória do Escudo?")) return;
-    try { await fetch(`/cronicas/${cronicaId}/escudo-saves/${saveId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } }); abrirModalCarregarSaves(); }
+    try { await fetch(`/cronicas/${cronicaId}/escudo-saves/${saveId}`, { method: 'DELETE', credentials: 'include' }); abrirModalCarregarSaves(); }
     catch (err) { mostrarToast('Erro ao apagar.', 'erro'); }
 }
 

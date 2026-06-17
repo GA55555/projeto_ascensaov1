@@ -760,6 +760,56 @@ input.hp-slider + .barra-bg { display: none; }
     gap: 20px;
 }
 
+.grid-3col {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+}
+
+.grid-4col {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+}
+
+/* ── FICHA NATIVA (Papel Contínuo) ─────────────────────── */
+.campo-grupo {
+    margin-bottom: 22px;
+}
+
+.divisor-ficha {
+    border: none;
+    border-top: 1px solid var(--borda);
+    margin: 22px 0;
+}
+
+.ficha-coluna-titulo {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--roxo-mago);
+    border-bottom: 1px solid var(--borda);
+    padding-bottom: 6px;
+    margin-bottom: 12px;
+}
+
+.check-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--texto-claro);
+    cursor: pointer;
+    margin-bottom: 0;
+}
+
+.check-item input[type="checkbox"] {
+    width: auto;
+    cursor: pointer;
+    accent-color: var(--roxo-mago);
+}
+
 
 /* ── PERFIL ────────────────────────────────────────────── */
 .header-perfil {
@@ -1087,6 +1137,8 @@ input.hp-slider + .barra-bg { display: none; }
     .grid-papeis { grid-template-columns: 1fr; }
     .grid-2col { grid-template-columns: 1fr; }
     .grid-2 { grid-template-columns: 1fr; }
+    .grid-3col { grid-template-columns: 1fr; }
+    .grid-4col { grid-template-columns: 1fr 1fr; }
 }
 
 /* ── GRID AUTO-FILL ────────────────────────────────────── */

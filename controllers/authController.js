@@ -3,6 +3,11 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const asyncHandler = require('../utils/asyncHandler');
 
+// Só é alcançado se o middleware verificarToken validar o cookie HttpOnly.
+exports.verificarSessao = (req, res) => {
+    res.json({ ok: true, usuario: { id: req.usuario.id, nome: req.usuario.nome_usuario } });
+};
+
 exports.registrar = asyncHandler(async (req, res) => {
     const { nome, email, senha } = req.body;
 

@@ -12,6 +12,7 @@ const loginLimiter = rateLimit({
     message: { erro: 'Muitas tentativas de login. Conta bloqueada temporariamente. Tente novamente em 15 minutos.' }
 });
 
+router.get('/verificar', verificarToken, AuthController.verificarSessao);
 router.get('/dashboard-resumo', verificarToken, AuthController.dashboardResumo);
 
 router.post('/registro', validate(registroSchema), AuthController.registrar);

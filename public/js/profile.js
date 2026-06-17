@@ -2,7 +2,7 @@
 // CONFIGURAÇÃO INICIAL
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-    // Apenas garante que o token existe. A classe API também verifica, mas isto permite redirecionamento imediato.
+    // Redirecionamento imediato se não houver sessão local; a validação real do cookie é feita pelo backend.
     if (!localStorage.getItem('m20_user')) {
         window.location.href = '/login.html';
         return;
