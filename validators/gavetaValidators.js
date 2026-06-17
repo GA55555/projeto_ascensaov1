@@ -1,9 +1,22 @@
 const { z } = require('zod');
 
-const uploadFichaSchema = z.object({
+const criarFichaSchema = z.object({
     body: z.object({
-        nome: z.string().min(1).max(255).optional(),
-        tipo: z.enum(['modelo_oficial', 'ficha_pessoal']).optional()
+        nome: z.string().min(2, 'O nome deve ter no mínimo 2 caracteres.').max(100, 'O nome deve ter no máximo 100 caracteres.'),
+        sistema: z.string().min(1, 'O sistema é obrigatório.'),
+        versao: z.string().max(50, 'A versão deve ter no máximo 50 caracteres.').optional(),
+        dados_ficha: z.record(z.any())
+    })
+});
+
+const atualizarFichaSchema = z.object({
+    params: z.object({
+        fichaId: z.string().uuid('ID de ficha inválido.')
+    }),
+    body: z.object({
+        nome: z.string().min(2, 'O nome deve ter no mínimo 2 caracteres.').max(100, 'O nome deve ter no máximo 100 caracteres.').optional(),
+        versao: z.string().max(50, 'A versão deve ter no máximo 50 caracteres.').optional(),
+        dados_ficha: z.record(z.any())
     })
 });
 
@@ -13,4 +26,4 @@ const deletarFichaSchema = z.object({
     })
 });
 
-module.exports = { uploadFichaSchema, deletarFichaSchema };
+module.exports = { criarFichaSchema, atualizarFichaSchema, deletarFichaSchema };
