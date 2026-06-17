@@ -18,7 +18,7 @@
 - **Ambiente:** Node.js com Express.js.
 - **Banco de Dados:** PostgreSQL (Queries nativas via `pg` ou query builders autorizados).
 - **Validação de Dados:** `Zod` (Estritamente implementado na camada de middlewares antes dos controllers).
-- **Autenticação:** JSON Web Tokens (JWT) trafegados via header `Authorization: Bearer <token>`.
+- **Autenticação:** JSON Web Tokens (JWT) trafegados **exclusivamente via cookie HttpOnly** (`m20_token`, `SameSite=strict`, `Secure` em produção), escolhido para mitigar roubo de token por XSS. O middleware `auth.js` confia única e exclusivamente no cookie — **não há fallback de header `Authorization: Bearer`**.
 
 ---
 
@@ -122,7 +122,9 @@ Imagens enviadas por upload **nunca** devem ser persistidas no disco no formato 
 - Redimensionamento de segurança: `{ width: 1920, height: 1080, fit: 'inside', withoutEnlargement: true }`.
 
 ### Regra 6.6: Higiene de Disco e Ficheiros Órfãos
-Qualquer operação de `DELETE` no banco de dados que envolva uma entidade associada a um ficheiro físico no servidor (Avatares, PDFs da Gaveta, Capas) **DEVE** obrigatoriamente acionar a remoção física desse ficheiro do disco (usando `fs.unlink`). É inaceitável permitir o acúmulo de "ficheiros zumbis" que consomem o armazenamento do servidor ao longo do tempo.
+Qualquer operação de `DELETE` no banco de dados que envolva uma entidade associada a um ficheiro físico no servidor (Avatares, Capas e demais imagens) **DEVE** obrigatoriamente acionar a remoção física desse ficheiro do disco (usando `fs.unlink`). É inaceitável permitir o acúmulo de "ficheiros zumbis" que consomem o armazenamento do servidor ao longo do tempo.
+
+> **Nota de escopo (Gaveta de Fichas):** A Gaveta deixou de armazenar PDFs físicos. As fichas são agora **nativas**, persistidas integralmente na coluna `gaveta_fichas.dados_ficha` (JSONB). Portanto a deleção de uma ficha **não** tem ficheiro físico associado e esta regra não se aplica a ela — basta o `DELETE` no banco (validado por `usuario_id`, ver Regra 3.3).
 
 ---
 

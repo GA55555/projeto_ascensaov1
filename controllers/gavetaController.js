@@ -42,6 +42,14 @@ exports.listarFichas = asyncHandler(async (req, res) => {
 
 exports.deletarFicha = asyncHandler(async (req, res) => {
     const { fichaId } = req.params;
-    await pool.query('DELETE FROM gaveta_fichas WHERE id = $1', [fichaId]);
+    const result = await pool.query(
+        'DELETE FROM gaveta_fichas WHERE id = $1 AND usuario_id = $2 RETURNING id',
+        [fichaId, req.usuario.id]
+    );
+
+    if (result.rows.length === 0) {
+        return res.status(404).json({ erro: 'Ficha não encontrada ou acesso negado.' });
+    }
+
     res.json({ mensagem: 'Ficha removida com sucesso.' });
 });

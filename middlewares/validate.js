@@ -12,7 +12,11 @@ const validate = (schema) => (req, res, next) => {
         });
         next();
     } catch (err) {
-        return res.status(400).json({ erro: err.errors });
+        // Zod v4: o array estruturado de erros vive em err.issues (err.errors é getter depreciado).
+        if (err instanceof ZodError) {
+            return res.status(400).json({ erro: err.issues });
+        }
+        return res.status(400).json({ erro: err.message });
     }
 };
 module.exports = validate;
