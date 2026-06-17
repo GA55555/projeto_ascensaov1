@@ -7,8 +7,7 @@ const caminhosUpload = [
     'public/uploads/capas',
     'public/uploads/social',
     'public/uploads/cards',
-    'public/uploads/posts',
-    'public/uploads/fichas'
+    'public/uploads/posts'
 ];
 
 caminhosUpload.forEach(pasta => {
