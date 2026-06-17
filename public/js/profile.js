@@ -3,7 +3,7 @@
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
     // Apenas garante que o token existe. A classe API também verifica, mas isto permite redirecionamento imediato.
-    if (!localStorage.getItem('m20_token')) {
+    if (!localStorage.getItem('m20_user')) {
         window.location.href = '/login.html';
         return;
     }
@@ -20,10 +20,10 @@ window.addEventListener('pageshow', function(event) {
 // ==========================================
 // FUNÇÕES DE UTILIZADOR
 // ==========================================
-window.fazerLogout = function() {
-    localStorage.removeItem('m20_token');
-    localStorage.removeItem('m20_role');
+window.fazerLogout = async function() {
+    await fetch('/auth/logout', { method: 'POST', credentials: 'include' });
     localStorage.removeItem('m20_user');
+    localStorage.removeItem('m20_tema');
     window.location.href = '/login.html';
 }
 

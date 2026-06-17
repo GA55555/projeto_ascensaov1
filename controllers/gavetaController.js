@@ -29,21 +29,15 @@ exports.listarFichas = asyncHandler(async (req, res) => {
 
 exports.deletarFicha = asyncHandler(async (req, res) => {
     const { fichaId } = req.params;
-
-    const busca = await pool.query(
-        'SELECT url_arquivo FROM gaveta_fichas WHERE id = $1 AND usuario_id = $2',
-        [fichaId, req.usuario.id]
-    );
-
+    const busca = await pool.query('SELECT url_arquivo FROM gaveta_fichas WHERE id = $1 AND usuario_id = $2', [fichaId, req.usuario.id]);
     if (busca.rows.length === 0) return res.status(404).json({ erro: 'Ficha não encontrada.' });
 
-    const caminhoFisico = path.join(__dirname, '..', 'public', busca.rows[0].url_arquivo);
+    const nomeArquivo = path.basename(busca.rows[0].url_arquivo);
+    const caminhoFisico = path.join(__dirname, '..', 'public', 'uploads', 'fichas', nomeArquivo);
+
+    try { await fs.promises.unlink(caminhoFisico); }
+    catch (err) { console.warn('[Gaveta] Arquivo físico não localizado para remoção:', caminhoFisico); }
 
     await pool.query('DELETE FROM gaveta_fichas WHERE id = $1', [fichaId]);
-
-    fs.unlink(caminhoFisico, (err) => {
-        if (err) console.error('[Gaveta] Arquivo físico não localizado para remoção:', caminhoFisico);
-    });
-
     res.json({ mensagem: 'Ficha removida com sucesso.' });
 });

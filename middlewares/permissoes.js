@@ -4,37 +4,26 @@ const pool = require('../db');
 // Transformado em Middleware do Express!
 async function checarAcessoCronica(req, res, next) {
     try {
-        // Pescamos os dados de onde eles realmente estão:
-        const usuarioId = req.usuario.id; 
-        const cronicaId = req.params.cronicaId; // Vem da URL (ex: /cronicas/1/...)
+        const usuarioId = req.usuario.id;
+        const cronicaId = req.params.cronicaId;
 
         if (!cronicaId) {
             return res.status(400).json({ erro: 'ID da crônica ausente na URL.' });
         }
 
-        // 1. Checa se é o Narrador (Dono da Crônica)
-        const donoQuery = await pool.query(
-            'SELECT narrador_id FROM cronicas WHERE id = $1', 
-            [cronicaId]
-        );
-        
-        if (donoQuery.rows.length > 0 && donoQuery.rows[0].narrador_id === usuarioId) {
-            req.acesso = 'narrador'; // Guarda a permissão no objeto 'req'
-            return next(); // Libera a catraca para a próxima função!
-        }
-
-        // 2. Checa se é um Jogador da Crônica
-        const jogadorQuery = await pool.query(
-            'SELECT papel FROM cronica_jogadores WHERE cronica_id = $1 AND usuario_id = $2',
+        const resultado = await pool.query(
+            `SELECT 'narrador' AS papel FROM cronicas WHERE id = $1 AND narrador_id = $2
+             UNION
+             SELECT papel FROM cronica_jogadores WHERE cronica_id = $1 AND usuario_id = $2
+             LIMIT 1`,
             [cronicaId, usuarioId]
         );
 
-        if (jogadorQuery.rows.length > 0) {
-            req.acesso = jogadorQuery.rows[0].papel || 'jogador'; // Guarda a permissão
-            return next(); // Libera a catraca!
+        if (resultado.rows.length > 0) {
+            req.acesso = resultado.rows[0].papel || 'jogador';
+            return next();
         }
 
-        // 3. Se não caiu em nenhum dos casos acima, o acesso é negado.
         return res.status(403).json({ erro: 'Acesso negado: Você não pertence a esta crônica.' });
 
     } catch (err) {

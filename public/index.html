@@ -81,8 +81,7 @@
 
     <script src="/js/lucide.min.js"></script>
     <script>
-        const token = localStorage.getItem('m20_token');
-        if (!token) window.location.href = '/login.html';
+        if (!localStorage.getItem('m20_user')) window.location.href = '/login.html';
         lucide.createIcons();
     </script>
     <script src="/js/toast.js"></script>

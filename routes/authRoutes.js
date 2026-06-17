@@ -13,7 +13,6 @@ const loginLimiter = rateLimit({
     message: { erro: 'Muitas tentativas de login. Conta bloqueada temporariamente. Tente novamente em 15 minutos.' }
 });
 
-const JWT_SECRET = process.env.JWT_SECRET;
 
 router.get('/dashboard-resumo', verificarToken, AuthController.dashboardResumo);
 
@@ -53,16 +52,20 @@ router.post('/login', loginLimiter, async (req, res) => {
             return res.status(401).json({ erro: 'Credenciais inválidas' });
         }
 
-        // ✅ Token simplificado (sem papel)
         const token = jwt.sign(
             { id: usuario.rows[0].id, nome_usuario: usuario.rows[0].nome_usuario },
-            JWT_SECRET,
+            process.env.JWT_SECRET,
             { expiresIn: '7d' }
         );
 
-        // ✅ Resposta sem papel
+        res.cookie('m20_token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 86400000
+        });
+
         res.json({
-            token,
             usuario: {
                 id: usuario.rows[0].id,
                 nome: usuario.rows[0].nome_usuario,
@@ -74,6 +77,11 @@ router.post('/login', loginLimiter, async (req, res) => {
         console.error('Erro no login:', err);
         res.status(500).json({ erro: 'Erro no servidor' });
     }
+});
+
+router.post('/logout', (req, res) => {
+    res.clearCookie('m20_token');
+    res.json({ mensagem: 'Logout efetuado' });
 });
 
 module.exports = router;
