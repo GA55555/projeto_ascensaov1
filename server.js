@@ -24,6 +24,7 @@ const compression = require('compression');
 const helmet = require('helmet');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
+const cookieParser = require('cookie-parser');
 
 // =========================================================================
 // CONFIGURAÇÃO DE SEGURANÇA E CORS (LÊ DO .ENV)
@@ -71,6 +72,7 @@ app.use(cors({
     credentials: true
 }));
 
+app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'static')));
 app.use(express.json({ limit: '1mb' }));
 

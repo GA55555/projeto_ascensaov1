@@ -8,8 +8,7 @@ function escapeHTML(str) {
         .replace(/'/g, '&#39;');
 }
 
-const token = localStorage.getItem('m20_token');
-if (!token) window.location.href = '/login.html';
+if (!localStorage.getItem('m20_user')) window.location.href = '/login.html';
 const cronicaId = new URLSearchParams(window.location.search).get('id');
 
 if (!cronicaId) window.location.href = '/profile.html';
@@ -971,10 +970,9 @@ document.addEventListener('paste', async (event) => {
     try {
         // ATENÇÃO: Usamos o fetch nativo aqui porque o FormData não pode ter
         // o cabeçalho 'Content-Type': 'application/json' que o seu api.js normalmente injeta.
-        const token = localStorage.getItem('m20_token');
         const res = await fetch(`/midia`, {
             method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}` },
+            credentials: 'include',
             body: formData
         });
 

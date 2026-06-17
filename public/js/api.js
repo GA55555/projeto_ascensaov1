@@ -19,48 +19,27 @@ window.escapeHTML = function(str) {
 };
 
 const API = {
-    /**
-     * Função que substitui o fetch nativo.
-     * Ela injeta o token automaticamente e lida com erros de sessão.
-     */
     async fetch(url, options = {}) {
-        const token = localStorage.getItem('m20_token');
-        
-        // Se a página exige login e não há token, expulsa imediatamente
-        if (!token && !url.includes('/login') && !url.includes('/registro')) {
-            window.location.href = '/login.html';
-            return Promise.reject("Usuário não autenticado");
-        }
-
-        // Prepara os cabeçalhos (headers)
         const headers = {
             ...options.headers,
         };
 
-        // Injeta o token de autorização
-        if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-        }
-
-        // Se estiver enviando JSON, garante o Content-Type
         if (options.body && typeof options.body === 'string' && !headers['Content-Type']) {
             headers['Content-Type'] = 'application/json';
         }
-        // Nota: Quando enviamos FormData (para imagens), não colocamos Content-Type.
-        // O navegador faz isso sozinho.
 
         const configFinal = {
             ...options,
-            headers
+            headers,
+            credentials: 'include'
         };
 
         try {
             const resposta = await fetch(url, configFinal);
 
-            // Se o servidor avisar que o token é inválido ou expirou (401 ou 403)
             if (resposta.status === 401 || resposta.status === 403) {
                 console.warn("Acesso negado ou sessão expirada. Redirecionando...");
-                localStorage.removeItem('m20_token'); // Limpa o token morto
+                localStorage.removeItem('m20_user');
                 window.location.href = '/login.html';
                 throw new Error("Sessão expirada. Faça login novamente.");
             }
@@ -68,7 +47,6 @@ const API = {
             return resposta;
         } catch (erro) {
             console.error("Erro de comunicação com o servidor:", erro);
-            // Avisa o utilizador instantaneamente se a internet cair ou o servidor desligar
             if (window.mostrarToast) {
                 window.mostrarToast("Erro de comunicação com o servidor.", "erro");
             }

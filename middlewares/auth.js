@@ -1,33 +1,31 @@
 const jwt = require('jsonwebtoken');
 
-// ✅ Usa variável de ambiente, sem fallback hardcoded
-const JWT_SECRET = process.env.JWT_SECRET;
-
 function verificarToken(req, res, next) {
-    
-    const authHeader = req.headers['authorization'];
-    
-    // 1. Verifica se o header existe
-    if (!authHeader) {
+    const JWT_SECRET = process.env.JWT_SECRET;
+
+    let token = null;
+
+    if (req.cookies && req.cookies.m20_token) {
+        token = req.cookies.m20_token;
+    } else {
+        const authHeader = req.headers['authorization'];
+        if (authHeader) {
+            const partes = authHeader.split(' ');
+            if (partes.length === 2 && partes[0] === 'Bearer') {
+                token = partes[1];
+            }
+        }
+    }
+
+    if (!token) {
         return res.status(401).json({ erro: 'Acesso negado. Token não fornecido.' });
     }
 
-    // 2. Valida o prefixo "Bearer "
-    const partes = authHeader.split(' ');
-    
-    if (partes.length !== 2 || partes[0] !== 'Bearer') {
-        return res.status(401).json({ erro: 'Formato de token inválido. Use: Bearer <token>' });
-    }
-
-    const token = partes[1];
-
-    // 3. Verifica se JWT_SECRET está configurado
     if (!JWT_SECRET) {
         console.error('JWT_SECRET não configurado nas variáveis de ambiente!');
         return res.status(500).json({ erro: 'Erro interno de configuração do servidor.' });
     }
 
-    // 4. Verifica o token
     jwt.verify(token, JWT_SECRET, (err, decoded) => {
         if (err) {
             if (err.name === 'TokenExpiredError') {
@@ -35,8 +33,7 @@ function verificarToken(req, res, next) {
             }
             return res.status(403).json({ erro: 'Token inválido.' });
         }
-        
-        // Injeta dados do usuário na requisição
+
         req.usuario = decoded;
         next();
     });

@@ -39,14 +39,24 @@ async function carregarFichas() {
     }
 }
 
-async function deletarFicha(id) {
-    const confirmado = await abrirModalConfirmacao('Tem a certeza que quer apagar esta ficha permanentemente?');
+async function deletarFicha(id, elemento) {
+    const confirmado = await abrirModalConfirmacao('Tem certeza que deseja apagar esta ficha permanentemente? Esta ação não pode ser desfeita.');
     if (!confirmado) return;
 
     try {
         await GavetaApi.deletar(id);
         mostrarToast('Ficha removida com sucesso.', 'sucesso');
-        carregarFichas();
+        elemento.remove();
+
+        const container = document.getElementById('lista-minhas-fichas');
+        if (container.querySelectorAll('.ficha-item').length === 0) {
+            container.innerHTML = `
+                <div class="info-block-vazio">
+                    <i data-lucide="file-question"></i>
+                    <p>Nenhuma ficha salva ainda.</p>
+                </div>`;
+            lucide.createIcons();
+        }
     } catch (err) {
         mostrarToast(err.message, 'erro');
     }
@@ -83,7 +93,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Delegação de eventos para o botão de apagar
     document.getElementById('lista-minhas-fichas').addEventListener('click', (e) => {
         const btn = e.target.closest('[data-action="deletar-ficha"]');
-        if (btn) deletarFicha(btn.dataset.id);
+        if (btn) {
+            const fichaItem = btn.closest('.ficha-item');
+            deletarFicha(btn.dataset.id, fichaItem);
+        }
     });
 
     carregarFichas();

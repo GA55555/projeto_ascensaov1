@@ -20,7 +20,7 @@ let textoBuscaSessoes = '';
 // INICIALIZAÇÃO
 // ==========================================
 document.addEventListener('DOMContentLoaded', async () => {
-    if (!localStorage.getItem('m20_token')) {
+    if (!localStorage.getItem('m20_user')) {
         window.location.href = '/login.html';
         return;
     }
