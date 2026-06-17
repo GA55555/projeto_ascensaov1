@@ -290,6 +290,7 @@ function renderizarGridCombate() {
                 </div>
                 <div class="barra-bg" style="margin-top: 4px;">
                     <div class="barra-fill" id="hp-bar-${monstro.id}" style="width: ${pctHP}%; --hp-cor: ${pctHP > 50 ? '#2ecc71' : pctHP > 25 ? '#f1c40f' : '#ff0000'};"></div>
+                    <div class="barra-vida-extra barra-vida-extra--secundaria ${hpExtra > 0 ? 'ativa' : ''}" style="width: ${pctExtra}%;"></div>
                 </div>
             </div>
         </div>`;

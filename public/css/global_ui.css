@@ -504,6 +504,7 @@ label {
 
 /* ── BARRAS DE PROGRESSO ───────────────────────────────── */
 .barra-bg {
+    position: relative;
     background: var(--bg-principal);
     border: 1px solid var(--borda);
     border-radius: 4px;
@@ -520,8 +521,10 @@ label {
 
 .barra-alerta { background: var(--erro); }
 
-/* Segunda barra (barra-bg) só existe no tema 16-bit — oculta no tema padrão */
-input.hp-slider + .barra-bg { display: none; }
+/* Segunda barra (barra-bg) só existe no tema 16-bit — oculta no tema padrão.
+   O slider agora vive dentro de .hp-barra-wrap, logo a barra secundária é
+   irmã do wrapper (e não mais do <input>). */
+.hp-barra-wrap + .barra-bg { display: none; }
 
 /* ── VIDA EXTRA (OVERHEAL) ─────────────────────────────── */
 /* Barra azul sobreposta ao slider de HP, crescendo a partir da esquerda.
@@ -1465,7 +1468,7 @@ input[type="radio"] {
 /* ── BARRAS DE PROGRESSO 16-BIT ─────────────────────────── */
 
 /* Reativa a segunda barra no tema 16-bit */
-.tema-pixel-16bit input.hp-slider + .barra-bg { display: block; }
+.tema-pixel-16bit .hp-barra-wrap + .barra-bg { display: block; }
 
 .tema-pixel-16bit .barra-bg {
     background: #000000 !important;
@@ -1490,8 +1493,17 @@ input[type="radio"] {
     transition: width 0.2s steps(10) !important;
 }
 
-/* Vida extra (overheal) no tema 16-bit: bloco azul dithered com borda branca */
-.tema-pixel-16bit .barra-vida-extra {
+/* No 16-bit a barra de HP "real" é a secundária (.barra-bg), então a vida extra
+   mora nela. A barra extra sobreposta ao slider fica oculta neste tema. */
+.tema-pixel-16bit .hp-barra-wrap .barra-vida-extra { display: none !important; }
+
+/* Vida extra (overheal) no 16-bit: bloco azul dithered sobre o preenchimento
+   pixelado, alinhado ao padding de 2px da .barra-bg. */
+.tema-pixel-16bit .barra-vida-extra--secundaria {
+    top: 2px;
+    left: 2px;
+    bottom: 2px;
+    height: auto;
     background-color: var(--azul-vida) !important;
     background-image: repeating-linear-gradient(
         to right,
@@ -1500,7 +1512,7 @@ input[type="radio"] {
         rgba(0, 0, 0, 0.8) 10px,
         rgba(0, 0, 0, 0.8) 12px
     ) !important;
-    border: 2px solid #ffffff !important;
+    border: 0 !important;
     border-radius: 0 !important;
     opacity: 1 !important;
     box-shadow: inset 0px 3px 0px rgba(255,255,255,0.4), inset 0px -3px 0px rgba(0,0,0,0.4) !important;
