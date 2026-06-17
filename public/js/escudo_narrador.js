@@ -956,12 +956,12 @@ document.addEventListener('paste', async (event) => {
 
     // 2. Prepara os dados para enviar para a sua rota de mídias (/midia)
     const formData = new FormData();
-    formData.append('arquivo', blobImagem, `monstro_${Date.now()}.png`);
+    formData.append('imagens', blobImagem, `monstro_${Date.now()}.png`);
 
     try {
         // ATENÇÃO: Usamos o fetch nativo aqui porque o FormData não pode ter
         // o cabeçalho 'Content-Type': 'application/json' que o seu api.js normalmente injeta.
-        const res = await fetch(`/midia`, {
+        const res = await fetch(`/midia/upload/cards`, {
             method: 'POST',
             credentials: 'include',
             body: formData
@@ -972,7 +972,7 @@ document.addEventListener('paste', async (event) => {
         const dados = await res.json();
         
         // 3. Sucesso! Guarda a URL devolvida pelo servidor, esconde o loading e liberta o botão
-        document.getElementById('url-imagem-monstro').value = dados.url; // Ajuste 'dados.url' conforme o retorno exato do seu midiaController
+        document.getElementById('url-imagem-monstro').value = dados.urls[0]; // midiaController devolve { urls: [...] }
         preview.style.display = 'block';
         loading.style.display = 'none';
         btnSalvar.disabled = false;
