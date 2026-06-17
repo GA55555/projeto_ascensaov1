@@ -56,6 +56,9 @@ O VTT possui uma identidade visual estrita baseada em jogos de RPG modernos e in
 - **Prevenção de Camuflagem (Contrast Inversion):** É **ESTRITAMENTE PROIBIDO** programar transições de `:hover`, `:focus` ou `:active` onde a cor do background preenchido possua contraste insuficiente contra a cor da fonte. Se um botão vazado (`outline`/`ghost`) ganhar preenchimento sólido na interação, a propriedade `color` **DO TEXTO E DO ÍCONE DEVE** obrigatoriamente inverter para um tom de alto contraste geométrico (ex: `#ffffff` para fundos escuros ou cores fortes).
 - **Herança Estrita de SVGs:** Os ícones vetorizados (Lucide) devem utilizar impreterivelmente `stroke: currentColor !important;` em seu CSS base. Transições de cor devem ocorrer no **contêiner pai**, forçando o ícone a rastrear e herdar passivamente as mudanças de `color`.
 
+### Regra 2.7: Salvamento Manual em Grids
+Operações envolvendo bibliotecas de manipulação de DOM intensivas (como o `GridStack.js`) em painéis complexos (Escudo do Narrador, Controle de Mundo) **ESTÃO PROIBIDAS** de utilizar auto-save atrelado a eventos de drag/drop/resize (`change`, `added`, `removed`, `resizestop`). O salvamento de estado (layout e conteúdo) deve ser feito **ÚNICA E EXCLUSIVAMENTE** de forma explícita pelo utilizador através de botões de ação dedicados, prevenindo gargalos de rede (API Spam) e dessincronização de estado.
+
 ---
 
 ## 🛡️ 3. Arquitetura do Backend e Segurança
@@ -88,6 +91,9 @@ O utilizador do banco de dados configurado na aplicação Node.js (`.env`) **DEV
 
 ### Regra 4.2: Resiliência de Estado e Dados Corrompidos
 Nunca confie cegamente nos dados retornados pelo próprio banco, especialmente em colunas JSON/JSONB de "Saves" antigos. O código que restaura estados (ex: layout do escudo ou lista de monstros) deve ser **defensivo**. Utilize `ON CONFLICT DO NOTHING` ou `DO UPDATE` para evitar `500 Internal Server Error` caso o banco contenha lixo residual de versões anteriores. O sistema deve falhar graciosamente e ignorar o dado corrompido, mantendo a sessão viva.
+
+### Regra 4.3: Tipagem de Chaves Primárias (UUID Estrito)
+Todas as tabelas do banco de dados PostgreSQL **DEVEM** obrigatoriamente utilizar o tipo `uuid` para as suas Chaves Primárias, com a geração automática configurada via `DEFAULT gen_random_uuid()`. É **terminantemente proibido** o uso de IDs numéricos sequenciais (`SERIAL`, `INT`). As validações no Node.js (Zod) **DEVEM** espelhar esta regra exigindo `.string().uuid()`.
 
 ---
 
