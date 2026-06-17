@@ -1,5 +1,4 @@
 const multer = require('multer');
-const path = require('path');
 const fs = require('fs');
 
 const caminhosUpload = [
@@ -27,27 +26,4 @@ const upload = multer({
     limits: { fileSize: 5 * 1024 * 1024 }
 });
 
-// --- PDFs (Gaveta de Fichas) — Armazenamento Privado ---
-const pastaPdfPrivada = path.join(__dirname, '..', 'storage', 'fichas');
-if (!fs.existsSync(pastaPdfPrivada)) fs.mkdirSync(pastaPdfPrivada, { recursive: true });
-
-const storagePdf = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, pastaPdfPrivada),
-    filename: (req, file, cb) => cb(null, `${Date.now()}.pdf`)
-});
-
-const filtroPdf = (req, file, cb) => {
-    const extValida = path.extname(file.originalname).toLowerCase() === '.pdf';
-    const mimeValido = file.mimetype === 'application/pdf';
-    if (extValida && mimeValido) return cb(null, true);
-    cb(new Error('Apenas ficheiros PDF são permitidos.'));
-};
-
-const uploadPdf = multer({
-    storage: storagePdf,
-    fileFilter: filtroPdf,
-    limits: { fileSize: 5 * 1024 * 1024 }
-});
-
 module.exports = upload;
-module.exports.uploadPdf = uploadPdf;

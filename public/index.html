@@ -25,6 +25,15 @@
         .btn-voltar         { text-decoration: none; display: inline-flex; align-items: center; gap: 8px; margin-bottom: 20px; }
         .btn-upload         { display: inline-flex; align-items: center; gap: 5px; }
         .ficha-item-acoes   { display: flex; align-items: center; gap: 6px; }
+        .ficha-item-sistema { font-size: 11px; color: var(--texto-mutado); margin-left: 4px; }
+        .modal-criar-box    { width: 100%; max-width: 440px; }
+        .modal-criar-titulo { display: flex; align-items: center; gap: 8px; font-size: 1.2rem; margin: 0 0 18px 0; }
+        .modal-editor-box   { width: 96%; max-width: 900px; height: 92vh; display: flex; flex-direction: column; }
+        .editor-topo        { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--borda); padding-bottom: 12px; margin-bottom: 16px; }
+        .editor-topo h2     { display: flex; align-items: center; gap: 8px; font-size: 1.3rem; margin: 0; }
+        .editor-corpo       { flex: 1; overflow-y: auto; padding-right: 6px; }
+        .editor-rodape      { border-top: 1px solid var(--borda); padding-top: 14px; margin-top: 4px; }
+        .ficha-secao-titulo { display: flex; align-items: center; gap: 8px; font-size: 1rem; margin: 0 0 14px 0; }
         @media (max-width: 768px) { .gaveta-grid { grid-template-columns: 1fr; } }
     </style>
 </head>
@@ -65,9 +74,8 @@
             <div class="card-topo">
                 <h2><i data-lucide="folder-lock"></i> Minhas Fichas Salvas</h2>
                 <button id="btn-nova-ficha" class="btn btn-sm btn-primary btn-upload">
-                    <i data-lucide="upload-cloud"></i> Nova Ficha
+                    <i data-lucide="file-plus"></i> Criar Nova Ficha
                 </button>
-                <input type="file" id="input-upload-pdf" accept="application/pdf" style="display:none;">
             </div>
             <div id="lista-minhas-fichas">
                 <div class="info-block-vazio">
@@ -88,6 +96,8 @@
     <script src="/js/modalConfirmacao.js"></script>
     <script src="/js/api.js"></script>
     <script src="/js/api/gavetaApi.js"></script>
+    <script src="/js/templates/fichas_dnd5e.js"></script>
+    <script src="/js/templates/fichas_mago.js"></script>
     <script src="/js/gaveta.js"></script>
 </body>
 </html>
