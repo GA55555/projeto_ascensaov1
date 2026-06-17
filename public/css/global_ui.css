@@ -22,6 +22,7 @@
     --destaque-hover:  #059669;
     --erro:            #ef4444;
     --aviso:           #f59e0b;
+    --azul-vida:       #3b82f6;
     --sombra:          rgba(0, 0, 0, 0.35);
     --sombra-borda:    rgba(0, 0, 0, 0.4);
     --sombra-profunda: rgba(0, 0, 0, 0.5);
@@ -521,6 +522,50 @@ label {
 
 /* Segunda barra (barra-bg) só existe no tema 16-bit — oculta no tema padrão */
 input.hp-slider + .barra-bg { display: none; }
+
+/* ── VIDA EXTRA (OVERHEAL) ─────────────────────────────── */
+/* Barra azul sobreposta ao slider de HP, crescendo a partir da esquerda.
+   Só aparece quando o HP ultrapassa o máximo (botão +1). Não bloqueia o slider. */
+.hp-barra-wrap { position: relative; }
+.barra-vida-extra {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 0;
+    height: 100%;
+    background: var(--azul-vida);
+    border-radius: 4px;
+    opacity: 0.88;
+    pointer-events: none;
+    box-shadow: 0 0 8px var(--azul-vida);
+    transition: width 0.3s ease;
+    display: none;
+}
+.barra-vida-extra.ativa { display: block; }
+
+/* ── CAMPO DE INICIATIVA (RETÂNGULO COMPACTO) ──────────── */
+.label-iniciativa {
+    font-size: 10px;
+    color: var(--texto-mutado);
+    display: block;
+    margin-bottom: 3px;
+}
+.input-iniciativa {
+    width: 64px;
+    padding: 4px 6px;
+    text-align: center;
+    background: var(--bg-principal);
+    border: 1px solid var(--borda);
+    color: var(--texto-claro);
+    border-radius: 4px;
+    font-family: 'Fira Code', monospace;
+    font-size: 13px;
+    transition: var(--transicao-suave);
+}
+.input-iniciativa:focus {
+    border-color: var(--roxo-mago);
+    outline: none;
+}
 
 /* ── ABAS (TABS) ───────────────────────────────────────── */
 .tabs {
@@ -1441,6 +1486,23 @@ input[type="radio"] {
         rgba(0, 0, 0, 0.8) 12px
     ) !important;
     border-radius: 0 !important;
+    box-shadow: inset 0px 3px 0px rgba(255,255,255,0.4), inset 0px -3px 0px rgba(0,0,0,0.4) !important;
+    transition: width 0.2s steps(10) !important;
+}
+
+/* Vida extra (overheal) no tema 16-bit: bloco azul dithered com borda branca */
+.tema-pixel-16bit .barra-vida-extra {
+    background-color: var(--azul-vida) !important;
+    background-image: repeating-linear-gradient(
+        to right,
+        transparent,
+        transparent 10px,
+        rgba(0, 0, 0, 0.8) 10px,
+        rgba(0, 0, 0, 0.8) 12px
+    ) !important;
+    border: 2px solid #ffffff !important;
+    border-radius: 0 !important;
+    opacity: 1 !important;
     box-shadow: inset 0px 3px 0px rgba(255,255,255,0.4), inset 0px -3px 0px rgba(0,0,0,0.4) !important;
     transition: width 0.2s steps(10) !important;
 }
