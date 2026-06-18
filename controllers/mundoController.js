@@ -1,6 +1,22 @@
 const asyncHandler = require('../utils/asyncHandler');
 const pool = require('../db');
-const automacaoService = require('../services/automacaoService'); 
+const automacaoService = require('../services/automacaoService');
+
+// =======================================================
+// GUARDS DE PROPRIEDADE (anti-IDOR) — Regra 3.3
+// Tabelas-filhas (world_flags, event_flag_weights, event_nucleos) não têm
+// cronica_id; estes helpers confirmam que o node/evento pertence à crônica da
+// rota ANTES de qualquer mutação. Nomes de tabela fixos + queries parametrizadas
+// (Regra 6.2 — sem concatenação dinâmica).
+// =======================================================
+async function nodePertenceACronica(nodeId, cronicaId) {
+    const r = await pool.query('SELECT 1 FROM world_nodes WHERE id = $1 AND cronica_id = $2', [nodeId, cronicaId]);
+    return r.rows.length > 0;
+}
+async function eventoPertenceACronica(eventoId, cronicaId) {
+    const r = await pool.query('SELECT 1 FROM world_events WHERE id = $1 AND cronica_id = $2', [eventoId, cronicaId]);
+    return r.rows.length > 0;
+}
 
 
 // =======================================================
@@ -58,10 +74,11 @@ exports.criarNode = async (req, res) => {
 };
 
 exports.editarNode = async (req, res) => {
-    const { nodeId } = req.params;
+    const { cronicaId, nodeId } = req.params;
     const { nome } = req.body;
     try {
-        const result = await pool.query('UPDATE world_nodes SET nome = $1 WHERE id = $2 RETURNING *', [nome, nodeId]);
+        // IDOR: amarra o node à crônica da rota — impede editar nós de outra crônica.
+        const result = await pool.query('UPDATE world_nodes SET nome = $1 WHERE id = $2 AND cronica_id = $3 RETURNING *', [nome, nodeId, cronicaId]);
         if (result.rows.length === 0) return res.status(404).json({ erro: 'Entidade não encontrada.' });
         res.json({ mensagem: 'Entidade atualizada!', node: result.rows[0] });
     } catch (err) {
@@ -71,9 +88,10 @@ exports.editarNode = async (req, res) => {
 };
 
 exports.deletarNode = async (req, res) => {
-    const { nodeId } = req.params;
+    const { cronicaId, nodeId } = req.params;
     try {
-        const result = await pool.query('DELETE FROM world_nodes WHERE id = $1 RETURNING id', [nodeId]);
+        // IDOR: só apaga se o node pertencer à crônica da rota.
+        const result = await pool.query('DELETE FROM world_nodes WHERE id = $1 AND cronica_id = $2 RETURNING id', [nodeId, cronicaId]);
         if (result.rows.length === 0) return res.status(404).json({ erro: 'Entidade não encontrada.' });
         res.json({ mensagem: 'Entidade e vínculos apagados.' });
     } catch (err) {
@@ -83,10 +101,12 @@ exports.deletarNode = async (req, res) => {
 };
 
 exports.atualizarNucleoNode = async (req, res) => {
-    const { nodeId } = req.params;
+    const { cronicaId, nodeId } = req.params;
     const { nucleo_id } = req.body;
     try {
-        await pool.query('UPDATE world_nodes SET nucleo_id = $1 WHERE id = $2', [nucleo_id || null, nodeId]);
+        // IDOR: só associa núcleo a um node da própria crônica.
+        const result = await pool.query('UPDATE world_nodes SET nucleo_id = $1 WHERE id = $2 AND cronica_id = $3 RETURNING id', [nucleo_id || null, nodeId, cronicaId]);
+        if (result.rows.length === 0) return res.status(404).json({ erro: 'Entidade não encontrada.' });
         res.json({ mensagem: 'Núcleo atualizado.' });
     } catch (err) {
         console.error(err);
@@ -98,9 +118,10 @@ exports.atualizarNucleoNode = async (req, res) => {
 // FLAGS (VARIÁVEIS DE MUNDO)
 // =======================================================
 exports.criarFlag = async (req, res) => {
-    const { nodeId } = req.params;
+    const { cronicaId, nodeId } = req.params;
     const { flag_key } = req.body; // já validado, nunca vazio
 
+    if (!(await nodePertenceACronica(nodeId, cronicaId))) return res.status(404).json({ erro: 'Entidade não encontrada.' });
     try {
         await pool.query(
             "INSERT INTO world_flags (node_id, flag_key, flag_value) VALUES ($1, $2, FALSE)",
@@ -117,6 +138,7 @@ exports.atualizarFlag = async (req, res) => {
     const { cronicaId, nodeId } = req.params;
     const { flag_key, flag_value } = req.body;
 
+    if (!(await nodePertenceACronica(nodeId, cronicaId))) return res.status(404).json({ erro: 'Entidade não encontrada.' });
     try {
         const upsertQuery = `
             INSERT INTO world_flags (node_id, flag_key, flag_value)
@@ -186,7 +208,7 @@ exports.renomearFlag = async (req, res) => {
     const { cronicaId, nodeId, flagKey } = req.params;
     const { novo_nome } = req.body;
 
-    
+    if (!(await nodePertenceACronica(nodeId, cronicaId))) return res.status(404).json({ erro: 'Entidade não encontrada.' });
 
     try {
         await pool.query('BEGIN');
@@ -205,6 +227,7 @@ exports.renomearFlag = async (req, res) => {
 exports.deletarFlag = async (req, res) => {
     const { cronicaId, nodeId, flagKey } = req.params;
 
+    if (!(await nodePertenceACronica(nodeId, cronicaId))) return res.status(404).json({ erro: 'Entidade não encontrada.' });
     try {
         await pool.query('BEGIN');
         const eventosVinculados = await pool.query('SELECT DISTINCT event_id FROM event_flag_weights WHERE node_id = $1 AND flag_key = $2', [nodeId, flagKey]);
@@ -263,18 +286,20 @@ exports.criarNucleoEntidade = async (req, res) => {
 };
 
 exports.renomearNucleoEntidade = async (req, res) => {
-    const { nucleoId } = req.params;
+    const { cronicaId, nucleoId } = req.params;
     const { nome } = req.body;
     try {
-        const result = await pool.query('UPDATE entidade_nucleos SET nome = $1 WHERE id = $2 RETURNING *', [nome.trim(), nucleoId]);
+        const result = await pool.query('UPDATE entidade_nucleos SET nome = $1 WHERE id = $2 AND cronica_id = $3 RETURNING *', [nome.trim(), nucleoId, cronicaId]);
+        if (result.rows.length === 0) return res.status(404).json({ erro: 'Núcleo não encontrado.' });
         res.json(result.rows[0]);
     } catch (err) { res.status(500).json({ erro: 'Erro ao renomear núcleo.' }); }
 };
 
 exports.excluirNucleoEntidade = async (req, res) => {
-    const { nucleoId } = req.params;
+    const { cronicaId, nucleoId } = req.params;
     try {
-        await pool.query('DELETE FROM entidade_nucleos WHERE id = $1', [nucleoId]);
+        const result = await pool.query('DELETE FROM entidade_nucleos WHERE id = $1 AND cronica_id = $2 RETURNING id', [nucleoId, cronicaId]);
+        if (result.rows.length === 0) return res.status(404).json({ erro: 'Núcleo não encontrado.' });
         res.json({ mensagem: 'Núcleo excluído.' });
     } catch (err) { res.status(500).json({ erro: 'Erro ao excluir núcleo.' }); }
 };
@@ -297,18 +322,20 @@ exports.criarNucleoEventos = async (req, res) => {
 };
 
 exports.renomearNucleoEventos = async (req, res) => {
-    const { nucleoId } = req.params;
+    const { cronicaId, nucleoId } = req.params;
     const { nome } = req.body;
     try {
-        const result = await pool.query('UPDATE entidade_nucleos SET nome = $1 WHERE id = $2 RETURNING *', [nome.trim(), nucleoId]);
+        const result = await pool.query('UPDATE entidade_nucleos SET nome = $1 WHERE id = $2 AND cronica_id = $3 RETURNING *', [nome.trim(), nucleoId, cronicaId]);
+        if (result.rows.length === 0) return res.status(404).json({ erro: 'Núcleo não encontrado.' });
         res.json(result.rows[0]);
     } catch (err) { res.status(500).json({ erro: 'Erro ao renomear núcleo.' }); }
 };
 
 exports.excluirNucleoEventos = async (req, res) => {
-    const { nucleoId } = req.params;
+    const { cronicaId, nucleoId } = req.params;
     try {
-        await pool.query('DELETE FROM entidade_nucleos WHERE id = $1', [nucleoId]);
+        const result = await pool.query('DELETE FROM entidade_nucleos WHERE id = $1 AND cronica_id = $2 RETURNING id', [nucleoId, cronicaId]);
+        if (result.rows.length === 0) return res.status(404).json({ erro: 'Núcleo não encontrado.' });
         res.json({ mensagem: 'Núcleo excluído.' });
     } catch (err) { res.status(500).json({ erro: 'Erro ao excluir núcleo.' }); }
 };
@@ -388,7 +415,10 @@ exports.criarEvento = async (req, res) => {
 };
 
 exports.deletarEvento = async (req, res) => {
-    const eventoId = req.params.eventoId || req.params.eventId; 
+    const { cronicaId } = req.params;
+    const eventoId = req.params.eventoId || req.params.eventId;
+    // Guard ANTES de apagar filhos: senão um atacante removeria pesos/núcleos alheios.
+    if (!(await eventoPertenceACronica(eventoId, cronicaId))) return res.status(404).json({ erro: 'Evento não encontrado.' });
     try {
         await pool.query('BEGIN');
         await pool.query('DELETE FROM event_flag_weights WHERE event_id = $1', [eventoId]);
@@ -407,8 +437,10 @@ exports.deletarEvento = async (req, res) => {
 
 
 exports.vincularEventoNucleo = async (req, res) => {
-    const eventoId = req.params.eventoId || req.params.eventId; 
+    const { cronicaId } = req.params;
+    const eventoId = req.params.eventoId || req.params.eventId;
     const { nucleo_id } = req.body;
+    if (!(await eventoPertenceACronica(eventoId, cronicaId))) return res.status(404).json({ erro: 'Evento não encontrado.' });
     try {
         await pool.query('INSERT INTO event_nucleos (event_id, nucleo_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [eventoId, nucleo_id]);
         res.json({ mensagem: 'Núcleo vinculado ao evento.' });
@@ -419,8 +451,10 @@ exports.vincularEventoNucleo = async (req, res) => {
 };
 
 exports.desvincularEventoNucleo = async (req, res) => {
-    const eventoId = req.params.eventoId || req.params.eventId; 
+    const { cronicaId } = req.params;
+    const eventoId = req.params.eventoId || req.params.eventId;
     const nucleoId = req.params.nucleoId || req.params.id;
+    if (!(await eventoPertenceACronica(eventoId, cronicaId))) return res.status(404).json({ erro: 'Evento não encontrado.' });
     try {
         await pool.query('DELETE FROM event_nucleos WHERE event_id = $1 AND nucleo_id = $2', [eventoId, nucleoId]);
         res.json({ mensagem: 'Núcleo desvinculado do evento.' });
@@ -434,12 +468,15 @@ exports.desvincularEventoNucleo = async (req, res) => {
 // NOVAS FUNÇÕES: GATILHOS (VÍNCULOS ENTRE FLAG E EVENTO)
 // =======================================================
 exports.criarVinculo = async (req, res) => {
-    const { eventoId } = req.params;
+    const { cronicaId, eventoId } = req.params;
     const { node_id, flag_key, peso } = req.body;
 
+    // Ambos os lados do gatilho devem pertencer à crônica (evita referência cross-tenant).
+    if (!(await eventoPertenceACronica(eventoId, cronicaId))) return res.status(404).json({ erro: 'Evento não encontrado.' });
+    if (!(await nodePertenceACronica(node_id, cronicaId))) return res.status(404).json({ erro: 'Entidade não encontrada.' });
     try {
         await pool.query('BEGIN');
-        
+
         // Cria ou atualiza o peso do gatilho
         await pool.query(
             `INSERT INTO event_flag_weights (event_id, node_id, flag_key, peso)
@@ -480,10 +517,11 @@ exports.criarVinculo = async (req, res) => {
 };
 
 exports.deletarVinculo = async (req, res) => {
-    const { eventoId } = req.params;
+    const { cronicaId, eventoId } = req.params;
     const { node_id, flag_key } = req.body;
     if (!node_id || !flag_key) return res.status(400).json({ erro: 'node_id e flag_key são obrigatórios.' });
 
+    if (!(await eventoPertenceACronica(eventoId, cronicaId))) return res.status(404).json({ erro: 'Evento não encontrado.' });
     try {
         await pool.query('BEGIN');
 
