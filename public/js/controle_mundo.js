@@ -320,40 +320,44 @@ function renderizarGridMundo(lista) {
         return;
     }
     grid.innerHTML = lista.map(node => `
-        <div class="card" style="display: flex; flex-direction: column; height: 100%;">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 16px;">
-                <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px;">
-                    <strong id="node-nome-${node.id}" style="font-size: 17px; line-height: 1.3;">${escapeHTML(node.nome)}</strong>
-                    <span class="badge" style="width: fit-content; font-size: 12px; padding: 4px 8px;">${escapeHTML(node.tipo)}</span>
+        <div class="card world-card">
+            <div class="world-card__head">
+                <div class="world-card__ident">
+                    <span class="world-card__icone"><i data-lucide="${iconeEntidade(node.tipo)}"></i></span>
+                    <div class="world-card__titulo-wrap">
+                        <strong id="node-nome-${node.id}" class="world-card__nome">${escapeHTML(node.nome)}</strong>
+                        <span class="badge world-card__tipo">${escapeHTML(node.tipo)}</span>
+                    </div>
                 </div>
-                <div style="display: flex; gap: 6px; flex-shrink: 0;">
+                <div class="world-card__acoes">
                     <button class="btn btn-secondary btn-sm" data-id="${node.id}" onclick="abrirModalSinapses(this.dataset.id)" title="Conexões (Sinapses)"><i data-lucide="share-2"></i></button>
                     <button class="btn btn-primary btn-sm" data-id="${node.id}" data-nome="${escapeHTML(node.nome)}" onclick="editarEntidade(this.dataset.id, this.dataset.nome)" title="Editar nome"><i data-lucide="pencil"></i></button>
                     <button class="btn btn-danger btn-sm" data-id="${node.id}" data-nome="${escapeHTML(node.nome)}" onclick="deletarEntidade(this.dataset.id, this.dataset.nome)" title="Deletar entidade"><i data-lucide="trash-2"></i></button>
                 </div>
             </div>
 
-            <div id="flags-${node.id}" style="flex: 1; display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px;">
+            <div class="world-card__marcos-label">Marcos</div>
+            <div id="flags-${node.id}" class="world-card__marcos">
                 ${(node.flags || []).filter(f => f.key).map(f => `
-                    <div class="flag-item" style="display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 10px;">
-                        <label style="cursor: pointer; display: flex; align-items: center; gap: 10px; font-size: 15px; flex: 1; min-width: 0;">
-                            <input type="checkbox" ${f.value ? 'checked' : ''} data-node-id="${node.id}" data-flag-key="${escapeHTML(f.key)}" onchange="toggleFlag(this.dataset.nodeId, this.dataset.flagKey, this.checked)" style="margin: 0; width: 18px; height: 18px; flex-shrink: 0; cursor: pointer;">
-                            <span id="flag-nome-${node.id}-${escapeHTML(f.key)}" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--texto-claro);" title="${escapeHTML(f.key)}">${escapeHTML(f.key)}</span>
+                    <div class="marco-item">
+                        <label class="marco-item__label">
+                            <input type="checkbox" class="marco-item__check" ${f.value ? 'checked' : ''} data-node-id="${node.id}" data-flag-key="${escapeHTML(f.key)}" onchange="toggleFlag(this.dataset.nodeId, this.dataset.flagKey, this.checked)">
+                            <span id="flag-nome-${node.id}-${escapeHTML(f.key)}" class="marco-item__nome" title="${escapeHTML(f.key)}">${escapeHTML(humanizarMarco(f.key))}</span>
                         </label>
-                        <div style="display: flex; gap: 4px; flex-shrink: 0;">
-                            <button class="btn btn-primary btn-sm" data-node-id="${node.id}" data-flag-key="${escapeHTML(f.key)}" onclick="editarFlag(this.dataset.nodeId, this.dataset.flagKey)" title="Renomear flag"><i data-lucide="pencil"></i></button>
-                            <button class="btn btn-danger btn-sm" data-node-id="${node.id}" data-flag-key="${escapeHTML(f.key)}" onclick="deletarFlag(this.dataset.nodeId, this.dataset.flagKey)" title="Deletar flag"><i data-lucide="x"></i></button>
+                        <div class="marco-item__acoes">
+                            <button class="btn btn-primary btn-sm" data-node-id="${node.id}" data-flag-key="${escapeHTML(f.key)}" onclick="editarFlag(this.dataset.nodeId, this.dataset.flagKey)" title="Renomear marco"><i data-lucide="pencil"></i></button>
+                            <button class="btn btn-danger btn-sm" data-node-id="${node.id}" data-flag-key="${escapeHTML(f.key)}" onclick="deletarFlag(this.dataset.nodeId, this.dataset.flagKey)" title="Deletar marco"><i data-lucide="x"></i></button>
                         </div>
                     </div>
                 `).join('')}
             </div>
 
-            <div style="margin-top: auto; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 12px;">
-                <div style="font-size: 13px; display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 12px; color: var(--texto-mutado);">
-                    <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Núcleo: <span id="node-nucleo-${node.id}" style="color: var(--texto);">${escapeHTML(node.nucleo_nome || 'Nenhum')}</span></span>
-                    <button class="btn btn-primary btn-sm flex-shrink-0" onclick="moverNodeNucleo('${node.id}')" style="font-size: 12px; padding: 4px 8px;">Mover</button>
+            <div class="world-card__rodape">
+                <div class="world-card__nucleo">
+                    <span>Núcleo: <span id="node-nucleo-${node.id}" class="world-card__nucleo-nome">${escapeHTML(node.nucleo_nome || 'Nenhum')}</span></span>
+                    <button class="btn btn-primary btn-sm flex-shrink-0" onclick="moverNodeNucleo('${node.id}')">Mover</button>
                 </div>
-                <button class="btn btn-primary btn-sm" style="width: 100%; font-size: 14px; padding: 6px;" onclick="adicionarFlag('${node.id}')">+ Nova Flag</button>
+                <button class="btn btn-primary btn-sm world-card__add-marco" onclick="adicionarFlag('${node.id}')"><i data-lucide="plus"></i> Novo Marco</button>
             </div>
         </div>
     `).join('');
@@ -397,7 +401,7 @@ window.editarEntidade = async function(nodeId, nomeAtual) {
 }
 
 window.deletarEntidade = async function(nodeId, nome) {
-    if (!confirm(`Deletar a entidade "${nome}"? Isso removerá TODAS as flags e vínculos com eventos!`)) return;
+    if (!confirm(`Deletar a entidade "${nome}"? Isso removerá TODOS os marcos e vínculos com eventos!`)) return;
     if (!confirm('Esta ação é IRREVERSÍVEL. Continuar?')) return;
 
     try {
@@ -552,6 +556,16 @@ function capitalizar(s) {
     s = String(s || '');
     return s.charAt(0).toUpperCase() + s.slice(1);
 }
+// Exibição humana de um Marco (ex-flag): "porta_secreta" -> "Porta Secreta".
+// NÃO altera o identificador real (flag_key); só o texto visível. O valor cru
+// continua viajando em data-flag-key/title e no payload da API.
+function humanizarMarco(key) {
+    return String(key || '')
+        .replace(/_/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .replace(/\b\w/g, c => c.toUpperCase());
+}
 // Ícone Lucide por tipo de entidade (world_nodes.tipo).
 function iconeEntidade(tipo) {
     const mapa = { npc: 'user', protagonista: 'crown', faccao: 'flag', local: 'map-pin', cenario: 'mountain' };
@@ -668,7 +682,7 @@ window.toggleFlag = async function(nodeId, flagKey, value) {
 }
 
 window.adicionarFlag = async function(nodeId) {
-    const nome = prompt('Nome da nova Flag:');
+    const nome = prompt('Nome do novo Marco:');
     if (!nome) return;
     await API.fetch(`/cronicas/${cronicaId}/nodes/${nodeId}/flags`, {
         method: 'POST', body: JSON.stringify({ flag_key: nome })
@@ -677,7 +691,7 @@ window.adicionarFlag = async function(nodeId) {
 }
 
 window.editarFlag = async function(nodeId, flagKey) {
-    const novoNome = prompt('Novo nome da flag:', flagKey);
+    const novoNome = prompt('Novo nome do marco:', humanizarMarco(flagKey));
     if (!novoNome || novoNome.trim() === '' || novoNome === flagKey) return;
 
     try {
@@ -687,13 +701,13 @@ window.editarFlag = async function(nodeId, flagKey) {
         if (res.ok) carregarMundo(document.getElementById('filtro-nucleo-entidade')?.value);
         else {
             const err = await res.json();
-            mostrarToast(err.erro || 'Erro ao renomear flag.', 'erro');
+            mostrarToast(err.erro || 'Erro ao renomear marco.', 'erro');
         }
     } catch (err) { mostrarToast('Erro de conexão.', 'erro'); }
 }
 
 window.deletarFlag = async function(nodeId, flagKey) {
-    if (!confirm(`Deletar a flag "${flagKey}"? Isso removerá os vínculos com eventos!`)) return;
+    if (!confirm(`Deletar o marco "${humanizarMarco(flagKey)}"? Isso removerá os vínculos com eventos!`)) return;
 
     try {
         const res = await API.fetch(`/cronicas/${cronicaId}/nodes/${nodeId}/flags/${flagKey}`, { method: 'DELETE' });
@@ -702,7 +716,7 @@ window.deletarFlag = async function(nodeId, flagKey) {
             if (document.getElementById('tab-eventos')?.classList.contains('ativa')) carregarEventos();
         } else {
             const err = await res.json();
-            mostrarToast(err.erro || 'Erro ao deletar flag.', 'erro');
+            mostrarToast(err.erro || 'Erro ao deletar marco.', 'erro');
         }
     } catch (err) { mostrarToast('Erro de conexão.', 'erro'); }
 }
@@ -752,7 +766,7 @@ function renderizarGridEventos(lista) {
         if (ev.gatilhos && ev.gatilhos.length > 0) {
             gatilhosHtml = ev.gatilhos.filter(g => g && g.node_nome).map(g => `
                 <div style="font-size: 11px; background: rgba(255,255,255,0.03); padding: 4px 8px; border-radius: 4px; margin-bottom: 3px;">
-                    <i data-lucide="settings"></i> <strong>${escapeHTML(g.node_nome)}</strong> → ${escapeHTML(g.flag_key)} (+${g.peso})
+                    <i data-lucide="settings"></i> <strong>${escapeHTML(g.node_nome)}</strong> → ${escapeHTML(humanizarMarco(g.flag_key))} (+${g.peso})
                 </div>
             `).join('');
         }
@@ -1073,9 +1087,9 @@ window.atualizarFlagsVinculo = function() {
     const selectFlags = document.getElementById('vinculo-flag-key');
     if (!selectFlags) return;
     
-    selectFlags.innerHTML = '<option value="">Selecione uma flag...</option>';
+    selectFlags.innerHTML = '<option value="">Selecione um marco...</option>';
     const node = nodesCache.find(n => n.id === nodeId);
-    if (node?.flags) node.flags.filter(f => f.key).forEach(f => selectFlags.innerHTML += `<option value="${escapeHTML(f.key)}">${escapeHTML(f.key)}</option>`);
+    if (node?.flags) node.flags.filter(f => f.key).forEach(f => selectFlags.innerHTML += `<option value="${escapeHTML(f.key)}">${escapeHTML(humanizarMarco(f.key))}</option>`);
 }
 
 window.salvarVinculo = async function() {
@@ -1083,7 +1097,7 @@ window.salvarVinculo = async function() {
     const nodeId = document.getElementById('vinculo-node-id')?.value;
     const flagKey = document.getElementById('vinculo-flag-key')?.value;
     const peso = parseInt(document.getElementById('vinculo-peso')?.value) || 1;
-    if (!nodeId || !flagKey) return mostrarToast('Selecione nó e flag.', 'aviso');
+    if (!nodeId || !flagKey) return mostrarToast('Selecione nó e marco.', 'aviso');
     
     try {
         await API.fetch(`/cronicas/${cronicaId}/eventos/${eventId}/pesos`, {
@@ -1111,7 +1125,7 @@ async function carregarAutomacoes() {
                 return;
             }
             grid.innerHTML = automacoesCache.map(auto => {
-                let badgeTxt = auto.tipo_nome === 'alterar_flag' ? '<i data-lucide="flag"></i> Flag' : (auto.tipo_nome === 'postar_em_aba' ? '<i data-lucide="scroll"></i> Post' : '<i data-lucide="calendar"></i> Evento');
+                let badgeTxt = auto.tipo_nome === 'alterar_flag' ? '<i data-lucide="flag"></i> Marco' : (auto.tipo_nome === 'postar_em_aba' ? '<i data-lucide="scroll"></i> Post' : '<i data-lucide="calendar"></i> Evento');
                 
                 // BOAS PRÁTICAS 1: Tabela Dinâmica e Limpa em vez de JSON cru
                 const parametrosHtml = Object.entries(auto.parametros || {}).map(([key, value]) => `
@@ -1186,10 +1200,10 @@ window.atualizarFlagsAutomacao = function() {
     const selectFlag = document.getElementById('param-flag-key');
     if (!selectFlag) return;
     
-    selectFlag.innerHTML = '<option value="">Selecione uma flag...</option>';
+    selectFlag.innerHTML = '<option value="">Selecione um marco...</option>';
     const node = nodesCache.find(n => n.id === nodeId);
     if (node?.flags) {
-        node.flags.filter(f => f.key).forEach(f => selectFlag.innerHTML += `<option value="${f.key}">${f.key}</option>`);
+        node.flags.filter(f => f.key).forEach(f => selectFlag.innerHTML += `<option value="${escapeHTML(f.key)}">${escapeHTML(humanizarMarco(f.key))}</option>`);
     }
 }
 
@@ -1206,8 +1220,8 @@ window.renderizarCamposAutomacao = function() {
         html += `<label>Entidade Alvo</label><select id="param-node-id">`;
         nodesCache.forEach(n => html += `<option value="${n.id}">${escapeHTML(n.nome)}</option>`);
         html += `</select>
-                 <label>Nome da Nova Flag (ex: amaldicoado)</label>
-                 <input type="text" id="param-flag-key" placeholder="Digite o nome da flag">
+                 <label>Nome do Novo Marco (ex: amaldiçoado)</label>
+                 <input type="text" id="param-flag-key" placeholder="Digite o nome do marco">
                  <label>Estado Inicial</label>
                  <select id="param-flag-value">
                     <option value="true">Verdadeiro (Ativa/Concedida)</option>
@@ -1219,7 +1233,7 @@ window.renderizarCamposAutomacao = function() {
         html += `<option value="">Selecione a entidade...</option>`;
         nodesCache.forEach(n => html += `<option value="${n.id}">${escapeHTML(n.nome)}</option>`);
         html += `</select>
-                 <label>Qual Flag deseja alterar?</label>
+                 <label>Qual Marco deseja alterar?</label>
                  <select id="param-flag-key"><option value="">Selecione a entidade primeiro...</option></select>
                  <label>Mudar para qual estado?</label>
                  <select id="param-flag-value">
@@ -1259,7 +1273,7 @@ window.renderizarCamposAutomacao = function() {
             <option value="">Nenhum</option>
             ${nucleosCache.entidade.map(n => `<option value="${n.id}">${n.nome}</option>`).join('')}
         </select>
-        <label>Flags (opcional)</label>
+        <label>Marcos (opcional)</label>
         <div id="param-flags-container">
             <div class="flag-row" style="display: flex; gap: 10px; margin-bottom: 5px;">
                 <input type="text" class="flag-key" placeholder="Chave" style="flex:1;">
@@ -1270,7 +1284,7 @@ window.renderizarCamposAutomacao = function() {
                 <button type="button" class="btn btn-danger btn-sm" onclick="this.parentElement.remove()"><i data-lucide="x"></i></button>
             </div>
         </div>
-        <button type="button" class="btn btn-primary btn-sm" onclick="adicionarLinhaFlag()">+ Adicionar Flag</button>
+        <button type="button" class="btn btn-primary btn-sm" onclick="adicionarLinhaFlag()">+ Adicionar Marco</button>
     `;
     }
     div.innerHTML = html;
@@ -1295,7 +1309,7 @@ window.salvarAutomacao = async function() {
         parametros.node_id = document.getElementById('param-node-id').value;
         parametros.flag_key = document.getElementById('param-flag-key').value.trim();
         parametros.novo_valor = document.getElementById('param-flag-value').value === 'true';
-        if (!parametros.flag_key) return mostrarToast("Selecione uma flag existente para alterar.", 'aviso');
+        if (!parametros.flag_key) return mostrarToast("Selecione um marco existente para alterar.", 'aviso');
     }
     else if (tipo_nome === 'postar_em_aba') {
         parametros.aba_id = document.getElementById('param-aba-id').value;

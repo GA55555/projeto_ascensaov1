@@ -506,6 +506,109 @@ label {
     box-shadow: 0 8px 24px var(--sombra-profunda), 0 0 12px rgba(139, 92, 246, 0.15);
 }
 
+/* ── CARD DE ENTIDADE DO MUNDO ─────────────────────────── */
+.world-card { display: flex; flex-direction: column; height: 100%; }
+.world-card__head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+.world-card__ident { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+.world-card__icone {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-principal);
+    border: 1px solid var(--borda);
+    border-radius: 4px;
+    color: var(--roxo-mago);
+}
+.world-card__icone i { width: 22px; height: 22px; }
+.world-card__titulo-wrap { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.world-card__nome {
+    font-size: 17px;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.world-card__tipo { width: fit-content; }
+.world-card__acoes { display: flex; gap: 6px; flex-shrink: 0; }
+.world-card__marcos-label {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--texto-mutado);
+    margin-bottom: 4px;
+}
+.world-card__marcos { flex: 1; display: flex; flex-direction: column; margin-bottom: 12px; }
+.world-card__rodape {
+    margin-top: auto;
+    border-top: 1px solid var(--borda);
+    padding-top: 12px;
+}
+.world-card__nucleo {
+    font-size: 13px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    color: var(--texto-mutado);
+}
+.world-card__nucleo > span:first-child {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.world-card__nucleo-nome { color: var(--texto-claro); }
+.world-card__add-marco { width: 100%; justify-content: center; }
+
+/* ── MARCO (ex-flag) — linha refinada ──────────────────── */
+.marco-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    gap: 10px;
+    padding: 7px 6px;
+    border-bottom: 1px solid var(--borda);
+    border-radius: 4px;
+    transition: var(--transicao-suave);
+}
+.marco-item:last-child { border-bottom: none; }
+.marco-item:hover { background: var(--bg-principal); }
+.marco-item__label {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 15px;
+    flex: 1;
+    min-width: 0;
+}
+.marco-item__check { margin: 0; width: 18px; height: 18px; flex-shrink: 0; cursor: pointer; }
+.marco-item__nome {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--texto-claro);
+}
+.marco-item__acoes {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: var(--transicao-suave);
+}
+.marco-item:hover .marco-item__acoes,
+.marco-item:focus-within .marco-item__acoes { opacity: 1; }
+
 /* ── BARRAS DE PROGRESSO ───────────────────────────────── */
 .barra-bg {
     position: relative;
