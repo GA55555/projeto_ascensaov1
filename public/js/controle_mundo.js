@@ -325,6 +325,7 @@ function renderizarGridMundo(lista) {
                     <span class="badge" style="width: fit-content; font-size: 12px; padding: 4px 8px;">${escapeHTML(node.tipo)}</span>
                 </div>
                 <div style="display: flex; gap: 6px; flex-shrink: 0;">
+                    <button class="btn btn-secondary btn-sm" data-id="${node.id}" onclick="abrirModalSinapses(this.dataset.id)" title="Conexões (Sinapses)"><i data-lucide="share-2"></i></button>
                     <button class="btn btn-primary btn-sm" data-id="${node.id}" data-nome="${escapeHTML(node.nome)}" onclick="editarEntidade(this.dataset.id, this.dataset.nome)" title="Editar nome"><i data-lucide="pencil"></i></button>
                     <button class="btn btn-danger btn-sm" data-id="${node.id}" data-nome="${escapeHTML(node.nome)}" onclick="deletarEntidade(this.dataset.id, this.dataset.nome)" title="Deletar entidade"><i data-lucide="trash-2"></i></button>
                 </div>
@@ -406,6 +407,135 @@ window.deletarEntidade = async function(nodeId, nome) {
         }
     } catch (err) { mostrarToast('Erro de conexão.', 'erro'); }
 }
+
+// ==========================================
+// SINAPSES (CONEXÕES BIDIRECIONAIS ENTRE ENTIDADES)
+// Modal dinâmico de instância única + navegação em teia. Consome MundoApi.
+// Nomenclatura: Sinapse/Conexão/Link — nunca "Vínculo" (colisão com gatilhos de evento).
+// ==========================================
+let todosNodesSinapse = []; // lista completa de nós da crônica (independe do filtro do grid)
+
+window.abrirModalSinapses = async function(nodeId) {
+    fecharModalSinapses(); // instância única
+    try {
+        todosNodesSinapse = await MundoApi.getNodes(cronicaId); // lista completa (não a filtrada do grid)
+    } catch (e) {
+        mostrarToast('Erro ao carregar entidades.', 'erro');
+        return;
+    }
+    const no = todosNodesSinapse.find(n => String(n.id) === String(nodeId));
+    const nomeNo = no ? no.nome : 'Entidade';
+
+    const modal = document.createElement('div');
+    modal.className = 'modal show';
+    modal.id = 'modal-sinapses';
+    modal.innerHTML = `
+        <div class="modal-box" style="width: 480px; max-width: 92%; max-height: 85vh; display: flex; flex-direction: column;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h3 class="texto-roxo" style="margin: 0; display: flex; align-items: center; gap: 8px;"><i data-lucide="share-2"></i> Conexões — ${escapeHTML(nomeNo)}</h3>
+                <button class="btn btn-ghost btn-sm" onclick="fecharModalSinapses()" title="Fechar"><i data-lucide="x"></i></button>
+            </div>
+
+            <div id="sinapses-lista" style="flex: 1; overflow-y: auto; min-height: 60px; margin-bottom: 16px; display: flex; flex-wrap: wrap; align-content: flex-start;">
+                <div class="info-block-vazio" style="width: 100%;"><span class="spinner"></span> A carregar conexões...</div>
+            </div>
+
+            <div style="border-top: 1px solid var(--borda); padding-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end;">
+                <div style="flex: 1; min-width: 150px;">
+                    <label style="font-size: 12px; color: var(--texto-mutado); display: block; margin-bottom: 4px;">Entidade</label>
+                    <select id="sinapse-destino" class="input-sm" style="width: 100%;"></select>
+                </div>
+                <div style="min-width: 120px;">
+                    <label style="font-size: 12px; color: var(--texto-mutado); display: block; margin-bottom: 4px;">Tipo</label>
+                    <select id="sinapse-tipo" class="input-sm" style="width: 100%;">
+                        <option value="associado">Associado</option>
+                        <option value="aliado">Aliado</option>
+                        <option value="inimigo">Inimigo</option>
+                        <option value="localizacao">Localização</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary btn-sm" data-id="${escapeHTML(String(nodeId))}" onclick="conectarSinapse(this.dataset.id)"><i data-lucide="link"></i> Conectar</button>
+            </div>
+        </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) fecharModalSinapses(); });
+    lucide.createIcons();
+
+    await recarregarSinapses(nodeId);
+};
+
+window.fecharModalSinapses = function() {
+    const m = document.getElementById('modal-sinapses');
+    if (m) m.remove();
+};
+
+// Re-busca conexões, redesenha os badges e repopula o dropdown (exclui self + já conectados).
+async function recarregarSinapses(nodeId) {
+    const cont = document.getElementById('sinapses-lista');
+    if (!cont) return;
+
+    let links = [];
+    try {
+        links = await MundoApi.listarLinks(cronicaId, nodeId);
+    } catch (e) {
+        cont.innerHTML = '<div class="info-block-vazio" style="width: 100%;">Erro ao carregar conexões.</div>';
+        return;
+    }
+
+    if (!links.length) {
+        cont.innerHTML = '<div class="info-block-vazio" style="width: 100%;">Nenhuma conexão ainda.</div>';
+    } else {
+        cont.innerHTML = links.map(l => `
+            <span class="badge-link">
+                <span class="badge-link-nome" data-id="${escapeHTML(String(l.node_conectado_id))}" onclick="navegarSinapse(this.dataset.id)" title="Abrir entidade conectada">${escapeHTML(l.tipo_vinculo)}: ${escapeHTML(l.node_conectado_nome)}</span>
+                <i data-lucide="x" class="btn-deletar-link" data-node="${escapeHTML(String(nodeId))}" data-link="${escapeHTML(String(l.id))}" onclick="removerSinapse(this.dataset.node, this.dataset.link)" title="Remover conexão"></i>
+            </span>`).join('');
+    }
+
+    const conectados = links.map(l => String(l.node_conectado_id));
+    popularDestinosSinapse(nodeId, conectados);
+    lucide.createIcons();
+}
+
+// Popula o <select> de destino com os outros nós (exclui o próprio nó e os já conectados).
+function popularDestinosSinapse(nodeId, conectadosIds) {
+    const sel = document.getElementById('sinapse-destino');
+    if (!sel) return;
+    const excluir = new Set([String(nodeId), ...conectadosIds]);
+    const opcoes = todosNodesSinapse.filter(n => !excluir.has(String(n.id)));
+    sel.innerHTML = opcoes.length
+        ? opcoes.map(n => `<option value="${escapeHTML(String(n.id))}">${escapeHTML(n.nome)} (${escapeHTML(n.tipo)})</option>`).join('')
+        : '<option value="">— Sem entidades disponíveis —</option>';
+}
+
+window.conectarSinapse = async function(nodeId) {
+    const destino = document.getElementById('sinapse-destino')?.value;
+    const tipo = document.getElementById('sinapse-tipo')?.value || 'associado';
+    if (!destino) { mostrarToast('Selecione uma entidade para conectar.', 'aviso'); return; }
+    try {
+        await MundoApi.criarLink(cronicaId, nodeId, destino, tipo);
+        mostrarToast('Conexão criada!', 'sucesso');
+        await recarregarSinapses(nodeId);
+    } catch (e) {
+        mostrarToast(e.message || 'Erro ao criar conexão.', 'erro');
+    }
+};
+
+window.removerSinapse = async function(nodeId, linkId) {
+    if (!confirm('Remover esta conexão?')) return;
+    try {
+        await MundoApi.deletarLink(cronicaId, nodeId, linkId);
+        mostrarToast('Conexão removida.', 'sucesso');
+        await recarregarSinapses(nodeId);
+    } catch (e) {
+        mostrarToast(e.message || 'Erro ao remover conexão.', 'erro');
+    }
+};
+
+// Navegação em teia: fecha o modal atual e abre o da entidade conectada (instância única).
+window.navegarSinapse = function(connectedNodeId) {
+    abrirModalSinapses(connectedNodeId);
+};
 
 window.toggleFlag = async function(nodeId, flagKey, value) {
     try {

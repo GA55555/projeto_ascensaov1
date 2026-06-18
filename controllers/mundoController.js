@@ -557,3 +557,92 @@ exports.deletarVinculo = async (req, res) => {
         res.status(500).json({ erro: 'Erro ao remover vínculo.' });
     }
 };
+
+// =======================================================
+// SINAPSES (LINKS BIDIRECIONAIS ENTRE ENTIDADES) — world_links
+// Relacionamentos entre nós do mundo. Um único registo representa a ligação
+// nos dois sentidos (ver listarLinks). Posse validada por nodePertenceACronica
+// + cronica_id (Regra 3.3.1).
+// =======================================================
+exports.listarLinks = async (req, res) => {
+    const { cronicaId, nodeId } = req.params;
+    try {
+        // Bidirecional: traz links onde o nó é origem OU destino, e devolve sempre
+        // os dados do OUTRO nó (o conectado). Escopo por cronica_id isola tenants.
+        const result = await pool.query(`
+            SELECT
+                l.id,
+                l.tipo_vinculo,
+                l.criado_em,
+                (l.origem_node_id = $2) AS sou_origem,
+                CASE WHEN l.origem_node_id = $2 THEN l.destino_node_id ELSE l.origem_node_id END AS node_conectado_id,
+                n.nome AS node_conectado_nome,
+                n.tipo AS node_conectado_tipo
+            FROM world_links l
+            JOIN world_nodes n
+              ON n.id = CASE WHEN l.origem_node_id = $2 THEN l.destino_node_id ELSE l.origem_node_id END
+            WHERE l.cronica_id = $1
+              AND (l.origem_node_id = $2 OR l.destino_node_id = $2)
+            ORDER BY l.criado_em DESC
+        `, [cronicaId, nodeId]);
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Erro ao listar sinapses:', err);
+        res.status(500).json({ erro: 'Erro ao buscar vínculos da entidade.' });
+    }
+};
+
+exports.criarLink = async (req, res) => {
+    const { cronicaId, nodeId } = req.params;          // nodeId = origem
+    const { destino_node_id, tipo_vinculo } = req.body;
+
+    if (nodeId === destino_node_id) {
+        return res.status(400).json({ erro: 'Uma entidade não pode vincular-se a si mesma.' });
+    }
+    try {
+        // Anti-IDOR (Regra 3.3.1): AMBOS os nós têm de pertencer à crônica da rota.
+        if (!(await nodePertenceACronica(nodeId, cronicaId)) || !(await nodePertenceACronica(destino_node_id, cronicaId))) {
+            return res.status(404).json({ erro: 'Entidade não encontrada.' });
+        }
+
+        // O vínculo é bidirecional: rejeita se já existir em QUALQUER direção
+        // (a constraint UNIQUE cobre só origem→destino).
+        const jaExiste = await pool.query(`
+            SELECT 1 FROM world_links
+            WHERE cronica_id = $1
+              AND ((origem_node_id = $2 AND destino_node_id = $3)
+                OR (origem_node_id = $3 AND destino_node_id = $2))
+        `, [cronicaId, nodeId, destino_node_id]);
+        if (jaExiste.rows.length > 0) {
+            return res.status(400).json({ erro: 'Estas entidades já estão conectadas.' });
+        }
+
+        const novo = await pool.query(`
+            INSERT INTO world_links (cronica_id, origem_node_id, destino_node_id, tipo_vinculo)
+            VALUES ($1, $2, $3, $4) RETURNING *
+        `, [cronicaId, nodeId, destino_node_id, tipo_vinculo || 'associado']);
+        res.status(201).json(novo.rows[0]);
+    } catch (err) {
+        if (err.code === '23505') return res.status(400).json({ erro: 'Estas entidades já estão conectadas.' });
+        console.error('Erro ao criar sinapse:', err);
+        res.status(500).json({ erro: 'Erro ao criar conexão entre entidades.' });
+    }
+};
+
+exports.deletarLink = async (req, res) => {
+    const { cronicaId, nodeId, linkId } = req.params;
+    try {
+        // IDOR: o link tem de ser da crônica E envolver o node da rota (coerência da URL).
+        const result = await pool.query(`
+            DELETE FROM world_links
+            WHERE id = $1 AND cronica_id = $2
+              AND (origem_node_id = $3 OR destino_node_id = $3)
+            RETURNING id
+        `, [linkId, cronicaId, nodeId]);
+        if (result.rows.length === 0) return res.status(404).json({ erro: 'Conexão não encontrada.' });
+        res.json({ mensagem: 'Conexão desfeita.' });
+    } catch (err) {
+        console.error('Erro ao deletar sinapse:', err);
+        res.status(500).json({ erro: 'Erro ao desfazer conexão.' });
+    }
+};

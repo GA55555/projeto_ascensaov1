@@ -104,6 +104,26 @@ const atualizarNucleoNodeSchema = z.object({
     })
 });
 
+// ---- SINAPSES (LINKS BIDIRECIONAIS) ----
+// Regra 4.3: os params de rota também espelham UUID estrito (poliu a lacuna da autoavaliação).
+const sinapseParamsBase = {
+    cronicaId: z.string().uuid('cronicaId inválido.'),
+    nodeId: z.string().uuid('nodeId inválido.')
+};
+const listarLinksSchema = z.object({
+    params: z.object({ ...sinapseParamsBase })
+});
+const criarLinkSchema = z.object({
+    params: z.object({ ...sinapseParamsBase }),
+    body: z.object({
+        destino_node_id: z.string().uuid('destino_node_id deve ser um UUID válido.'),
+        tipo_vinculo: z.string().max(50).optional().default('associado')
+    })
+});
+const deletarLinkSchema = z.object({
+    params: z.object({ ...sinapseParamsBase, linkId: z.string().uuid('linkId inválido.') })
+});
+
 module.exports = {
     criarAutomacaoSchema, toggleStatusSchema,
     criarNodeSchema, editarNodeSchema,
@@ -111,5 +131,6 @@ module.exports = {
     criarNucleoSchema, renomearNucleoSchema,
     criarEventoSchema, criarVinculoSchema,
     criarSessaoSchema, editarSessaoSchema,
-    atualizarNucleoNodeSchema   
+    atualizarNucleoNodeSchema,
+    listarLinksSchema, criarLinkSchema, deletarLinkSchema
 };

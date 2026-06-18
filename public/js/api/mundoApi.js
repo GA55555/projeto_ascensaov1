@@ -108,5 +108,30 @@ const MundoApi = {
             body: JSON.stringify({ flag_key: flagKey, flag_value: value })
         });
         if (!res.ok) throw new Error('Falha ao atualizar flag.');
+    },
+
+    // ── SINAPSES (LINKS BIDIRECIONAIS) ─────────────────────────
+    // API.fetch já injeta credentials:'include' e Content-Type JSON.
+    async listarLinks(cronicaId, nodeId) {
+        const res = await API.fetch(`/cronicas/${cronicaId}/nodes/${nodeId}/links`);
+        if (!res.ok) throw new Error('Falha ao carregar conexões.');
+        return res.json();
+    },
+
+    async criarLink(cronicaId, nodeId, destinoNodeId, tipoLink = 'associado') {
+        // 'tipo_vinculo' é a coluna real de world_links (contrato da DDL); o parâmetro segue a nomenclatura Link/Sinapse.
+        const res = await API.fetch(`/cronicas/${cronicaId}/nodes/${nodeId}/links`, {
+            method: 'POST',
+            body: JSON.stringify({ destino_node_id: destinoNodeId, tipo_vinculo: tipoLink })
+        });
+        if (!res.ok) throw new Error('Falha ao criar conexão.');
+        return res.json();
+    },
+
+    async deletarLink(cronicaId, nodeId, linkId) {
+        const res = await API.fetch(`/cronicas/${cronicaId}/nodes/${nodeId}/links/${linkId}`, {
+            method: 'DELETE'
+        });
+        if (!res.ok) throw new Error('Falha ao desfazer conexão.');
     }
 };

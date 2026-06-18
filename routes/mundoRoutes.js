@@ -13,7 +13,8 @@ const {
     criarNucleoSchema, renomearNucleoSchema,
     criarEventoSchema, criarVinculoSchema,
     criarSessaoSchema, editarSessaoSchema,
-    atualizarNucleoNodeSchema   
+    atualizarNucleoNodeSchema,
+    listarLinksSchema, criarLinkSchema, deletarLinkSchema
 } = require('../validators/mundoValidator');
 
 // Middleware apenas narrador
@@ -49,6 +50,11 @@ router.post('/nodes', verificarToken, checarAcessoCronica, apenasNarrador, valid
 router.put('/nodes/:nodeId', verificarToken, checarAcessoCronica, apenasNarrador, validate(editarNodeSchema), MundoController.editarNode);
 router.delete('/nodes/:nodeId', verificarToken, checarAcessoCronica, apenasNarrador, MundoController.deletarNode);
 router.put('/nodes/:nodeId/nucleo', verificarToken, checarAcessoCronica, apenasNarrador, validate(atualizarNucleoNodeSchema), MundoController.atualizarNucleoNode);
+
+// Sinapses (links bidirecionais entre entidades) — world_links. Params validados (Regra 4.3).
+router.get('/nodes/:nodeId/links', verificarToken, checarAcessoCronica, validate(listarLinksSchema), MundoController.listarLinks);
+router.post('/nodes/:nodeId/links', verificarToken, checarAcessoCronica, apenasNarrador, validate(criarLinkSchema), MundoController.criarLink);
+router.delete('/nodes/:nodeId/links/:linkId', verificarToken, checarAcessoCronica, apenasNarrador, validate(deletarLinkSchema), MundoController.deletarLink);
 
 // Núcleos de Entidades
 router.get('/entidade-nucleos', verificarToken, checarAcessoCronica, MundoController.listarNucleosEntidade);
