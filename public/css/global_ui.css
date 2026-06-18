@@ -830,6 +830,12 @@ label {
     gap: 20px;
 }
 
+.grid-1col {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+}
+
 .grid-3col {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -886,6 +892,30 @@ label {
     width: auto;
     cursor: pointer;
     accent-color: var(--roxo-mago);
+}
+
+/* Linha de perícia / teste de resistência (Motor — tipo 'pericia'):
+   [proficiência] [valor] [nome]. */
+.pericia-linha {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+.pericia-linha input[type="checkbox"] {
+    width: auto;
+    flex-shrink: 0;
+    cursor: pointer;
+    accent-color: var(--roxo-mago);
+}
+.pericia-valor {
+    width: 52px;
+    flex-shrink: 0;
+    text-align: center;
+}
+.pericia-nome {
+    font-size: 13px;
+    color: var(--texto-claro);
 }
 
 
