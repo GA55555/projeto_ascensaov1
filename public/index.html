@@ -29,10 +29,10 @@
         .modal-criar-box    { width: 100%; max-width: 440px; }
         .modal-criar-titulo { display: flex; align-items: center; gap: 8px; font-size: 1.2rem; margin: 0 0 18px 0; }
         /* .modal-editor-box foi movido para global_ui.css (centralização de estilos). */
-        .editor-topo        { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--borda); padding-bottom: 12px; margin-bottom: 16px; }
+        .editor-topo        { flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--borda); padding-bottom: 12px; margin-bottom: 16px; }
         .editor-topo h2     { display: flex; align-items: center; gap: 8px; font-size: 1.3rem; margin: 0; }
-        .editor-corpo       { flex: 1; overflow-y: auto; padding-right: 6px; }
-        .editor-rodape      { border-top: 1px solid var(--borda); padding-top: 14px; margin-top: 4px; }
+        .editor-corpo       { flex: 1; min-height: 0; overflow-y: auto; padding-right: 6px; }
+        .editor-rodape      { flex-shrink: 0; border-top: 1px solid var(--borda); padding-top: 14px; margin-top: 4px; }
         .ficha-secao-titulo { display: flex; align-items: center; gap: 8px; font-size: 1rem; margin: 0 0 14px 0; }
         @media (max-width: 768px) { .gaveta-grid { grid-template-columns: 1fr; } }
     </style>
