@@ -161,7 +161,9 @@ async function carregarNucleos(tipo) {
             return;
         }
         const lista = await res.json();
-        
+        nucleosCache[tipo] = lista;            // mantém o cache coerente (ex.: usado por moverNodeNucleo)
+        renderizarListaNucleos(lista, tipo);   // popula a lista gerenciável (botões editar/excluir) no modal-nucleos
+
         // Atualiza selects de filtro
         const selectMap = { 'entidade': 'filtro-nucleo-entidade', 'evento': 'filtro-nucleo-evento', 'sessao': 'filtro-nucleo-sessao' };
         const selectId = selectMap[tipo];
@@ -433,7 +435,10 @@ window.abrirModalSinapses = async function(nodeId) {
         <div class="modal-box" style="width: 480px; max-width: 92%; max-height: 85vh; display: flex; flex-direction: column;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                 <h3 class="texto-roxo" style="margin: 0; display: flex; align-items: center; gap: 8px;"><i data-lucide="share-2"></i> Conexões — ${escapeHTML(nomeNo)}</h3>
-                <button class="btn btn-ghost btn-sm" onclick="fecharModalSinapses()" title="Fechar"><i data-lucide="x"></i></button>
+                <div style="display: flex; gap: 6px;">
+                    <button class="btn btn-secondary btn-sm" data-id="${escapeHTML(String(nodeId))}" onclick="abrirMapaSinapses(this.dataset.id)" title="Ver Mapa de Sinapses"><i data-lucide="network"></i> Mapa</button>
+                    <button class="btn btn-ghost btn-sm" onclick="fecharModalSinapses()" title="Fechar"><i data-lucide="x"></i></button>
+                </div>
             </div>
 
             <div id="sinapses-lista" style="flex: 1; overflow-y: auto; min-height: 60px; margin-bottom: 16px; display: flex; flex-wrap: wrap; align-content: flex-start;">
@@ -486,7 +491,7 @@ async function recarregarSinapses(nodeId) {
         cont.innerHTML = '<div class="info-block-vazio" style="width: 100%;">Nenhuma conexão ainda.</div>';
     } else {
         cont.innerHTML = links.map(l => `
-            <span class="badge-link">
+            <span class="badge-link ${classeTipoLink(l.tipo_vinculo)}">
                 <span class="badge-link-nome" data-id="${escapeHTML(String(l.node_conectado_id))}" onclick="navegarSinapse(this.dataset.id)" title="Abrir entidade conectada">${escapeHTML(l.tipo_vinculo)}: ${escapeHTML(l.node_conectado_nome)}</span>
                 <i data-lucide="x" class="btn-deletar-link" data-node="${escapeHTML(String(nodeId))}" data-link="${escapeHTML(String(l.id))}" onclick="removerSinapse(this.dataset.node, this.dataset.link)" title="Remover conexão"></i>
             </span>`).join('');
@@ -536,6 +541,102 @@ window.removerSinapse = async function(nodeId, linkId) {
 window.navegarSinapse = function(connectedNodeId) {
     abrirModalSinapses(connectedNodeId);
 };
+
+// ── Helpers semânticos ─────────────────────────────────────
+// Classe de cor por tipo de sinapse (fallback neutro = associado).
+function classeTipoLink(tipo) {
+    const t = String(tipo || '').toLowerCase();
+    return ['aliado', 'inimigo', 'associado', 'localizacao'].includes(t) ? `badge-link-${t}` : 'badge-link-associado';
+}
+function capitalizar(s) {
+    s = String(s || '');
+    return s.charAt(0).toUpperCase() + s.slice(1);
+}
+// Ícone Lucide por tipo de entidade (world_nodes.tipo).
+function iconeEntidade(tipo) {
+    const mapa = { npc: 'user', protagonista: 'crown', faccao: 'flag', local: 'map-pin', cenario: 'mountain' };
+    return mapa[String(tipo || '').toLowerCase()] || 'box';
+}
+
+// ==========================================
+// MAPA DE SINAPSES (VISÃO RELACIONAL EM TEIA — sem Canvas/WebGL)
+// ==========================================
+window.abrirMapaSinapses = async function(nodeId) {
+    fecharModalSinapses();
+    fecharMapaSinapses(); // instância única
+    try {
+        if (!todosNodesSinapse.length) todosNodesSinapse = await MundoApi.getNodes(cronicaId);
+    } catch (e) { /* segue com o que houver em cache */ }
+
+    let links = [];
+    try {
+        links = await MundoApi.listarLinks(cronicaId, nodeId);
+    } catch (e) {
+        mostrarToast('Erro ao carregar o mapa de sinapses.', 'erro');
+        return;
+    }
+
+    const central = todosNodesSinapse.find(n => String(n.id) === String(nodeId));
+    const nomeCentral = central ? central.nome : 'Entidade';
+    const tipoCentral = central ? central.tipo : '';
+
+    // Agrupa as conexões por tipo_vinculo (uma coluna por tipo).
+    const grupos = {};
+    links.forEach(l => {
+        const t = l.tipo_vinculo || 'associado';
+        (grupos[t] = grupos[t] || []).push(l);
+    });
+
+    const colunasHTML = Object.keys(grupos).length
+        ? Object.entries(grupos).map(([tipo, ls]) => `
+            <div class="mapa-coluna">
+                <div class="mapa-coluna-titulo ${classeTipoLink(tipo)}">
+                    <span>${escapeHTML(capitalizar(tipo))}</span>
+                    <span class="mapa-coluna-contagem">${ls.length}</span>
+                </div>
+                ${ls.map(miniCardSinapse).join('')}
+            </div>`).join('')
+        : '<div class="info-block-vazio" style="grid-column: 1 / -1;">Nenhuma conexão para mapear.</div>';
+
+    const modal = document.createElement('div');
+    modal.className = 'modal show';
+    modal.id = 'modal-mapa-sinapses';
+    modal.innerHTML = `
+        <div class="modal-box mapa-sinapses-box">
+            <div class="mapa-sinapses-header">
+                <h3 class="texto-roxo" style="margin: 0; display: flex; align-items: center; gap: 8px;"><i data-lucide="network"></i> Mapa de Sinapses</h3>
+                <button class="btn btn-ghost btn-sm" onclick="fecharMapaSinapses()" title="Fechar"><i data-lucide="x"></i></button>
+            </div>
+            <div class="no-central">
+                <i data-lucide="${iconeEntidade(tipoCentral)}"></i>
+                <div>
+                    <div class="no-central-nome">${escapeHTML(nomeCentral)}</div>
+                    <div class="no-central-tipo">${escapeHTML(tipoCentral || '—')}</div>
+                </div>
+            </div>
+            <div class="mapa-sinapses-grid">
+                ${colunasHTML}
+            </div>
+        </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) fecharMapaSinapses(); });
+    lucide.createIcons();
+};
+
+window.fecharMapaSinapses = function() {
+    const m = document.getElementById('modal-mapa-sinapses');
+    if (m) m.remove();
+};
+
+// Mini-card de uma conexão: borda colorida (cor do tipo) + ícone da entidade + "Abrir Card" (re-centra o mapa).
+function miniCardSinapse(l) {
+    return `
+        <div class="mini-card-link ${classeTipoLink(l.tipo_vinculo)}">
+            <i data-lucide="${iconeEntidade(l.node_conectado_tipo)}" class="mini-card-icone"></i>
+            <span class="mini-card-nome" title="${escapeHTML(l.node_conectado_nome)}">${escapeHTML(l.node_conectado_nome)}</span>
+            <button class="btn btn-secondary btn-sm" data-id="${escapeHTML(String(l.node_conectado_id))}" onclick="abrirMapaSinapses(this.dataset.id)" title="Centrar o mapa nesta entidade"><i data-lucide="arrow-right"></i> Abrir Card</button>
+        </div>`;
+}
 
 window.toggleFlag = async function(nodeId, flagKey, value) {
     try {
