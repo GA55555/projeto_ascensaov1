@@ -113,15 +113,28 @@ const sinapseParamsBase = {
 const listarLinksSchema = z.object({
     params: z.object({ ...sinapseParamsBase })
 });
+// Arestas Ricas (Fase 11): payload de intriga gravado no JSONB world_links.dados.
+// Opcional e opt-in (Progressive Disclosure). Chaves desconhecidas são descartadas
+// (comportamento strip padrão do Zod), mantendo o JSONB extensível sem 400.
+const dadosLinkSchema = z.object({
+    segredo: z.string().max(2000).optional(),
+    tensao: z.coerce.number().int().min(0).max(5).optional()
+}).optional();
+
 const criarLinkSchema = z.object({
     params: z.object({ ...sinapseParamsBase }),
     body: z.object({
         destino_node_id: z.string().uuid('destino_node_id deve ser um UUID válido.'),
-        tipo_vinculo: z.string().max(50).optional().default('associado')
+        tipo_vinculo: z.string().max(50).optional().default('associado'),
+        dados: dadosLinkSchema
     })
 });
 const deletarLinkSchema = z.object({
     params: z.object({ ...sinapseParamsBase, linkId: z.string().uuid('linkId inválido.') })
+});
+const atualizarLinkSchema = z.object({
+    params: z.object({ ...sinapseParamsBase, linkId: z.string().uuid('linkId inválido.') }),
+    body: z.object({ dados: dadosLinkSchema })
 });
 
 module.exports = {
@@ -132,5 +145,5 @@ module.exports = {
     criarEventoSchema, criarVinculoSchema,
     criarSessaoSchema, editarSessaoSchema,
     atualizarNucleoNodeSchema,
-    listarLinksSchema, criarLinkSchema, deletarLinkSchema
+    listarLinksSchema, criarLinkSchema, deletarLinkSchema, atualizarLinkSchema
 };

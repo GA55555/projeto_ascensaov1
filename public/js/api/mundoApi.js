@@ -118,11 +118,14 @@ const MundoApi = {
         return res.json();
     },
 
-    async criarLink(cronicaId, nodeId, destinoNodeId, tipoLink = 'associado') {
+    // Arestas Ricas (Fase 11): `dados` é o JSONB opcional de intriga (opt-in).
+    async criarLink(cronicaId, nodeId, destinoNodeId, tipoLink = 'associado', dados = null) {
         // 'tipo_vinculo' é a coluna real de world_links (contrato da DDL); o parâmetro segue a nomenclatura Link/Sinapse.
+        const body = { destino_node_id: destinoNodeId, tipo_vinculo: tipoLink };
+        if (dados && Object.keys(dados).length) body.dados = dados;
         const res = await API.fetch(`/cronicas/${cronicaId}/nodes/${nodeId}/links`, {
             method: 'POST',
-            body: JSON.stringify({ destino_node_id: destinoNodeId, tipo_vinculo: tipoLink })
+            body: JSON.stringify(body)
         });
         if (!res.ok) throw new Error('Falha ao criar conexão.');
         return res.json();
@@ -133,5 +136,16 @@ const MundoApi = {
             method: 'DELETE'
         });
         if (!res.ok) throw new Error('Falha ao desfazer conexão.');
+    },
+
+    // Atualiza EXCLUSIVAMENTE o JSONB `dados` (intriga) de um link existente.
+    // Convenção real do cliente: cronicaId é sempre o 1º argumento.
+    async atualizarLink(cronicaId, nodeId, linkId, dados) {
+        const res = await API.fetch(`/cronicas/${cronicaId}/nodes/${nodeId}/links/${linkId}`, {
+            method: 'PUT',
+            body: JSON.stringify({ dados: dados || {} })
+        });
+        if (!res.ok) throw new Error('Falha ao atualizar conexão.');
+        return res.json();
     }
 };

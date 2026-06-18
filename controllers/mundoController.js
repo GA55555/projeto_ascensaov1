@@ -577,6 +577,7 @@ exports.listarLinks = async (req, res) => {
             SELECT
                 l.id,
                 l.tipo_vinculo,
+                l.dados,
                 l.criado_em,
                 (l.origem_node_id = $2) AS sou_origem,
                 CASE WHEN l.origem_node_id = $2 THEN l.destino_node_id ELSE l.origem_node_id END AS node_conectado_id,
@@ -598,7 +599,7 @@ exports.listarLinks = async (req, res) => {
 
 exports.criarLink = async (req, res) => {
     const { cronicaId, nodeId } = req.params;          // nodeId = origem
-    const { destino_node_id, tipo_vinculo } = req.body;
+    const { destino_node_id, tipo_vinculo, dados } = req.body;
 
     if (nodeId === destino_node_id) {
         return res.status(400).json({ erro: 'Uma entidade não pode vincular-se a si mesma.' });
@@ -622,9 +623,9 @@ exports.criarLink = async (req, res) => {
         }
 
         const novo = await pool.query(`
-            INSERT INTO world_links (cronica_id, origem_node_id, destino_node_id, tipo_vinculo)
-            VALUES ($1, $2, $3, $4) RETURNING *
-        `, [cronicaId, nodeId, destino_node_id, tipo_vinculo || 'associado']);
+            INSERT INTO world_links (cronica_id, origem_node_id, destino_node_id, tipo_vinculo, dados)
+            VALUES ($1, $2, $3, $4, $5::jsonb) RETURNING *
+        `, [cronicaId, nodeId, destino_node_id, tipo_vinculo || 'associado', JSON.stringify(dados || {})]);
         res.status(201).json(novo.rows[0]);
     } catch (err) {
         if (err.code === '23505') return res.status(400).json({ erro: 'Estas entidades já estão conectadas.' });
@@ -648,5 +649,27 @@ exports.deletarLink = async (req, res) => {
     } catch (err) {
         console.error('Erro ao deletar sinapse:', err);
         res.status(500).json({ erro: 'Erro ao desfazer conexão.' });
+    }
+};
+
+// Arestas Ricas (Fase 11): atualiza EXCLUSIVAMENTE o JSONB `dados` (intriga) de
+// um link existente. Guard anti-IDOR (Regra 3.3.1) idêntico ao deletarLink: o
+// link tem de ser da crônica E envolver o node da rota. Falha → 404.
+exports.atualizarLink = async (req, res) => {
+    const { cronicaId, nodeId, linkId } = req.params;
+    const { dados } = req.body;
+    try {
+        const result = await pool.query(`
+            UPDATE world_links
+            SET dados = $1::jsonb
+            WHERE id = $2 AND cronica_id = $3
+              AND (origem_node_id = $4 OR destino_node_id = $4)
+            RETURNING *
+        `, [JSON.stringify(dados || {}), linkId, cronicaId, nodeId]);
+        if (result.rows.length === 0) return res.status(404).json({ erro: 'Conexão não encontrada.' });
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error('Erro ao atualizar sinapse:', err);
+        res.status(500).json({ erro: 'Erro ao atualizar detalhes da conexão.' });
     }
 };

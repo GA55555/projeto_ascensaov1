@@ -14,7 +14,7 @@ const {
     criarEventoSchema, criarVinculoSchema,
     criarSessaoSchema, editarSessaoSchema,
     atualizarNucleoNodeSchema,
-    listarLinksSchema, criarLinkSchema, deletarLinkSchema
+    listarLinksSchema, criarLinkSchema, deletarLinkSchema, atualizarLinkSchema
 } = require('../validators/mundoValidator');
 
 // Middleware apenas narrador
@@ -55,6 +55,7 @@ router.put('/nodes/:nodeId/nucleo', verificarToken, checarAcessoCronica, apenasN
 router.get('/nodes/:nodeId/links', verificarToken, checarAcessoCronica, validate(listarLinksSchema), MundoController.listarLinks);
 router.post('/nodes/:nodeId/links', verificarToken, checarAcessoCronica, apenasNarrador, validate(criarLinkSchema), MundoController.criarLink);
 router.delete('/nodes/:nodeId/links/:linkId', verificarToken, checarAcessoCronica, apenasNarrador, validate(deletarLinkSchema), MundoController.deletarLink);
+router.put('/nodes/:nodeId/links/:linkId', verificarToken, checarAcessoCronica, apenasNarrador, validate(atualizarLinkSchema), MundoController.atualizarLink);
 
 // Núcleos de Entidades
 router.get('/entidade-nucleos', verificarToken, checarAcessoCronica, MundoController.listarNucleosEntidade);
