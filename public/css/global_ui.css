@@ -1060,6 +1060,38 @@ label {
     font-weight: 600;
 }
 
+/* ── BADGES DE CONEXÃO (SINAPSES) ──────────────────────── */
+.badge-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--bg-principal);
+    border: 1px solid var(--borda);
+    border-radius: 4px;
+    padding: 4px 8px;
+    margin: 0 6px 6px 0;
+    font-size: 13px;
+    color: var(--texto-claro);
+    max-width: 100%;
+}
+.badge-link-nome {
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: var(--transicao-suave);
+}
+.badge-link-nome:hover { color: var(--roxo-mago); }
+.badge-link .btn-deletar-link {
+    cursor: pointer;
+    flex-shrink: 0;
+    width: 14px;
+    height: 14px;
+    color: var(--texto-mutado);
+    transition: var(--transicao-suave);
+}
+.badge-link .btn-deletar-link:hover { color: var(--erro); }
+
 /* ── LISTA SEM MARCADORES ──────────────────────────────── */
 .lista-sem-estilo {
     list-style: none;

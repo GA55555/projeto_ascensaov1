@@ -59,6 +59,12 @@ O VTT possui uma identidade visual estrita baseada em jogos de RPG modernos e in
 ### Regra 2.7: Salvamento Manual em Grids
 Operações envolvendo bibliotecas de manipulação de DOM intensivas (como o `GridStack.js`) em painéis complexos (Escudo do Narrador, Controle de Mundo) **ESTÃO PROIBIDAS** de utilizar auto-save atrelado a eventos de drag/drop/resize (`change`, `added`, `removed`, `resizestop`). O salvamento de estado (layout e conteúdo) deve ser feito **ÚNICA E EXCLUSIVAMENTE** de forma explícita pelo utilizador através de botões de ação dedicados, prevenindo gargalos de rede (API Spam) e dessincronização de estado.
 
+### Regra 2.8: UI Orientada a Schema (Fim do HTML Esparguete)
+Formulários e fichas densas ou repetitivas (ex.: fichas de RPG) **DEVEM** ser gerados por um **motor renderizador schema-driven** (`public/js/templates/motor_fichas.js`), e **NÃO** por Template Strings de HTML hardcoded e duplicado por sistema. Adicionar um novo sistema de RPG significa declarar um novo **schema** (array de secções → blocos → campos), nunca escrever um novo bloco de HTML. O motor é a única fonte da verdade da renderização: gera todos os campos com `data-path="caminho.aninhado"` (contrato com o coletor de dados), higieniza os valores (`escapeHTML`, Regra 6.1) e reutiliza as classes centralizadas de `global_ui.css` (Regra 2.5).
+
+### Regra 2.9: Responsabilidade Única de Listeners (Anti-Bubbling)
+É **PROIBIDO** registar o mesmo evento (ex.: `paste`, `keydown`) simultaneamente no `document` e num elemento-alvo específico que já o trate. Cada evento de interação deve ter **um único ponto de entrada** homologado, evitando *event bubbling*, dupla execução (ex.: upload duplicado) e dessincronização de estado. Ao introduzir um handler, verifique se já não existe outro ponto de escuta para o mesmo evento.
+
 ---
 
 ## 🛡️ 3. Arquitetura do Backend e Segurança
@@ -77,6 +83,13 @@ O Frontend espera uma resposta padronizada para exibir notificações (Toasts).
 - Todas as rotas de sistema (Cronicas, Mundo, Monstros) são protegidas pelo middleware `auth.js`.
 - O isolamento de dados é crítico: Um usuário só pode dar GET/POST em `nodes` ou `monstros` associados ao `cronica_id` sobre o qual ele tem direitos de Narrador. Valide a autoria no Controller.
 
+#### Regra 3.3.1: Isolamento Multi-Tenant em Profundidade (Anti-IDOR)
+O middleware de rota (`checarAcessoCronica`) confirma apenas que o utilizador tem acesso à crônica da **URL** — ele **não** garante que o recurso-alvo (`:nodeId`, `:eventoId`, `:nucleoId`) pertence a essa crônica. Confiar só no middleware abre **IDOR cross-tenant**.
+- **Toda query de mutação** (`UPDATE`/`DELETE`, ou `INSERT` que referencie um recurso existente) **DEVE** amarrar o recurso ao seu escopo na **própria cláusula `WHERE`**: `cronica_id` no Mundo, `usuario_id` na Gaveta. Ex.: `... WHERE id = $1 AND cronica_id = $2`.
+- **Tabelas-filhas sem coluna de escopo** (ex.: `world_flags`, `event_flag_weights`, `event_nucleos`) **DEVEM** validar a posse via **guard do pai** (ex.: `nodePertenceACronica`, `eventoPertenceACronica`) **antes** de qualquer mutação — em especial antes de apagar registos-filhos em cascata.
+- Falha de posse retorna **`404`** (nunca `403`), para não revelar a existência de recursos de outras crônicas.
+- Os guards usam nomes de tabela fixos e queries parametrizadas (coerente com a Regra 6.2 — nunca concatenação dinâmica de SQL).
+
 ---
 
 ## 🧩 4. Estrutura de Banco de Dados (PostgreSQL)
@@ -94,6 +107,9 @@ Nunca confie cegamente nos dados retornados pelo próprio banco, especialmente e
 
 ### Regra 4.3: Tipagem de Chaves Primárias (UUID Estrito)
 Todas as tabelas do banco de dados PostgreSQL **DEVEM** obrigatoriamente utilizar o tipo `uuid` para as suas Chaves Primárias, com a geração automática configurada via `DEFAULT gen_random_uuid()`. É **terminantemente proibido** o uso de IDs numéricos sequenciais (`SERIAL`, `INT`). As validações no Node.js (Zod) **DEVEM** espelhar esta regra exigindo `.string().uuid()`.
+
+### Regra 4.4: Relacionamentos de Mundo (Sinapses)
+Os relacionamentos entre entidades do mundo (`world_nodes`) são geridos **exclusivamente** pela tabela `world_links` — nunca por arrays ou campos JSONB dispersos nos nós. Cada vínculo é **bidirecional** e representado por um **único registo** (`origem_node_id` → `destino_node_id`); a leitura (`listarLinks`) resolve os dois sentidos. Toda mutação **DEVE** aplicar validação cruzada de propriedade: `criarLink` confirma que **ambos** os nós pertencem à mesma `cronica_id` (via `nodePertenceACronica`) e `deletarLink` amarra `id = $1 AND cronica_id = $2`, prevenindo injeção de conexões *cross-tenant* (coerente com a Regra 3.3.1).
 
 ---
 
