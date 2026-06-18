@@ -23,6 +23,10 @@
     --erro:            #ef4444;
     --aviso:           #f59e0b;
     --azul-vida:       #3b82f6;
+    --link-aliado:      #22c55e;
+    --link-inimigo:     #ef4444;
+    --link-associado:   #eab308;
+    --link-localizacao: #3b82f6;
     --sombra:          rgba(0, 0, 0, 0.35);
     --sombra-borda:    rgba(0, 0, 0, 0.4);
     --sombra-profunda: rgba(0, 0, 0, 0.5);
@@ -1065,15 +1069,22 @@ label {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    background: var(--bg-principal);
-    border: 1px solid var(--borda);
+    background: color-mix(in srgb, var(--cor-link, var(--bg-principal)) 14%, var(--bg-principal));
+    border: 1px solid var(--cor-link, var(--borda));
     border-radius: 4px;
     padding: 4px 8px;
     margin: 0 6px 6px 0;
     font-size: 13px;
-    color: var(--texto-claro);
+    color: var(--cor-link, var(--texto-claro));
     max-width: 100%;
 }
+
+/* Cor semântica por tipo de sinapse: define só a cor-base local (--cor-link),
+   consumida por badges, mini-cards e títulos de coluna do Mapa. Cores via vars (Regra 2.5). */
+.badge-link-aliado      { --cor-link: var(--link-aliado); }
+.badge-link-inimigo     { --cor-link: var(--link-inimigo); }
+.badge-link-associado   { --cor-link: var(--link-associado); }
+.badge-link-localizacao { --cor-link: var(--link-localizacao); }
 .badge-link-nome {
     cursor: pointer;
     overflow: hidden;
@@ -1091,6 +1102,99 @@ label {
     transition: var(--transicao-suave);
 }
 .badge-link .btn-deletar-link:hover { color: var(--erro); }
+
+/* ── MAPA DE SINAPSES (VISÃO RELACIONAL EM TEIA) ───────── */
+.mapa-sinapses-box {
+    width: 92%;
+    max-width: 1100px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+}
+.mapa-sinapses-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--borda);
+    padding-bottom: 12px;
+    margin-bottom: 16px;
+    flex-shrink: 0;
+}
+.no-central {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: var(--bg-card-glass);
+    border: 1px solid var(--roxo-mago);
+    border-radius: 8px;
+    padding: 14px;
+    margin-bottom: 20px;
+    flex-shrink: 0;
+}
+.no-central-nome { font-size: 18px; font-weight: 600; color: var(--texto-claro); }
+.no-central-tipo { font-size: 12px; color: var(--texto-mutado); text-transform: uppercase; letter-spacing: 0.5px; }
+
+.mapa-sinapses-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+    overflow-y: auto;
+    min-height: 0;
+    align-content: start;
+}
+.mapa-coluna {
+    background: var(--bg-principal);
+    border: 1px solid var(--borda);
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.mapa-coluna-titulo {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--borda);
+    color: var(--cor-link, var(--texto-claro));
+}
+.mapa-coluna-contagem {
+    font-size: 11px;
+    padding: 1px 7px;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--cor-link, var(--roxo-mago)) 22%, transparent);
+}
+.mini-card-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-card);
+    border: 1px solid var(--borda);
+    border-left: 4px solid var(--cor-link, var(--roxo-mago));
+    border-radius: 6px;
+    padding: 8px 10px;
+}
+.mini-card-icone {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    color: var(--cor-link, var(--texto-mutado));
+}
+.mini-card-nome {
+    flex: 1;
+    min-width: 0;
+    font-size: 14px;
+    color: var(--texto-claro);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 
 /* ── LISTA SEM MARCADORES ──────────────────────────────── */
 .lista-sem-estilo {

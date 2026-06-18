@@ -301,7 +301,11 @@ exports.excluirNucleoEntidade = async (req, res) => {
         const result = await pool.query('DELETE FROM entidade_nucleos WHERE id = $1 AND cronica_id = $2 RETURNING id', [nucleoId, cronicaId]);
         if (result.rows.length === 0) return res.status(404).json({ erro: 'Núcleo não encontrado.' });
         res.json({ mensagem: 'Núcleo excluído.' });
-    } catch (err) { res.status(500).json({ erro: 'Erro ao excluir núcleo.' }); }
+    } catch (err) {
+        // Caso a FK world_nodes.nucleo_id não seja ON DELETE SET NULL: falha graciosamente (não 500 opaco).
+        if (err.code === '23503') return res.status(409).json({ erro: 'Núcleo em uso por entidades. Mova-as antes de excluir.' });
+        res.status(500).json({ erro: 'Erro ao excluir núcleo.' });
+    }
 };
 
 exports.listarNucleosEventos = async (req, res) => {
