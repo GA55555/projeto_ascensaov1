@@ -657,10 +657,13 @@ label {
     width: 96%;
     max-width: 850px;
     margin: 0 auto;
-    height: 92vh;
+    /* Cap relativo ao overlay (%), não vh — robusto ao zoom:1.33 do :root.
+       height auto deixa fichas curtas encolherem; quem rola é o .editor-corpo. */
+    max-height: calc(100% - 40px);
     padding: 20px;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 }
 
 /* ── GAVETA LATERAL ────────────────────────────────────── */

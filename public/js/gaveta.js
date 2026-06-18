@@ -168,9 +168,15 @@ async function salvarFicha(e) {
 }
 
 // ── Editor de Ficha (Modal Fullscreen) ───────────────────────
+let _escEditorHandler = null;
+
 function fecharEditorFicha() {
     const modal = document.getElementById('modal-editor-ficha');
     if (modal) modal.remove();
+    if (_escEditorHandler) {
+        document.removeEventListener('keydown', _escEditorHandler);
+        _escEditorHandler = null;
+    }
 }
 
 function abrirEditorFicha(idFicha) {
@@ -238,6 +244,11 @@ function abrirEditorFicha(idFicha) {
     document.getElementById('btn-cancelar-edicao').addEventListener('click', fecharEditorFicha);
     document.getElementById('btn-salvar-edicao').addEventListener('click', () => salvarEdicaoFicha(ficha.id));
     document.getElementById('btn-salvar-versao').addEventListener('click', () => salvarComoNovaVersao(ficha.id));
+
+    // Formas adicionais de sair: clique no fundo (backdrop) e tecla Esc.
+    modal.addEventListener('click', (e) => { if (e.target === modal) fecharEditorFicha(); });
+    _escEditorHandler = (e) => { if (e.key === 'Escape') fecharEditorFicha(); };
+    document.addEventListener('keydown', _escEditorHandler);
 }
 
 // Define um valor em caminho aninhado (ex: 'atributos.fisicos.forca').
