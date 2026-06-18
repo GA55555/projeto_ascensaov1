@@ -651,6 +651,18 @@ label {
     overflow-y: auto;
 }
 
+/* Editor de fichas: proporção próxima a uma folha A4, sem esticar infinitamente.
+   (Movido do <style> inline de index.html para centralizar — Regra 2.5.) */
+.modal-editor-box {
+    width: 96%;
+    max-width: 850px;
+    margin: 0 auto;
+    height: 92vh;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
 /* ── GAVETA LATERAL ────────────────────────────────────── */
 .gaveta-container,
 .painel-mestre {
@@ -747,6 +759,13 @@ label {
     margin-bottom: 15px;
 }
 
+/* Input compacto para fichas densas (Motor Universal de Fichas) */
+.input-sm {
+    padding: 4px 8px;
+    font-size: 13px;
+    height: 30px;
+}
+
 .link-rodape {
     text-align: center;
     margin-top: 20px;
@@ -811,16 +830,24 @@ label {
 .grid-3col {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 15px;
+    gap: 10px;
 }
 
 .grid-4col {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 15px;
+    gap: 10px;
 }
 
 /* ── FICHA NATIVA (Papel Contínuo) ─────────────────────── */
+/* Container que simula a folha dentro do editor (Motor Universal de Fichas). */
+.ficha-a4 {
+    background: var(--bg-card);
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px var(--sombra-profunda);
+}
+
 .campo-grupo {
     margin-bottom: 22px;
 }
