@@ -933,66 +933,11 @@ window.toggleAutomacaoEscudo = async function(id, ativo) {
 // MÓDULO COMPLEMENTAR: UPLOAD E VÍNCULOS
 // ==========================================
 
-// Interceta o Ctrl+V na página inteira do Escudo
-document.addEventListener('paste', async (event) => {
-    // Busca os itens que estão na área de transferência
-    const itens = (event.clipboardData || window.clipboardData).items;
-    let blobImagem = null;
-
-    // Procura se algum dos itens colados é uma imagem
-    for (const item of itens) {
-        if (item.type.indexOf('image') === 0) {
-            blobImagem = item.getAsFile();
-            break;
-        }
-    }
-
-    if (!blobImagem) return; // Se não for imagem (for texto, etc), ignora.
-
-    // 1. Abre o Modal e prepara o visual de "Carregando"
-    abrirModal('modal-novo-monstro');
-    const preview = document.getElementById('preview-monstro');
-    const loading = document.getElementById('loading-upload');
-    const btnSalvar = document.getElementById('btn-salvar-monstro');
-    
-    preview.style.display = 'none';
-    loading.style.display = 'block';
-    btnSalvar.disabled = true;
-
-    // Mostra um preview local instantâneo enquanto faz o upload
-    preview.src = URL.createObjectURL(blobImagem);
-
-    // 2. Prepara os dados para enviar para a sua rota de mídias (/midia)
-    const formData = new FormData();
-    formData.append('imagens', blobImagem, `monstro_${Date.now()}.png`);
-
-    try {
-        // ATENÇÃO: Usamos o fetch nativo aqui porque o FormData não pode ter
-        // o cabeçalho 'Content-Type': 'application/json' que o seu api.js normalmente injeta.
-        const res = await fetch(`/midia/upload/cards`, {
-            method: 'POST',
-            credentials: 'include',
-            body: formData
-        });
-
-        if (!res.ok) throw new Error('Falha no upload da imagem.');
-        
-        const dados = await res.json();
-        
-        // 3. Sucesso! Guarda a URL devolvida pelo servidor, esconde o loading e liberta o botão
-        document.getElementById('url-imagem-monstro').value = dados.urls[0]; // midiaController devolve { urls: [...] }
-        preview.style.display = 'block';
-        loading.style.display = 'none';
-        btnSalvar.disabled = false;
-        
-        // Coloca o foco no input do nome para o Narrador digitar rápido
-        document.getElementById('nome-monstro').focus();
-
-    } catch (err) {
-        fecharModal('modal-novo-monstro');
-        mostrarToast('Erro ao fazer upload da imagem do monstro.', 'erro');
-    }
-});
+// NOTA DE ARQUITETURA (Responsabilidade Única): NÃO existe listener global
+// `document.addEventListener('paste', ...)` aqui. O ÚNICO ponto de entrada do
+// evento 'paste' para upload de monstro é o `dropzone.addEventListener('paste', ...)`
+// (a meio do ficheiro), que delega para `processarImagem(arquivo)`. Um segundo
+// listener no `document` causaria event bubbling e upload duplo.
 
 //Função de Salvar o Card
 
