@@ -1227,6 +1227,108 @@ label {
 }
 .badge-link .btn-deletar-link:hover { color: var(--erro); }
 
+/* ── ARESTAS RICAS (FASE 11): INTRIGA NAS SINAPSES ─────── */
+/* Indicador no badge: chama + nível de tensão, scroll p/ segredo. Herda --cor-link. */
+.badge-link-intriga {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    flex-shrink: 0;
+    cursor: pointer;
+    color: var(--cor-link, var(--texto-claro));
+}
+.badge-link-intriga i { width: 13px; height: 13px; }
+.badge-link-intriga .intriga-nivel {
+    font-family: 'Fira Code', monospace;
+    font-size: 11px;
+    line-height: 1;
+}
+/* Botão de abrir o Contrato de Relação no badge. */
+.badge-link .btn-contrato {
+    cursor: pointer;
+    flex-shrink: 0;
+    width: 14px;
+    height: 14px;
+    color: var(--texto-mutado);
+    transition: var(--transicao-suave);
+}
+.badge-link .btn-contrato:hover { color: var(--roxo-mago); }
+
+/* Disclosure opt-in na criação (Progressive Disclosure): some por padrão. */
+.intriga-disclosure { width: 100%; margin-top: 4px; }
+.intriga-form {
+    display: none;
+    width: 100%;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--borda);
+    flex-direction: column;
+    gap: 10px;
+}
+.intriga-form.aberta { display: flex; }
+
+/* Partes conectadas no Contrato de Relação (quem ↔ quem). */
+.contrato-partes {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+}
+.contrato-partes i { color: var(--texto-mutado); }
+.contrato-tipo {
+    font-size: 12px;
+    color: var(--texto-mutado);
+    text-align: center;
+    margin: 0 0 14px;
+}
+
+/* Controle de Tensão (slider 0–5). */
+.tensao-control { display: flex; align-items: center; gap: 10px; }
+.tensao-range {
+    flex: 1;
+    appearance: none;
+    -webkit-appearance: none;
+    height: 6px;
+    border-radius: 4px;
+    background: var(--bg-principal);
+    border: 1px solid var(--borda);
+    cursor: pointer;
+}
+.tensao-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    background: var(--erro);
+    border: 1px solid var(--borda);
+    cursor: pointer;
+}
+.tensao-range::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    background: var(--erro);
+    border: 1px solid var(--borda);
+    cursor: pointer;
+}
+.tensao-valor {
+    font-family: 'Fira Code', monospace;
+    font-size: 13px;
+    color: var(--texto-claro);
+    min-width: 28px;
+    text-align: right;
+}
+
+/* Coerência 16-bit: numerais pixelados + bordas retas (Scope Override, Paradigma 5). */
+.tema-pixel-16bit .badge-link-intriga .intriga-nivel,
+.tema-pixel-16bit .tensao-valor { font-family: 'VT323', monospace !important; }
+.tema-pixel-16bit .tensao-range,
+.tema-pixel-16bit .tensao-range::-webkit-slider-thumb,
+.tema-pixel-16bit .tensao-range::-moz-range-thumb { border-radius: 0 !important; }
+
 /* ── MAPA DE SINAPSES (VISÃO RELACIONAL EM TEIA) ───────── */
 .mapa-sinapses-box {
     width: 92%;

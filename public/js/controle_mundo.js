@@ -420,6 +420,8 @@ window.deletarEntidade = async function(nodeId, nome) {
 // Nomenclatura: Sinapse/Conexão/Link — nunca "Vínculo" (colisão com gatilhos de evento).
 // ==========================================
 let todosNodesSinapse = []; // lista completa de nós da crônica (independe do filtro do grid)
+let sinapsesAtuais = [];    // links renderizados no modal aberto (fonte p/ o Contrato de Relação)
+let nodeAtualSinapse = null; // nó central do modal de sinapses aberto
 
 window.abrirModalSinapses = async function(nodeId) {
     fecharModalSinapses(); // instância única
@@ -464,6 +466,17 @@ window.abrirModalSinapses = async function(nodeId) {
                     </select>
                 </div>
                 <button class="btn btn-primary btn-sm" data-id="${escapeHTML(String(nodeId))}" onclick="conectarSinapse(this.dataset.id)"><i data-lucide="link"></i> Conectar</button>
+
+                <div class="intriga-disclosure">
+                    <button type="button" class="btn btn-ghost btn-sm" onclick="toggleIntrigaForm()"><i data-lucide="flame"></i> Adicionar Gancho/Dívida</button>
+                    <div id="intriga-form-criar" class="intriga-form">
+                        <div>
+                            <label>Segredo / Favor</label>
+                            <textarea id="intriga-segredo" class="input-sm" rows="2" placeholder="Ex: deve um favor de sangue ao protagonista..."></textarea>
+                        </div>
+                        ${controleTensaoHTML('intriga-tensao', 0)}
+                    </div>
+                </div>
             </div>
         </div>`;
     document.body.appendChild(modal);
@@ -491,14 +504,30 @@ async function recarregarSinapses(nodeId) {
         return;
     }
 
+    // Estado p/ o Contrato de Relação localizar o link e o nó central.
+    nodeAtualSinapse = nodeId;
+    sinapsesAtuais = links;
+
     if (!links.length) {
         cont.innerHTML = '<div class="info-block-vazio" style="width: 100%;">Nenhuma conexão ainda.</div>';
     } else {
-        cont.innerHTML = links.map(l => `
+        cont.innerHTML = links.map(l => {
+            const d = l.dados || {};
+            const temSegredo = !!(d.segredo && String(d.segredo).trim());
+            const tensao = parseInt(d.tensao, 10) || 0;
+            const indicador = (temSegredo || tensao > 0) ? `
+                <span class="badge-link-intriga" data-link="${escapeHTML(String(l.id))}" onclick="abrirContratoRelacao(this.dataset.link)" title="Ver contrato de relação">
+                    ${temSegredo ? '<i data-lucide="scroll"></i>' : ''}
+                    ${tensao > 0 ? `<i data-lucide="flame"></i><span class="intriga-nivel">${tensao}</span>` : ''}
+                </span>` : '';
+            return `
             <span class="badge-link ${classeTipoLink(l.tipo_vinculo)}">
                 <span class="badge-link-nome" data-id="${escapeHTML(String(l.node_conectado_id))}" onclick="navegarSinapse(this.dataset.id)" title="Abrir entidade conectada">${escapeHTML(l.tipo_vinculo)}: ${escapeHTML(l.node_conectado_nome)}</span>
+                ${indicador}
+                <i data-lucide="book-open" class="btn-contrato" data-link="${escapeHTML(String(l.id))}" onclick="abrirContratoRelacao(this.dataset.link)" title="Contrato de Relação"></i>
                 <i data-lucide="x" class="btn-deletar-link" data-node="${escapeHTML(String(nodeId))}" data-link="${escapeHTML(String(l.id))}" onclick="removerSinapse(this.dataset.node, this.dataset.link)" title="Remover conexão"></i>
-            </span>`).join('');
+            </span>`;
+        }).join('');
     }
 
     const conectados = links.map(l => String(l.node_conectado_id));
@@ -521,9 +550,11 @@ window.conectarSinapse = async function(nodeId) {
     const destino = document.getElementById('sinapse-destino')?.value;
     const tipo = document.getElementById('sinapse-tipo')?.value || 'associado';
     if (!destino) { mostrarToast('Selecione uma entidade para conectar.', 'aviso'); return; }
+    const dados = coletarIntriga('intriga-segredo', 'intriga-tensao'); // null se nada preenchido (opt-in)
     try {
-        await MundoApi.criarLink(cronicaId, nodeId, destino, tipo);
+        await MundoApi.criarLink(cronicaId, nodeId, destino, tipo, dados);
         mostrarToast('Conexão criada!', 'sucesso');
+        resetarIntrigaForm();
         await recarregarSinapses(nodeId);
     } catch (e) {
         mostrarToast(e.message || 'Erro ao criar conexão.', 'erro');
@@ -544,6 +575,93 @@ window.removerSinapse = async function(nodeId, linkId) {
 // Navegação em teia: fecha o modal atual e abre o da entidade conectada (instância única).
 window.navegarSinapse = function(connectedNodeId) {
     abrirModalSinapses(connectedNodeId);
+};
+
+// ── ARESTAS RICAS (FASE 11): INTRIGA ───────────────────────
+// Controle de Tensão (slider 0–5). DRY: usado na criação e no Contrato.
+// O oninput atualiza só o seu próprio <span> de valor (sem listener global, Regra 2.9).
+function controleTensaoHTML(id, valor = 0) {
+    const v = Math.min(5, Math.max(0, parseInt(valor, 10) || 0));
+    return `
+        <div>
+            <label>Tensão / Nemesis</label>
+            <div class="tensao-control">
+                <input type="range" id="${id}" class="tensao-range" min="0" max="5" step="1" value="${v}"
+                       oninput="document.getElementById('${id}-val').textContent = this.value">
+                <span id="${id}-val" class="tensao-valor">${v}</span>
+            </div>
+        </div>`;
+}
+// Monta o objeto `dados` só com o que foi preenchido (opt-in). Vazio → null.
+function coletarIntriga(idSegredo, idTensao) {
+    const segredo = (document.getElementById(idSegredo)?.value || '').trim();
+    const tensao = parseInt(document.getElementById(idTensao)?.value, 10) || 0;
+    const dados = {};
+    if (segredo) dados.segredo = segredo;
+    if (tensao > 0) dados.tensao = tensao;
+    return Object.keys(dados).length ? dados : null;
+}
+function resetarIntrigaForm() {
+    const seg = document.getElementById('intriga-segredo'); if (seg) seg.value = '';
+    const ten = document.getElementById('intriga-tensao');
+    if (ten) { ten.value = 0; const v = document.getElementById('intriga-tensao-val'); if (v) v.textContent = '0'; }
+    const form = document.getElementById('intriga-form-criar'); if (form) form.classList.remove('aberta');
+}
+window.toggleIntrigaForm = function() {
+    document.getElementById('intriga-form-criar')?.classList.toggle('aberta');
+};
+
+// Micro-modal "Contrato de Relação": edita o JSONB `dados` de um link existente
+// via MundoApi.atualizarLink. Instância única (padrão dos modais de sinapse).
+window.abrirContratoRelacao = function(linkId) {
+    const l = sinapsesAtuais.find(x => String(x.id) === String(linkId));
+    if (!l) { mostrarToast('Conexão não encontrada.', 'erro'); return; }
+    fecharContrato();
+    const central = todosNodesSinapse.find(n => String(n.id) === String(nodeAtualSinapse));
+    const nomeA = central ? central.nome : 'Entidade';
+    const d = l.dados || {};
+
+    const modal = document.createElement('div');
+    modal.className = 'modal show';
+    modal.id = 'modal-contrato';
+    modal.innerHTML = `
+        <div class="modal-box" style="width: 440px; max-width: 92%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                <h3 class="texto-roxo" style="margin: 0; display: flex; align-items: center; gap: 8px;"><i data-lucide="scroll-text"></i> Contrato de Relação</h3>
+                <button class="btn btn-ghost btn-sm" onclick="fecharContrato()" title="Fechar"><i data-lucide="x"></i></button>
+            </div>
+            <div class="contrato-partes">
+                <span class="badge-link ${classeTipoLink(l.tipo_vinculo)}">${escapeHTML(nomeA)}</span>
+                <i data-lucide="arrow-left-right"></i>
+                <span class="badge-link ${classeTipoLink(l.tipo_vinculo)}">${escapeHTML(l.node_conectado_nome)}</span>
+            </div>
+            <p class="contrato-tipo">Tipo: ${escapeHTML(capitalizar(l.tipo_vinculo))}</p>
+            <label>Segredo / Favor</label>
+            <textarea id="contrato-segredo" class="input-sm" rows="3" placeholder="Dívidas, segredos, favores...">${escapeHTML(d.segredo || '')}</textarea>
+            ${controleTensaoHTML('contrato-tensao', d.tensao || 0)}
+            <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px;">
+                <button class="btn btn-outline btn-sm" onclick="fecharContrato()">Cancelar</button>
+                <button class="btn btn-primary btn-sm" data-link="${escapeHTML(String(l.id))}" onclick="salvarContrato(this.dataset.link)"><i data-lucide="save"></i> Gravar</button>
+            </div>
+        </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) fecharContrato(); });
+    lucide.createIcons();
+};
+window.fecharContrato = function() {
+    const m = document.getElementById('modal-contrato');
+    if (m) m.remove();
+};
+window.salvarContrato = async function(linkId) {
+    const dados = coletarIntriga('contrato-segredo', 'contrato-tensao') || {}; // {} limpa a intriga
+    try {
+        await MundoApi.atualizarLink(cronicaId, nodeAtualSinapse, linkId, dados);
+        mostrarToast('Contrato de relação atualizado.', 'sucesso');
+        fecharContrato();
+        await recarregarSinapses(nodeAtualSinapse);
+    } catch (e) {
+        mostrarToast(e.message || 'Erro ao gravar contrato.', 'erro');
+    }
 };
 
 // ── Helpers semânticos ─────────────────────────────────────
