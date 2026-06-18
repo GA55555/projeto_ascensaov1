@@ -798,11 +798,12 @@ function renderizarGridEventos(lista) {
 
             <div style="margin-top: auto; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px;">
                 <div class="barra-bg">
-                    <div class="barra-fill ${alerta ? 'barra-alerta' : ''}" style="width: ${pct}%; background-color: ${corBarra};">
-                        ${pct > 15 ? `${ev.pool_atual}/${ev.pool_maxima}` : ''}
-                    </div>
+                    <div class="barra-fill ${alerta ? 'barra-alerta' : ''}" style="width: ${pct}%; background-color: ${corBarra};"></div>
                 </div>
-                ${pct <= 15 ? `<span style="font-size: 10px; color: var(--texto-mutado);">${ev.pool_atual}/${ev.pool_maxima}</span>` : ''}
+                <div class="evento-pool-info">
+                    <span class="evento-pool-caption">Pool</span>
+                    <span class="evento-pool-valor ${alerta ? 'evento-pool-valor--alerta' : ''}">${ev.pool_atual} / ${ev.pool_maxima}</span>
+                </div>
                 ${ev.ultima_excedida_em ? `<div style="font-size: 10px; color: var(--texto-mutado); margin-top: 5px; display: flex; align-items: center; gap: 4px;"><i data-lucide="clock"></i> Ativado em: ${new Date(ev.ultima_excedida_em).toLocaleString()}</div>` : ''}
                 
                 <div style="font-size: 11px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center; gap: 5px;">
