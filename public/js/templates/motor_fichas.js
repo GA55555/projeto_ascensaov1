@@ -60,6 +60,23 @@
             </label>`;
             }
 
+            case 'pericia': {
+                // Linha composta: [proficiência] [valor] [nome]. Gera DOIS data-path
+                // a partir do path base: <path>.proficiente (bool) e <path>.valor (número).
+                const profPath = esc(campo.path + '.proficiente');
+                const valorPath = esc(campo.path + '.valor');
+                const marcado = ler(dados, campo.path + '.proficiente', false) ? 'checked' : '';
+                const min = campo.min !== undefined ? ` min="${Number(campo.min)}"` : '';
+                const max = campo.max !== undefined ? ` max="${Number(campo.max)}"` : '';
+                const valor = esc(ler(dados, campo.path + '.valor', campo.padrao));
+                return `
+            <div class="pericia-linha">
+                <input type="checkbox" data-path="${profPath}" ${marcado} title="Proficiente em ${label}">
+                <input type="number" class="input-sm valor-numerico pericia-valor" data-path="${valorPath}"${min}${max} value="${valor}">
+                <span class="pericia-nome">${label}</span>
+            </div>`;
+            }
+
             case 'texto':
             default: {
                 if (campo.tipo !== 'texto') {
