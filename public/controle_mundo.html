@@ -164,14 +164,14 @@
         </div>
     </div>
 
-    <!-- Vincular Flag ao Evento -->
+    <!-- Vincular Marco ao Evento -->
     <div id="modal-vinculo" class="modal">
         <div class="modal-box" style="width: 450px; max-height: 85vh;">
             <h3 class="texto-destaque" style="margin-top: 0;"><i data-lucide="link"></i> Vincular Causa ao Evento</h3>
             <input type="hidden" id="vinculo-event-id">
             <label>Entidade (Nó)</label>
             <select id="vinculo-node-id" onchange="atualizarFlagsVinculo()"></select>
-            <label>Flag</label>
+            <label>Marco</label>
             <select id="vinculo-flag-key"><option value="">Selecione um nó primeiro...</option></select>
             <label>Peso</label>
             <input type="number" id="vinculo-peso" value="1" min="1">
@@ -233,8 +233,8 @@
             <label>Qual tipo de ação o sistema executará?</label>
             <select id="auto-tipo" onchange="renderizarCamposAutomacao()">
             <option value="">Selecione uma ação...</option>
-            <option value="criar_flag">Criar Nova Flag na Entidade</option>
-            <option value="alterar_flag">Alterar uma Flag Existente</option>
+            <option value="criar_flag">Criar Novo Marco na Entidade</option>
+            <option value="alterar_flag">Alterar um Marco Existente</option>
             <option value="postar_em_aba">Postar Mensagem na Comunidade</option>
             <option value="criar_evento">Engatilhar um Novo Evento</option>
             <option value="criar_entidade">Criar Entidade</option>
