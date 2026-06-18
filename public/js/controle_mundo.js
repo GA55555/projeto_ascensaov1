@@ -1303,7 +1303,7 @@ window.salvarAutomacao = async function() {
         parametros.node_id = document.getElementById('param-node-id').value;
         parametros.flag_key = document.getElementById('param-flag-key').value.trim();
         parametros.valor_inicial = document.getElementById('param-flag-value').value === 'true';
-        if (!parametros.flag_key) return mostrarToast("A Flag precisa de um nome.", 'aviso');
+        if (!parametros.flag_key) return mostrarToast("O Marco precisa de um nome.", 'aviso');
     } 
     else if (tipo_nome === 'alterar_flag') {
         parametros.node_id = document.getElementById('param-node-id').value;
