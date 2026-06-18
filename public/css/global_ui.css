@@ -901,6 +901,7 @@ label {
     align-items: center;
     gap: 8px;
     margin-bottom: 6px;
+    min-width: 0;            /* deixa a linha encolher dentro da célula do grid */
 }
 .pericia-linha input[type="checkbox"] {
     width: auto;
@@ -908,13 +909,20 @@ label {
     cursor: pointer;
     accent-color: var(--roxo-mago);
 }
-.pericia-valor {
-    width: 52px;
-    flex-shrink: 0;
+/* Especificidade elevada (.pericia-linha .pericia-valor = 0,2,0) para vencer a
+   regra global input[type="number"]{width:100%} (0,1,1) e fixar a largura. */
+.pericia-linha .pericia-valor {
+    flex: 0 0 60px;
+    width: 60px;
     text-align: center;
+    padding-left: 6px;
+    padding-right: 6px;
 }
 .pericia-nome {
+    flex: 1;
+    min-width: 0;            /* permite quebrar/encolher o nome em vez de transbordar */
     font-size: 13px;
+    line-height: 1.2;
     color: var(--texto-claro);
 }
 
