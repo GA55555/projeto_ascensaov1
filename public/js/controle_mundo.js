@@ -106,7 +106,7 @@ window.abrirTab = function(tab) {
         carregarSessoes();
         carregarNucleos('sessao');
     }
-    else if (tab === 'macro') carregarMacroVisao();
+    else if (tab === 'macro') carregarMesaGuerra();
 }
 
 window.abrirModal = async function(id) {
@@ -667,8 +667,11 @@ window.removerTagContrato = function(idx) {
 async function persistirContrato() {
     const corpo = document.getElementById('contrato-corpo');
     if (corpo) { corpo.innerHTML = corpoContratoHTML(); lucide.createIcons(); } // re-render otimista
+    // MERGE: preserva x/y/icone/cargo da Mesa de Guerra (mesmo JSONB world_links.dados).
+    const link = sinapsesAtuais.find(l => String(l.id) === String(contratoLinkId));
+    const dados = { ...(link?.dados || {}), tags: contratoTags, limite: contratoLimite };
     try {
-        await MundoApi.atualizarLink(cronicaId, nodeAtualSinapse, contratoLinkId, { tags: contratoTags, limite: contratoLimite });
+        await MundoApi.atualizarLink(cronicaId, nodeAtualSinapse, contratoLinkId, dados);
         await recarregarSinapses(nodeAtualSinapse); // reflete termômetro/massa crítica no badge
     } catch (e) {
         mostrarToast(e.message || 'Erro ao gravar a pressão da relação.', 'erro');
@@ -1944,148 +1947,208 @@ window.abrirEscudoComSave = function(saveId) {
 }
 
 // ==========================================
-// MACRO-VISÃO (FASE 12) — ÁRVORE DE PROGRESSÃO POR NÚCLEO
-// Tech tree vertical (CSS <ul>/<li>), nós ligados por world_links 'progressao'.
-// Consome MundoApi.buscarArvoreNucleo. Núcleos reais = entidade_nucleos.
+// MESA DE GUERRA (FASE 12 refatorada) — CANVAS ESPACIAL
+// Canvas livre: o Narrador escolhe um Local/Facção (raiz) e posiciona os nós
+// conectados (de listarLinks) livremente. Posição/ícone/cargo persistem no JSONB
+// world_links.dados via atualizarLink (merge — preserva tags/limite da Panela).
+// Linhas Bézier (<path>) ligam a raiz a cada card; redesenham no arrasto.
 // ==========================================
-let macroNucleoAtual = null;   // núcleo selecionado na aba Macro
-let desbloqueioPaiId = null;   // pai do "Novo Desbloqueio" em curso
+const ICONES_HIER = ['user', 'shield', 'crown', 'castle', 'swords', 'flag', 'gem', 'eye'];
+let mesaRaizId = null;       // nó-raiz selecionado
+let mesaRaizNode = null;     // {id, nome, tipo} do raiz
+let mesaLinks = [];          // links do raiz (.dados é a fonte de x/y/icone/cargo)
+let mesaNodesCache = [];     // todos os nós (dropdown + lookup do raiz)
+let editorCardLinkId = null; // link em edição no popover
+let editorCardIcone = null;
 
-// Popula o <select> de núcleos da aba a partir do cache de entidades.
-async function carregarMacroVisao() {
-    if (!nucleosCache.entidade || nucleosCache.entidade.length === 0) await carregarNucleos('entidade');
-    const sel = document.getElementById('macro-nucleo-select');
+// Popula o dropdown com entidades local/faccao (candidatas a raiz da hierarquia).
+async function carregarMesaGuerra() {
+    const sel = document.getElementById('macro-raiz-select');
     if (!sel) return;
+    try { mesaNodesCache = await MundoApi.getNodes(cronicaId); }
+    catch (e) { mostrarToast('Erro ao carregar entidades.', 'erro'); return; }
+    const raizes = mesaNodesCache.filter(n => ['local', 'faccao'].includes(String(n.tipo).toLowerCase()));
     const atual = sel.value;
-    sel.innerHTML = '<option value="">Selecione um núcleo...</option>'
-        + nucleosCache.entidade.map(n => `<option value="${escapeHTML(String(n.id))}">${escapeHTML(n.nome)}</option>`).join('');
+    sel.innerHTML = '<option value="">Selecione um Local ou Facção...</option>'
+        + raizes.map(n => `<option value="${escapeHTML(String(n.id))}">${escapeHTML(n.nome)} (${escapeHTML(n.tipo)})</option>`).join('');
     if (atual) sel.value = atual;
 }
 
-window.carregarArvore = async function(nucleoId) {
-    const cont = document.getElementById('macro-arvore');
+window.selecionarRaizMesa = async function(raizId) {
+    const cont = document.getElementById('war-table');
     if (!cont) return;
-    macroNucleoAtual = nucleoId || null;
-    if (!nucleoId) {
-        cont.innerHTML = '<div class="info-block-vazio">Selecione um núcleo para ver a árvore de progressão.</div>';
-        return;
-    }
-    cont.innerHTML = '<div class="info-block-vazio"><span class="spinner"></span> A montar a árvore...</div>';
-    let data;
-    try {
-        data = await MundoApi.buscarArvoreNucleo(cronicaId, nucleoId);
-    } catch (e) {
-        cont.innerHTML = '<div class="info-block-vazio">Erro ao carregar a árvore de progressão.</div>';
-        return;
-    }
-    cont.innerHTML = montarArvoreHTML(data.nodes || [], data.links || []);
-    lucide.createIcons();
+    mesaRaizId = raizId || null;
+    if (!raizId) { cont.innerHTML = '<div class="info-block-vazio">Selecione um Local ou Facção para abrir a mesa.</div>'; return; }
+    mesaRaizNode = mesaNodesCache.find(n => String(n.id) === String(raizId)) || { id: raizId, nome: 'Raiz', tipo: 'local' };
+    cont.innerHTML = '<div class="info-block-vazio"><span class="spinner"></span> A montar a mesa...</div>';
+    try { mesaLinks = await MundoApi.listarLinks(cronicaId, raizId); }
+    catch (e) { cont.innerHTML = '<div class="info-block-vazio">Erro ao carregar a mesa.</div>'; return; }
+    renderMesa();
 };
 
-// Algoritmo: raízes = nós que NÃO são destino de nenhum link; aninha filhos
-// (origem→destino) recursivamente, com guarda de ciclo (visitados).
-function montarArvoreHTML(nodes, links) {
-    if (!nodes.length) {
-        return '<div class="info-block-vazio">Este núcleo ainda não tem entidades. Crie uma na aba Mundo, depois desbloqueie a partir dela aqui.</div>';
+// Monta o canvas: SVG (linhas) + card raiz central + cards subordinados na posição
+// salva (dados.x/y) ou num layout circular padrão de fallback.
+function renderMesa() {
+    const cont = document.getElementById('war-table');
+    if (!cont) return;
+    const W = cont.clientWidth || 800, H = 600;
+    const cx = Math.round(W / 2), cy = Math.round(H / 2);
+    const n = mesaLinks.length;
+    if (!n) {
+        cont.innerHTML = `<svg class="war-table-svg"></svg>${cardHTML({ raiz: true, nodeId: mesaRaizNode.id, nome: mesaRaizNode.nome, tipoEnt: mesaRaizNode.tipo, x: Math.max(0, cx - 90), y: Math.max(0, cy - 32) })}
+            <div class="war-table-vazio info-block-vazio">Sem conexões. Crie conexões nesta entidade (aba Mundo → Conexões) para posicioná-las aqui.</div>`;
+        lucide.createIcons();
+        ativarArrasto();
+        return;
     }
-    const byId = new Map(nodes.map(n => [String(n.id), n]));
-    const filhos = new Map();
-    const ehDestino = new Set();
-    links.forEach(l => {
-        const o = String(l.origem_node_id), d = String(l.destino_node_id);
-        if (!byId.has(o) || !byId.has(d)) return;
-        if (!filhos.has(o)) filhos.set(o, []);
-        filhos.get(o).push(d);
-        ehDestino.add(d);
+    const subs = mesaLinks.map((l, i) => {
+        const d = l.dados || {};
+        let x = Number.isFinite(d.x) ? d.x : null;
+        let y = Number.isFinite(d.y) ? d.y : null;
+        if (x === null || y === null) {
+            const ang = (2 * Math.PI * i) / n - Math.PI / 2;
+            x = Math.round(cx + Math.cos(ang) * 220 - 90);
+            y = Math.round(cy + Math.sin(ang) * 170 - 32);
+        }
+        return cardHTML({ raiz: false, linkId: l.id, nodeId: l.node_conectado_id, nome: l.node_conectado_nome, tipoEnt: l.node_conectado_tipo, icone: d.icone, cargo: d.cargo, x, y });
+    }).join('');
+    const raiz = cardHTML({ raiz: true, nodeId: mesaRaizNode.id, nome: mesaRaizNode.nome, tipoEnt: mesaRaizNode.tipo, x: Math.max(0, cx - 90), y: Math.max(0, cy - 32) });
+    cont.innerHTML = `<svg class="war-table-svg"></svg>${raiz}${subs}`;
+    lucide.createIcons();
+    desenharLinhas();
+    ativarArrasto();
+}
+
+function cardHTML(o) {
+    const icone = o.icone || iconeEntidade(o.tipoEnt);
+    const cargo = o.cargo ? escapeHTML(o.cargo) : (o.raiz ? 'Raiz' : '');
+    return `<div class="war-table-card${o.raiz ? ' raiz' : ''}" data-node="${escapeHTML(String(o.nodeId))}"${o.linkId ? ` data-link="${escapeHTML(String(o.linkId))}"` : ''} style="left: ${Math.round(o.x)}px; top: ${Math.round(o.y)}px;">
+        <i data-lucide="${escapeHTML(icone)}" class="war-card-icone"></i>
+        <span class="war-card-info">
+            <span class="war-card-nome">${escapeHTML(o.nome)}</span>
+            ${cargo ? `<span class="war-card-cargo">${cargo}</span>` : ''}
+        </span>
+    </div>`;
+}
+
+// Linhas Bézier da raiz ao centro de cada subordinado. Dimensiona o SVG ao conteúdo.
+function desenharLinhas() {
+    const cont = document.getElementById('war-table');
+    const svg = cont?.querySelector('.war-table-svg');
+    if (!svg) return;
+    const raizEl = cont.querySelector('.war-table-card.raiz');
+    if (!raizEl) { svg.innerHTML = ''; return; }
+    const r = centroCard(raizEl);
+    let maxX = cont.clientWidth, maxY = 600, paths = '';
+    cont.querySelectorAll('.war-table-card:not(.raiz)').forEach(card => {
+        const c = centroCard(card);
+        const dx = Math.max(40, Math.abs(c.x - r.x) * 0.5);
+        paths += `<path class="war-line" d="M ${r.x} ${r.y} C ${r.x + dx} ${r.y}, ${c.x - dx} ${c.y}, ${c.x} ${c.y}"></path>`;
+        maxX = Math.max(maxX, card.offsetLeft + card.offsetWidth);
+        maxY = Math.max(maxY, card.offsetTop + card.offsetHeight);
     });
-    const visitados = new Set();
-    const renderNo = (id) => {
-        const sid = String(id);
-        const n = byId.get(sid);
-        if (!n || visitados.has(sid)) return ''; // guarda de ciclo
-        visitados.add(sid);
-        const kids = (filhos.get(sid) || []).map(renderNo).join('');
-        return `<li>${techCardHTML(n)}${kids ? `<ul>${kids}</ul>` : ''}</li>`;
-    };
-    const raizes = nodes.filter(n => !ehDestino.has(String(n.id)));
-    const topo = raizes.map(r => renderNo(r.id)).join('');
-    // Defensivo: nós presos em ciclo, nunca alcançados a partir de uma raiz.
-    const orfaos = nodes.filter(n => !visitados.has(String(n.id))).map(n => renderNo(n.id)).join('');
-    return `<ul class="tech-tree-root">${topo}${orfaos}</ul>`;
+    svg.setAttribute('width', maxX);
+    svg.setAttribute('height', maxY);
+    svg.innerHTML = paths;
+}
+function centroCard(card) {
+    return { x: card.offsetLeft + card.offsetWidth / 2, y: card.offsetTop + card.offsetHeight / 2 };
 }
 
-function techCardHTML(n) {
-    const id = escapeHTML(String(n.id));
-    return `
-        <div class="tech-card-wrap">
-            <div class="tech-card" data-id="${id}" onclick="abrirModalSinapses(this.dataset.id)" title="Abrir conexões de ${escapeHTML(n.nome)}">
-                <i data-lucide="${iconeEntidade(n.tipo)}" class="tech-card-icone"></i>
-                <span class="tech-card-info">
-                    <span class="tech-card-nome">${escapeHTML(n.nome)}</span>
-                    <span class="tech-card-tipo">${escapeHTML(n.tipo)}</span>
-                </span>
-            </div>
-            <button class="btn btn-outline btn-sm tech-card-add" data-pai="${id}" data-nome="${escapeHTML(n.nome)}" onclick="abrirNovoDesbloqueio(this.dataset.pai, this.dataset.nome)"><i data-lucide="plus"></i> Novo Desbloqueio</button>
-        </div>`;
+// Drag & Drop via Pointer Events (com captura). A raiz arrasta mas NÃO persiste
+// (não tem link próprio). Duplo-clique num subordinado → popover de hierarquia.
+function ativarArrasto() {
+    const cont = document.getElementById('war-table');
+    if (!cont) return;
+    cont.querySelectorAll('.war-table-card').forEach(card => {
+        card.onpointerdown = (e) => {
+            if (e.button !== 0 || e.target.closest('.war-card-popover')) return;
+            const sx = e.clientX, sy = e.clientY;
+            const ox = card.offsetLeft, oy = card.offsetTop;
+            let moveu = false;
+            card.setPointerCapture(e.pointerId);
+            card.classList.add('dragging');
+            const onMove = (ev) => {
+                card.style.left = Math.max(0, ox + (ev.clientX - sx)) + 'px';
+                card.style.top = Math.max(0, oy + (ev.clientY - sy)) + 'px';
+                if (Math.abs(ev.clientX - sx) > 3 || Math.abs(ev.clientY - sy) > 3) moveu = true;
+                desenharLinhas();
+            };
+            const onUp = () => {
+                card.classList.remove('dragging');
+                card.removeEventListener('pointermove', onMove);
+                card.removeEventListener('pointerup', onUp);
+                desenharLinhas();
+                if (moveu && card.dataset.link) persistirPosicao(card);
+            };
+            card.addEventListener('pointermove', onMove);
+            card.addEventListener('pointerup', onUp);
+        };
+        card.ondblclick = (e) => {
+            if (!card.dataset.link) return; // só subordinados têm hierarquia editável
+            e.stopPropagation();
+            abrirEditorCard(card);
+        };
+    });
 }
 
-// "Novo Desbloqueio": forja uma entidade no núcleo atual e cria o link 'progressao'
-// do pai para ela. Modal de instância única (padrão dos demais modais da tela).
-window.abrirNovoDesbloqueio = function(paiId, paiNome) {
-    fecharNovoDesbloqueio();
-    desbloqueioPaiId = paiId;
-    const modal = document.createElement('div');
-    modal.className = 'modal show';
-    modal.id = 'modal-desbloqueio';
-    modal.innerHTML = `
-        <div class="modal-box" style="width: 420px; max-width: 92%;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-                <h3 class="texto-roxo" style="margin: 0; display: flex; align-items: center; gap: 8px;"><i data-lucide="git-merge"></i> Novo Desbloqueio</h3>
-                <button class="btn btn-ghost btn-sm" onclick="fecharNovoDesbloqueio()" title="Fechar"><i data-lucide="x"></i></button>
-            </div>
-            <p class="contrato-tipo" style="text-align: left;">Desbloqueado por: <strong>${escapeHTML(paiNome)}</strong></p>
-            <label>Nome da entidade</label>
-            <input type="text" id="desbloqueio-nome" class="input-sm" style="width: 100%;" placeholder="Ex: Portão Interno" onkeydown="if (event.key === 'Enter') salvarDesbloqueio();">
-            <label style="margin-top: 10px;">Tipo</label>
-            <select id="desbloqueio-tipo" class="input-sm" style="width: 100%;">
-                <option value="npc">NPC</option>
-                <option value="protagonista">Protagonista</option>
-                <option value="faccao">Facção</option>
-                <option value="local">Local</option>
-                <option value="cenario">Cenário Macro</option>
-            </select>
-            <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px;">
-                <button class="btn btn-outline btn-sm" onclick="fecharNovoDesbloqueio()">Cancelar</button>
-                <button class="btn btn-primary btn-sm" onclick="salvarDesbloqueio()"><i data-lucide="check"></i> Criar e ligar</button>
-            </div>
+// Grava x/y no JSONB preservando o restante de dados (merge — não apaga tags/limite).
+async function persistirPosicao(card) {
+    const link = mesaLinks.find(l => String(l.id) === String(card.dataset.link));
+    if (!link) return;
+    const dados = { ...(link.dados || {}), x: parseInt(card.style.left, 10) || 0, y: parseInt(card.style.top, 10) || 0 };
+    link.dados = dados;
+    try { await MundoApi.atualizarLink(cronicaId, mesaRaizId, link.id, dados); }
+    catch (e) { mostrarToast('Erro ao salvar posição.', 'erro'); }
+}
+
+// Popover (2º clique): grade de ícones de hierarquia + cargo. Salva via atualizarLink.
+function abrirEditorCard(card) {
+    fecharEditorCard();
+    const link = mesaLinks.find(l => String(l.id) === String(card.dataset.link));
+    if (!link) return;
+    const d = link.dados || {};
+    editorCardLinkId = link.id;
+    editorCardIcone = d.icone || null;
+    const pop = document.createElement('div');
+    pop.className = 'war-card-popover';
+    pop.id = 'war-card-popover';
+    pop.innerHTML = `
+        <label>Ícone de hierarquia</label>
+        <div class="war-icone-grid">
+            ${ICONES_HIER.map(ic => `<button type="button" class="war-icone-opt${d.icone === ic ? ' sel' : ''}" data-ic="${ic}" onclick="selecionarIconeCard(this)"><i data-lucide="${ic}"></i></button>`).join('')}
+        </div>
+        <label>Cargo</label>
+        <input type="text" id="war-cargo-input" class="input-sm" maxlength="60" value="${escapeHTML(d.cargo || '')}" placeholder="Ex: Comandante" style="width: 100%;">
+        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px;">
+            <button class="btn btn-ghost btn-sm" onclick="fecharEditorCard()">Cancelar</button>
+            <button class="btn btn-primary btn-sm" onclick="salvarEditorCard()"><i data-lucide="check"></i> Salvar</button>
         </div>`;
-    document.body.appendChild(modal);
-    modal.addEventListener('click', (e) => { if (e.target === modal) fecharNovoDesbloqueio(); });
+    card.appendChild(pop);
     lucide.createIcons();
-    document.getElementById('desbloqueio-nome')?.focus();
+    document.getElementById('war-cargo-input')?.focus();
+}
+window.fecharEditorCard = function() {
+    const p = document.getElementById('war-card-popover');
+    if (p) p.remove();
 };
-window.fecharNovoDesbloqueio = function() {
-    const m = document.getElementById('modal-desbloqueio');
-    if (m) m.remove();
+window.selecionarIconeCard = function(btn) {
+    editorCardIcone = btn.dataset.ic;
+    btn.parentElement.querySelectorAll('.war-icone-opt').forEach(b => b.classList.remove('sel'));
+    btn.classList.add('sel');
 };
-window.salvarDesbloqueio = async function() {
-    const nome = document.getElementById('desbloqueio-nome')?.value.trim();
-    const tipo = document.getElementById('desbloqueio-tipo')?.value || 'npc';
-    if (!nome) return mostrarToast('Digite um nome.', 'aviso');
-    if (!macroNucleoAtual || !desbloqueioPaiId) return mostrarToast('Selecione um núcleo primeiro.', 'aviso');
+window.salvarEditorCard = async function() {
+    const link = mesaLinks.find(l => String(l.id) === String(editorCardLinkId));
+    if (!link) return fecharEditorCard();
+    const cargo = (document.getElementById('war-cargo-input')?.value || '').trim();
+    const dados = { ...(link.dados || {}) };
+    if (editorCardIcone) dados.icone = editorCardIcone; else delete dados.icone;
+    if (cargo) dados.cargo = cargo; else delete dados.cargo;
+    link.dados = dados;
     try {
-        // 1) forja a entidade atrelada ao núcleo atual
-        const res = await API.fetch(`/cronicas/${cronicaId}/nodes`, {
-            method: 'POST', body: JSON.stringify({ nome, tipo, nucleo_id: macroNucleoAtual })
-        });
-        if (!res.ok) throw new Error('Falha ao criar entidade.');
-        const novo = await res.json();
-        // 2) liga pai → novo nó com tipo_vinculo 'progressao' (constrói a árvore)
-        await MundoApi.criarLink(cronicaId, desbloqueioPaiId, novo.id, 'progressao');
-        mostrarToast('Desbloqueio criado!', 'sucesso');
-        fecharNovoDesbloqueio();
-        await carregarArvore(macroNucleoAtual);
-    } catch (e) {
-        mostrarToast(e.message || 'Erro ao criar desbloqueio.', 'erro');
-    }
+        await MundoApi.atualizarLink(cronicaId, mesaRaizId, editorCardLinkId, dados);
+        mostrarToast('Hierarquia atualizada.', 'sucesso');
+    } catch (e) { mostrarToast('Erro ao salvar hierarquia.', 'erro'); }
+    fecharEditorCard();
+    renderMesa();
 };

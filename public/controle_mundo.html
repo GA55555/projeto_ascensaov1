@@ -24,7 +24,7 @@
         <button class="tab-btn" onclick="abrirTab('eventos')"><i data-lucide="calendar"></i> Eventos</button>
         <button class="tab-btn" onclick="abrirTab('automacoes')"><i data-lucide="zap"></i> Automações</button>
         <button class="tab-btn" onclick="abrirTab('sessoes')"><i data-lucide="book-open"></i> Sessões</button>
-        <button class="tab-btn" onclick="abrirTab('macro')"><i data-lucide="git-merge"></i> Macro-Visão</button>
+        <button class="tab-btn" onclick="abrirTab('macro')"><i data-lucide="map"></i> Mesa de Guerra</button>
     </div>
 
     <!-- TAB: MUNDO -->
@@ -119,16 +119,16 @@
     </ul>
     </div> </div> 
 
-    <!-- TAB: MACRO-VISÃO (Árvore de Progressão por Núcleo) -->
+    <!-- TAB: MESA DE GUERRA (Canvas Espacial — hierarquia de um Local/Facção) -->
     <div id="tab-macro" class="tab-content">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
-            <h3 class="texto-destaque">Macro-Visão — Árvore de Progressão</h3>
-            <select id="macro-nucleo-select" onchange="carregarArvore(this.value)">
-                <option value="">Selecione um núcleo...</option>
+            <h3 class="texto-destaque">Mesa de Guerra</h3>
+            <select id="macro-raiz-select" onchange="selecionarRaizMesa(this.value)">
+                <option value="">Selecione um Local ou Facção...</option>
             </select>
         </div>
-        <div id="macro-arvore" class="tech-tree">
-            <div class="info-block-vazio">Selecione um núcleo para ver a árvore de progressão.</div>
+        <div id="war-table" class="war-table-canvas">
+            <div class="info-block-vazio">Selecione um Local ou Facção para abrir a mesa.</div>
         </div>
     </div>
 
