@@ -2192,8 +2192,11 @@ window.adicionarEntidadeBoard = function(nodeId) {
     const canvas = elBoardCanvas();
     const cam = boardState.camera;
     const cw = canvas ? canvas.clientWidth : 800, ch = canvas ? canvas.clientHeight : 600;
-    const wx = Math.round((cw / 2 - cam.x) / cam.zoom - 90);
-    const wy = Math.round((ch / 2 - cam.y) / cam.zoom - 32);
+    // centro da viewport em coords de mundo + jitter ±20px (cards não ficam invisíveis
+    // exatamente uns sob os outros ao adicionar vários em sequência).
+    const jitter = () => Math.round((Math.random() - 0.5) * 40);
+    const wx = Math.round((cw / 2 - cam.x) / cam.zoom - 90) + jitter();
+    const wy = Math.round((ch / 2 - cam.y) / cam.zoom - 32) + jitter();
     boardState.nodes.push({ id: nodeId, x: wx, y: wy });
     fecharSeletorEntidade();
     renderBoard();
@@ -2423,6 +2426,9 @@ function abrirEditorNode(card, e) {
             ${ICONES_BOARD.map(ic => `<button type="button" class="board-icone-opt${editorNodeIcone === ic ? ' sel' : ''}" data-ic="${ic}" onclick="selNodeIcone(this)"><i data-lucide="${ic}"></i></button>`).join('')}
         </div>
         <div class="board-popover-acoes">
+            <button class="btn btn-secondary btn-sm" onclick="puxarConectadosBoard('${escapeHTML(String(editorNodeId))}')"><i data-lucide="network"></i> Puxar Conectados</button>
+        </div>
+        <div class="board-popover-acoes">
             <button class="btn btn-ghost btn-sm" onclick="resetNodeVisual()">Padrão</button>
             <button class="btn btn-primary btn-sm" onclick="salvarEditorNode()"><i data-lucide="check"></i> Salvar</button>
         </div>`;
@@ -2430,6 +2436,43 @@ function abrirEditorNode(card, e) {
     posicionarPopover(pop, e);
     lucide.createIcons();
 }
+
+// "Puxar Conectados" (Fase 13.5 — funde a auto-expansão da Mesa da Fase 12 com o
+// canvas livre da Fase 13). A partir de um nó-raiz já no tabuleiro, busca os
+// world_links REAIS (MundoApi.listarLinks já resolve os dois sentidos, Regra 4.4) e
+// traz para a mesa as entidades ligadas ainda ausentes, dispondo-as em círculo à
+// volta da origem. Posições ficam em memória; só persistem no "Salvar" (Regra 2.7).
+window.puxarConectadosBoard = async function(nodeId) {
+    fecharPopover();
+    const origem = boardState.nodes.find(n => String(n.id) === String(nodeId));
+    if (!origem) return;
+    let links = [];
+    try { links = await MundoApi.listarLinks(cronicaId, nodeId); }
+    catch (e) { return mostrarToast('Não foi possível buscar as conexões.', 'erro'); }
+
+    const noBoard = new Set(boardState.nodes.map(n => String(n.id)));
+    // ids conectados ainda fora da mesa (dedupe + só nós reais da crônica, defensivo)
+    const novos = [...new Set(links.map(l => String(l.node_conectado_id)))]
+        .filter(id => !noBoard.has(id) && boardNodeInfo(id));
+
+    if (!novos.length) return mostrarToast('Todas as conexões já estão na mesa.', 'aviso');
+
+    // distribui em círculo à volta da origem (raio ~175px; ângulo por índice no loop)
+    const raio = 175;
+    const passo = (2 * Math.PI) / novos.length;
+    novos.forEach((id, i) => {
+        const ang = i * passo;
+        boardState.nodes.push({
+            id,
+            x: Math.round(origem.x + Math.cos(ang) * raio),
+            y: Math.round(origem.y + Math.sin(ang) * raio),
+        });
+    });
+
+    renderBoard();          // injeta os novos cards
+    atualizarLinksBoard();  // redesenha as sinapses (as linhas surgem automaticamente)
+    mostrarToast(`${novos.length} entidade(s) conectada(s) trazida(s) para a mesa!`, 'sucesso');
+};
 window.selNodeCor = function(btn) {
     editorNodeCor = btn.dataset.c;
     btn.parentElement.querySelectorAll('.board-cor-swatch').forEach(b => b.classList.remove('sel'));
