@@ -1227,22 +1227,7 @@ label {
 }
 .badge-link .btn-deletar-link:hover { color: var(--erro); }
 
-/* ── ARESTAS RICAS (FASE 11): INTRIGA NAS SINAPSES ─────── */
-/* Indicador no badge: chama + nível de tensão, scroll p/ segredo. Herda --cor-link. */
-.badge-link-intriga {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    flex-shrink: 0;
-    cursor: pointer;
-    color: var(--cor-link, var(--texto-claro));
-}
-.badge-link-intriga i { width: 13px; height: 13px; }
-.badge-link-intriga .intriga-nivel {
-    font-family: 'Fira Code', monospace;
-    font-size: 11px;
-    line-height: 1;
-}
+/* ── PANELA DE PRESSÃO (Fase 11 refatorada): tags + termômetro ── */
 /* Botão de abrir o Contrato de Relação no badge. */
 .badge-link .btn-contrato {
     cursor: pointer;
@@ -1253,19 +1238,6 @@ label {
     transition: var(--transicao-suave);
 }
 .badge-link .btn-contrato:hover { color: var(--roxo-mago); }
-
-/* Disclosure opt-in na criação (Progressive Disclosure): some por padrão. */
-.intriga-disclosure { width: 100%; margin-top: 4px; }
-.intriga-form {
-    display: none;
-    width: 100%;
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px dashed var(--borda);
-    flex-direction: column;
-    gap: 10px;
-}
-.intriga-form.aberta { display: flex; }
 
 /* Partes conectadas no Contrato de Relação (quem ↔ quem). */
 .contrato-partes {
@@ -1284,50 +1256,71 @@ label {
     margin: 0 0 14px;
 }
 
-/* Controle de Tensão (slider 0–5). */
-.tensao-control { display: flex; align-items: center; gap: 10px; }
-.tensao-range {
-    flex: 1;
-    appearance: none;
-    -webkit-appearance: none;
-    height: 6px;
-    border-radius: 4px;
+/* Termômetro segmentado: 1 segmento por unidade de `limite`; cheios = nº de tags. */
+.termometro { display: inline-flex; gap: 3px; align-items: center; flex-shrink: 0; }
+.termo-seg {
+    width: 12px;
+    height: 8px;
     background: var(--bg-principal);
     border: 1px solid var(--borda);
-    cursor: pointer;
+    border-radius: 2px;
 }
-.tensao-range::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 16px;
-    height: 16px;
-    border-radius: 4px;
-    background: var(--erro);
-    border: 1px solid var(--borda);
-    cursor: pointer;
+.termo-seg.cheio { background: var(--destaque); border-color: var(--destaque); }
+.termometro.massa-critica .termo-seg.cheio { background: var(--erro); border-color: var(--erro); }
+/* Versão compacta dentro do badge do painel. */
+.badge-termometro-wrap { display: inline-flex; cursor: pointer; flex-shrink: 0; }
+.badge-termometro .termo-seg { width: 8px; height: 6px; }
+
+/* Massa Crítica: pulsação suave no badge do painel principal. */
+@keyframes pulso-critico {
+    0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--erro) 50%, transparent); }
+    50%      { box-shadow: 0 0 7px 2px color-mix(in srgb, var(--erro) 45%, transparent); }
 }
-.tensao-range::-moz-range-thumb {
-    width: 16px;
-    height: 16px;
-    border-radius: 4px;
-    background: var(--erro);
-    border: 1px solid var(--borda);
-    cursor: pointer;
-}
-.tensao-valor {
-    font-family: 'Fira Code', monospace;
-    font-size: 13px;
-    color: var(--texto-claro);
-    min-width: 28px;
-    text-align: right;
+.badge-link.link-massa-critica {
+    border-color: var(--erro);
+    animation: pulso-critico 1.8s ease-in-out infinite;
 }
 
-/* Coerência 16-bit: numerais pixelados + bordas retas (Scope Override, Paradigma 5). */
-.tema-pixel-16bit .badge-link-intriga .intriga-nivel,
-.tema-pixel-16bit .tensao-valor { font-family: 'VT323', monospace !important; }
-.tema-pixel-16bit .tensao-range,
-.tema-pixel-16bit .tensao-range::-webkit-slider-thumb,
-.tema-pixel-16bit .tensao-range::-moz-range-thumb { border-radius: 0 !important; }
+/* Input + pills de tags (FATE) no Contrato de Relação. */
+.tag-lista { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 4px; }
+.tag-lista:empty { display: none; }
+.tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: color-mix(in srgb, var(--roxo-mago) 16%, var(--bg-principal));
+    border: 1px solid var(--roxo-mago);
+    border-radius: 4px;
+    padding: 3px 8px;
+    font-size: 13px;
+    color: var(--texto-claro);
+}
+.tag .tag-remover {
+    cursor: pointer;
+    width: 13px;
+    height: 13px;
+    color: var(--texto-mutado);
+    transition: var(--transicao-suave);
+}
+.tag .tag-remover:hover { color: var(--erro); }
+.termometro-rotulo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 10px 0 2px;
+}
+.termometro-rotulo .termo-estado {
+    font-family: 'Fira Code', monospace;
+    font-size: 12px;
+    color: var(--texto-mutado);
+}
+.termometro-rotulo .termo-estado.critico { color: var(--erro); }
+
+/* Coerência 16-bit: bordas retas + numerais pixelados (Scope Override, Paradigma 5). */
+.tema-pixel-16bit .termo-seg,
+.tema-pixel-16bit .tag { border-radius: 0 !important; }
+.tema-pixel-16bit .termometro-rotulo .termo-estado { font-family: 'VT323', monospace !important; }
 
 /* ── MAPA DE SINAPSES (VISÃO RELACIONAL EM TEIA) ───────── */
 .mapa-sinapses-box {

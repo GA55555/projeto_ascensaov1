@@ -466,17 +466,6 @@ window.abrirModalSinapses = async function(nodeId) {
                     </select>
                 </div>
                 <button class="btn btn-primary btn-sm" data-id="${escapeHTML(String(nodeId))}" onclick="conectarSinapse(this.dataset.id)"><i data-lucide="link"></i> Conectar</button>
-
-                <div class="intriga-disclosure">
-                    <button type="button" class="btn btn-ghost btn-sm" onclick="toggleIntrigaForm()"><i data-lucide="flame"></i> Adicionar Gancho/Dívida</button>
-                    <div id="intriga-form-criar" class="intriga-form">
-                        <div>
-                            <label>Segredo / Favor</label>
-                            <textarea id="intriga-segredo" class="input-sm" rows="2" placeholder="Ex: deve um favor de sangue ao protagonista..."></textarea>
-                        </div>
-                        ${controleTensaoHTML('intriga-tensao', 0)}
-                    </div>
-                </div>
             </div>
         </div>`;
     document.body.appendChild(modal);
@@ -513,17 +502,17 @@ async function recarregarSinapses(nodeId) {
     } else {
         cont.innerHTML = links.map(l => {
             const d = l.dados || {};
-            const temSegredo = !!(d.segredo && String(d.segredo).trim());
-            const tensao = parseInt(d.tensao, 10) || 0;
-            const indicador = (temSegredo || tensao > 0) ? `
-                <span class="badge-link-intriga" data-link="${escapeHTML(String(l.id))}" onclick="abrirContratoRelacao(this.dataset.link)" title="Ver contrato de relação">
-                    ${temSegredo ? '<i data-lucide="scroll"></i>' : ''}
-                    ${tensao > 0 ? `<i data-lucide="flame"></i><span class="intriga-nivel">${tensao}</span>` : ''}
-                </span>` : '';
+            const tags = Array.isArray(d.tags) ? d.tags : [];
+            const limite = parseInt(d.limite, 10) || 3;
+            const pressao = tags.length;
+            const critico = pressao >= limite && pressao > 0;
+            const termo = pressao > 0
+                ? `<span class="badge-termometro-wrap" data-link="${escapeHTML(String(l.id))}" onclick="abrirContratoRelacao(this.dataset.link)" title="Pressão ${pressao}/${limite}${critico ? ' — MASSA CRÍTICA' : ''}">${termometroHTML(pressao, limite, true)}</span>`
+                : '';
             return `
-            <span class="badge-link ${classeTipoLink(l.tipo_vinculo)}">
+            <span class="badge-link ${classeTipoLink(l.tipo_vinculo)}${critico ? ' link-massa-critica' : ''}">
                 <span class="badge-link-nome" data-id="${escapeHTML(String(l.node_conectado_id))}" onclick="navegarSinapse(this.dataset.id)" title="Abrir entidade conectada">${escapeHTML(l.tipo_vinculo)}: ${escapeHTML(l.node_conectado_nome)}</span>
-                ${indicador}
+                ${termo}
                 <i data-lucide="book-open" class="btn-contrato" data-link="${escapeHTML(String(l.id))}" onclick="abrirContratoRelacao(this.dataset.link)" title="Contrato de Relação"></i>
                 <i data-lucide="x" class="btn-deletar-link" data-node="${escapeHTML(String(nodeId))}" data-link="${escapeHTML(String(l.id))}" onclick="removerSinapse(this.dataset.node, this.dataset.link)" title="Remover conexão"></i>
             </span>`;
@@ -550,11 +539,11 @@ window.conectarSinapse = async function(nodeId) {
     const destino = document.getElementById('sinapse-destino')?.value;
     const tipo = document.getElementById('sinapse-tipo')?.value || 'associado';
     if (!destino) { mostrarToast('Selecione uma entidade para conectar.', 'aviso'); return; }
-    const dados = coletarIntriga('intriga-segredo', 'intriga-tensao'); // null se nada preenchido (opt-in)
     try {
-        await MundoApi.criarLink(cronicaId, nodeId, destino, tipo, dados);
+        // Criação rápida: só nó + tipo. A intriga (tags/pressão) é adicionada depois,
+        // pelo Contrato de Relação ao clicar no badge.
+        await MundoApi.criarLink(cronicaId, nodeId, destino, tipo);
         mostrarToast('Conexão criada!', 'sucesso');
-        resetarIntrigaForm();
         await recarregarSinapses(nodeId);
     } catch (e) {
         mostrarToast(e.message || 'Erro ao criar conexão.', 'erro');
@@ -577,42 +566,41 @@ window.navegarSinapse = function(connectedNodeId) {
     abrirModalSinapses(connectedNodeId);
 };
 
-// ── ARESTAS RICAS (FASE 11): INTRIGA ───────────────────────
-// Controle de Tensão (slider 0–5). DRY: usado na criação e no Contrato.
-// O oninput atualiza só o seu próprio <span> de valor (sem listener global, Regra 2.9).
-function controleTensaoHTML(id, valor = 0) {
-    const v = Math.min(5, Math.max(0, parseInt(valor, 10) || 0));
+// ── PANELA DE PRESSÃO (Fase 11 refatorada): TAGS + TERMÔMETRO ──
+// Estado local do Contrato aberto (fonte da verdade enquanto o modal vive).
+let contratoLinkId = null;
+let contratoTags = [];
+let contratoLimite = 3;
+
+// Termômetro segmentado: `limite` segmentos, `pressao` cheios. Massa crítica se
+// pressao >= limite. `compacto` = versão miúda do badge do painel.
+function termometroHTML(pressao, limite, compacto = false) {
+    const lim = Math.max(1, parseInt(limite, 10) || 3);
+    const p = Math.max(0, parseInt(pressao, 10) || 0);
+    const cheios = Math.min(p, lim);
+    const critico = p >= lim;
+    let segs = '';
+    for (let i = 0; i < lim; i++) segs += `<span class="termo-seg ${i < cheios ? 'cheio' : ''}"></span>`;
+    return `<span class="termometro${compacto ? ' badge-termometro' : ''}${critico ? ' massa-critica' : ''}">${segs}</span>`;
+}
+
+// Corpo dinâmico do Contrato (pills + termômetro), re-renderizado a cada mudança.
+function corpoContratoHTML() {
+    const pressao = contratoTags.length;
+    const critico = pressao >= contratoLimite;
+    const pills = contratoTags.map((t, i) =>
+        `<span class="tag">${escapeHTML(t)}<i data-lucide="x" class="tag-remover" data-idx="${i}" onclick="removerTagContrato(this.dataset.idx)" title="Remover"></i></span>`
+    ).join('');
     return `
-        <div>
-            <label>Tensão / Nemesis</label>
-            <div class="tensao-control">
-                <input type="range" id="${id}" class="tensao-range" min="0" max="5" step="1" value="${v}"
-                       oninput="document.getElementById('${id}-val').textContent = this.value">
-                <span id="${id}-val" class="tensao-valor">${v}</span>
-            </div>
+        <div class="tag-lista">${pills}</div>
+        <div class="termometro-rotulo">
+            ${termometroHTML(pressao, contratoLimite, false)}
+            <span class="termo-estado ${critico ? 'critico' : ''}">${critico ? 'MASSA CRÍTICA' : `Pressão ${pressao}/${contratoLimite}`}</span>
         </div>`;
 }
-// Monta o objeto `dados` só com o que foi preenchido (opt-in). Vazio → null.
-function coletarIntriga(idSegredo, idTensao) {
-    const segredo = (document.getElementById(idSegredo)?.value || '').trim();
-    const tensao = parseInt(document.getElementById(idTensao)?.value, 10) || 0;
-    const dados = {};
-    if (segredo) dados.segredo = segredo;
-    if (tensao > 0) dados.tensao = tensao;
-    return Object.keys(dados).length ? dados : null;
-}
-function resetarIntrigaForm() {
-    const seg = document.getElementById('intriga-segredo'); if (seg) seg.value = '';
-    const ten = document.getElementById('intriga-tensao');
-    if (ten) { ten.value = 0; const v = document.getElementById('intriga-tensao-val'); if (v) v.textContent = '0'; }
-    const form = document.getElementById('intriga-form-criar'); if (form) form.classList.remove('aberta');
-}
-window.toggleIntrigaForm = function() {
-    document.getElementById('intriga-form-criar')?.classList.toggle('aberta');
-};
 
-// Micro-modal "Contrato de Relação": edita o JSONB `dados` de um link existente
-// via MundoApi.atualizarLink. Instância única (padrão dos modais de sinapse).
+// Micro-modal "Contrato de Relação": tags (FATE) que enchem o termômetro. Cada
+// adição/remoção persiste já no JSONB `dados` via MundoApi.atualizarLink.
 window.abrirContratoRelacao = function(linkId) {
     const l = sinapsesAtuais.find(x => String(x.id) === String(linkId));
     if (!l) { mostrarToast('Conexão não encontrada.', 'erro'); return; }
@@ -620,6 +608,9 @@ window.abrirContratoRelacao = function(linkId) {
     const central = todosNodesSinapse.find(n => String(n.id) === String(nodeAtualSinapse));
     const nomeA = central ? central.nome : 'Entidade';
     const d = l.dados || {};
+    contratoLinkId = l.id;
+    contratoTags = Array.isArray(d.tags) ? d.tags.slice() : [];
+    contratoLimite = parseInt(d.limite, 10) || 3;
 
     const modal = document.createElement('div');
     modal.className = 'modal show';
@@ -627,7 +618,7 @@ window.abrirContratoRelacao = function(linkId) {
     modal.innerHTML = `
         <div class="modal-box" style="width: 440px; max-width: 92%;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-                <h3 class="texto-roxo" style="margin: 0; display: flex; align-items: center; gap: 8px;"><i data-lucide="scroll-text"></i> Contrato de Relação</h3>
+                <h3 class="texto-roxo" style="margin: 0; display: flex; align-items: center; gap: 8px;"><i data-lucide="flame"></i> Contrato de Relação</h3>
                 <button class="btn btn-ghost btn-sm" onclick="fecharContrato()" title="Fechar"><i data-lucide="x"></i></button>
             </div>
             <div class="contrato-partes">
@@ -636,33 +627,45 @@ window.abrirContratoRelacao = function(linkId) {
                 <span class="badge-link ${classeTipoLink(l.tipo_vinculo)}">${escapeHTML(l.node_conectado_nome)}</span>
             </div>
             <p class="contrato-tipo">Tipo: ${escapeHTML(capitalizar(l.tipo_vinculo))}</p>
-            <label>Segredo / Favor</label>
-            <textarea id="contrato-segredo" class="input-sm" rows="3" placeholder="Dívidas, segredos, favores...">${escapeHTML(d.segredo || '')}</textarea>
-            ${controleTensaoHTML('contrato-tensao', d.tensao || 0)}
-            <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px;">
-                <button class="btn btn-outline btn-sm" onclick="fecharContrato()">Cancelar</button>
-                <button class="btn btn-primary btn-sm" data-link="${escapeHTML(String(l.id))}" onclick="salvarContrato(this.dataset.link)"><i data-lucide="save"></i> Gravar</button>
-            </div>
+            <label>Incidentes / Motivos</label>
+            <input type="text" id="contrato-tag-input" class="input-sm" placeholder="Adicionar incidente/motivo... (Enter)" onkeydown="contratoTagKeydown(event)" style="width: 100%;">
+            <div id="contrato-corpo">${corpoContratoHTML()}</div>
         </div>`;
     document.body.appendChild(modal);
     modal.addEventListener('click', (e) => { if (e.target === modal) fecharContrato(); });
     lucide.createIcons();
+    document.getElementById('contrato-tag-input')?.focus();
 };
 window.fecharContrato = function() {
     const m = document.getElementById('modal-contrato');
     if (m) m.remove();
 };
-window.salvarContrato = async function(linkId) {
-    const dados = coletarIntriga('contrato-segredo', 'contrato-tensao') || {}; // {} limpa a intriga
-    try {
-        await MundoApi.atualizarLink(cronicaId, nodeAtualSinapse, linkId, dados);
-        mostrarToast('Contrato de relação atualizado.', 'sucesso');
-        fecharContrato();
-        await recarregarSinapses(nodeAtualSinapse);
-    } catch (e) {
-        mostrarToast(e.message || 'Erro ao gravar contrato.', 'erro');
-    }
+// Enter no input → vira tag e persiste. Único ponto de escuta no elemento (Regra 2.9).
+window.contratoTagKeydown = function(e) {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    const val = (e.target.value || '').trim();
+    if (!val) return;
+    if (contratoTags.length >= 50) { mostrarToast('Limite de tags atingido.', 'aviso'); return; }
+    contratoTags.push(val.slice(0, 120));
+    e.target.value = '';
+    persistirContrato();
 };
+window.removerTagContrato = function(idx) {
+    contratoTags.splice(parseInt(idx, 10), 1);
+    persistirContrato();
+};
+// Persiste o array de tags no JSONB e atualiza o corpo do modal + os badges do painel.
+async function persistirContrato() {
+    const corpo = document.getElementById('contrato-corpo');
+    if (corpo) { corpo.innerHTML = corpoContratoHTML(); lucide.createIcons(); } // re-render otimista
+    try {
+        await MundoApi.atualizarLink(cronicaId, nodeAtualSinapse, contratoLinkId, { tags: contratoTags, limite: contratoLimite });
+        await recarregarSinapses(nodeAtualSinapse); // reflete termômetro/massa crítica no badge
+    } catch (e) {
+        mostrarToast(e.message || 'Erro ao gravar a pressão da relação.', 'erro');
+    }
+}
 
 // ── Helpers semânticos ─────────────────────────────────────
 // Classe de cor por tipo de sinapse (fallback neutro = associado).
