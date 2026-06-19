@@ -138,6 +138,14 @@ const atualizarLinkSchema = z.object({
     body: z.object({ dados: dadosLinkSchema })
 });
 
+// Macro-Visão (Fase 12): árvore de progressão por núcleo. Params UUID estritos (Regra 4.3).
+const arvoreNucleoSchema = z.object({
+    params: z.object({
+        cronicaId: z.string().uuid('cronicaId inválido.'),
+        nucleoId: z.string().uuid('nucleoId inválido.')
+    })
+});
+
 module.exports = {
     criarAutomacaoSchema, toggleStatusSchema,
     criarNodeSchema, editarNodeSchema,
@@ -146,5 +154,6 @@ module.exports = {
     criarEventoSchema, criarVinculoSchema,
     criarSessaoSchema, editarSessaoSchema,
     atualizarNucleoNodeSchema,
-    listarLinksSchema, criarLinkSchema, deletarLinkSchema, atualizarLinkSchema
+    listarLinksSchema, criarLinkSchema, deletarLinkSchema, atualizarLinkSchema,
+    arvoreNucleoSchema
 };
