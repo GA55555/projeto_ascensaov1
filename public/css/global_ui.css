@@ -2117,13 +2117,17 @@ input[type="radio"] {
 }
 .board-toolbar select { min-width: 180px; }
 
-/* Viewport (clipa) + mundo transformável (Pan/Zoom via transform). */
+/* Viewport (clipa) + mundo transformável (Pan/Zoom via transform). O grid pontilhado
+   vive no viewport ESTÁTICO (tile CSS infinito): background-size/position são
+   sincronizados ao zoom/pan em aplicarCamera() — nunca "acaba" ao afastar a câmera. */
 .board-canvas {
     position: relative;
     overflow: hidden;
     width: 100%;
     height: 600px;
-    background: var(--bg-principal);
+    background-color: var(--bg-principal);
+    background-image: radial-gradient(circle, var(--borda) 1px, transparent 1px);
+    background-size: 20px 20px;
     border: 1px solid var(--borda);
     border-radius: 8px;
     cursor: grab;
@@ -2131,19 +2135,6 @@ input[type="radio"] {
 }
 .board-canvas.panning { cursor: grabbing; }
 .board-world { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform-origin: 0 0; }
-/* Grid pontilhado no mundo, para acompanhar Pan/Zoom (fundo "infinito"). */
-.board-world::before {
-    content: '';
-    position: absolute;
-    left: -2000px;
-    top: -2000px;
-    width: 6000px;
-    height: 6000px;
-    z-index: 0;
-    pointer-events: none;
-    background-image: radial-gradient(circle, var(--borda) 1px, transparent 1px);
-    background-size: 20px 20px;
-}
 .board-vazio { position: absolute; left: 50%; top: 40%; transform: translateX(-50%); z-index: 1; }
 
 /* Card de entidade (glass dark-fantasy). Cor-acento via token (.board-cor-*). */
