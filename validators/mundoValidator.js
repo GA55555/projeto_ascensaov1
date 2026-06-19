@@ -104,6 +104,20 @@ const atualizarNucleoNodeSchema = z.object({
     })
 });
 
+// ---- ATUALIZAR ESTADO DE UMA LENTE KANBAN (Fase 15.6 — escrita atómica jsonb_set) ----
+// `lente` restrita às lentes conhecidas (não-geográficas) p/ não poluir o JSONB com
+// chaves arbitrárias; `colunaId` é o id estável da coluna destino.
+const atualizarKanbanNodeSchema = z.object({
+    params: z.object({
+        cronicaId: z.string().uuid('cronicaId inválido.'),
+        nodeId: z.string().uuid('nodeId inválido.'),
+        lente: z.enum(['cena', 'politica', 'investigacao'])
+    }),
+    body: z.object({
+        colunaId: z.string().trim().min(1, 'colunaId obrigatório.').max(60)
+    })
+});
+
 // ---- SINAPSES (LINKS BIDIRECIONAIS) ----
 // Regra 4.3: os params de rota também espelham UUID estrito (poliu a lacuna da autoavaliação).
 const sinapseParamsBase = {
@@ -232,7 +246,7 @@ module.exports = {
     criarNucleoSchema, renomearNucleoSchema,
     criarEventoSchema, criarVinculoSchema,
     criarSessaoSchema, editarSessaoSchema,
-    atualizarNucleoNodeSchema,
+    atualizarNucleoNodeSchema, atualizarKanbanNodeSchema,
     listarLinksSchema, criarLinkSchema, deletarLinkSchema, atualizarLinkSchema,
     criarBoardSchema, atualizarBoardSchema, boardIdParamsSchema
 };

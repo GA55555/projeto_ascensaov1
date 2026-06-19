@@ -17,6 +17,31 @@ let nucleoAtivoTipo = 'entidade'; // 'entidade' | 'evento' | 'sessao'
 let mundoCurrentView = 'grid'; // 'grid' | 'kanban'
 let mundoListaAtual = [];
 
+// Seletor de Lentes do Kanban. 'nucleos' = geografia (nucleo_id, via moverNode); as
+// demais são facetas não-geográficas persistidas em world_nodes.dados.kanban[lente].
+// Fase 15.6: IDs ESTÁVEIS — `id` é a chave de armazenamento (imune a renomear o `label`),
+// `label` é só exibição. Labels em texto puro (sem emoji — Regra 2.3).
+const KANBAN_LENSES = {
+    cena: [
+        { id: 'em_cena', label: 'Em Cena' },
+        { id: 'aguardando', label: 'Aguardando' },
+        { id: 'fora_combate', label: 'Fora de Combate' }
+    ],
+    politica: [
+        { id: 'leais', label: 'Aliados/Leais' },
+        { id: 'neutros', label: 'Neutros' },
+        { id: 'desconhecidos', label: 'Desconhecidos' },
+        { id: 'rebeldes', label: 'Rebeldes/Inimigos' }
+    ],
+    investigacao: [
+        { id: 'nao_descoberto', label: 'Não Descoberto' },
+        { id: 'pistas_livres', label: 'Pistas Livres' },
+        { id: 'suspeitos', label: 'Suspeitos' },
+        { id: 'resolvido', label: 'Resolvido' }
+    ]
+};
+let currentLens = 'nucleos';
+
 // Interatividade Passiva (Fase 15.4): dicionário reverse-lookup Marco→Eventos, em
 // memória, p/ latência zero no tooltip de hover. Chave: `${node_id}_${flag_key}`.
 let mapaDependenciasMarcos = {};
@@ -399,8 +424,8 @@ function renderizarGridMundo(lista) {
     lucide.createIcons();
 }
 
-// Lente KANBAN (Fase 15.1 — esqueleto estrutural, sem Drag & Drop ainda): uma coluna
-// por núcleo de entidade (+ coluna "Sem Núcleo" p/ órfãs) com os cards reusados da Grelha.
+// Lente KANBAN (Fase 15.5 — multi-lente). Lente 'nucleos' = geografia (nucleo_id).
+// Lentes customizadas = facetas de world_nodes.dados.kanban[lente] (fallback: 1ª coluna).
 function renderizarKanban(lista) {
     const container = document.getElementById('mundo-view-container');
     if (!container) return;
@@ -412,27 +437,48 @@ function renderizarKanban(lista) {
         container.appendChild(board);
     }
     bindKanbanDnD(board); // motor de Drag & Drop (uma vez; sobrevive aos re-renders)
-    // Colunas = núcleos de entidade declarados + bucket de órfãs (nucleo_id nulo).
-    const colunas = [
-        ...nucleosCache.entidade.map(n => ({ id: String(n.id), nome: n.nome })),
-        { id: null, nome: 'Sem Núcleo' }
-    ];
-    board.innerHTML = colunas.map(col => {
-        const cards = lista.filter(node =>
-            col.id === null ? !node.nucleo_id : String(node.nucleo_id) === col.id);
-        const corpo = cards.length
-            ? cards.map(cardMundoHTML).join('')
-            : '<div class="info-block-vazio">Vazio.</div>';
-        return `
-            <div class="kanban-column" data-nucleo-id="${col.id === null ? '' : escapeHTML(col.id)}">
-                <div class="kanban-header">
-                    <span>${escapeHTML(col.nome)}</span>
-                    <span class="kanban-header__contagem">${cards.length}</span>
-                </div>
-                <div class="kanban-cards">${corpo}</div>
-            </div>`;
-    }).join('');
+
+    if (currentLens === 'nucleos') {
+        // Colunas = núcleos de entidade + bucket de órfãs (nucleo_id nulo).
+        const colunas = [
+            ...nucleosCache.entidade.map(n => ({ tipo: 'nucleo', id: String(n.id), nome: n.nome })),
+            { tipo: 'nucleo', id: null, nome: 'Sem Núcleo' }
+        ];
+        board.innerHTML = colunas.map(col => colunaKanbanHTML(col, lista.filter(node =>
+            col.id === null ? !node.nucleo_id : String(node.nucleo_id) === col.id))).join('');
+    } else {
+        // Colunas = estágios fixos (IDs estáveis). P1: valida o id armazenado contra as
+        // colunas reais; valor inválido/legado → fallback FORÇADO p/ a 1ª coluna.
+        const cols = KANBAN_LENSES[currentLens] || [];
+        const fallbackId = cols[0]?.id;
+        board.innerHTML = cols.map(col => colunaKanbanHTML(
+            { tipo: 'lens', lente: currentLens, id: col.id, nome: col.label },
+            lista.filter(node => {
+                const stored = node.dados?.kanban?.[currentLens];
+                const colId = cols.some(c => c.id === stored) ? stored : fallbackId;
+                return colId === col.id;
+            })
+        )).join('');
+    }
     lucide.createIcons();
+}
+
+// Uma coluna Kanban (reusada pelos dois modos). P2: a dropzone carrega no DOM toda a
+// identidade que o drop precisa — núcleo: `data-nucleo-id`; lente: `data-lens-id` +
+// `data-col-id` — para o handler ler do alvo, nunca do estado global (anti race condition).
+function colunaKanbanHTML(col, cards) {
+    const attr = col.tipo === 'lens'
+        ? `data-col-tipo="lens" data-lens-id="${escapeHTML(String(col.lente))}" data-col-id="${escapeHTML(String(col.id))}"`
+        : `data-col-tipo="nucleo" data-nucleo-id="${col.id === null ? '' : escapeHTML(col.id)}"`;
+    const corpo = cards.length ? cards.map(cardMundoHTML).join('') : '<div class="info-block-vazio">Vazio.</div>';
+    return `
+        <div class="kanban-column" ${attr}>
+            <div class="kanban-header">
+                <span>${escapeHTML(col.nome)}</span>
+                <span class="kanban-header__contagem">${cards.length}</span>
+            </div>
+            <div class="kanban-cards">${corpo}</div>
+        </div>`;
 }
 
 // ── MOTOR DRAG & DROP NATIVO (FASE 15.2) ────────────────────────────────────
@@ -479,32 +525,64 @@ function handleKanbanDrop(e) {
     if (!nodeId) return;
     const card = board.querySelector(`.world-card[data-node-id="${cssEscape(nodeId)}"]`);
     if (!card) return;
-
-    const destId = col.dataset.nucleoId || '';   // '' = Sem Núcleo
     const node = nodesCache.find(n => String(n.id) === String(nodeId));
-    const origemId = node && node.nucleo_id ? String(node.nucleo_id) : '';
-    if (destId === origemId) return;              // caso extremo: mesmo núcleo → no-op
-
     const colOrigem = card.closest('.kanban-column');
+
+    // P2: ramifica pelo TIPO da dropzone alvo (DOM), não pelo currentLens global —
+    // imune a uma troca de lente concorrente durante o arrasto.
+    if (col.dataset.colTipo === 'lens') dropLenteCustom(card, node, col, colOrigem);
+    else dropLenteNucleos(card, node, col, colOrigem, nodeId);
+}
+
+// Drop na lente geográfica: persiste nucleo_id via moverNode (fluxo da Fase 15.2).
+function dropLenteNucleos(card, node, col, colOrigem, nodeId) {
+    const destId = col.dataset.nucleoId || '';   // '' = Sem Núcleo
+    const origemId = node && node.nucleo_id ? String(node.nucleo_id) : '';
+    if (destId === origemId) return;              // mesmo núcleo → no-op
     const origemNome = node ? (node.nucleo_nome || 'Nenhum') : 'Nenhum';
     const destNome = destId ? (nucleosCache.entidade.find(n => String(n.id) === destId)?.nome || 'Nenhum') : 'Nenhum';
 
-    // ── Optimistic UI: move o card e atualiza estado local NA HORA ──
     moverCardKanban(card, col.querySelector('.kanban-cards'));
     if (node) { node.nucleo_id = destId || null; node.nucleo_nome = destNome; }
     const nomeEl = card.querySelector('.world-card__nucleo-nome');
     if (nomeEl) nomeEl.textContent = destNome;
-    atualizarContagemColuna(col);
-    atualizarContagemColuna(colOrigem);
+    atualizarContagemColuna(col); atualizarContagemColuna(colOrigem);
 
-    // ── Backend em background: silencioso no sucesso; reverte o DOM no erro ──
     MundoApi.moverNode(cronicaId, nodeId, destId || null).catch(() => {
         moverCardKanban(card, colOrigem.querySelector('.kanban-cards'));
         if (node) { node.nucleo_id = origemId || null; node.nucleo_nome = origemNome; }
         if (nomeEl) nomeEl.textContent = origemNome;
-        atualizarContagemColuna(col);
-        atualizarContagemColuna(colOrigem);
+        atualizarContagemColuna(col); atualizarContagemColuna(colOrigem);
         mostrarToast('Não foi possível mover a entidade. Alteração revertida.', 'erro');
+    });
+}
+
+// Drop numa lente customizada: lê lente+coluna do DOM da dropzone (P2) e persiste de
+// forma ATÓMICA (P3) via jsonb_set no caminho dados.kanban[lente] (sem clobber).
+function dropLenteCustom(card, node, col, colOrigem) {
+    if (!node) return;
+    const lente = col.dataset.lensId;
+    const destCol = col.dataset.colId;
+    if (!lente || !destCol) return;
+    const cols = KANBAN_LENSES[lente] || [];
+    const fallbackId = cols[0]?.id;
+    const stored = node.dados?.kanban?.[lente];
+    const origemCol = cols.some(c => c.id === stored) ? stored : fallbackId; // P1 também no drop
+    if (destCol === origemCol) return; // mesma coluna → no-op
+
+    // Optimistic: move o card + grava só a faceta da lente no estado local.
+    moverCardKanban(card, col.querySelector('.kanban-cards'));
+    atualizarContagemColuna(col); atualizarContagemColuna(colOrigem);
+    node.dados = node.dados || {};
+    node.dados.kanban = node.dados.kanban || {};
+    node.dados.kanban[lente] = destCol;
+
+    // Backend atómico (P3): PUT focado; silencioso no sucesso, reverte no erro.
+    MundoApi.moverKanban(cronicaId, node.id, lente, destCol).catch(() => {
+        node.dados.kanban[lente] = origemCol;
+        moverCardKanban(card, colOrigem.querySelector('.kanban-cards'));
+        atualizarContagemColuna(col); atualizarContagemColuna(colOrigem);
+        mostrarToast('Não foi possível atualizar a entidade. Alteração revertida.', 'erro');
     });
 }
 
@@ -2251,9 +2329,22 @@ function inicializarViewToggle() {
             if (view === mundoCurrentView) return;
             mundoCurrentView = view;
             toggle.querySelectorAll('button[data-view]').forEach(b => b.classList.toggle('active', b === btn));
-            renderizarMundo(); // re-render da lista atual na nova lente
+            atualizarVisibilidadeLente();
+            renderizarMundo(); // re-render da lista atual na nova visualização
         });
     });
+    // Seletor de Lentes: troca a faceta do Kanban e re-renderiza (só apresentação).
+    const lensSel = document.getElementById('kanban-lens-select');
+    if (lensSel) lensSel.addEventListener('change', () => {
+        currentLens = lensSel.value;
+        renderizarMundo();
+    });
+    atualizarVisibilidadeLente();
+}
+// O seletor de lentes só existe no contexto Kanban.
+function atualizarVisibilidadeLente() {
+    const lensSel = document.getElementById('kanban-lens-select');
+    if (lensSel) lensSel.style.display = mundoCurrentView === 'kanban' ? '' : 'none';
 }
 
 window.aplicarFiltrosEventos = function() {

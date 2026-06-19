@@ -77,6 +77,16 @@ const MundoApi = {
         if (!res.ok) throw new Error('Falha ao mover entidade.');
     },
 
+    // Escrita ATÓMICA do estado de uma lente Kanban (Fase 15.6): patch só de
+    // dados.kanban[lente] no backend (jsonb_set), livre de clobber concorrente.
+    async moverKanban(cronicaId, nodeId, lente, colunaId) {
+        const res = await API.fetch(`/cronicas/${cronicaId}/nodes/${nodeId}/kanban/${encodeURIComponent(lente)}`, {
+            method: 'PUT',
+            body: JSON.stringify({ colunaId })
+        });
+        if (!res.ok) throw new Error('Falha ao atualizar o Kanban da entidade.');
+    },
+
     // ── FLAGS ──────────────────────────────────────────────────
     async adicionarFlag(cronicaId, nodeId, flagKey) {
         const res = await API.fetch(`/cronicas/${cronicaId}/nodes/${nodeId}/flags`, {
