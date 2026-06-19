@@ -673,3 +673,123 @@ exports.atualizarLink = async (req, res) => {
         res.status(500).json({ erro: 'Erro ao atualizar detalhes da conexão.' });
     }
 };
+
+// =======================================================
+// TABULEIROS DE CAMPANHA (FASE 13) — world_boards
+// CRUD de layouts (snapshots) do Infinite Canvas. Todo acesso é escopado por
+// cronica_id no WHERE (anti-IDOR, Regra 3.3.1); falha de posse → 404.
+// =======================================================
+exports.listarBoards = async (req, res) => {
+    const { cronicaId } = req.params;
+    try {
+        const r = await pool.query(
+            `SELECT id, nome, criado_em, atualizado_em
+               FROM world_boards WHERE cronica_id = $1 ORDER BY atualizado_em DESC`,
+            [cronicaId]
+        );
+        res.json(r.rows);
+    } catch (err) {
+        console.error('Erro ao listar tabuleiros:', err);
+        res.status(500).json({ erro: 'Erro ao listar tabuleiros.' });
+    }
+};
+
+// Sincronização viva: cruza os nós do JSONB com os world_nodes reais (escopo
+// crônica) e remove os ausentes (+ overrides de linhas órfãos). NÃO grava no GET
+// (evita escrita em leitura); devolve a versão limpa + flag para o cliente.
+exports.buscarBoard = async (req, res) => {
+    const { cronicaId, boardId } = req.params;
+    try {
+        const r = await pool.query(
+            `SELECT id, nome, dados, criado_em, atualizado_em
+               FROM world_boards WHERE id = $1 AND cronica_id = $2`,
+            [boardId, cronicaId]
+        );
+        if (r.rows.length === 0) return res.status(404).json({ erro: 'Tabuleiro não encontrado.' });
+
+        const board = r.rows[0];
+        const dados = board.dados || {};
+        const nodes = Array.isArray(dados.nodes) ? dados.nodes : [];
+        let atualizado = false;
+
+        if (nodes.length) {
+            const ids = nodes.map(n => n && n.id).filter(Boolean);
+            // Regra 6.2: lista parametrizada via array uuid; Regra 3.3.1: escopo crônica.
+            const existentes = await pool.query(
+                `SELECT id FROM world_nodes WHERE cronica_id = $1 AND id = ANY($2::uuid[])`,
+                [cronicaId, ids]
+            );
+            const vivos = new Set(existentes.rows.map(x => String(x.id)));
+            const nodesLimpos = nodes.filter(n => n && vivos.has(String(n.id)));
+            if (nodesLimpos.length !== nodes.length) {
+                atualizado = true;
+                dados.nodes = nodesLimpos;
+                if (dados.overrides_linhas && typeof dados.overrides_linhas === 'object') {
+                    for (const chave of Object.keys(dados.overrides_linhas)) {
+                        const [a, b] = String(chave).split('_'); // UUIDs não têm '_', split é seguro
+                        if (!vivos.has(a) || !vivos.has(b)) delete dados.overrides_linhas[chave];
+                    }
+                }
+                board.dados = dados;
+            }
+        }
+        res.json({ ...board, atualizado_automaticamente: atualizado });
+    } catch (err) {
+        console.error('Erro ao buscar tabuleiro:', err);
+        res.status(500).json({ erro: 'Erro ao carregar o tabuleiro.' });
+    }
+};
+
+exports.criarBoard = async (req, res) => {
+    const { cronicaId } = req.params;
+    const { nome, dados } = req.body;
+    try {
+        const r = await pool.query(
+            `INSERT INTO world_boards (cronica_id, nome, dados)
+             VALUES ($1, $2, $3::jsonb)
+             RETURNING id, nome, dados, criado_em, atualizado_em`,
+            [cronicaId, nome, JSON.stringify(dados || {})]
+        );
+        res.status(201).json(r.rows[0]);
+    } catch (err) {
+        console.error('Erro ao criar tabuleiro:', err);
+        res.status(500).json({ erro: 'Erro ao criar o tabuleiro.' });
+    }
+};
+
+exports.atualizarBoard = async (req, res) => {
+    const { cronicaId, boardId } = req.params;
+    const { nome, dados } = req.body;
+    try {
+        // COALESCE: atualiza só os campos enviados; sempre carimba atualizado_em.
+        const r = await pool.query(
+            `UPDATE world_boards
+                SET nome = COALESCE($1, nome),
+                    dados = COALESCE($2::jsonb, dados),
+                    atualizado_em = now()
+              WHERE id = $3 AND cronica_id = $4
+              RETURNING id, nome, dados, criado_em, atualizado_em`,
+            [nome ?? null, dados ? JSON.stringify(dados) : null, boardId, cronicaId]
+        );
+        if (r.rows.length === 0) return res.status(404).json({ erro: 'Tabuleiro não encontrado.' });
+        res.json(r.rows[0]);
+    } catch (err) {
+        console.error('Erro ao atualizar tabuleiro:', err);
+        res.status(500).json({ erro: 'Erro ao salvar o tabuleiro.' });
+    }
+};
+
+exports.deletarBoard = async (req, res) => {
+    const { cronicaId, boardId } = req.params;
+    try {
+        const r = await pool.query(
+            `DELETE FROM world_boards WHERE id = $1 AND cronica_id = $2 RETURNING id`,
+            [boardId, cronicaId]
+        );
+        if (r.rows.length === 0) return res.status(404).json({ erro: 'Tabuleiro não encontrado.' });
+        res.json({ mensagem: 'Tabuleiro removido.' });
+    } catch (err) {
+        console.error('Erro ao deletar tabuleiro:', err);
+        res.status(500).json({ erro: 'Erro ao remover o tabuleiro.' });
+    }
+};

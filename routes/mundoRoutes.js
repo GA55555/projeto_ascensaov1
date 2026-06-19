@@ -14,7 +14,8 @@ const {
     criarEventoSchema, criarVinculoSchema,
     criarSessaoSchema, editarSessaoSchema,
     atualizarNucleoNodeSchema,
-    listarLinksSchema, criarLinkSchema, deletarLinkSchema, atualizarLinkSchema
+    listarLinksSchema, criarLinkSchema, deletarLinkSchema, atualizarLinkSchema,
+    criarBoardSchema, atualizarBoardSchema, boardIdParamsSchema
 } = require('../validators/mundoValidator');
 
 // Middleware apenas narrador
@@ -91,5 +92,14 @@ router.delete('/eventos/:eventoId/nucleos/:nucleoId', verificarToken, checarAces
 // ==========================================
 router.post('/eventos/:eventoId/pesos', verificarToken, checarAcessoCronica, apenasNarrador, validate(criarVinculoSchema), MundoController.criarVinculo);
 router.delete('/eventos/:eventoId/pesos', verificarToken, checarAcessoCronica, apenasNarrador, MundoController.deletarVinculo);
+
+// ==========================================
+// TABULEIROS DE CAMPANHA (FASE 13) — world_boards
+// ==========================================
+router.get('/boards', verificarToken, checarAcessoCronica, MundoController.listarBoards);
+router.get('/boards/:boardId', verificarToken, checarAcessoCronica, validate(boardIdParamsSchema), MundoController.buscarBoard);
+router.post('/boards', verificarToken, checarAcessoCronica, apenasNarrador, validate(criarBoardSchema), MundoController.criarBoard);
+router.put('/boards/:boardId', verificarToken, checarAcessoCronica, apenasNarrador, validate(atualizarBoardSchema), MundoController.atualizarBoard);
+router.delete('/boards/:boardId', verificarToken, checarAcessoCronica, apenasNarrador, validate(boardIdParamsSchema), MundoController.deletarBoard);
 
 module.exports = router;

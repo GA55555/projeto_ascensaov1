@@ -113,18 +113,13 @@ const sinapseParamsBase = {
 const listarLinksSchema = z.object({
     params: z.object({ ...sinapseParamsBase })
 });
-// JSONB world_links.dados — guarda DUAS facetas opcionais, ambas opt-in:
-//  • Panela de Pressão (Fase 11): tags (FATE) + limite (pressao = tags.length).
-//  • Mesa de Guerra (Fase 12): posição no canvas (x,y) + hierarquia (icone, cargo).
-// Chaves desconhecidas são descartadas pelo strip padrão do Zod (migração graciosa).
-const ICONES_HIERARQUIA = ['user', 'shield', 'crown', 'castle', 'swords', 'flag', 'gem', 'eye'];
+// JSONB world_links.dados — Panela de Pressão (Fase 11): tags (FATE) + limite
+// (pressao = tags.length). Os campos espaciais x/y/icone/cargo (Mesa de Guerra,
+// Fase 12) foram REMOVIDOS na Fase 13: posições agora vivem em world_boards.dados.
+// Chaves desconhecidas/legadas são descartadas pelo strip do Zod (migração graciosa).
 const dadosLinkSchema = z.object({
     tags: z.array(z.string().trim().min(1).max(120)).max(50).default([]),
-    limite: z.number().int().min(1).max(20).default(3),
-    x: z.number().finite().optional(),
-    y: z.number().finite().optional(),
-    icone: z.enum(ICONES_HIERARQUIA).optional(),
-    cargo: z.string().trim().max(60).optional()
+    limite: z.number().int().min(1).max(20).default(3)
 }).optional();
 
 const criarLinkSchema = z.object({
@@ -143,6 +138,61 @@ const atualizarLinkSchema = z.object({
     body: z.object({ dados: dadosLinkSchema })
 });
 
+// ── TABULEIROS DE CAMPANHA (FASE 13): world_boards ──
+// `dados` JSONB do Infinite Canvas. Cores são TOKENS de paleta (mapeados p/ vars
+// CSS no front), nunca hex — coerência com a Regra 2.5. Chaves desconhecidas são
+// descartadas pelo strip do Zod; arrays têm teto p/ não inflar o JSONB.
+const CORES_BOARD = ['roxo', 'azul', 'verde', 'ambar', 'vermelho', 'cinza', 'rosa'];
+const dadosBoardSchema = z.object({
+    camera: z.object({
+        x: z.number().finite().default(0),
+        y: z.number().finite().default(0),
+        zoom: z.number().finite().min(0.2).max(4).default(1)
+    }).default({ x: 0, y: 0, zoom: 1 }),
+    nodes: z.array(z.object({
+        id: z.string().uuid(),
+        x: z.number().finite(),
+        y: z.number().finite(),
+        cor: z.enum(CORES_BOARD).optional(),
+        icone: z.string().trim().max(40).optional()
+    })).max(500).default([]),
+    shapes: z.array(z.object({
+        id: z.string().min(1).max(64),
+        x: z.number().finite(),
+        y: z.number().finite(),
+        w: z.number().finite().min(0),
+        h: z.number().finite().min(0),
+        label: z.string().trim().max(120).optional(),
+        cor: z.enum(CORES_BOARD).optional()
+    })).max(200).default([]),
+    overrides_linhas: z.record(
+        z.string().max(120),
+        z.object({
+            cor: z.enum(['aliado', 'inimigo', 'neutro']).optional(),
+            stroke: z.enum(['solid', 'dashed']).optional()
+        })
+    ).default({})
+}).default({});
+
+const cronicaParamOnly = { cronicaId: z.string().uuid('cronicaId inválido.') };
+const boardIdParams = { ...cronicaParamOnly, boardId: z.string().uuid('boardId inválido.') };
+
+const criarBoardSchema = z.object({
+    params: z.object({ ...cronicaParamOnly }),
+    body: z.object({
+        nome: z.string().trim().min(1, 'Nome do tabuleiro obrigatório.').max(255),
+        dados: dadosBoardSchema.optional()
+    })
+});
+const atualizarBoardSchema = z.object({
+    params: z.object({ ...boardIdParams }),
+    body: z.object({
+        nome: z.string().trim().min(1).max(255).optional(),
+        dados: dadosBoardSchema.optional()
+    })
+});
+const boardIdParamsSchema = z.object({ params: z.object({ ...boardIdParams }) });
+
 module.exports = {
     criarAutomacaoSchema, toggleStatusSchema,
     criarNodeSchema, editarNodeSchema,
@@ -151,5 +201,6 @@ module.exports = {
     criarEventoSchema, criarVinculoSchema,
     criarSessaoSchema, editarSessaoSchema,
     atualizarNucleoNodeSchema,
-    listarLinksSchema, criarLinkSchema, deletarLinkSchema, atualizarLinkSchema
+    listarLinksSchema, criarLinkSchema, deletarLinkSchema, atualizarLinkSchema,
+    criarBoardSchema, atualizarBoardSchema, boardIdParamsSchema
 };

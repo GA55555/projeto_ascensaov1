@@ -1947,208 +1947,506 @@ window.abrirEscudoComSave = function(saveId) {
 }
 
 // ==========================================
-// MESA DE GUERRA (FASE 12 refatorada) — CANVAS ESPACIAL
-// Canvas livre: o Narrador escolhe um Local/Facção (raiz) e posiciona os nós
-// conectados (de listarLinks) livremente. Posição/ícone/cargo persistem no JSONB
-// world_links.dados via atualizarLink (merge — preserva tags/limite da Panela).
-// Linhas Bézier (<path>) ligam a raiz a cada card; redesenham no arrasto.
+// TABULEIRO DE CAMPANHA (FASE 13) — INFINITE CANVAS
+// Canvas livre multi-board: o Narrador escolhe um Tabuleiro (world_boards),
+// adiciona entidades (cards arrastáveis) e organiza o espaço com Pan/Zoom.
+// O estado vive em boardState e persiste em world_boards.dados pelo botão SALVAR
+// (Regra 2.7 — sem auto-save). Cores são tokens → classes .board-cor-* (Regra 2.5).
+// [Fatia 2: infra. Shapes/zonas → fatia 3; linhas + edição cor/ícone → fatia 4.]
 // ==========================================
-const ICONES_HIER = ['user', 'shield', 'crown', 'castle', 'swords', 'flag', 'gem', 'eye'];
-let mesaRaizId = null;       // nó-raiz selecionado
-let mesaRaizNode = null;     // {id, nome, tipo} do raiz
-let mesaLinks = [];          // links do raiz (.dados é a fonte de x/y/icone/cargo)
-let mesaNodesCache = [];     // todos os nós (dropdown + lookup do raiz)
-let editorCardLinkId = null; // link em edição no popover
-let editorCardIcone = null;
+const CORES_BOARD = ['roxo', 'azul', 'verde', 'ambar', 'vermelho', 'cinza', 'rosa'];
+const boardVazio = () => ({ camera: { x: 0, y: 0, zoom: 1 }, nodes: [], shapes: [], overrides_linhas: {} });
+let boardAtualId = null;
+let boardNomeAtual = '';
+let boardState = boardVazio();
+let boardNodesCache = []; // todos os world_nodes (id → nome/tipo para render)
+let boardPan = null;      // estado do pan em curso
 
-// Popula o dropdown com entidades local/faccao (candidatas a raiz da hierarquia).
+const elBoardCanvas = () => document.getElementById('board-canvas');
+const elBoardWorld = () => document.getElementById('board-world');
+const boardNodeInfo = (id) => boardNodesCache.find(n => String(n.id) === String(id));
+
+// Entrada da aba: carrega cache de nós + lista de tabuleiros + liga Pan/Zoom.
 async function carregarMesaGuerra() {
-    const sel = document.getElementById('macro-raiz-select');
-    if (!sel) return;
-    try { mesaNodesCache = await MundoApi.getNodes(cronicaId); }
-    catch (e) { mostrarToast('Erro ao carregar entidades.', 'erro'); return; }
-    const raizes = mesaNodesCache.filter(n => ['local', 'faccao'].includes(String(n.tipo).toLowerCase()));
-    const atual = sel.value;
-    sel.innerHTML = '<option value="">Selecione um Local ou Facção...</option>'
-        + raizes.map(n => `<option value="${escapeHTML(String(n.id))}">${escapeHTML(n.nome)} (${escapeHTML(n.tipo)})</option>`).join('');
-    if (atual) sel.value = atual;
+    if (!elBoardCanvas()) return;
+    try { boardNodesCache = await MundoApi.getNodes(cronicaId); }
+    catch (e) { mostrarToast('Erro ao carregar entidades.', 'erro'); }
+    await recarregarListaBoards();
+    ativarPanZoom();
+    if (!boardAtualId) renderBoard();
 }
 
-window.selecionarRaizMesa = async function(raizId) {
-    const cont = document.getElementById('war-table');
-    if (!cont) return;
-    mesaRaizId = raizId || null;
-    if (!raizId) { cont.innerHTML = '<div class="info-block-vazio">Selecione um Local ou Facção para abrir a mesa.</div>'; return; }
-    mesaRaizNode = mesaNodesCache.find(n => String(n.id) === String(raizId)) || { id: raizId, nome: 'Raiz', tipo: 'local' };
-    cont.innerHTML = '<div class="info-block-vazio"><span class="spinner"></span> A montar a mesa...</div>';
-    try { mesaLinks = await MundoApi.listarLinks(cronicaId, raizId); }
-    catch (e) { cont.innerHTML = '<div class="info-block-vazio">Erro ao carregar a mesa.</div>'; return; }
-    renderMesa();
+async function recarregarListaBoards() {
+    const sel = document.getElementById('board-select');
+    if (!sel) return;
+    let lista = [];
+    try { lista = await MundoApi.listarBoards(cronicaId); }
+    catch (e) { mostrarToast('Erro ao listar tabuleiros.', 'erro'); return; }
+    sel.innerHTML = '<option value="">— Selecione um tabuleiro —</option>'
+        + lista.map(b => `<option value="${escapeHTML(String(b.id))}">${escapeHTML(b.nome)}</option>`).join('');
+    sel.value = boardAtualId || '';
+}
+
+window.novoBoard = async function() {
+    const nome = (prompt('Nome do novo tabuleiro:') || '').trim();
+    if (!nome) return;
+    try {
+        const b = await MundoApi.criarBoard(cronicaId, nome, boardVazio());
+        mostrarToast('Tabuleiro criado!', 'sucesso');
+        await recarregarListaBoards();
+        await abrirBoard(b.id);
+    } catch (e) { mostrarToast(e.message || 'Erro ao criar tabuleiro.', 'erro'); }
 };
 
-// Monta o canvas: SVG (linhas) + card raiz central + cards subordinados na posição
-// salva (dados.x/y) ou num layout circular padrão de fallback.
-function renderMesa() {
-    const cont = document.getElementById('war-table');
-    if (!cont) return;
-    const W = cont.clientWidth || 800, H = 600;
-    const cx = Math.round(W / 2), cy = Math.round(H / 2);
-    const n = mesaLinks.length;
-    if (!n) {
-        cont.innerHTML = `<svg class="war-table-svg"></svg>${cardHTML({ raiz: true, nodeId: mesaRaizNode.id, nome: mesaRaizNode.nome, tipoEnt: mesaRaizNode.tipo, x: Math.max(0, cx - 90), y: Math.max(0, cy - 32) })}
-            <div class="war-table-vazio info-block-vazio">Sem conexões. Crie conexões nesta entidade (aba Mundo → Conexões) para posicioná-las aqui.</div>`;
-        lucide.createIcons();
-        ativarArrasto();
+window.abrirBoard = async function(boardId) {
+    boardAtualId = boardId || null;
+    if (!boardId) { boardState = boardVazio(); boardNomeAtual = ''; renderBoard(); return; }
+    let resp;
+    try { resp = await MundoApi.buscarBoard(cronicaId, boardId); }
+    catch (e) { mostrarToast(e.message || 'Erro ao carregar tabuleiro.', 'erro'); return; }
+    boardNomeAtual = resp.nome || '';
+    const d = resp.dados || {};
+    boardState = {
+        camera: d.camera || { x: 0, y: 0, zoom: 1 },
+        nodes: Array.isArray(d.nodes) ? d.nodes : [],
+        shapes: Array.isArray(d.shapes) ? d.shapes : [],
+        overrides_linhas: d.overrides_linhas || {}
+    };
+    if (resp.atualizado_automaticamente) {
+        mostrarToast('Aviso: Entidades ausentes foram removidas do tabuleiro.', 'aviso');
+    }
+    const sel = document.getElementById('board-select'); if (sel) sel.value = boardAtualId;
+    renderBoard();
+    atualizarLinksBoard(); // busca os world_links reais entre os nós e desenha as linhas
+};
+
+window.salvarBoard = async function() {
+    if (!boardAtualId) return mostrarToast('Selecione ou crie um tabuleiro primeiro.', 'aviso');
+    try {
+        await MundoApi.atualizarBoard(cronicaId, boardAtualId, { dados: boardState });
+        mostrarToast('Tabuleiro salvo.', 'sucesso');
+    } catch (e) { mostrarToast(e.message || 'Erro ao salvar tabuleiro.', 'erro'); }
+};
+
+window.deletarBoardAtual = async function() {
+    if (!boardAtualId) return mostrarToast('Nenhum tabuleiro aberto.', 'aviso');
+    if (!confirm(`Excluir o tabuleiro "${boardNomeAtual}"? Esta ação é permanente.`)) return;
+    try {
+        await MundoApi.deletarBoard(cronicaId, boardAtualId);
+        mostrarToast('Tabuleiro removido.', 'sucesso');
+        boardAtualId = null; boardNomeAtual = ''; boardState = boardVazio();
+        await recarregarListaBoards();
+        renderBoard();
+    } catch (e) { mostrarToast(e.message || 'Erro ao remover tabuleiro.', 'erro'); }
+};
+
+// Render do mundo: cards das entidades em boardState.nodes. Aplica a câmera e religa
+// o arrasto dos cards. (Shapes → fatia 3; linhas → fatia 4.)
+function renderBoard() {
+    const world = elBoardWorld();
+    if (!world) return;
+    if (!boardAtualId) {
+        world.innerHTML = '<div class="board-vazio info-block-vazio">Selecione um tabuleiro no menu, ou crie um novo.</div>';
+        world.style.transform = '';
         return;
     }
-    const subs = mesaLinks.map((l, i) => {
-        const d = l.dados || {};
-        let x = Number.isFinite(d.x) ? d.x : null;
-        let y = Number.isFinite(d.y) ? d.y : null;
-        if (x === null || y === null) {
-            const ang = (2 * Math.PI * i) / n - Math.PI / 2;
-            x = Math.round(cx + Math.cos(ang) * 220 - 90);
-            y = Math.round(cy + Math.sin(ang) * 170 - 32);
-        }
-        return cardHTML({ raiz: false, linkId: l.id, nodeId: l.node_conectado_id, nome: l.node_conectado_nome, tipoEnt: l.node_conectado_tipo, icone: d.icone, cargo: d.cargo, x, y });
+    const cards = boardState.nodes.map(node => {
+        const info = boardNodeInfo(node.id);
+        if (!info) return ''; // defensivo: o sync já deveria ter removido órfãos
+        const corClasse = CORES_BOARD.includes(node.cor) ? ` board-cor-${node.cor}` : '';
+        const icone = node.icone || iconeEntidade(info.tipo);
+        return `<div class="board-card${corClasse}" data-node="${escapeHTML(String(node.id))}" style="left: ${Math.round(node.x)}px; top: ${Math.round(node.y)}px;">
+            <i data-lucide="${escapeHTML(icone)}" class="board-card-icone"></i>
+            <span class="board-card-info">
+                <span class="board-card-nome">${escapeHTML(info.nome)}</span>
+                <span class="board-card-tipo">${escapeHTML(info.tipo)}</span>
+            </span>
+            <i data-lucide="x" class="board-card-remover" title="Remover do tabuleiro"></i>
+        </div>`;
     }).join('');
-    const raiz = cardHTML({ raiz: true, nodeId: mesaRaizNode.id, nome: mesaRaizNode.nome, tipoEnt: mesaRaizNode.tipo, x: Math.max(0, cx - 90), y: Math.max(0, cy - 32) });
-    cont.innerHTML = `<svg class="war-table-svg"></svg>${raiz}${subs}`;
+    const shapes = boardState.shapes.map(shapeHTML).join(''); // zonas (z-index 1, sob os cards)
+    const corpo = shapes + cards;
+    world.innerHTML = '<svg class="board-svg"></svg>' + (corpo || '<div class="board-vazio info-block-vazio">Tabuleiro vazio. Use “+ Entidade” ou “+ Zona” para começar.</div>');
+    aplicarCamera();
     lucide.createIcons();
-    desenharLinhas();
-    ativarArrasto();
+    ativarArrastoCards();
+    ativarInteracoesShapes();
+    desenharLinhasBoard(); // linhas a partir do cache boardLinks
 }
 
-function cardHTML(o) {
-    const icone = o.icone || iconeEntidade(o.tipoEnt);
-    const cargo = o.cargo ? escapeHTML(o.cargo) : (o.raiz ? 'Raiz' : '');
-    return `<div class="war-table-card${o.raiz ? ' raiz' : ''}" data-node="${escapeHTML(String(o.nodeId))}"${o.linkId ? ` data-link="${escapeHTML(String(o.linkId))}"` : ''} style="left: ${Math.round(o.x)}px; top: ${Math.round(o.y)}px;">
-        <i data-lucide="${escapeHTML(icone)}" class="war-card-icone"></i>
-        <span class="war-card-info">
-            <span class="war-card-nome">${escapeHTML(o.nome)}</span>
-            ${cargo ? `<span class="war-card-cargo">${cargo}</span>` : ''}
-        </span>
-    </div>`;
+function aplicarCamera() {
+    const world = elBoardWorld();
+    if (!world) return;
+    const c = boardState.camera;
+    world.style.transform = `translate(${c.x}px, ${c.y}px) scale(${c.zoom})`;
 }
 
-// Linhas Bézier da raiz ao centro de cada subordinado. Dimensiona o SVG ao conteúdo.
-function desenharLinhas() {
-    const cont = document.getElementById('war-table');
-    const svg = cont?.querySelector('.war-table-svg');
-    if (!svg) return;
-    const raizEl = cont.querySelector('.war-table-card.raiz');
-    if (!raizEl) { svg.innerHTML = ''; return; }
-    const r = centroCard(raizEl);
-    let maxX = cont.clientWidth, maxY = 600, paths = '';
-    cont.querySelectorAll('.war-table-card:not(.raiz)').forEach(card => {
-        const c = centroCard(card);
-        const dx = Math.max(40, Math.abs(c.x - r.x) * 0.5);
-        paths += `<path class="war-line" d="M ${r.x} ${r.y} C ${r.x + dx} ${r.y}, ${c.x - dx} ${c.y}, ${c.x} ${c.y}"></path>`;
-        maxX = Math.max(maxX, card.offsetLeft + card.offsetWidth);
-        maxY = Math.max(maxY, card.offsetTop + card.offsetHeight);
-    });
-    svg.setAttribute('width', maxX);
-    svg.setAttribute('height', maxY);
-    svg.innerHTML = paths;
-}
-function centroCard(card) {
-    return { x: card.offsetLeft + card.offsetWidth / 2, y: card.offsetTop + card.offsetHeight / 2 };
-}
-
-// Drag & Drop via Pointer Events (com captura). A raiz arrasta mas NÃO persiste
-// (não tem link próprio). Duplo-clique num subordinado → popover de hierarquia.
-function ativarArrasto() {
-    const cont = document.getElementById('war-table');
-    if (!cont) return;
-    cont.querySelectorAll('.war-table-card').forEach(card => {
+// Arrasto dos cards (coordenadas de mundo = delta de tela / zoom). Atualiza
+// boardState.nodes em memória; persiste só no Salvar (Regra 2.7).
+function ativarArrastoCards() {
+    const world = elBoardWorld();
+    if (!world) return;
+    world.querySelectorAll('.board-card').forEach(card => {
         card.onpointerdown = (e) => {
-            if (e.button !== 0 || e.target.closest('.war-card-popover')) return;
-            const sx = e.clientX, sy = e.clientY;
-            const ox = card.offsetLeft, oy = card.offsetTop;
-            let moveu = false;
+            if (e.button !== 0 || e.target.closest('.board-card-remover')) return;
+            e.stopPropagation(); // não inicia o Pan do canvas
+            const node = boardState.nodes.find(n => String(n.id) === String(card.dataset.node));
+            if (!node) return;
+            const z = boardState.camera.zoom || 1;
+            const sx = e.clientX, sy = e.clientY, ox = node.x, oy = node.y;
             card.setPointerCapture(e.pointerId);
             card.classList.add('dragging');
             const onMove = (ev) => {
-                card.style.left = Math.max(0, ox + (ev.clientX - sx)) + 'px';
-                card.style.top = Math.max(0, oy + (ev.clientY - sy)) + 'px';
-                if (Math.abs(ev.clientX - sx) > 3 || Math.abs(ev.clientY - sy) > 3) moveu = true;
-                desenharLinhas();
+                node.x = Math.round(ox + (ev.clientX - sx) / z);
+                node.y = Math.round(oy + (ev.clientY - sy) / z);
+                card.style.left = node.x + 'px';
+                card.style.top = node.y + 'px';
+                desenharLinhasBoard(); // linhas seguem o card em tempo real
             };
             const onUp = () => {
                 card.classList.remove('dragging');
                 card.removeEventListener('pointermove', onMove);
                 card.removeEventListener('pointerup', onUp);
-                desenharLinhas();
-                if (moveu && card.dataset.link) persistirPosicao(card);
             };
             card.addEventListener('pointermove', onMove);
             card.addEventListener('pointerup', onUp);
         };
-        card.ondblclick = (e) => {
-            if (!card.dataset.link) return; // só subordinados têm hierarquia editável
-            e.stopPropagation();
-            abrirEditorCard(card);
-        };
+        card.ondblclick = (e) => { e.stopPropagation(); abrirEditorNode(card, e); };
+        const rem = card.querySelector('.board-card-remover');
+        if (rem) rem.onclick = (e) => { e.stopPropagation(); removerNodeBoard(card.dataset.node); };
     });
 }
 
-// Grava x/y no JSONB preservando o restante de dados (merge — não apaga tags/limite).
-async function persistirPosicao(card) {
-    const link = mesaLinks.find(l => String(l.id) === String(card.dataset.link));
-    if (!link) return;
-    const dados = { ...(link.dados || {}), x: parseInt(card.style.left, 10) || 0, y: parseInt(card.style.top, 10) || 0 };
-    link.dados = dados;
-    try { await MundoApi.atualizarLink(cronicaId, mesaRaizId, link.id, dados); }
-    catch (e) { mostrarToast('Erro ao salvar posição.', 'erro'); }
+window.removerNodeBoard = function(nodeId) {
+    boardState.nodes = boardState.nodes.filter(n => String(n.id) !== String(nodeId));
+    renderBoard();
+    atualizarLinksBoard();
+};
+
+// Pan (arrastar o fundo) + Zoom (wheel para o cursor). Ligado UMA vez ao canvas.
+function ativarPanZoom() {
+    const canvas = elBoardCanvas();
+    if (!canvas || canvas.dataset.bound === '1') return;
+    canvas.dataset.bound = '1';
+    canvas.addEventListener('pointerdown', (e) => {
+        if (!boardAtualId || e.button !== 0) return;
+        if (e.target.closest('.board-card, .board-shape, .board-line-hit, .board-popover')) return; // não panja sobre elementos
+        boardPan = { sx: e.clientX, sy: e.clientY, ox: boardState.camera.x, oy: boardState.camera.y };
+        canvas.classList.add('panning');
+        canvas.setPointerCapture(e.pointerId);
+    });
+    canvas.addEventListener('pointermove', (e) => {
+        if (!boardPan) return;
+        boardState.camera.x = boardPan.ox + (e.clientX - boardPan.sx);
+        boardState.camera.y = boardPan.oy + (e.clientY - boardPan.sy);
+        aplicarCamera();
+    });
+    const fimPan = () => { boardPan = null; canvas.classList.remove('panning'); };
+    canvas.addEventListener('pointerup', fimPan);
+    canvas.addEventListener('pointercancel', fimPan);
+    canvas.addEventListener('wheel', (e) => {
+        if (!boardAtualId) return;
+        e.preventDefault();
+        const rect = canvas.getBoundingClientRect();
+        const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+        const cam = boardState.camera;
+        const fator = e.deltaY < 0 ? 1.1 : 1 / 1.1;
+        const novo = Math.min(4, Math.max(0.2, cam.zoom * fator));
+        cam.x = mx - ((mx - cam.x) / cam.zoom) * novo; // zoom em direção ao cursor
+        cam.y = my - ((my - cam.y) / cam.zoom) * novo;
+        cam.zoom = novo;
+        aplicarCamera();
+    }, { passive: false });
 }
 
-// Popover (2º clique): grade de ícones de hierarquia + cargo. Salva via atualizarLink.
-function abrirEditorCard(card) {
-    fecharEditorCard();
-    const link = mesaLinks.find(l => String(l.id) === String(card.dataset.link));
-    if (!link) return;
-    const d = link.dados || {};
-    editorCardLinkId = link.id;
-    editorCardIcone = d.icone || null;
-    const pop = document.createElement('div');
-    pop.className = 'war-card-popover';
-    pop.id = 'war-card-popover';
-    pop.innerHTML = `
-        <label>Ícone de hierarquia</label>
-        <div class="war-icone-grid">
-            ${ICONES_HIER.map(ic => `<button type="button" class="war-icone-opt${d.icone === ic ? ' sel' : ''}" data-ic="${ic}" onclick="selecionarIconeCard(this)"><i data-lucide="${ic}"></i></button>`).join('')}
-        </div>
-        <label>Cargo</label>
-        <input type="text" id="war-cargo-input" class="input-sm" maxlength="60" value="${escapeHTML(d.cargo || '')}" placeholder="Ex: Comandante" style="width: 100%;">
-        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px;">
-            <button class="btn btn-ghost btn-sm" onclick="fecharEditorCard()">Cancelar</button>
-            <button class="btn btn-primary btn-sm" onclick="salvarEditorCard()"><i data-lucide="check"></i> Salvar</button>
+// Modal "+ Entidade": lista nós da crônica fora do tabuleiro; ao escolher, adiciona
+// no centro da viewport (convertido para coordenadas de mundo).
+window.abrirSeletorEntidade = function() {
+    if (!boardAtualId) return mostrarToast('Abra ou crie um tabuleiro primeiro.', 'aviso');
+    fecharSeletorEntidade();
+    const noBoard = new Set(boardState.nodes.map(n => String(n.id)));
+    const disp = boardNodesCache.filter(n => !noBoard.has(String(n.id)));
+    const modal = document.createElement('div');
+    modal.className = 'modal show';
+    modal.id = 'modal-board-entidade';
+    modal.innerHTML = `
+        <div class="modal-box" style="width: 460px; max-width: 92%; max-height: 80vh; display: flex; flex-direction: column;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                <h3 class="texto-roxo" style="margin: 0; display: flex; align-items: center; gap: 8px;"><i data-lucide="plus-circle"></i> Adicionar Entidade</h3>
+                <button class="btn btn-ghost btn-sm" onclick="fecharSeletorEntidade()" title="Fechar"><i data-lucide="x"></i></button>
+            </div>
+            <div style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;">
+                ${disp.length ? disp.map(n => `<button type="button" class="btn btn-outline btn-sm" style="justify-content: flex-start; gap: 8px;" data-id="${escapeHTML(String(n.id))}" onclick="adicionarEntidadeBoard(this.dataset.id)"><i data-lucide="${iconeEntidade(n.tipo)}"></i> ${escapeHTML(n.nome)} <span class="board-card-tipo">${escapeHTML(n.tipo)}</span></button>`).join('')
+                    : '<div class="info-block-vazio">Todas as entidades já estão no tabuleiro.</div>'}
+            </div>
         </div>`;
-    card.appendChild(pop);
+    document.body.appendChild(modal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) fecharSeletorEntidade(); });
     lucide.createIcons();
-    document.getElementById('war-cargo-input')?.focus();
+};
+window.fecharSeletorEntidade = function() {
+    const m = document.getElementById('modal-board-entidade'); if (m) m.remove();
+};
+window.adicionarEntidadeBoard = function(nodeId) {
+    if (boardState.nodes.some(n => String(n.id) === String(nodeId))) return;
+    const canvas = elBoardCanvas();
+    const cam = boardState.camera;
+    const cw = canvas ? canvas.clientWidth : 800, ch = canvas ? canvas.clientHeight : 600;
+    const wx = Math.round((cw / 2 - cam.x) / cam.zoom - 90);
+    const wy = Math.round((ch / 2 - cam.y) / cam.zoom - 32);
+    boardState.nodes.push({ id: nodeId, x: wx, y: wy });
+    fecharSeletorEntidade();
+    renderBoard();
+    atualizarLinksBoard();
+};
+
+// ── ZONAS / SHAPES (FASE 13 — fatia 3) ──────────────────────
+// Retângulos de agrupamento com rótulo na borda (legend). id é local do board
+// (não-UUID), arrastáveis e redimensionáveis; persistem em boardState.shapes.
+function novoIdShape() { return 'z' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+function shapeHTML(s) {
+    const corClasse = CORES_BOARD.includes(s.cor) ? ` board-cor-${s.cor}` : '';
+    return `<div class="board-shape${corClasse}" data-shape="${escapeHTML(String(s.id))}" style="left: ${Math.round(s.x)}px; top: ${Math.round(s.y)}px; width: ${Math.round(s.w)}px; height: ${Math.round(s.h)}px;">
+        <span class="board-shape-label" title="Duplo-clique para renomear">${escapeHTML(s.label || 'Zona')}</span>
+        <i data-lucide="x" class="board-shape-remover" title="Remover zona"></i>
+        <span class="board-shape-resize" title="Redimensionar"></span>
+    </div>`;
 }
-window.fecharEditorCard = function() {
-    const p = document.getElementById('war-card-popover');
+
+window.adicionarZona = function() {
+    if (!boardAtualId) return mostrarToast('Abra ou crie um tabuleiro primeiro.', 'aviso');
+    const canvas = elBoardCanvas();
+    const cam = boardState.camera;
+    const cw = canvas ? canvas.clientWidth : 800, ch = canvas ? canvas.clientHeight : 600;
+    const w = 280, h = 200;
+    const x = Math.round((cw / 2 - cam.x) / cam.zoom - w / 2);
+    const y = Math.round((ch / 2 - cam.y) / cam.zoom - h / 2);
+    boardState.shapes.push({ id: novoIdShape(), x, y, w, h, label: 'Nova Zona', cor: 'roxo' });
+    renderBoard();
+};
+
+window.removerShapeBoard = function(shapeId) {
+    boardState.shapes = boardState.shapes.filter(s => String(s.id) !== String(shapeId));
+    renderBoard();
+};
+
+window.renomearZona = function(shapeId) {
+    const s = boardState.shapes.find(z => String(z.id) === String(shapeId));
+    if (!s) return;
+    const raw = prompt('Nome da zona:', s.label || '');
+    if (raw === null) return; // cancelou
+    s.label = raw.trim().slice(0, 120);
+    renderBoard();
+};
+
+// Mover (corpo) + redimensionar (canto) com Pointer Events; coords de mundo = delta/zoom.
+// stopPropagation em tudo dentro da zona evita disparar o Pan do canvas.
+function ativarInteracoesShapes() {
+    const world = elBoardWorld();
+    if (!world) return;
+    world.querySelectorAll('.board-shape').forEach(shape => {
+        const s = boardState.shapes.find(z => String(z.id) === String(shape.dataset.shape));
+        if (!s) return;
+        shape.onpointerdown = (e) => {
+            if (e.button !== 0) return;
+            if (e.target.closest('.board-shape-remover, .board-shape-resize, .board-shape-label')) { e.stopPropagation(); return; }
+            e.stopPropagation();
+            const z = boardState.camera.zoom || 1;
+            const sx = e.clientX, sy = e.clientY, ox = s.x, oy = s.y;
+            shape.setPointerCapture(e.pointerId);
+            const onMove = (ev) => {
+                s.x = Math.round(ox + (ev.clientX - sx) / z);
+                s.y = Math.round(oy + (ev.clientY - sy) / z);
+                shape.style.left = s.x + 'px'; shape.style.top = s.y + 'px';
+            };
+            const onUp = () => { shape.removeEventListener('pointermove', onMove); shape.removeEventListener('pointerup', onUp); };
+            shape.addEventListener('pointermove', onMove);
+            shape.addEventListener('pointerup', onUp);
+        };
+        const handle = shape.querySelector('.board-shape-resize');
+        if (handle) handle.onpointerdown = (e) => {
+            if (e.button !== 0) return;
+            e.stopPropagation();
+            const z = boardState.camera.zoom || 1;
+            const sx = e.clientX, sy = e.clientY, ow = s.w, oh = s.h;
+            handle.setPointerCapture(e.pointerId);
+            const onMove = (ev) => {
+                s.w = Math.max(80, Math.round(ow + (ev.clientX - sx) / z));
+                s.h = Math.max(60, Math.round(oh + (ev.clientY - sy) / z));
+                shape.style.width = s.w + 'px'; shape.style.height = s.h + 'px';
+            };
+            const onUp = () => { handle.removeEventListener('pointermove', onMove); handle.removeEventListener('pointerup', onUp); };
+            handle.addEventListener('pointermove', onMove);
+            handle.addEventListener('pointerup', onUp);
+        };
+        const rem = shape.querySelector('.board-shape-remover');
+        if (rem) rem.onclick = (e) => { e.stopPropagation(); removerShapeBoard(s.id); };
+        const label = shape.querySelector('.board-shape-label');
+        if (label) label.ondblclick = (e) => { e.stopPropagation(); renomearZona(s.id); };
+    });
+}
+
+// ── LINHAS + EDIÇÃO VISUAL (FASE 13 — fatia 4) ──────────────
+const ICONES_BOARD = ['castle', 'landmark', 'map', 'mountain', 'tent', 'coins', 'swords', 'shield', 'crown', 'flag', 'gem', 'user'];
+let boardLinks = [];   // {id,a,b,tipo} entre nós no board (derivado de listarLinks)
+let editorNodeId = null, editorNodeCor = null, editorNodeIcone = null;
+
+const chaveLinha = (a, b) => [String(a), String(b)].sort().join('_'); // canônica (par bidirecional)
+function corLinhaVar(ovCor, tipo) {
+    const t = String(ovCor || tipo || '').toLowerCase();
+    if (t === 'aliado') return 'var(--link-aliado)';
+    if (t === 'inimigo') return 'var(--link-inimigo)';
+    return 'var(--texto-mutado)'; // neutro / associado / progressao / outros
+}
+
+// Busca os world_links REAIS entre os nós do board (reuso de listarLinks: 1 chamada
+// por nó + dedupe por id; filtra os com AMBOS extremos no tabuleiro). Depois desenha.
+async function atualizarLinksBoard() {
+    const ids = new Set(boardState.nodes.map(n => String(n.id)));
+    const vistos = new Map();
+    await Promise.all(boardState.nodes.map(async (node) => {
+        let links = [];
+        try { links = await MundoApi.listarLinks(cronicaId, node.id); } catch (e) { return; }
+        links.forEach(l => {
+            const b = String(l.node_conectado_id);
+            if (!ids.has(b)) return;
+            const id = String(l.id);
+            if (!vistos.has(id)) vistos.set(id, { id, a: String(node.id), b, tipo: l.tipo_vinculo });
+        });
+    }));
+    boardLinks = [...vistos.values()];
+    desenharLinhasBoard();
+}
+
+// Linhas Bézier entre os centros reais dos cards. Caminho duplo: hit transparente
+// largo (clicável) + linha visível (estilo via override). Cor/dash são data-driven.
+function desenharLinhasBoard() {
+    const world = elBoardWorld();
+    const svg = world?.querySelector('.board-svg');
+    if (!svg) return;
+    const cardEl = {};
+    world.querySelectorAll('.board-card').forEach(c => { cardEl[String(c.dataset.node)] = c; });
+    let paths = '';
+    boardLinks.forEach(lk => {
+        const ca = cardEl[lk.a], cb = cardEl[lk.b];
+        if (!ca || !cb) return;
+        const ax = ca.offsetLeft + ca.offsetWidth / 2, ay = ca.offsetTop + ca.offsetHeight / 2;
+        const bx = cb.offsetLeft + cb.offsetWidth / 2, by = cb.offsetTop + cb.offsetHeight / 2;
+        const dx = Math.max(40, Math.abs(bx - ax) * 0.4);
+        const d = `M ${ax} ${ay} C ${ax + dx} ${ay}, ${bx - dx} ${by}, ${bx} ${by}`;
+        const key = chaveLinha(lk.a, lk.b);
+        const ov = boardState.overrides_linhas[key] || {};
+        const dash = ov.stroke === 'dashed' ? '7 6' : '';
+        paths += `<path class="board-line-hit" onclick="editarLinha('${escapeHTML(key)}', event)" d="${d}"></path>`;
+        paths += `<path class="board-line" d="${d}" style="stroke: ${corLinhaVar(ov.cor, lk.tipo)}; stroke-dasharray: ${dash};"></path>`;
+    });
+    svg.innerHTML = paths;
+}
+
+function posicionarPopover(pop, e) {
+    const canvas = elBoardCanvas();
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    let x = e ? e.clientX - rect.left : canvas.clientWidth / 2;
+    let y = e ? e.clientY - rect.top : canvas.clientHeight / 2;
+    x = Math.max(8, Math.min(x, canvas.clientWidth - 232));
+    y = Math.max(8, Math.min(y, canvas.clientHeight - 220));
+    pop.style.left = Math.round(x) + 'px';
+    pop.style.top = Math.round(y) + 'px';
+}
+window.fecharPopover = function() {
+    const p = document.getElementById('board-popover');
     if (p) p.remove();
 };
-window.selecionarIconeCard = function(btn) {
-    editorCardIcone = btn.dataset.ic;
-    btn.parentElement.querySelectorAll('.war-icone-opt').forEach(b => b.classList.remove('sel'));
+
+// Mini-popover de estilo da linha → grava em boardState.overrides_linhas[chave].
+window.editarLinha = function(key, e) {
+    if (e) e.stopPropagation();
+    fecharPopover();
+    const ov = boardState.overrides_linhas[key] || {};
+    const corBtn = (v, r) => `<button type="button" class="board-estilo-opt${ov.cor === v ? ' sel' : ''}" data-v="${v}" onclick="setLinhaCor(this, '${escapeHTML(key)}', '${v}')">${r}</button>`;
+    const strBtn = (v, r) => `<button type="button" class="board-estilo-opt${(ov.stroke || 'solid') === v ? ' sel' : ''}" data-v="${v}" onclick="setLinhaStroke(this, '${escapeHTML(key)}', '${v}')">${r}</button>`;
+    const pop = document.createElement('div');
+    pop.className = 'board-popover';
+    pop.id = 'board-popover';
+    pop.innerHTML = `
+        <label>Relação</label>
+        <div class="board-estilo-row">${corBtn('aliado', 'Aliado')}${corBtn('inimigo', 'Inimigo')}${corBtn('neutro', 'Neutro')}</div>
+        <label>Estilo</label>
+        <div class="board-estilo-row">${strBtn('solid', 'Sólida')}${strBtn('dashed', 'Pontilhada')}</div>
+        <div class="board-popover-acoes">
+            <button class="btn btn-ghost btn-sm" onclick="limparLinha('${escapeHTML(key)}')">Limpar</button>
+            <button class="btn btn-primary btn-sm" onclick="fecharPopover()">Fechar</button>
+        </div>`;
+    elBoardCanvas().appendChild(pop);
+    posicionarPopover(pop, e);
+};
+window.setLinhaCor = function(btn, key, cor) {
+    const ov = boardState.overrides_linhas[key] || {};
+    ov.cor = cor; boardState.overrides_linhas[key] = ov;
+    btn.parentElement.querySelectorAll('.board-estilo-opt').forEach(b => b.classList.remove('sel'));
+    btn.classList.add('sel');
+    desenharLinhasBoard();
+};
+window.setLinhaStroke = function(btn, key, stroke) {
+    const ov = boardState.overrides_linhas[key] || {};
+    ov.stroke = stroke; boardState.overrides_linhas[key] = ov;
+    btn.parentElement.querySelectorAll('.board-estilo-opt').forEach(b => b.classList.remove('sel'));
+    btn.classList.add('sel');
+    desenharLinhasBoard();
+};
+window.limparLinha = function(key) {
+    delete boardState.overrides_linhas[key];
+    desenharLinhasBoard();
+    fecharPopover();
+};
+
+// Popover de duplo-clique no nó: paleta de cores (tokens) + ícones de worldbuilding.
+function abrirEditorNode(card, e) {
+    fecharPopover();
+    const node = boardState.nodes.find(n => String(n.id) === String(card.dataset.node));
+    if (!node) return;
+    editorNodeId = node.id;
+    editorNodeCor = node.cor || null;
+    editorNodeIcone = node.icone || null;
+    const pop = document.createElement('div');
+    pop.className = 'board-popover';
+    pop.id = 'board-popover';
+    pop.innerHTML = `
+        <label>Cor do card</label>
+        <div class="board-cor-grid">
+            ${CORES_BOARD.map(c => `<button type="button" class="board-cor-swatch board-cor-${c}${editorNodeCor === c ? ' sel' : ''}" data-c="${c}" title="${c}" onclick="selNodeCor(this)"></button>`).join('')}
+        </div>
+        <label>Ícone</label>
+        <div class="board-icone-grid">
+            ${ICONES_BOARD.map(ic => `<button type="button" class="board-icone-opt${editorNodeIcone === ic ? ' sel' : ''}" data-ic="${ic}" onclick="selNodeIcone(this)"><i data-lucide="${ic}"></i></button>`).join('')}
+        </div>
+        <div class="board-popover-acoes">
+            <button class="btn btn-ghost btn-sm" onclick="resetNodeVisual()">Padrão</button>
+            <button class="btn btn-primary btn-sm" onclick="salvarEditorNode()"><i data-lucide="check"></i> Salvar</button>
+        </div>`;
+    elBoardCanvas().appendChild(pop);
+    posicionarPopover(pop, e);
+    lucide.createIcons();
+}
+window.selNodeCor = function(btn) {
+    editorNodeCor = btn.dataset.c;
+    btn.parentElement.querySelectorAll('.board-cor-swatch').forEach(b => b.classList.remove('sel'));
     btn.classList.add('sel');
 };
-window.salvarEditorCard = async function() {
-    const link = mesaLinks.find(l => String(l.id) === String(editorCardLinkId));
-    if (!link) return fecharEditorCard();
-    const cargo = (document.getElementById('war-cargo-input')?.value || '').trim();
-    const dados = { ...(link.dados || {}) };
-    if (editorCardIcone) dados.icone = editorCardIcone; else delete dados.icone;
-    if (cargo) dados.cargo = cargo; else delete dados.cargo;
-    link.dados = dados;
-    try {
-        await MundoApi.atualizarLink(cronicaId, mesaRaizId, editorCardLinkId, dados);
-        mostrarToast('Hierarquia atualizada.', 'sucesso');
-    } catch (e) { mostrarToast('Erro ao salvar hierarquia.', 'erro'); }
-    fecharEditorCard();
-    renderMesa();
+window.selNodeIcone = function(btn) {
+    editorNodeIcone = btn.dataset.ic;
+    btn.parentElement.querySelectorAll('.board-icone-opt').forEach(b => b.classList.remove('sel'));
+    btn.classList.add('sel');
+};
+window.resetNodeVisual = function() { editorNodeCor = null; editorNodeIcone = null; salvarEditorNode(); };
+window.salvarEditorNode = function() {
+    const node = boardState.nodes.find(n => String(n.id) === String(editorNodeId));
+    if (node) {
+        if (editorNodeCor) node.cor = editorNodeCor; else delete node.cor;
+        if (editorNodeIcone) node.icone = editorNodeIcone; else delete node.icone;
+    }
+    fecharPopover();
+    renderBoard(); // re-render aplica cor/ícone e redesenha as linhas (cache)
 };
