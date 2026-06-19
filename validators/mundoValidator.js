@@ -113,12 +113,13 @@ const sinapseParamsBase = {
 const listarLinksSchema = z.object({
     params: z.object({ ...sinapseParamsBase })
 });
-// Arestas Ricas (Fase 11): payload de intriga gravado no JSONB world_links.dados.
-// Opcional e opt-in (Progressive Disclosure). Chaves desconhecidas são descartadas
-// (comportamento strip padrão do Zod), mantendo o JSONB extensível sem 400.
+// Panela de Pressão (Fase 11 refatorada): a intriga é um conjunto de tags (FATE)
+// + um limite; pressao = tags.length, massa crítica quando pressao >= limite.
+// JSONB world_links.dados. Chaves desconhecidas (ex.: segredo/tensao antigos) são
+// descartadas pelo strip padrão do Zod — migração graciosa no primeiro save.
 const dadosLinkSchema = z.object({
-    segredo: z.string().max(2000).optional(),
-    tensao: z.coerce.number().int().min(0).max(5).optional()
+    tags: z.array(z.string().trim().min(1).max(120)).max(50).default([]),
+    limite: z.number().int().min(1).max(20).default(3)
 }).optional();
 
 const criarLinkSchema = z.object({
