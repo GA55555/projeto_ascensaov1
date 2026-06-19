@@ -32,6 +32,10 @@
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap;">
         <h3 class="texto-destaque">Entidades do Mundo</h3>
         <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <div class="btn-group view-toggle">
+                <button class="btn btn-sm active" data-view="grid"><i data-lucide="layout-grid"></i> Grelha</button>
+                <button class="btn btn-sm" data-view="kanban"><i data-lucide="columns"></i> Kanban</button>
+            </div>
             <select id="filtro-nucleo-entidade" onchange="aplicarFiltrosMundo()">
                 <option value="">Todos os núcleos</option>
             </select>
@@ -40,7 +44,10 @@
             <button class="btn btn-primary" onclick="abrirModal('modal-forja')">+ Forjar Entidade</button>
         </div>
     </div>
-    <div id="grid-mundo" class="grid-2"></div>
+    <!-- Container mestre da Lente Tática: recebe a Grelha clássica OU as colunas Kanban -->
+    <div id="mundo-view-container">
+        <div id="grid-mundo" class="grid-2"></div>
+    </div>
 </div>
 
     <!-- TAB: EVENTOS -->
@@ -129,6 +136,8 @@
             <button class="btn btn-primary btn-sm" onclick="salvarBoard()"><i data-lucide="save"></i> Salvar</button>
             <button class="btn btn-secondary btn-sm" onclick="abrirSeletorEntidade()"><i data-lucide="plus-circle"></i> Entidade</button>
             <button class="btn btn-secondary btn-sm" onclick="adicionarZona()"><i data-lucide="square"></i> Zona</button>
+            <button class="btn btn-secondary btn-sm" onclick="adicionarTexto()"><i data-lucide="type"></i> Texto</button>
+            <button class="btn btn-secondary btn-sm" onclick="abrirSeletorSimbolo()"><i data-lucide="shapes"></i> Símbolo</button>
             <button class="btn btn-danger btn-sm" onclick="deletarBoardAtual()" title="Excluir tabuleiro"><i data-lucide="trash-2"></i></button>
         </div>
         <div id="board-canvas" class="board-canvas">

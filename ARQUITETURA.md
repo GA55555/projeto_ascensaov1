@@ -150,7 +150,22 @@ Qualquer operação de `DELETE` no banco de dados que envolva uma entidade assoc
 
 ---
 
-## 🧠 7. Paradigmas de Design & Engenharia
+## 🔭 7. Lentes Táticas e Interatividade
+
+A Aba "Mundo" e demais galerias de entidades evoluem de uma grelha plana para **Lentes Táticas**: múltiplas visualizações do mesmo conjunto de dados (Grelha, Kanban por núcleo, e futura interatividade passiva). A troca de lente é **puramente de apresentação** — nunca refaz o fetch nem muta o estado de domínio; opera sobre o mesmo cache já carregado, alternando apenas o renderizador.
+
+### Regra 7.1: Drag & Drop Nativo (Zero Bibliotecas)
+É **ESTRITAMENTE PROIBIDO** o uso de bibliotecas de terceiros para Kanban ou ordenação por arrasto (ex.: `SortableJS`, `react-beautiful-dnd`, `Dragula`). Todo o comportamento de arrastar e largar **DEVE** usar exclusivamente a **API nativa HTML5 Drag and Drop**: `draggable="true"` e os handlers `ondragstart`, `ondragover` (com `preventDefault` para habilitar o drop), `ondrop` e `ondragend`. Coerente com o Paradigma 4 (Zero Framework) e com a proibição de libs da Secção 1.
+
+### Regra 7.2: Divulgação Progressiva (Kebab / Hover)
+A densidade visual limpa é um requisito de design. Cards de entidade **DEVEM**:
+- **Ocultar ações destrutivas/secundárias** (deletar, mover, sinapses) num **menu de contexto** (kebab `⋮`/`more-vertical`), em vez de expor todos os botões permanentemente.
+- **Expor dependências do banco** (ex.: Eventos atrelados a um Marco, contagem de sinapses) apenas por **Hover** — interatividade passiva (Hover Preview), nunca poluindo o estado de repouso do card.
+A revelação é sempre **não-destrutiva e reversível**; o estado de repouso prioriza leitura, o estado interativo prioriza ação.
+
+---
+
+## 🧠 8. Paradigmas de Design & Engenharia
 
 ### Paradigma 4: Zero Framework Frontend & DOM Direto
 O ecossistema visual opera inteiramente em Vanilla JavaScript. A adoção de frameworks pesados (React/Angular) é estritamente proibida para preservar a latência zero necessária no Escudo do Narrador. A manipulação de interface é baseada em injeção de templates literais controlados, higienizados e escutadores de eventos delegados.

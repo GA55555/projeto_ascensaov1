@@ -12,6 +12,11 @@ let sessoesCache = [];
 let nucleosCache = { entidade: [], evento: [], sessao: [] };
 let nucleoAtivoTipo = 'entidade'; // 'entidade' | 'evento' | 'sessao'
 
+// Lentes Táticas (Fase 15.1): visualização atual da aba Mundo + cache da lista já
+// filtrada, para o Toggle re-renderizar sem refetch (troca é só de apresentação).
+let mundoCurrentView = 'grid'; // 'grid' | 'kanban'
+let mundoListaAtual = [];
+
 let textoBuscaMundo = '';
 let textoBuscaEventos = '';
 let textoBuscaSessoes = '';
@@ -34,6 +39,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const temAcesso = await verificarAcesso();
     if (temAcesso) {
+        inicializarViewToggle();
         await carregarNucleos('entidade');
         await carregarNucleos('evento');
         await carregarNucleos('sessao');
@@ -309,19 +315,31 @@ async function carregarMundo(nucleoFiltro = '', textoFiltro = '') {
         nodesCache = await res.json();
         let dados = nodesCache;
         if (textoFiltro) dados = dados.filter(n => n.nome.toLowerCase().includes(textoFiltro));
-        renderizarGridMundo(dados);
+        renderizarMundo(dados);
     } catch (err) { console.error(err); }
 }
 
-function renderizarGridMundo(lista) {
-    const grid = document.getElementById('grid-mundo');
-    if (!grid) return;
-    if (lista.length === 0) {
-        grid.innerHTML = '<div class="info-block-vazio" style="grid-column: 1 / -1;">Nenhuma entidade encontrada.</div>';
-        return;
+// Dispatcher de Lente (Fase 15.1): a troca de visualização NÃO refaz fetch — opera
+// sobre a mesma lista filtrada já em memória (Regra 7). Decide o renderizador.
+function renderizarMundo(lista) {
+    if (lista) mundoListaAtual = lista; // guarda p/ re-render no Toggle
+    const container = document.getElementById('mundo-view-container');
+    if (container) container.classList.toggle('view-kanban', mundoCurrentView === 'kanban');
+    if (mundoCurrentView === 'kanban') {
+        renderizarKanban(mundoListaAtual);
+    } else {
+        document.getElementById('kanban-mundo')?.remove(); // não deixa o quadro pendurado
+        renderizarGridMundo(mundoListaAtual);
     }
-    grid.innerHTML = lista.map(node => `
-        <div class="card world-card">
+}
+
+// Markup de um card de entidade (extraído p/ ser reusado pela Grelha E pelo Kanban — DRY).
+// Na lente Kanban o card vira draggable (DnD nativo HTML5 — Regra 7.1); data-node-id
+// é o identificador usado pelo dataTransfer e pela cirurgia de DOM no drop.
+function cardMundoHTML(node) {
+    const drag = mundoCurrentView === 'kanban' ? ' draggable="true"' : '';
+    return `
+        <div class="card world-card" data-node-id="${escapeHTML(String(node.id))}"${drag}>
             <div class="world-card__head">
                 <div class="world-card__ident">
                     <span class="world-card__icone"><i data-lucide="${iconeEntidade(node.tipo)}"></i></span>
@@ -361,8 +379,145 @@ function renderizarGridMundo(lista) {
                 <button class="btn btn-primary btn-sm world-card__add-marco" onclick="adicionarFlag('${node.id}')"><i data-lucide="plus"></i> Novo Marco</button>
             </div>
         </div>
-    `).join('');
+    `;
+}
+
+// Lente GRELHA (renderizador clássico): galeria plana de todas as entidades filtradas.
+function renderizarGridMundo(lista) {
+    const grid = document.getElementById('grid-mundo');
+    if (!grid) return;
+    if (!lista.length) {
+        grid.innerHTML = '<div class="info-block-vazio" style="grid-column: 1 / -1;">Nenhuma entidade encontrada.</div>';
+        lucide.createIcons();
+        return;
+    }
+    grid.innerHTML = lista.map(cardMundoHTML).join('');
     lucide.createIcons();
+}
+
+// Lente KANBAN (Fase 15.1 — esqueleto estrutural, sem Drag & Drop ainda): uma coluna
+// por núcleo de entidade (+ coluna "Sem Núcleo" p/ órfãs) com os cards reusados da Grelha.
+function renderizarKanban(lista) {
+    const container = document.getElementById('mundo-view-container');
+    if (!container) return;
+    let board = document.getElementById('kanban-mundo');
+    if (!board) {
+        board = document.createElement('div');
+        board.id = 'kanban-mundo';
+        board.className = 'kanban-board';
+        container.appendChild(board);
+    }
+    bindKanbanDnD(board); // motor de Drag & Drop (uma vez; sobrevive aos re-renders)
+    // Colunas = núcleos de entidade declarados + bucket de órfãs (nucleo_id nulo).
+    const colunas = [
+        ...nucleosCache.entidade.map(n => ({ id: String(n.id), nome: n.nome })),
+        { id: null, nome: 'Sem Núcleo' }
+    ];
+    board.innerHTML = colunas.map(col => {
+        const cards = lista.filter(node =>
+            col.id === null ? !node.nucleo_id : String(node.nucleo_id) === col.id);
+        const corpo = cards.length
+            ? cards.map(cardMundoHTML).join('')
+            : '<div class="info-block-vazio">Vazio.</div>';
+        return `
+            <div class="kanban-column" data-nucleo-id="${col.id === null ? '' : escapeHTML(col.id)}">
+                <div class="kanban-header">
+                    <span>${escapeHTML(col.nome)}</span>
+                    <span class="kanban-header__contagem">${cards.length}</span>
+                </div>
+                <div class="kanban-cards">${corpo}</div>
+            </div>`;
+    }).join('');
+    lucide.createIcons();
+}
+
+// ── MOTOR DRAG & DROP NATIVO (FASE 15.2) ────────────────────────────────────
+// API HTML5 pura (Regra 7.1), por delegação no quadro (sobrevive aos re-renders).
+// Escopo 100% separado do Pan/Zoom da Mesa (que usa Pointer Events) — sem conflito.
+function bindKanbanDnD(board) {
+    if (board.dataset.dndBound === '1') return;
+    board.dataset.dndBound = '1';
+    board.addEventListener('dragstart', (e) => {
+        const card = e.target.closest('.world-card');
+        if (!card) return;
+        e.dataTransfer.setData('text/plain', card.dataset.nodeId);
+        e.dataTransfer.effectAllowed = 'move';
+        card.classList.add('dragging');
+    });
+    board.addEventListener('dragend', (e) => {
+        e.target.closest('.world-card')?.classList.remove('dragging');
+        limparDragOver(board);
+    });
+    board.addEventListener('dragover', (e) => {
+        const col = e.target.closest('.kanban-column');
+        if (!col) return;
+        e.preventDefault(); // obrigatório p/ habilitar o drop
+        e.dataTransfer.dropEffect = 'move';
+        limparDragOver(board);
+        col.classList.add('drag-over');
+    });
+    board.addEventListener('dragleave', (e) => {
+        if (!board.contains(e.relatedTarget)) limparDragOver(board); // saiu do quadro
+    });
+    board.addEventListener('drop', handleKanbanDrop);
+}
+function limparDragOver(board) {
+    board.querySelectorAll('.kanban-column.drag-over').forEach(c => c.classList.remove('drag-over'));
+}
+
+function handleKanbanDrop(e) {
+    e.preventDefault();
+    const board = document.getElementById('kanban-mundo');
+    limparDragOver(board);
+    const col = e.target.closest('.kanban-column');
+    if (!col) return;
+    const nodeId = e.dataTransfer.getData('text/plain');
+    if (!nodeId) return;
+    const card = board.querySelector(`.world-card[data-node-id="${cssEscape(nodeId)}"]`);
+    if (!card) return;
+
+    const destId = col.dataset.nucleoId || '';   // '' = Sem Núcleo
+    const node = nodesCache.find(n => String(n.id) === String(nodeId));
+    const origemId = node && node.nucleo_id ? String(node.nucleo_id) : '';
+    if (destId === origemId) return;              // caso extremo: mesmo núcleo → no-op
+
+    const colOrigem = card.closest('.kanban-column');
+    const origemNome = node ? (node.nucleo_nome || 'Nenhum') : 'Nenhum';
+    const destNome = destId ? (nucleosCache.entidade.find(n => String(n.id) === destId)?.nome || 'Nenhum') : 'Nenhum';
+
+    // ── Optimistic UI: move o card e atualiza estado local NA HORA ──
+    moverCardKanban(card, col.querySelector('.kanban-cards'));
+    if (node) { node.nucleo_id = destId || null; node.nucleo_nome = destNome; }
+    const nomeEl = card.querySelector('.world-card__nucleo-nome');
+    if (nomeEl) nomeEl.textContent = destNome;
+    atualizarContagemColuna(col);
+    atualizarContagemColuna(colOrigem);
+
+    // ── Backend em background: silencioso no sucesso; reverte o DOM no erro ──
+    MundoApi.moverNode(cronicaId, nodeId, destId || null).catch(() => {
+        moverCardKanban(card, colOrigem.querySelector('.kanban-cards'));
+        if (node) { node.nucleo_id = origemId || null; node.nucleo_nome = origemNome; }
+        if (nomeEl) nomeEl.textContent = origemNome;
+        atualizarContagemColuna(col);
+        atualizarContagemColuna(colOrigem);
+        mostrarToast('Não foi possível mover a entidade. Alteração revertida.', 'erro');
+    });
+}
+
+// Move o card para a zona de drop destino, gerindo o placeholder "Vazio." das colunas.
+function moverCardKanban(card, destCards) {
+    if (!destCards) return;
+    const origemCards = card.parentElement;
+    destCards.querySelector('.info-block-vazio')?.remove();
+    destCards.appendChild(card);
+    if (origemCards && origemCards !== destCards && !origemCards.querySelector('.world-card')) {
+        origemCards.innerHTML = '<div class="info-block-vazio">Vazio.</div>';
+    }
+}
+function atualizarContagemColuna(col) {
+    if (!col) return;
+    const badge = col.querySelector('.kanban-header__contagem');
+    if (badge) badge.textContent = col.querySelectorAll('.world-card').length;
 }
 
 window.salvarForja = async function() {
@@ -1506,7 +1661,7 @@ window.salvarAutomacao = async function() {
             const textoFiltro = document.getElementById('busca-mundo')?.value.trim().toLowerCase() || '';
             let dados = nodesCache;
             if (textoFiltro) dados = dados.filter(n => n.nome.toLowerCase().includes(textoFiltro));
-            renderizarGridMundo(dados);
+            renderizarMundo(dados); // via dispatcher → respeita a lente ativa (Grelha/Kanban)
         }
         
         // Agenda uma recarga silenciosa dos dados reais do servidor (substitui o temporário)
@@ -1886,6 +2041,22 @@ window.aplicarFiltrosMundo = function() {
     carregarMundo(nucleoId, textoBuscaMundo);
 }
 
+// Toggle de Lente (Grelha/Kanban): troca só a apresentação, re-renderizando a lista
+// já em memória — sem refetch (Regra 7). Listeners nativos, sem onclick inline.
+function inicializarViewToggle() {
+    const toggle = document.querySelector('.view-toggle');
+    if (!toggle) return;
+    toggle.querySelectorAll('button[data-view]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const view = btn.dataset.view;
+            if (view === mundoCurrentView) return;
+            mundoCurrentView = view;
+            toggle.querySelectorAll('button[data-view]').forEach(b => b.classList.toggle('active', b === btn));
+            renderizarMundo(); // re-render da lista atual na nova lente
+        });
+    });
+}
+
 window.aplicarFiltrosEventos = function() {
     textoBuscaEventos = document.getElementById('busca-eventos')?.value.trim().toLowerCase();
     const nucleoId = document.getElementById('filtro-nucleo-evento')?.value;
@@ -1955,7 +2126,17 @@ window.abrirEscudoComSave = function(saveId) {
 // [Fatia 2: infra. Shapes/zonas → fatia 3; linhas + edição cor/ícone → fatia 4.]
 // ==========================================
 const CORES_BOARD = ['roxo', 'azul', 'verde', 'ambar', 'vermelho', 'cinza', 'rosa'];
-const boardVazio = () => ({ camera: { x: 0, y: 0, zoom: 1 }, nodes: [], shapes: [], overrides_linhas: {} });
+// Props: nomes REAIS dos SVGs em /public/icons/rpg/ (sem extensão). Espelha o disco;
+// o backend valida por regex anti-traversal. Mantê-los em sincronia com a pasta.
+const ICONES_RPG = [
+    'shield', 'crossed-swords', 'broadsword', 'battered-axe', 'bow-arrow', 'fangs',
+    'pistol-gun', 'revolver', 'hammer', 'wizard-staff', 'spell-book', 'secret-book',
+    'book-cover', 'tied-scroll', 'quill-ink', 'potion-ball', 'drop', 'first-aid-kit',
+    'health-normal', 'torch', 'lantern-flame', 'pentacle', 'all-seeing-eye', 'magnifying-glass',
+    'backpack', 'lockpicks', 'id-card', 'dice-six-faces-six', 'dice-twenty-faces-twenty',
+    'perspective-dice-six-faces-random', 'gears', 'cogsplosion', 'clout', 'laptop', 'smartphone'
+];
+const boardVazio = () => ({ camera: { x: 0, y: 0, zoom: 1 }, nodes: [], shapes: [], texts: [], props: [], localLinks: [], overrides_linhas: {} });
 let boardAtualId = null;
 let boardNomeAtual = '';
 let boardState = boardVazio();
@@ -2010,6 +2191,9 @@ window.abrirBoard = async function(boardId) {
         camera: d.camera || { x: 0, y: 0, zoom: 1 },
         nodes: Array.isArray(d.nodes) ? d.nodes : [],
         shapes: Array.isArray(d.shapes) ? d.shapes : [],
+        texts: Array.isArray(d.texts) ? d.texts : [],
+        props: Array.isArray(d.props) ? d.props : [],
+        localLinks: Array.isArray(d.localLinks) ? d.localLinks : [],
         overrides_linhas: d.overrides_linhas || {}
     };
     if (resp.atualizado_automaticamente) {
@@ -2065,13 +2249,17 @@ function renderBoard() {
         </div>`;
     }).join('');
     const shapes = boardState.shapes.map(shapeHTML).join(''); // zonas (z-index 1, sob os cards)
-    const corpo = shapes + cards;
+    const props = boardState.props.map(propHTML).join('');     // ícones RPG (z-index 1)
+    const texts = boardState.texts.map(textHTML).join('');     // textos flutuantes (z-index 3)
+    const corpo = shapes + props + texts + cards;
     world.innerHTML = '<svg class="board-svg"></svg>' + (corpo || '<div class="board-vazio info-block-vazio">Tabuleiro vazio. Use “+ Entidade” ou “+ Zona” para começar.</div>');
     aplicarCamera();
     lucide.createIcons();
     ativarArrastoCards();
     ativarInteracoesShapes();
-    desenharLinhasBoard(); // linhas a partir do cache boardLinks
+    ativarInteracoesProps();
+    ativarInteracoesTexts();
+    desenharLinhasBoard(); // linhas a partir do cache boardLinks + localLinks
 }
 
 function aplicarCamera() {
@@ -2135,9 +2323,17 @@ function ativarPanZoom() {
     const canvas = elBoardCanvas();
     if (!canvas || canvas.dataset.bound === '1') return;
     canvas.dataset.bound = '1';
+    // R5: clicar fora de um popover (em qualquer lugar) fecha os popovers ativos.
+    document.addEventListener('pointerdown', (e) => {
+        if (!document.getElementById('board-popover')) return;
+        if (e.target.closest('.board-popover')) return;
+        fecharPopover();
+    }, true);
     canvas.addEventListener('pointerdown', (e) => {
         if (!boardAtualId || e.button !== 0) return;
-        if (e.target.closest('.board-card, .board-shape, .board-line-hit, .board-popover')) return; // não panja sobre elementos
+        if (e.target.closest('.board-card, .board-shape, .board-prop, .board-text, .board-line-hit, .board-popover')) return; // não panja sobre elementos
+        // clique no fundo: cancela o modo de conexão pendente.
+        if (conectandoDe) { conectandoDe = null; canvas.classList.remove('conectando'); }
         boardPan = { sx: e.clientX, sy: e.clientY, ox: boardState.camera.x, oy: boardState.camera.y };
         canvas.classList.add('panning');
         canvas.setPointerCapture(e.pointerId);
@@ -2217,10 +2413,36 @@ function novoIdShape() { return 'z' + Date.now().toString(36) + Math.random().to
 
 function shapeHTML(s) {
     const corClasse = CORES_BOARD.includes(s.cor) ? ` board-cor-${s.cor}` : '';
-    return `<div class="board-shape${corClasse}" data-shape="${escapeHTML(String(s.id))}" style="left: ${Math.round(s.x)}px; top: ${Math.round(s.y)}px; width: ${Math.round(s.w)}px; height: ${Math.round(s.h)}px;">
-        <span class="board-shape-label" title="Duplo-clique para renomear">${escapeHTML(s.label || 'Zona')}</span>
+    const formaClasse = s.forma === 'circulo' ? ' board-shape-circulo' : '';
+    const strokeClasse = s.stroke === 'dashed' ? ' board-shape-dashed' : '';
+    return `<div class="board-shape${corClasse}${formaClasse}${strokeClasse}" data-shape="${escapeHTML(String(s.id))}" style="left: ${Math.round(s.x)}px; top: ${Math.round(s.y)}px; width: ${Math.round(s.w)}px; height: ${Math.round(s.h)}px;">
+        <span class="board-shape-label" title="Duplo-clique edita; corpo abre opções">${escapeHTML(s.label || 'Zona')}</span>
         <i data-lucide="x" class="board-shape-remover" title="Remover zona"></i>
         <span class="board-shape-resize" title="Redimensionar"></span>
+    </div>`;
+}
+
+// Texto flutuante: texto puro arrastável, sem card. Tamanho/cor dinâmicos (data-driven).
+function textHTML(t) {
+    const corClasse = CORES_BOARD.includes(t.cor) ? ` board-cor-${t.cor}` : '';
+    const tam = Math.min(96, Math.max(8, t.tamanho || 16));
+    return `<div class="board-text${corClasse}" data-text="${escapeHTML(String(t.id))}" style="left: ${Math.round(t.x)}px; top: ${Math.round(t.y)}px; font-size: ${tam}px;">
+        <span class="board-text-conteudo">${escapeHTML(t.texto || 'Texto')}</span>
+        <i data-lucide="x" class="board-text-remover" title="Remover texto"></i>
+    </div>`;
+}
+
+// Prop (ícone RPG): SVG recolorido via CSS mask + cor por token (--board-accent).
+// scale/rotacao aplicados por transform (layout dinâmico permitido pela Regra 2.5).
+function propHTML(p) {
+    const corClasse = CORES_BOARD.includes(p.cor) ? ` board-cor-${p.cor}` : '';
+    const nome = ICONES_RPG.includes(p.icone) ? p.icone : 'shield'; // defensivo (Regra 4.2)
+    const url = `/icons/rpg/${encodeURIComponent(nome)}.svg`;
+    const scale = Math.min(5, Math.max(0.2, p.scale || 1));
+    const rot = Math.min(360, Math.max(0, p.rotacao || 0));
+    return `<div class="board-prop${corClasse}" data-prop="${escapeHTML(String(p.id))}" style="left: ${Math.round(p.x)}px; top: ${Math.round(p.y)}px; transform: scale(${scale}) rotate(${rot}deg);">
+        <span class="board-prop-icone" style="-webkit-mask-image: url('${url}'); mask-image: url('${url}');"></span>
+        <i data-lucide="x" class="board-prop-remover" title="Remover símbolo"></i>
     </div>`;
 }
 
@@ -2238,8 +2460,14 @@ window.adicionarZona = function() {
 
 window.removerShapeBoard = function(shapeId) {
     boardState.shapes = boardState.shapes.filter(s => String(s.id) !== String(shapeId));
+    removerLocalLinksDe(shapeId); // limpa ligações órfãs
     renderBoard();
 };
+// Remove qualquer ligação local que toque um id (evita refs pendentes no JSONB).
+function removerLocalLinksDe(id) {
+    boardState.localLinks = boardState.localLinks.filter(l =>
+        String(l.sourceId) !== String(id) && String(l.targetId) !== String(id));
+}
 
 window.renomearZona = function(shapeId) {
     const s = boardState.shapes.find(z => String(z.id) === String(shapeId));
@@ -2250,27 +2478,33 @@ window.renomearZona = function(shapeId) {
     renderBoard();
 };
 
-// Editor da zona (duplo-clique no corpo): paleta de cores (tokens) + renomear.
-// Reusa o popover/swatches do editor de nó; cor persiste em boardState.shapes (Regra 2.7).
+// Editor da zona (duplo-clique no corpo): cor (tokens) + forma + estilo de borda +
+// Conectar + renomear. Cor/forma/stroke persistem em boardState.shapes (Regra 2.7).
 window.abrirEditorShape = function(shapeId, e) {
     fecharPopover();
     const s = boardState.shapes.find(z => String(z.id) === String(shapeId));
     if (!s) return;
     const sid = escapeHTML(String(shapeId));
     const swatch = c => `<button type="button" class="board-cor-swatch board-cor-${c}${s.cor === c ? ' sel' : ''}" data-c="${c}" title="${c}" onclick="setShapeCor('${sid}', this)"></button>`;
-    const pop = document.createElement('div');
-    pop.className = 'board-popover';
-    pop.id = 'board-popover';
-    pop.innerHTML = `
+    const opt = (v, r, atual) => `<option value="${v}"${atual === v ? ' selected' : ''}>${r}</option>`;
+    const pop = montarPopover(`
         <label>Cor da zona</label>
         <div class="board-cor-grid">${CORES_BOARD.map(swatch).join('')}</div>
+        <label>Forma</label>
+        <select class="board-popover-select" onchange="setShapeForma('${sid}', this.value)">
+            ${opt('retangulo', 'Retângulo', s.forma || 'retangulo')}${opt('circulo', 'Círculo / Elipse', s.forma || 'retangulo')}
+        </select>
+        <label>Borda</label>
+        <select class="board-popover-select" onchange="setShapeStroke('${sid}', this.value)">
+            ${opt('solid', 'Sólida', s.stroke || 'solid')}${opt('dashed', 'Tracejada', s.stroke || 'solid')}
+        </select>
         <div class="board-popover-acoes">
             <button class="btn btn-ghost btn-sm" onclick="renomearZona('${sid}')"><i data-lucide="pencil"></i> Renomear</button>
-            <button class="btn btn-primary btn-sm" onclick="fecharPopover()"><i data-lucide="check"></i> Pronto</button>
-        </div>`;
+            <button class="btn btn-secondary btn-sm" onclick="iniciarConexaoLocal('${sid}')"><i data-lucide="spline"></i> Conectar</button>
+        </div>`);
     elBoardCanvas().appendChild(pop);
     lucide.createIcons();
-    posicionarPopover(pop, e);
+    posicionarPopover(pop, e, document.querySelector(`.board-shape[data-shape="${cssEscape(shapeId)}"]`));
 };
 window.setShapeCor = function(shapeId, btn) {
     const s = boardState.shapes.find(z => String(z.id) === String(shapeId));
@@ -2279,6 +2513,14 @@ window.setShapeCor = function(shapeId, btn) {
     btn.parentElement.querySelectorAll('.board-cor-swatch').forEach(b => b.classList.remove('sel'));
     btn.classList.add('sel');
     renderBoard();
+};
+window.setShapeForma = function(shapeId, v) {
+    const s = boardState.shapes.find(z => String(z.id) === String(shapeId));
+    if (s) { s.forma = v === 'circulo' ? 'circulo' : 'retangulo'; renderBoard(); }
+};
+window.setShapeStroke = function(shapeId, v) {
+    const s = boardState.shapes.find(z => String(z.id) === String(shapeId));
+    if (s) { s.stroke = v === 'dashed' ? 'dashed' : 'solid'; renderBoard(); }
 };
 
 // Mover (corpo) + redimensionar (canto) com Pointer Events; coords de mundo = delta/zoom.
@@ -2291,6 +2533,7 @@ function ativarInteracoesShapes() {
         if (!s) return;
         shape.onpointerdown = (e) => {
             if (e.button !== 0) return;
+            if (conectandoDe) { e.stopPropagation(); finalizarConexaoLocal(s.id); return; } // fecha ligação
             if (e.target.closest('.board-shape-remover, .board-shape-resize, .board-shape-label')) { e.stopPropagation(); return; }
             e.stopPropagation();
             const z = boardState.camera.zoom || 1;
@@ -2300,6 +2543,7 @@ function ativarInteracoesShapes() {
                 s.x = Math.round(ox + (ev.clientX - sx) / z);
                 s.y = Math.round(oy + (ev.clientY - sy) / z);
                 shape.style.left = s.x + 'px'; shape.style.top = s.y + 'px';
+                desenharLinhasBoard(); // ligações locais seguem a zona
             };
             const onUp = () => { shape.removeEventListener('pointermove', onMove); shape.removeEventListener('pointerup', onUp); };
             shape.addEventListener('pointermove', onMove);
@@ -2334,8 +2578,269 @@ function ativarInteracoesShapes() {
     });
 }
 
+// ── TEXTOS FLUTUANTES / PROPS / CONEXÕES LOCAIS (FASE 14) ───────────────────
+function novoIdLocal(pfx) { return pfx + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+// Centro da viewport em coords de mundo (reuso por texto/prop/zona).
+function centroMundo() {
+    const canvas = elBoardCanvas(); const cam = boardState.camera;
+    const cw = canvas ? canvas.clientWidth : 800, ch = canvas ? canvas.clientHeight : 600;
+    return { x: Math.round((cw / 2 - cam.x) / cam.zoom), y: Math.round((ch / 2 - cam.y) / cam.zoom) };
+}
+// Drag genérico de um elemento posicionado por {x,y} (coords de mundo = delta/zoom).
+// `conectavel`: se true, em modo conexão o clique FECHA a ligação (zonas/props) em vez
+// de arrastar — num único handler (mesmo padrão dos shapes; evita drag+conexão duplos).
+function arrastarPorPonteiro(el, obj, onDrag, conectavel) {
+    el.onpointerdown = (e) => {
+        if (e.button !== 0 || e.target.closest('.board-text-remover, .board-prop-remover')) return;
+        if (conectandoDe) { e.stopPropagation(); if (conectavel) finalizarConexaoLocal(obj.id); return; }
+        e.stopPropagation();
+        const z = boardState.camera.zoom || 1;
+        const sx = e.clientX, sy = e.clientY, ox = obj.x, oy = obj.y;
+        el.setPointerCapture(e.pointerId);
+        const mv = (ev) => {
+            obj.x = Math.round(ox + (ev.clientX - sx) / z);
+            obj.y = Math.round(oy + (ev.clientY - sy) / z);
+            el.style.left = obj.x + 'px'; el.style.top = obj.y + 'px';
+            if (onDrag) onDrag();
+        };
+        const up = () => { el.removeEventListener('pointermove', mv); el.removeEventListener('pointerup', up); };
+        el.addEventListener('pointermove', mv);
+        el.addEventListener('pointerup', up);
+    };
+}
+
+// ── TEXTOS FLUTUANTES ───────────────────────────────────────
+window.adicionarTexto = function() {
+    if (!boardAtualId) return mostrarToast('Abra ou crie um tabuleiro primeiro.', 'aviso');
+    const c = centroMundo();
+    boardState.texts.push({ id: novoIdLocal('t'), x: c.x, y: c.y, texto: 'Texto', cor: 'cinza', tamanho: 18 });
+    renderBoard();
+};
+window.removerTextBoard = function(id) {
+    boardState.texts = boardState.texts.filter(t => String(t.id) !== String(id));
+    renderBoard();
+};
+function ativarInteracoesTexts() {
+    const world = elBoardWorld(); if (!world) return;
+    world.querySelectorAll('.board-text').forEach(el => {
+        const t = boardState.texts.find(x => String(x.id) === String(el.dataset.text));
+        if (!t) return;
+        arrastarPorPonteiro(el, t);
+        el.ondblclick = (e) => { e.stopPropagation(); abrirEditorText(t.id, e); };
+        const rem = el.querySelector('.board-text-remover');
+        if (rem) rem.onclick = (e) => { e.stopPropagation(); removerTextBoard(t.id); };
+    });
+}
+// Micro-editor do texto: conteúdo + cor (token) + tamanho da fonte (slider).
+window.abrirEditorText = function(id, e) {
+    fecharPopover();
+    const t = boardState.texts.find(x => String(x.id) === String(id)); if (!t) return;
+    const tid = escapeHTML(String(id));
+    const swatch = c => `<button type="button" class="board-cor-swatch board-cor-${c}${t.cor === c ? ' sel' : ''}" data-c="${c}" title="${c}" onclick="setTextCor('${tid}', this)"></button>`;
+    const pop = montarPopover(`
+        <label>Texto</label>
+        <input type="text" class="board-popover-input" maxlength="280" value="${escapeHTML(t.texto || '')}" oninput="setTextConteudo('${tid}', this.value)">
+        <label>Cor</label>
+        <div class="board-cor-grid">${CORES_BOARD.map(swatch).join('')}</div>
+        <label>Tamanho (<span id="board-text-tam">${Math.round(t.tamanho || 18)}</span>px)</label>
+        <input type="range" class="board-popover-range" min="8" max="96" value="${Math.round(t.tamanho || 18)}" oninput="setTextTamanho('${tid}', this.value)">
+        <div class="board-popover-acoes">
+            <button class="btn btn-ghost btn-sm" onclick="removerTextBoard('${tid}')"><i data-lucide="trash-2"></i> Excluir</button>
+            <button class="btn btn-primary btn-sm" onclick="fecharPopover()"><i data-lucide="check"></i> Pronto</button>
+        </div>`);
+    elBoardCanvas().appendChild(pop);
+    lucide.createIcons();
+    posicionarPopover(pop, e, document.querySelector(`.board-text[data-text="${cssEscape(id)}"]`));
+};
+window.setTextConteudo = function(id, v) {
+    const t = boardState.texts.find(x => String(x.id) === String(id)); if (!t) return;
+    t.texto = String(v).slice(0, 280);
+    const span = document.querySelector(`.board-text[data-text="${cssEscape(id)}"] .board-text-conteudo`);
+    if (span) span.textContent = t.texto; // textContent = sem risco de XSS
+};
+window.setTextTamanho = function(id, v) {
+    const t = boardState.texts.find(x => String(x.id) === String(id)); if (!t) return;
+    t.tamanho = Math.min(96, Math.max(8, parseInt(v, 10) || 18));
+    const el = document.querySelector(`.board-text[data-text="${cssEscape(id)}"]`);
+    if (el) el.style.fontSize = t.tamanho + 'px';
+    const lbl = document.getElementById('board-text-tam'); if (lbl) lbl.textContent = t.tamanho;
+};
+window.setTextCor = function(id, btn) {
+    const t = boardState.texts.find(x => String(x.id) === String(id)); if (!t) return;
+    t.cor = btn.dataset.c;
+    btn.parentElement.querySelectorAll('.board-cor-swatch').forEach(b => b.classList.remove('sel'));
+    btn.classList.add('sel');
+    const el = document.querySelector(`.board-text[data-text="${cssEscape(id)}"]`);
+    if (el) { CORES_BOARD.forEach(c => el.classList.remove('board-cor-' + c)); el.classList.add('board-cor-' + t.cor); }
+};
+
+// ── PROPS (ícones RPG) ──────────────────────────────────────
+window.abrirSeletorSimbolo = function() {
+    if (!boardAtualId) return mostrarToast('Abra ou crie um tabuleiro primeiro.', 'aviso');
+    fecharSeletorSimbolo();
+    const modal = document.createElement('div');
+    modal.className = 'modal show';
+    modal.id = 'modal-board-simbolo';
+    modal.innerHTML = `
+        <div class="modal-box board-simbolo-box">
+            <div class="board-modal-head">
+                <h3 class="texto-roxo board-modal-titulo"><i data-lucide="shapes"></i> Adicionar Símbolo</h3>
+                <button class="btn btn-ghost btn-sm" onclick="fecharSeletorSimbolo()" title="Fechar"><i data-lucide="x"></i></button>
+            </div>
+            <div class="board-simbolo-grid">
+                ${ICONES_RPG.map(ic => `<button type="button" class="board-simbolo-opt" title="${escapeHTML(ic)}" data-ic="${escapeHTML(ic)}" onclick="adicionarSimbolo(this.dataset.ic)">
+                    <span class="board-prop-icone" style="-webkit-mask-image: url('/icons/rpg/${encodeURIComponent(ic)}.svg'); mask-image: url('/icons/rpg/${encodeURIComponent(ic)}.svg');"></span>
+                </button>`).join('')}
+            </div>
+        </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) fecharSeletorSimbolo(); });
+    lucide.createIcons();
+};
+window.fecharSeletorSimbolo = function() { const m = document.getElementById('modal-board-simbolo'); if (m) m.remove(); };
+window.adicionarSimbolo = function(icone) {
+    if (!ICONES_RPG.includes(icone)) return;
+    const c = centroMundo();
+    boardState.props.push({ id: novoIdLocal('p'), x: c.x, y: c.y, icone, scale: 1, rotacao: 0, cor: 'cinza' });
+    fecharSeletorSimbolo();
+    renderBoard();
+};
+window.removerPropBoard = function(id) {
+    boardState.props = boardState.props.filter(p => String(p.id) !== String(id));
+    removerLocalLinksDe(id); // limpa ligações órfãs
+    renderBoard();
+};
+function aplicarTransformProp(el, p) {
+    el.style.transform = `scale(${Math.min(5, Math.max(0.2, p.scale || 1))}) rotate(${Math.min(360, Math.max(0, p.rotacao || 0))}deg)`;
+}
+function ativarInteracoesProps() {
+    const world = elBoardWorld(); if (!world) return;
+    world.querySelectorAll('.board-prop').forEach(el => {
+        const p = boardState.props.find(x => String(x.id) === String(el.dataset.prop));
+        if (!p) return;
+        arrastarPorPonteiro(el, p, desenharLinhasBoard, true); // arrasta; em modo conexão, conecta
+        el.ondblclick = (e) => { e.stopPropagation(); abrirEditorProp(p.id, e); };
+        const rem = el.querySelector('.board-prop-remover');
+        if (rem) rem.onclick = (e) => { e.stopPropagation(); removerPropBoard(p.id); };
+    });
+}
+// Editor do prop: tamanho (slider) + rotação (slider) + cor (token).
+window.abrirEditorProp = function(id, e) {
+    fecharPopover();
+    const p = boardState.props.find(x => String(x.id) === String(id)); if (!p) return;
+    const pid = escapeHTML(String(id));
+    const swatch = c => `<button type="button" class="board-cor-swatch board-cor-${c}${p.cor === c ? ' sel' : ''}" data-c="${c}" title="${c}" onclick="setPropCor('${pid}', this)"></button>`;
+    const pop = montarPopover(`
+        <label>Tamanho (<span id="board-prop-sc">${(p.scale || 1).toFixed(1)}</span>×)</label>
+        <input type="range" class="board-popover-range" min="0.2" max="5" step="0.1" value="${p.scale || 1}" oninput="setPropScale('${pid}', this.value)">
+        <label>Rotação (<span id="board-prop-rot">${Math.round(p.rotacao || 0)}</span>°)</label>
+        <input type="range" class="board-popover-range" min="0" max="360" value="${Math.round(p.rotacao || 0)}" oninput="setPropRot('${pid}', this.value)">
+        <label>Cor</label>
+        <div class="board-cor-grid">${CORES_BOARD.map(swatch).join('')}</div>
+        <div class="board-popover-acoes">
+            <button class="btn btn-ghost btn-sm" onclick="removerPropBoard('${pid}')"><i data-lucide="trash-2"></i> Excluir</button>
+            <button class="btn btn-secondary btn-sm" onclick="iniciarConexaoLocal('${pid}')"><i data-lucide="spline"></i> Conectar</button>
+        </div>`);
+    elBoardCanvas().appendChild(pop);
+    lucide.createIcons();
+    posicionarPopover(pop, e, document.querySelector(`.board-prop[data-prop="${cssEscape(id)}"]`));
+};
+window.setPropScale = function(id, v) {
+    const p = boardState.props.find(x => String(x.id) === String(id)); if (!p) return;
+    p.scale = Math.min(5, Math.max(0.2, parseFloat(v) || 1));
+    const el = document.querySelector(`.board-prop[data-prop="${cssEscape(id)}"]`); if (el) aplicarTransformProp(el, p);
+    const lbl = document.getElementById('board-prop-sc'); if (lbl) lbl.textContent = p.scale.toFixed(1);
+    desenharLinhasBoard();
+};
+window.setPropRot = function(id, v) {
+    const p = boardState.props.find(x => String(x.id) === String(id)); if (!p) return;
+    p.rotacao = Math.min(360, Math.max(0, parseInt(v, 10) || 0));
+    const el = document.querySelector(`.board-prop[data-prop="${cssEscape(id)}"]`); if (el) aplicarTransformProp(el, p);
+    const lbl = document.getElementById('board-prop-rot'); if (lbl) lbl.textContent = p.rotacao;
+};
+window.setPropCor = function(id, btn) {
+    const p = boardState.props.find(x => String(x.id) === String(id)); if (!p) return;
+    p.cor = btn.dataset.c;
+    btn.parentElement.querySelectorAll('.board-cor-swatch').forEach(b => b.classList.remove('sel'));
+    btn.classList.add('sel');
+    const el = document.querySelector(`.board-prop[data-prop="${cssEscape(id)}"]`);
+    if (el) { CORES_BOARD.forEach(c => el.classList.remove('board-cor-' + c)); el.classList.add('board-cor-' + p.cor); }
+};
+
+// ── CONEXÕES LOCAIS (zonas/props — fora de world_links) ─────
+let conectandoDe = null; // id da forma de origem enquanto no modo "Conectar"
+window.iniciarConexaoLocal = function(id) {
+    fecharPopover();
+    conectandoDe = String(id);
+    elBoardCanvas()?.classList.add('conectando');
+    mostrarToast('Clique numa zona ou símbolo de destino para conectar.', 'aviso');
+};
+function finalizarConexaoLocal(targetId) {
+    const src = conectandoDe; conectandoDe = null;
+    elBoardCanvas()?.classList.remove('conectando');
+    if (!src || String(src) === String(targetId)) return;
+    const dup = boardState.localLinks.some(l =>
+        (String(l.sourceId) === String(src) && String(l.targetId) === String(targetId)) ||
+        (String(l.sourceId) === String(targetId) && String(l.targetId) === String(src)));
+    if (dup) return mostrarToast('Essas formas já estão conectadas.', 'aviso');
+    boardState.localLinks.push({ id: novoIdLocal('l'), sourceId: String(src), targetId: String(targetId), cor: 'cinza', stroke: 'solid', label: '' });
+    desenharLinhasBoard();
+    mostrarToast('Ligação criada.', 'sucesso');
+}
+window.removerLocalLink = function(id) {
+    boardState.localLinks = boardState.localLinks.filter(l => String(l.id) !== String(id));
+    fecharPopover();
+    desenharLinhasBoard();
+};
+// Editor da ligação local: cor (token) + estilo + rótulo + excluir.
+window.editarLocalLink = function(id, e) {
+    if (e) e.stopPropagation();
+    fecharPopover();
+    const l = boardState.localLinks.find(x => String(x.id) === String(id)); if (!l) return;
+    const lid = escapeHTML(String(id));
+    const swatch = c => `<button type="button" class="board-cor-swatch board-cor-${c}${l.cor === c ? ' sel' : ''}" data-c="${c}" title="${c}" onclick="setLocalLinkCor('${lid}', this)"></button>`;
+    const strBtn = (v, r) => `<button type="button" class="board-estilo-opt${(l.stroke || 'solid') === v ? ' sel' : ''}" onclick="setLocalLinkStroke(this, '${lid}', '${v}')">${r}</button>`;
+    const pop = montarPopover(`
+        <label>Cor</label>
+        <div class="board-cor-grid">${CORES_BOARD.map(swatch).join('')}</div>
+        <label>Estilo</label>
+        <div class="board-estilo-row">${strBtn('solid', 'Sólida')}${strBtn('dashed', 'Tracejada')}</div>
+        <label>Rótulo</label>
+        <input type="text" class="board-popover-input" maxlength="80" value="${escapeHTML(l.label || '')}" oninput="setLocalLinkLabel('${lid}', this.value)" placeholder="(opcional)">
+        <div class="board-popover-acoes">
+            <button class="btn btn-ghost btn-sm" onclick="removerLocalLink('${lid}')"><i data-lucide="trash-2"></i> Excluir</button>
+            <button class="btn btn-primary btn-sm" onclick="fecharPopover()"><i data-lucide="check"></i> Pronto</button>
+        </div>`);
+    elBoardCanvas().appendChild(pop);
+    lucide.createIcons();
+    posicionarPopover(pop, e);
+};
+window.setLocalLinkCor = function(id, btn) {
+    const l = boardState.localLinks.find(x => String(x.id) === String(id)); if (!l) return;
+    l.cor = btn.dataset.c;
+    btn.parentElement.querySelectorAll('.board-cor-swatch').forEach(b => b.classList.remove('sel'));
+    btn.classList.add('sel');
+    desenharLinhasBoard();
+};
+window.setLocalLinkStroke = function(btn, id, v) {
+    const l = boardState.localLinks.find(x => String(x.id) === String(id)); if (!l) return;
+    l.stroke = v === 'dashed' ? 'dashed' : 'solid';
+    btn.parentElement.querySelectorAll('.board-estilo-opt').forEach(b => b.classList.remove('sel'));
+    btn.classList.add('sel');
+    desenharLinhasBoard();
+};
+window.setLocalLinkLabel = function(id, v) {
+    const l = boardState.localLinks.find(x => String(x.id) === String(id)); if (!l) return;
+    l.label = String(v).slice(0, 80);
+    desenharLinhasBoard();
+};
+
 // ── LINHAS + EDIÇÃO VISUAL (FASE 13 — fatia 4) ──────────────
 const ICONES_BOARD = ['castle', 'landmark', 'map', 'mountain', 'tent', 'coins', 'swords', 'shield', 'crown', 'flag', 'gem', 'user'];
+// Mapa token → variável CSS (espelha .board-cor-* no global_ui.css), p/ usar em SVG.
+const VAR_CORES_BOARD = { roxo: '--roxo-mago', azul: '--azul-vida', verde: '--destaque', ambar: '--aviso', vermelho: '--erro', cinza: '--texto-mutado', rosa: '--rosa' };
+function corBoardVar(cor) { return VAR_CORES_BOARD[cor] ? `var(${VAR_CORES_BOARD[cor]})` : 'var(--texto-mutado)'; }
 let boardLinks = [];   // {id,a,b,tipo} entre nós no board (derivado de listarLinks)
 let editorNodeId = null, editorNodeCor = null, editorNodeIcone = null;
 
@@ -2366,43 +2871,89 @@ async function atualizarLinksBoard() {
     desenharLinhasBoard();
 }
 
-// Linhas Bézier entre os centros reais dos cards. Caminho duplo: hit transparente
-// largo (clicável) + linha visível (estilo via override). Cor/dash são data-driven.
+// Desenha world_links (Bézier entre cards) E localLinks (retas entre zonas/props).
+// Caminho duplo: hit transparente largo (clicável) + linha visível. Cor/dash/rótulo
+// são data-driven. Rótulo (<text>) no ponto médio, tanto para world quanto local.
 function desenharLinhasBoard() {
     const world = elBoardWorld();
     const svg = world?.querySelector('.board-svg');
     if (!svg) return;
+    const centro = (el) => ({ x: el.offsetLeft + el.offsetWidth / 2, y: el.offsetTop + el.offsetHeight / 2 });
+    const rotulo = (mx, my, txt) => txt ? `<text class="board-line-label" x="${Math.round(mx)}" y="${Math.round(my) - 6}">${escapeHTML(txt)}</text>` : '';
+    let paths = '';
+
+    // world_links (entre cards de entidades)
     const cardEl = {};
     world.querySelectorAll('.board-card').forEach(c => { cardEl[String(c.dataset.node)] = c; });
-    let paths = '';
     boardLinks.forEach(lk => {
         const ca = cardEl[lk.a], cb = cardEl[lk.b];
         if (!ca || !cb) return;
-        const ax = ca.offsetLeft + ca.offsetWidth / 2, ay = ca.offsetTop + ca.offsetHeight / 2;
-        const bx = cb.offsetLeft + cb.offsetWidth / 2, by = cb.offsetTop + cb.offsetHeight / 2;
-        const dx = Math.max(40, Math.abs(bx - ax) * 0.4);
-        const d = `M ${ax} ${ay} C ${ax + dx} ${ay}, ${bx - dx} ${by}, ${bx} ${by}`;
+        const a = centro(ca), b = centro(cb);
+        const dx = Math.max(40, Math.abs(b.x - a.x) * 0.4);
+        const d = `M ${a.x} ${a.y} C ${a.x + dx} ${a.y}, ${b.x - dx} ${b.y}, ${b.x} ${b.y}`;
         const key = chaveLinha(lk.a, lk.b);
         const ov = boardState.overrides_linhas[key] || {};
         const dash = ov.stroke === 'dashed' ? '7 6' : '';
         paths += `<path class="board-line-hit" onclick="editarLinha('${escapeHTML(key)}', event)" d="${d}"></path>`;
         paths += `<path class="board-line" d="${d}" style="stroke: ${corLinhaVar(ov.cor, lk.tipo)}; stroke-dasharray: ${dash};"></path>`;
+        paths += rotulo((a.x + b.x) / 2, (a.y + b.y) / 2, ov.label);
     });
+
+    // localLinks (entre zonas/props — retas)
+    const localEl = {};
+    world.querySelectorAll('.board-shape, .board-prop').forEach(el => {
+        localEl[String(el.dataset.shape || el.dataset.prop)] = el;
+    });
+    boardState.localLinks.forEach(l => {
+        const ea = localEl[String(l.sourceId)], eb = localEl[String(l.targetId)];
+        if (!ea || !eb) return; // endpoint removido → não desenha (limpeza no próximo save)
+        const a = centro(ea), b = centro(eb);
+        const d = `M ${a.x} ${a.y} L ${b.x} ${b.y}`;
+        const dash = l.stroke === 'dashed' ? '7 6' : '';
+        const lid = escapeHTML(String(l.id));
+        paths += `<path class="board-line-hit" onclick="editarLocalLink('${lid}', event)" d="${d}"></path>`;
+        paths += `<path class="board-line" d="${d}" style="stroke: ${corBoardVar(l.cor)}; stroke-dasharray: ${dash};"></path>`;
+        paths += rotulo((a.x + b.x) / 2, (a.y + b.y) / 2, l.label);
+    });
+
     svg.innerHTML = paths;
 }
 
-// Posiciona o popover no clique e o mantém DENTRO do viewport (que tem overflow:hidden).
-// Mede o tamanho real já injetado — não usa constante fixa — para que popovers mais
-// altos (ex.: editor de nó com "Puxar Conectados") nunca sejam recortados pela borda.
-function posicionarPopover(pop, e) {
+// Cria o popover já com botão de fechar no canto (R5 + UX). Conteúdo via template.
+function montarPopover(inner) {
+    const pop = document.createElement('div');
+    pop.className = 'board-popover';
+    pop.id = 'board-popover';
+    pop.innerHTML = `<button type="button" class="board-popover-fechar" title="Fechar" onclick="fecharPopover()"><i data-lucide="x"></i></button>${inner}`;
+    return pop;
+}
+// Escapa um id para uso seguro em querySelector (CSS.escape com fallback).
+function cssEscape(v) {
+    const s = String(v);
+    return (window.CSS && CSS.escape) ? CSS.escape(s) : s.replace(/["\\\]]/g, '\\$&');
+}
+// Posiciona o popover DENTRO do viewport (overflow:hidden). Se houver elemento-âncora,
+// abre na lateral DIREITA dele (esquerda se faltar espaço), nunca por cima. Mede o
+// tamanho real já injetado — sem constante fixa — para nunca ser recortado pela borda.
+function posicionarPopover(pop, e, anchorEl) {
     const canvas = elBoardCanvas();
     if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
+    const cr = canvas.getBoundingClientRect();
+    const cw = canvas.clientWidth, ch = canvas.clientHeight;
     const pw = pop.offsetWidth || 224, ph = pop.offsetHeight || 220;
-    let x = e ? e.clientX - rect.left : (canvas.clientWidth - pw) / 2;
-    let y = e ? e.clientY - rect.top : (canvas.clientHeight - ph) / 2;
-    x = Math.max(8, Math.min(x, canvas.clientWidth - pw - 8));
-    y = Math.max(8, Math.min(y, canvas.clientHeight - ph - 8));
+    let x, y;
+    if (anchorEl) {
+        const ar = anchorEl.getBoundingClientRect();
+        const right = ar.right - cr.left, left = ar.left - cr.left;
+        x = right + 8;                            // lateral direita do elemento
+        if (x + pw + 8 > cw) x = left - pw - 8;   // sem espaço à direita → à esquerda
+        y = ar.top - cr.top;
+    } else {
+        x = e ? e.clientX - cr.left : (cw - pw) / 2;
+        y = e ? e.clientY - cr.top : (ch - ph) / 2;
+    }
+    x = Math.max(8, Math.min(x, cw - pw - 8));
+    y = Math.max(8, Math.min(y, ch - ph - 8));
     pop.style.left = Math.round(x) + 'px';
     pop.style.top = Math.round(y) + 'px';
 }
@@ -2411,27 +2962,34 @@ window.fecharPopover = function() {
     if (p) p.remove();
 };
 
-// Mini-popover de estilo da linha → grava em boardState.overrides_linhas[chave].
+// Mini-popover de estilo da linha (world_link) → grava em boardState.overrides_linhas[chave].
 window.editarLinha = function(key, e) {
     if (e) e.stopPropagation();
     fecharPopover();
     const ov = boardState.overrides_linhas[key] || {};
-    const corBtn = (v, r) => `<button type="button" class="board-estilo-opt${ov.cor === v ? ' sel' : ''}" data-v="${v}" onclick="setLinhaCor(this, '${escapeHTML(key)}', '${v}')">${r}</button>`;
-    const strBtn = (v, r) => `<button type="button" class="board-estilo-opt${(ov.stroke || 'solid') === v ? ' sel' : ''}" data-v="${v}" onclick="setLinhaStroke(this, '${escapeHTML(key)}', '${v}')">${r}</button>`;
-    const pop = document.createElement('div');
-    pop.className = 'board-popover';
-    pop.id = 'board-popover';
-    pop.innerHTML = `
+    const k = escapeHTML(key);
+    const corBtn = (v, r) => `<button type="button" class="board-estilo-opt${ov.cor === v ? ' sel' : ''}" data-v="${v}" onclick="setLinhaCor(this, '${k}', '${v}')">${r}</button>`;
+    const strBtn = (v, r) => `<button type="button" class="board-estilo-opt${(ov.stroke || 'solid') === v ? ' sel' : ''}" data-v="${v}" onclick="setLinhaStroke(this, '${k}', '${v}')">${r}</button>`;
+    const pop = montarPopover(`
         <label>Relação</label>
         <div class="board-estilo-row">${corBtn('aliado', 'Aliado')}${corBtn('inimigo', 'Inimigo')}${corBtn('neutro', 'Neutro')}</div>
         <label>Estilo</label>
         <div class="board-estilo-row">${strBtn('solid', 'Sólida')}${strBtn('dashed', 'Pontilhada')}</div>
+        <label>Rótulo</label>
+        <input type="text" class="board-popover-input" maxlength="80" value="${escapeHTML(ov.label || '')}" oninput="setLinhaLabel('${k}', this.value)" placeholder="(opcional)">
         <div class="board-popover-acoes">
-            <button class="btn btn-ghost btn-sm" onclick="limparLinha('${escapeHTML(key)}')">Limpar</button>
+            <button class="btn btn-ghost btn-sm" onclick="limparLinha('${k}')">Limpar</button>
             <button class="btn btn-primary btn-sm" onclick="fecharPopover()">Fechar</button>
-        </div>`;
+        </div>`);
     elBoardCanvas().appendChild(pop);
+    lucide.createIcons();
     posicionarPopover(pop, e);
+};
+window.setLinhaLabel = function(key, v) {
+    const ov = boardState.overrides_linhas[key] || {};
+    ov.label = String(v).slice(0, 80);
+    boardState.overrides_linhas[key] = ov;
+    desenharLinhasBoard();
 };
 window.setLinhaCor = function(btn, key, cor) {
     const ov = boardState.overrides_linhas[key] || {};
@@ -2461,10 +3019,7 @@ function abrirEditorNode(card, e) {
     editorNodeId = node.id;
     editorNodeCor = node.cor || null;
     editorNodeIcone = node.icone || null;
-    const pop = document.createElement('div');
-    pop.className = 'board-popover';
-    pop.id = 'board-popover';
-    pop.innerHTML = `
+    const pop = montarPopover(`
         <label>Cor do card</label>
         <div class="board-cor-grid">
             ${CORES_BOARD.map(c => `<button type="button" class="board-cor-swatch board-cor-${c}${editorNodeCor === c ? ' sel' : ''}" data-c="${c}" title="${c}" onclick="selNodeCor(this)"></button>`).join('')}
@@ -2479,10 +3034,10 @@ function abrirEditorNode(card, e) {
         <div class="board-popover-acoes">
             <button class="btn btn-ghost btn-sm" onclick="resetNodeVisual()">Padrão</button>
             <button class="btn btn-primary btn-sm" onclick="salvarEditorNode()"><i data-lucide="check"></i> Salvar</button>
-        </div>`;
+        </div>`);
     elBoardCanvas().appendChild(pop);
     lucide.createIcons();
-    posicionarPopover(pop, e); // mede após render dos ícones (altura real)
+    posicionarPopover(pop, e, card); // abre na lateral do card (mede após render dos ícones)
 }
 
 // "Puxar Conectados" (Fase 13.5 — funde a auto-expansão da Mesa da Fase 12 com o

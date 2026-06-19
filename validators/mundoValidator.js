@@ -163,13 +163,45 @@ const dadosBoardSchema = z.object({
         w: z.number().finite().min(0),
         h: z.number().finite().min(0),
         label: z.string().trim().max(120).optional(),
+        cor: z.enum(CORES_BOARD).optional(),
+        forma: z.enum(['retangulo', 'circulo']).optional(),
+        stroke: z.enum(['solid', 'dashed']).optional()
+    })).max(200).default([]),
+    // Textos flutuantes (sem card): texto puro arrastável. tamanho em px.
+    texts: z.array(z.object({
+        id: z.string().min(1).max(64),
+        x: z.number().finite(),
+        y: z.number().finite(),
+        texto: z.string().trim().max(280).optional(),
+        cor: z.enum(CORES_BOARD).optional(),
+        tamanho: z.number().finite().min(8).max(96).optional()
+    })).max(200).default([]),
+    // Props (ícones SVG de /public/icons/rpg/). `icone` = nome do ficheiro sem extensão;
+    // regex anti path-traversal (Regra 4.2/6.x) — nunca aceitar barras/pontos.
+    props: z.array(z.object({
+        id: z.string().min(1).max(64),
+        x: z.number().finite(),
+        y: z.number().finite(),
+        icone: z.string().trim().regex(/^[a-z0-9-]+$/, 'ícone inválido').max(60),
+        scale: z.number().finite().min(0.2).max(5).optional(),
+        rotacao: z.number().finite().min(0).max(360).optional(),
         cor: z.enum(CORES_BOARD).optional()
     })).max(200).default([]),
+    // Ligações LOCAIS (entre zonas/props — fora de world_links, pois não são world_nodes).
+    localLinks: z.array(z.object({
+        id: z.string().min(1).max(64),
+        sourceId: z.string().min(1).max(64),
+        targetId: z.string().min(1).max(64),
+        cor: z.enum(CORES_BOARD).optional(),
+        stroke: z.enum(['solid', 'dashed']).optional(),
+        label: z.string().trim().max(80).optional()
+    })).max(300).default([]),
     overrides_linhas: z.record(
         z.string().max(120),
         z.object({
             cor: z.enum(['aliado', 'inimigo', 'neutro']).optional(),
-            stroke: z.enum(['solid', 'dashed']).optional()
+            stroke: z.enum(['solid', 'dashed']).optional(),
+            label: z.string().trim().max(80).optional()
         })
     ).default({})
 }).default({});

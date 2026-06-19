@@ -10,6 +10,7 @@
 /* ── VARIÁVEIS DE TEMA ─────────────────────────────────── */
 :root {
     --bg-principal:    #18181b;
+    --bg-secundario:   #1f1f23;
     --bg-card:         #27272a;
     --bg-card-glass:   rgba(20, 20, 28, 0.65);
     --borda:           #3f3f46;
@@ -1669,6 +1670,7 @@ input[type="radio"] {
 
 :root.tema-pixel-16bit {
     --bg-principal: #000000;
+    --bg-secundario: #000080;
     --bg-card: linear-gradient(to bottom, #0000a8, #000000);
     --bg-card-glass: linear-gradient(to bottom, #0000a8, #000000);
     --borda: #ffffff;
@@ -2251,13 +2253,52 @@ input[type="radio"] {
     position: absolute;
     z-index: 10;
     width: 224px;
+    max-height: 540px;
+    overflow-y: auto;
     padding: 12px;
+    padding-right: 28px;
     background: var(--bg-card);
     border: 1px solid var(--roxo-mago);
     border-radius: 8px;
     box-shadow: var(--sombra-profunda);
     cursor: default;
 }
+/* Botão de fechar no canto do popover (R5 + UX). */
+.board-popover-fechar {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    background: transparent;
+    border: 1px solid var(--borda);
+    border-radius: 4px;
+    color: var(--texto-mutado);
+    cursor: pointer;
+    transition: var(--transicao-suave);
+}
+.board-popover-fechar:hover { color: var(--texto-claro); border-color: var(--roxo-mago); }
+.board-popover-fechar i { width: 14px; height: 14px; }
+/* Inputs/selects/sliders dentro do popover (tokens; sem hex). */
+.board-popover-select,
+.board-popover-input {
+    width: 100%;
+    margin: 2px 0 10px;
+    padding: 5px 6px;
+    font-size: 12px;
+    font-family: 'Manrope', sans-serif;
+    background: var(--bg-principal);
+    border: 1px solid var(--borda);
+    border-radius: 4px;
+    color: var(--texto-claro);
+}
+.board-popover-select:focus,
+.board-popover-input:focus { border-color: var(--roxo-mago); outline: none; }
+.board-popover-range { width: 100%; margin: 2px 0 10px; accent-color: var(--roxo-mago); cursor: pointer; }
 .board-estilo-row { display: flex; gap: 6px; margin: 4px 0 10px; }
 .board-estilo-opt {
     flex: 1;
@@ -2272,10 +2313,12 @@ input[type="radio"] {
 }
 .board-estilo-opt:hover { border-color: var(--roxo-mago); color: var(--texto-claro); }
 .board-estilo-opt.sel { border-color: var(--roxo-mago); color: var(--roxo-mago); background: color-mix(in srgb, var(--roxo-mago) 14%, var(--bg-principal)); }
-.board-cor-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin: 4px 0 10px; }
+/* Grids de seleção: flex-wrap (não alargam a caixa) com itens de tamanho fixo. */
+.board-cor-grid { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0 10px; }
 .board-cor-swatch {
-    width: 100%;
-    aspect-ratio: 1;
+    flex: 0 0 auto;
+    width: 24px;
+    height: 24px;
     padding: 0;
     background: var(--board-accent);
     border: 2px solid transparent;
@@ -2283,8 +2326,11 @@ input[type="radio"] {
     cursor: pointer;
 }
 .board-cor-swatch.sel { border-color: var(--texto-claro); }
-.board-icone-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin: 4px 0 10px; }
+.board-icone-grid { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0 10px; }
 .board-icone-opt {
+    flex: 0 0 auto;
+    width: 30px;
+    height: 30px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2299,15 +2345,227 @@ input[type="radio"] {
 .board-icone-opt:hover { border-color: var(--roxo-mago); color: var(--texto-claro); }
 .board-icone-opt.sel { border-color: var(--roxo-mago); color: var(--roxo-mago); }
 .board-icone-opt i { width: 16px; height: 16px; }
-.board-popover-acoes { display: flex; justify-content: space-between; gap: 8px; }
+.board-popover-acoes { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+
+/* Variações de forma/borda das zonas (FASE 14). */
+.board-shape-circulo { border-radius: 50%; }
+.board-shape-dashed { border-style: dashed; }
+.board-canvas.conectando { cursor: crosshair; }
+
+/* Texto flutuante (FASE 14): texto puro arrastável, sem fundo de card. */
+.board-text {
+    position: absolute;
+    z-index: 3;
+    cursor: grab;
+    user-select: none;
+    --board-accent: var(--texto-claro);
+    color: var(--board-accent);
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 600;
+    line-height: 1.1;
+    padding: 2px 4px;
+    white-space: pre-wrap;
+    max-width: 360px;
+}
+.board-text:hover { outline: 1px dashed var(--borda); }
+.board-text-conteudo { pointer-events: none; }
+.board-text-remover {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 14px;
+    height: 14px;
+    color: var(--texto-mutado);
+    background: var(--bg-principal);
+    border-radius: 4px;
+    cursor: pointer;
+    opacity: 0;
+    transition: var(--transicao-suave);
+}
+.board-text:hover .board-text-remover { opacity: 1; }
+.board-text-remover:hover { color: var(--erro); }
+
+/* Prop (ícone RPG): SVG recolorido por máscara CSS + cor por token. */
+.board-prop {
+    position: absolute;
+    z-index: 1;
+    cursor: grab;
+    user-select: none;
+    transform-origin: center;
+    --board-accent: var(--texto-claro);
+}
+.board-prop-icone {
+    display: block;
+    width: 48px;
+    height: 48px;
+    background-color: var(--board-accent);
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-position: center;
+    mask-position: center;
+    pointer-events: none;
+}
+.board-prop-remover {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 14px;
+    height: 14px;
+    color: var(--texto-mutado);
+    background: var(--bg-principal);
+    border-radius: 4px;
+    cursor: pointer;
+    opacity: 0;
+    transition: var(--transicao-suave);
+}
+.board-prop:hover .board-prop-remover { opacity: 1; }
+.board-prop-remover:hover { color: var(--erro); }
+
+/* Rótulo de linha (SVG <text>) no ponto médio — world e local. */
+.board-line-label {
+    fill: var(--texto-claro);
+    font-family: 'Fira Code', monospace;
+    font-size: 11px;
+    text-anchor: middle;
+    paint-order: stroke;
+    stroke: var(--bg-principal);
+    stroke-width: 3px;
+    pointer-events: none;
+}
+
+/* Modal de seleção de símbolos (props). */
+.board-simbolo-box { width: 460px; max-width: 92%; max-height: 80vh; display: flex; flex-direction: column; }
+.board-modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.board-modal-titulo { margin: 0; display: flex; align-items: center; gap: 8px; }
+.board-simbolo-grid {
+    flex: 1;
+    overflow-y: auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
+    gap: 8px;
+}
+.board-simbolo-opt {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    background: var(--bg-principal);
+    border: 1px solid var(--borda);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: var(--transicao-suave);
+}
+.board-simbolo-opt:hover { border-color: var(--roxo-mago); }
+.board-simbolo-opt .board-prop-icone { width: 36px; height: 36px; --board-accent: var(--texto-claro); }
 
 /* Coerência 16-bit: bordas retas + numerais pixelados. */
 .tema-pixel-16bit .board-toolbar,
 .tema-pixel-16bit .board-canvas,
 .tema-pixel-16bit .board-card,
 .tema-pixel-16bit .board-shape,
+.tema-pixel-16bit .board-prop,
+.tema-pixel-16bit .board-simbolo-opt,
 .tema-pixel-16bit .board-popover,
 .tema-pixel-16bit .board-estilo-opt,
 .tema-pixel-16bit .board-cor-swatch,
 .tema-pixel-16bit .board-icone-opt { border-radius: 0 !important; }
+.tema-pixel-16bit .board-shape-circulo { border-radius: 50% !important; }
 .tema-pixel-16bit .board-card-tipo { font-family: 'VT323', monospace !important; }
+
+/* ════════════════════════════════════════════════════════════
+   LENTES TÁTICAS (FASE 15.1) — Toggle de visualização + Kanban
+   ════════════════════════════════════════════════════════════ */
+
+/* ButtonGroup: botões "colados" para alternância de lente (Grelha/Kanban). */
+.btn-group {
+    display: inline-flex;
+    border: 1px solid var(--borda);
+    border-radius: 4px;
+    overflow: hidden;
+}
+.btn-group .btn {
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    color: var(--texto-mutado);
+}
+.btn-group .btn + .btn { border-left: 1px solid var(--borda); }
+.btn-group .btn:hover { color: var(--texto-claro); background: rgba(255, 255, 255, 0.05); }
+.btn-group .btn.active {
+    background: var(--roxo-mago);
+    color: #ffffff; /* alto contraste sobre preenchimento (Regra 2.6) */
+}
+
+/* Container mestre: esconde a Grelha quando a lente Kanban está ativa. */
+#mundo-view-container.view-kanban > #grid-mundo { display: none; }
+
+/* Quadro Kanban: trilho horizontal de colunas roláveis. */
+.kanban-board {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    min-height: 60vh;
+    align-items: flex-start;
+}
+.kanban-column {
+    flex: 0 0 320px;
+    background: var(--bg-secundario);
+    border: 1px solid var(--borda);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+}
+.kanban-header {
+    padding: 12px;
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--texto-claro);
+    border-bottom: 1px solid var(--borda);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+.kanban-header__contagem {
+    font-family: 'Fira Code', monospace;
+    font-size: 0.75rem;
+    color: var(--texto-mutado);
+    background: var(--bg-principal);
+    border: 1px solid var(--borda);
+    border-radius: 4px;
+    padding: 1px 7px;
+}
+/* Zona de drop (recebe os cards). min-height garante alvo de drop mesmo vazia. */
+.kanban-cards {
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 100px;
+}
+.kanban-cards .info-block-vazio { font-size: 0.85rem; }
+
+/* Drag & Drop nativo (Fase 15.2): feedback de arrasto + zona de drop ativa. */
+.world-card[draggable="true"] { cursor: grab; }
+.world-card.dragging {
+    opacity: 0.5;
+    transform: scale(0.95);
+    cursor: grabbing;
+}
+.kanban-column.drag-over {
+    border-color: var(--roxo-mago);
+    background: color-mix(in srgb, var(--roxo-mago) 10%, var(--bg-secundario));
+}
+.kanban-column.drag-over .kanban-cards {
+    outline: 2px dashed var(--roxo-mago);
+    outline-offset: -4px;
+}
+
+/* Coerência 16-bit: bordas retas. */
+.tema-pixel-16bit .btn-group,
+.tema-pixel-16bit .kanban-column,
+.tema-pixel-16bit .kanban-header__contagem { border-radius: 0 !important; }
