@@ -23,6 +23,8 @@
     --erro:            #ef4444;
     --aviso:           #f59e0b;
     --azul-vida:       #3b82f6;
+    --pressao-baixa:   #f0a020;
+    --pressao-alta:    #7a1420;
     --link-aliado:      #22c55e;
     --link-inimigo:     #ef4444;
     --link-associado:   #eab308;
@@ -1256,20 +1258,27 @@ label {
     margin: 0 0 14px;
 }
 
-/* Termômetro segmentado: 1 segmento por unidade de `limite`; cheios = nº de tags. */
-.termometro { display: inline-flex; gap: 3px; align-items: center; flex-shrink: 0; }
-.termo-seg {
-    width: 12px;
-    height: 8px;
+/* Barrinha de pressão contínua: trilho fixo, preenchimento modula em largura+cor
+   (paleta Brasa, definida inline data-driven — Regra 2.5 barra-fill). */
+.pressao-barra {
+    display: inline-block;
+    width: 100%;
+    height: 10px;
     background: var(--bg-principal);
     border: 1px solid var(--borda);
-    border-radius: 2px;
+    border-radius: 4px;
+    overflow: hidden;
+    vertical-align: middle;
 }
-.termo-seg.cheio { background: var(--destaque); border-color: var(--destaque); }
-.termometro.massa-critica .termo-seg.cheio { background: var(--erro); border-color: var(--erro); }
+.pressao-fill {
+    display: block;
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s ease, background 0.3s ease;
+}
 /* Versão compacta dentro do badge do painel. */
-.badge-termometro-wrap { display: inline-flex; cursor: pointer; flex-shrink: 0; }
-.badge-termometro .termo-seg { width: 8px; height: 6px; }
+.badge-termometro-wrap { display: inline-flex; align-items: center; cursor: pointer; flex-shrink: 0; }
+.pressao-barra.compacta { width: 40px; height: 6px; }
 
 /* Massa Crítica: pulsação suave no badge do painel principal. */
 @keyframes pulso-critico {
@@ -1310,7 +1319,9 @@ label {
     gap: 10px;
     margin: 10px 0 2px;
 }
+.termometro-rotulo .pressao-barra { flex: 1; width: auto; }
 .termometro-rotulo .termo-estado {
+    flex-shrink: 0;
     font-family: 'Fira Code', monospace;
     font-size: 12px;
     color: var(--texto-mutado);
@@ -1318,7 +1329,8 @@ label {
 .termometro-rotulo .termo-estado.critico { color: var(--erro); }
 
 /* Coerência 16-bit: bordas retas + numerais pixelados (Scope Override, Paradigma 5). */
-.tema-pixel-16bit .termo-seg,
+.tema-pixel-16bit .pressao-barra,
+.tema-pixel-16bit .pressao-fill,
 .tema-pixel-16bit .tag { border-radius: 0 !important; }
 .tema-pixel-16bit .termometro-rotulo .termo-estado { font-family: 'VT323', monospace !important; }
 

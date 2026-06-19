@@ -465,6 +465,10 @@ window.abrirModalSinapses = async function(nodeId) {
                         <option value="localizacao">Localização</option>
                     </select>
                 </div>
+                <div style="width: 72px;">
+                    <label style="font-size: 12px; color: var(--texto-mutado); display: block; margin-bottom: 4px;" title="Máximo de pressão (limite do termômetro)">Máx.</label>
+                    <input type="number" id="sinapse-limite" class="input-sm" min="1" max="20" value="3" style="width: 100%;">
+                </div>
                 <button class="btn btn-primary btn-sm" data-id="${escapeHTML(String(nodeId))}" onclick="conectarSinapse(this.dataset.id)"><i data-lucide="link"></i> Conectar</button>
             </div>
         </div>`;
@@ -507,7 +511,7 @@ async function recarregarSinapses(nodeId) {
             const pressao = tags.length;
             const critico = pressao >= limite && pressao > 0;
             const termo = pressao > 0
-                ? `<span class="badge-termometro-wrap" data-link="${escapeHTML(String(l.id))}" onclick="abrirContratoRelacao(this.dataset.link)" title="Pressão ${pressao}/${limite}${critico ? ' — MASSA CRÍTICA' : ''}">${termometroHTML(pressao, limite, true)}</span>`
+                ? `<span class="badge-termometro-wrap" data-link="${escapeHTML(String(l.id))}" onclick="abrirContratoRelacao(this.dataset.link)" title="Pressão ${pressao}/${limite}${critico ? ' — MASSA CRÍTICA' : ''}">${barraPressaoHTML(pressao, limite, true)}</span>`
                 : '';
             return `
             <span class="badge-link ${classeTipoLink(l.tipo_vinculo)}${critico ? ' link-massa-critica' : ''}">
@@ -539,10 +543,11 @@ window.conectarSinapse = async function(nodeId) {
     const destino = document.getElementById('sinapse-destino')?.value;
     const tipo = document.getElementById('sinapse-tipo')?.value || 'associado';
     if (!destino) { mostrarToast('Selecione uma entidade para conectar.', 'aviso'); return; }
+    const limite = Math.min(20, Math.max(1, parseInt(document.getElementById('sinapse-limite')?.value, 10) || 3));
     try {
-        // Criação rápida: só nó + tipo. A intriga (tags/pressão) é adicionada depois,
-        // pelo Contrato de Relação ao clicar no badge.
-        await MundoApi.criarLink(cronicaId, nodeId, destino, tipo);
+        // Criação rápida: nó + tipo + limite do termômetro. As tags (pressão) são
+        // adicionadas depois, pelo Contrato de Relação ao clicar no badge.
+        await MundoApi.criarLink(cronicaId, nodeId, destino, tipo, { limite });
         mostrarToast('Conexão criada!', 'sucesso');
         await recarregarSinapses(nodeId);
     } catch (e) {
@@ -572,16 +577,18 @@ let contratoLinkId = null;
 let contratoTags = [];
 let contratoLimite = 3;
 
-// Termômetro segmentado: `limite` segmentos, `pressao` cheios. Massa crítica se
-// pressao >= limite. `compacto` = versão miúda do badge do painel.
-function termometroHTML(pressao, limite, compacto = false) {
+// Barrinha de pressão contínua: largura = pressao/limite, cor modula brando→escuro
+// (paleta Brasa) via color-mix das vars --pressao-baixa/--pressao-alta. `compacta` =
+// versão miúda do badge. Largura% + cor são dinâmicos data-driven (Regra 2.5, barra-fill).
+function barraPressaoHTML(pressao, limite, compacta = false) {
     const lim = Math.max(1, parseInt(limite, 10) || 3);
     const p = Math.max(0, parseInt(pressao, 10) || 0);
-    const cheios = Math.min(p, lim);
+    const pct = Math.round(Math.min(p / lim, 1) * 100);
     const critico = p >= lim;
-    let segs = '';
-    for (let i = 0; i < lim; i++) segs += `<span class="termo-seg ${i < cheios ? 'cheio' : ''}"></span>`;
-    return `<span class="termometro${compacto ? ' badge-termometro' : ''}${critico ? ' massa-critica' : ''}">${segs}</span>`;
+    const cor = `color-mix(in srgb, var(--pressao-alta) ${pct}%, var(--pressao-baixa))`;
+    return `<span class="pressao-barra${compacta ? ' compacta' : ''}${critico ? ' massa-critica' : ''}">
+        <span class="pressao-fill" style="width: ${pct}%; background: ${cor};"></span>
+    </span>`;
 }
 
 // Corpo dinâmico do Contrato (pills + termômetro), re-renderizado a cada mudança.
@@ -594,7 +601,7 @@ function corpoContratoHTML() {
     return `
         <div class="tag-lista">${pills}</div>
         <div class="termometro-rotulo">
-            ${termometroHTML(pressao, contratoLimite, false)}
+            ${barraPressaoHTML(pressao, contratoLimite, false)}
             <span class="termo-estado ${critico ? 'critico' : ''}">${critico ? 'MASSA CRÍTICA' : `Pressão ${pressao}/${contratoLimite}`}</span>
         </div>`;
 }
