@@ -2079,6 +2079,13 @@ function aplicarCamera() {
     if (!world) return;
     const c = boardState.camera;
     world.style.transform = `translate(${c.x}px, ${c.y}px) scale(${c.zoom})`;
+    // Fundo pontilhado no viewport estático segue a câmera (parallax 1:1, infinito).
+    const canvas = elBoardCanvas();
+    if (canvas) {
+        const passo = 20 * c.zoom;
+        canvas.style.backgroundSize = `${passo}px ${passo}px`;
+        canvas.style.backgroundPosition = `${c.x}px ${c.y}px`;
+    }
 }
 
 // Arrasto dos cards (coordenadas de mundo = delta de tela / zoom). Atualiza
@@ -2243,6 +2250,37 @@ window.renomearZona = function(shapeId) {
     renderBoard();
 };
 
+// Editor da zona (duplo-clique no corpo): paleta de cores (tokens) + renomear.
+// Reusa o popover/swatches do editor de nó; cor persiste em boardState.shapes (Regra 2.7).
+window.abrirEditorShape = function(shapeId, e) {
+    fecharPopover();
+    const s = boardState.shapes.find(z => String(z.id) === String(shapeId));
+    if (!s) return;
+    const sid = escapeHTML(String(shapeId));
+    const swatch = c => `<button type="button" class="board-cor-swatch board-cor-${c}${s.cor === c ? ' sel' : ''}" data-c="${c}" title="${c}" onclick="setShapeCor('${sid}', this)"></button>`;
+    const pop = document.createElement('div');
+    pop.className = 'board-popover';
+    pop.id = 'board-popover';
+    pop.innerHTML = `
+        <label>Cor da zona</label>
+        <div class="board-cor-grid">${CORES_BOARD.map(swatch).join('')}</div>
+        <div class="board-popover-acoes">
+            <button class="btn btn-ghost btn-sm" onclick="renomearZona('${sid}')"><i data-lucide="pencil"></i> Renomear</button>
+            <button class="btn btn-primary btn-sm" onclick="fecharPopover()"><i data-lucide="check"></i> Pronto</button>
+        </div>`;
+    elBoardCanvas().appendChild(pop);
+    lucide.createIcons();
+    posicionarPopover(pop, e);
+};
+window.setShapeCor = function(shapeId, btn) {
+    const s = boardState.shapes.find(z => String(z.id) === String(shapeId));
+    if (!s) return;
+    s.cor = btn.dataset.c;
+    btn.parentElement.querySelectorAll('.board-cor-swatch').forEach(b => b.classList.remove('sel'));
+    btn.classList.add('sel');
+    renderBoard();
+};
+
 // Mover (corpo) + redimensionar (canto) com Pointer Events; coords de mundo = delta/zoom.
 // stopPropagation em tudo dentro da zona evita disparar o Pan do canvas.
 function ativarInteracoesShapes() {
@@ -2287,6 +2325,12 @@ function ativarInteracoesShapes() {
         if (rem) rem.onclick = (e) => { e.stopPropagation(); removerShapeBoard(s.id); };
         const label = shape.querySelector('.board-shape-label');
         if (label) label.ondblclick = (e) => { e.stopPropagation(); renomearZona(s.id); };
+        // Duplo-clique no corpo da zona → editor de cor (o label trata o seu próprio dblclick).
+        shape.ondblclick = (e) => {
+            if (e.target.closest('.board-shape-label, .board-shape-remover, .board-shape-resize')) return;
+            e.stopPropagation();
+            abrirEditorShape(s.id, e);
+        };
     });
 }
 
@@ -2347,14 +2391,18 @@ function desenharLinhasBoard() {
     svg.innerHTML = paths;
 }
 
+// Posiciona o popover no clique e o mantém DENTRO do viewport (que tem overflow:hidden).
+// Mede o tamanho real já injetado — não usa constante fixa — para que popovers mais
+// altos (ex.: editor de nó com "Puxar Conectados") nunca sejam recortados pela borda.
 function posicionarPopover(pop, e) {
     const canvas = elBoardCanvas();
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
-    let x = e ? e.clientX - rect.left : canvas.clientWidth / 2;
-    let y = e ? e.clientY - rect.top : canvas.clientHeight / 2;
-    x = Math.max(8, Math.min(x, canvas.clientWidth - 232));
-    y = Math.max(8, Math.min(y, canvas.clientHeight - 220));
+    const pw = pop.offsetWidth || 224, ph = pop.offsetHeight || 220;
+    let x = e ? e.clientX - rect.left : (canvas.clientWidth - pw) / 2;
+    let y = e ? e.clientY - rect.top : (canvas.clientHeight - ph) / 2;
+    x = Math.max(8, Math.min(x, canvas.clientWidth - pw - 8));
+    y = Math.max(8, Math.min(y, canvas.clientHeight - ph - 8));
     pop.style.left = Math.round(x) + 'px';
     pop.style.top = Math.round(y) + 'px';
 }
@@ -2433,8 +2481,8 @@ function abrirEditorNode(card, e) {
             <button class="btn btn-primary btn-sm" onclick="salvarEditorNode()"><i data-lucide="check"></i> Salvar</button>
         </div>`;
     elBoardCanvas().appendChild(pop);
-    posicionarPopover(pop, e);
     lucide.createIcons();
+    posicionarPopover(pop, e); // mede após render dos ícones (altura real)
 }
 
 // "Puxar Conectados" (Fase 13.5 — funde a auto-expansão da Mesa da Fase 12 com o
