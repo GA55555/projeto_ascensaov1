@@ -28,7 +28,7 @@ exports.listarNodes = async (req, res) => {
 
     try {
         let queryStr = `
-            SELECT n.id, n.nome, n.tipo, n.parent_node_id, n.nucleo_id, n.criado_em,
+            SELECT n.id, n.nome, n.tipo, n.parent_node_id, n.nucleo_id, n.criado_em, n.dados,
                    en.nome as nucleo_nome,
                    COALESCE(json_agg(json_build_object('key', f.flag_key, 'value', f.flag_value)) FILTER (WHERE f.id IS NOT NULL), '[]') as flags
             FROM world_nodes n
@@ -111,6 +111,35 @@ exports.atualizarNucleoNode = async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ erro: 'Erro ao associar núcleo.' });
+    }
+};
+
+// Escrita ATÓMICA do estado de UMA lente Kanban (Fase 15.6 — corrige P3/clobber).
+// Patcheia só o caminho dados.kanban[lente] via jsonb_set, sem ler-modificar-gravar o
+// objeto inteiro: preserva as outras lentes e quaisquer outras chaves de `dados`.
+// NB: jsonb_set não cria caminhos intermediários — por isso reconstruímos o sub-objeto
+// `kanban` com `COALESCE(dados->'kanban','{}') || {lente: colunaId}` antes de aninhá-lo.
+exports.atualizarKanbanNode = async (req, res) => {
+    const { cronicaId, nodeId, lente } = req.params;
+    const { colunaId } = req.body;
+    try {
+        // IDOR (Regra 3.3.1): só grava no JSONB de um node da própria crônica.
+        const result = await pool.query(
+            `UPDATE world_nodes
+             SET dados = jsonb_set(
+                 COALESCE(dados, '{}'::jsonb),
+                 '{kanban}',
+                 COALESCE(dados->'kanban', '{}'::jsonb) || jsonb_build_object($4::text, $1::jsonb)
+             )
+             WHERE id = $2 AND cronica_id = $3
+             RETURNING id`,
+            [JSON.stringify(colunaId), nodeId, cronicaId, lente]
+        );
+        if (result.rows.length === 0) return res.status(404).json({ erro: 'Entidade não encontrada.' });
+        res.json({ mensagem: 'Kanban atualizado.' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ erro: 'Erro ao atualizar o Kanban da entidade.' });
     }
 };
 

@@ -36,6 +36,12 @@
                 <button class="btn btn-sm active" data-view="grid"><i data-lucide="layout-grid"></i> Grelha</button>
                 <button class="btn btn-sm" data-view="kanban"><i data-lucide="columns"></i> Kanban</button>
             </div>
+            <select id="kanban-lens-select" class="kanban-lens-select" style="display: none;">
+                <option value="nucleos">Núcleos (Geografia)</option>
+                <option value="cena">Gestão de Cena</option>
+                <option value="politica">Alinhamento Político</option>
+                <option value="investigacao">Investigação</option>
+            </select>
             <select id="filtro-nucleo-entidade" onchange="aplicarFiltrosMundo()">
                 <option value="">Todos os núcleos</option>
             </select>

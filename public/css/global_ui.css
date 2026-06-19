@@ -2643,6 +2643,9 @@ input[type="radio"] {
     color: #ffffff; /* alto contraste sobre preenchimento (Regra 2.6) */
 }
 
+/* Seletor de Lentes (Fase 15.5): largura ao conteúdo, ao lado do toggle. */
+.kanban-lens-select { width: auto; margin-left: 8px; }
+
 /* Container mestre: esconde a Grelha quando a lente Kanban está ativa. */
 #mundo-view-container.view-kanban > #grid-mundo { display: none; }
 
