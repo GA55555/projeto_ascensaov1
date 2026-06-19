@@ -25,6 +25,7 @@
     --azul-vida:       #3b82f6;
     --pressao-baixa:   #f0a020;
     --pressao-alta:    #7a1420;
+    --tech-neon:       #22d3ee;
     --link-aliado:      #22c55e;
     --link-inimigo:     #ef4444;
     --link-associado:   #eab308;
@@ -2099,3 +2100,109 @@ input[type="radio"] {
     stroke: currentColor;
     fill: currentColor;
 }
+
+/* ── MACRO-VISÃO (FASE 12): ÁRVORE DE PROGRESSÃO (CSS TREE VERTICAL) ── */
+/* Tech tree puro em <ul>/<li> com conectores via ::before/::after. Sem libs. */
+.tech-tree { overflow-x: auto; padding: 10px 4px 24px; }
+.tech-tree ul {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    padding-top: 22px;
+    list-style: none;
+    margin: 0;
+}
+.tech-tree-root { padding-top: 0; }
+.tech-tree li {
+    position: relative;
+    list-style: none;
+    text-align: center;
+    padding: 22px 12px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+/* Conectores horizontais (topo de cada li). Cor neon esmaecida (Sci-fi escolhido). */
+.tech-tree li::before,
+.tech-tree li::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 50%;
+    width: 50%;
+    height: 22px;
+    border-top: 2px solid color-mix(in srgb, var(--tech-neon) 55%, transparent);
+}
+.tech-tree li::after {
+    right: auto;
+    left: 50%;
+    border-left: 2px solid color-mix(in srgb, var(--tech-neon) 55%, transparent);
+}
+/* Filho único: sem cotovelos, só o tronco vertical. */
+.tech-tree li:only-child::before,
+.tech-tree li:only-child::after { display: none; }
+.tech-tree li:only-child { padding-top: 22px; }
+/* Pontas: remove a metade externa e arredonda levemente a curva. */
+.tech-tree li:first-child::before,
+.tech-tree li:last-child::after { border: 0 none; }
+.tech-tree li:last-child::before { border-right: 2px solid color-mix(in srgb, var(--tech-neon) 55%, transparent); }
+/* Tronco vertical descendo de cada nó pai para o grupo de filhos. */
+.tech-tree ul ul::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 0;
+    height: 22px;
+    border-left: 2px solid color-mix(in srgb, var(--tech-neon) 55%, transparent);
+}
+
+/* Card Sci-fi/Neon (escolha do utilizador) — contido a este componente. */
+.tech-card-wrap { display: inline-flex; flex-direction: column; align-items: center; gap: 6px; }
+.tech-card {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 150px;
+    max-width: 240px;
+    padding: 10px 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--tech-neon);
+    color: var(--texto-claro);
+    cursor: pointer;
+    /* cantos chanfrados sci-fi (geometria angular, não arredondada) */
+    clip-path: polygon(11px 0, 100% 0, 100% calc(100% - 11px), calc(100% - 11px) 100%, 0 100%, 0 11px);
+    transition: var(--transicao-suave);
+}
+.tech-card:hover {
+    box-shadow: 0 0 12px color-mix(in srgb, var(--tech-neon) 45%, transparent),
+                inset 0 0 10px color-mix(in srgb, var(--tech-neon) 12%, transparent);
+}
+.tech-card-icone { width: 26px; height: 26px; color: var(--tech-neon); flex-shrink: 0; }
+.tech-card-info { display: flex; flex-direction: column; gap: 2px; text-align: left; min-width: 0; }
+.tech-card-nome {
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.15;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.tech-card-tipo {
+    font-family: 'Fira Code', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--tech-neon);
+    opacity: 0.85;
+}
+.tech-card-add { white-space: nowrap; }
+
+/* Coerência 16-bit: sem chanfro/glow (pixel sólido), borda reta. */
+.tema-pixel-16bit .tech-card {
+    clip-path: none !important;
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.8) !important;
+    border-width: 2px !important;
+}
+.tema-pixel-16bit .tech-card-tipo { font-family: 'VT323', monospace !important; }

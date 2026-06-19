@@ -106,6 +106,7 @@ window.abrirTab = function(tab) {
         carregarSessoes();
         carregarNucleos('sessao');
     }
+    else if (tab === 'macro') carregarMacroVisao();
 }
 
 window.abrirModal = async function(id) {
@@ -1941,3 +1942,150 @@ async function carregarSavesEscudo(sessaoId) {
 window.abrirEscudoComSave = function(saveId) {
     window.open(`/escudo_narrador.html?id=${cronicaId}&save=${saveId}`, '_blank');
 }
+
+// ==========================================
+// MACRO-VISÃO (FASE 12) — ÁRVORE DE PROGRESSÃO POR NÚCLEO
+// Tech tree vertical (CSS <ul>/<li>), nós ligados por world_links 'progressao'.
+// Consome MundoApi.buscarArvoreNucleo. Núcleos reais = entidade_nucleos.
+// ==========================================
+let macroNucleoAtual = null;   // núcleo selecionado na aba Macro
+let desbloqueioPaiId = null;   // pai do "Novo Desbloqueio" em curso
+
+// Popula o <select> de núcleos da aba a partir do cache de entidades.
+async function carregarMacroVisao() {
+    if (!nucleosCache.entidade || nucleosCache.entidade.length === 0) await carregarNucleos('entidade');
+    const sel = document.getElementById('macro-nucleo-select');
+    if (!sel) return;
+    const atual = sel.value;
+    sel.innerHTML = '<option value="">Selecione um núcleo...</option>'
+        + nucleosCache.entidade.map(n => `<option value="${escapeHTML(String(n.id))}">${escapeHTML(n.nome)}</option>`).join('');
+    if (atual) sel.value = atual;
+}
+
+window.carregarArvore = async function(nucleoId) {
+    const cont = document.getElementById('macro-arvore');
+    if (!cont) return;
+    macroNucleoAtual = nucleoId || null;
+    if (!nucleoId) {
+        cont.innerHTML = '<div class="info-block-vazio">Selecione um núcleo para ver a árvore de progressão.</div>';
+        return;
+    }
+    cont.innerHTML = '<div class="info-block-vazio"><span class="spinner"></span> A montar a árvore...</div>';
+    let data;
+    try {
+        data = await MundoApi.buscarArvoreNucleo(cronicaId, nucleoId);
+    } catch (e) {
+        cont.innerHTML = '<div class="info-block-vazio">Erro ao carregar a árvore de progressão.</div>';
+        return;
+    }
+    cont.innerHTML = montarArvoreHTML(data.nodes || [], data.links || []);
+    lucide.createIcons();
+};
+
+// Algoritmo: raízes = nós que NÃO são destino de nenhum link; aninha filhos
+// (origem→destino) recursivamente, com guarda de ciclo (visitados).
+function montarArvoreHTML(nodes, links) {
+    if (!nodes.length) {
+        return '<div class="info-block-vazio">Este núcleo ainda não tem entidades. Crie uma na aba Mundo, depois desbloqueie a partir dela aqui.</div>';
+    }
+    const byId = new Map(nodes.map(n => [String(n.id), n]));
+    const filhos = new Map();
+    const ehDestino = new Set();
+    links.forEach(l => {
+        const o = String(l.origem_node_id), d = String(l.destino_node_id);
+        if (!byId.has(o) || !byId.has(d)) return;
+        if (!filhos.has(o)) filhos.set(o, []);
+        filhos.get(o).push(d);
+        ehDestino.add(d);
+    });
+    const visitados = new Set();
+    const renderNo = (id) => {
+        const sid = String(id);
+        const n = byId.get(sid);
+        if (!n || visitados.has(sid)) return ''; // guarda de ciclo
+        visitados.add(sid);
+        const kids = (filhos.get(sid) || []).map(renderNo).join('');
+        return `<li>${techCardHTML(n)}${kids ? `<ul>${kids}</ul>` : ''}</li>`;
+    };
+    const raizes = nodes.filter(n => !ehDestino.has(String(n.id)));
+    const topo = raizes.map(r => renderNo(r.id)).join('');
+    // Defensivo: nós presos em ciclo, nunca alcançados a partir de uma raiz.
+    const orfaos = nodes.filter(n => !visitados.has(String(n.id))).map(n => renderNo(n.id)).join('');
+    return `<ul class="tech-tree-root">${topo}${orfaos}</ul>`;
+}
+
+function techCardHTML(n) {
+    const id = escapeHTML(String(n.id));
+    return `
+        <div class="tech-card-wrap">
+            <div class="tech-card" data-id="${id}" onclick="abrirModalSinapses(this.dataset.id)" title="Abrir conexões de ${escapeHTML(n.nome)}">
+                <i data-lucide="${iconeEntidade(n.tipo)}" class="tech-card-icone"></i>
+                <span class="tech-card-info">
+                    <span class="tech-card-nome">${escapeHTML(n.nome)}</span>
+                    <span class="tech-card-tipo">${escapeHTML(n.tipo)}</span>
+                </span>
+            </div>
+            <button class="btn btn-outline btn-sm tech-card-add" data-pai="${id}" data-nome="${escapeHTML(n.nome)}" onclick="abrirNovoDesbloqueio(this.dataset.pai, this.dataset.nome)"><i data-lucide="plus"></i> Novo Desbloqueio</button>
+        </div>`;
+}
+
+// "Novo Desbloqueio": forja uma entidade no núcleo atual e cria o link 'progressao'
+// do pai para ela. Modal de instância única (padrão dos demais modais da tela).
+window.abrirNovoDesbloqueio = function(paiId, paiNome) {
+    fecharNovoDesbloqueio();
+    desbloqueioPaiId = paiId;
+    const modal = document.createElement('div');
+    modal.className = 'modal show';
+    modal.id = 'modal-desbloqueio';
+    modal.innerHTML = `
+        <div class="modal-box" style="width: 420px; max-width: 92%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                <h3 class="texto-roxo" style="margin: 0; display: flex; align-items: center; gap: 8px;"><i data-lucide="git-merge"></i> Novo Desbloqueio</h3>
+                <button class="btn btn-ghost btn-sm" onclick="fecharNovoDesbloqueio()" title="Fechar"><i data-lucide="x"></i></button>
+            </div>
+            <p class="contrato-tipo" style="text-align: left;">Desbloqueado por: <strong>${escapeHTML(paiNome)}</strong></p>
+            <label>Nome da entidade</label>
+            <input type="text" id="desbloqueio-nome" class="input-sm" style="width: 100%;" placeholder="Ex: Portão Interno" onkeydown="if (event.key === 'Enter') salvarDesbloqueio();">
+            <label style="margin-top: 10px;">Tipo</label>
+            <select id="desbloqueio-tipo" class="input-sm" style="width: 100%;">
+                <option value="npc">NPC</option>
+                <option value="protagonista">Protagonista</option>
+                <option value="faccao">Facção</option>
+                <option value="local">Local</option>
+                <option value="cenario">Cenário Macro</option>
+            </select>
+            <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px;">
+                <button class="btn btn-outline btn-sm" onclick="fecharNovoDesbloqueio()">Cancelar</button>
+                <button class="btn btn-primary btn-sm" onclick="salvarDesbloqueio()"><i data-lucide="check"></i> Criar e ligar</button>
+            </div>
+        </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) fecharNovoDesbloqueio(); });
+    lucide.createIcons();
+    document.getElementById('desbloqueio-nome')?.focus();
+};
+window.fecharNovoDesbloqueio = function() {
+    const m = document.getElementById('modal-desbloqueio');
+    if (m) m.remove();
+};
+window.salvarDesbloqueio = async function() {
+    const nome = document.getElementById('desbloqueio-nome')?.value.trim();
+    const tipo = document.getElementById('desbloqueio-tipo')?.value || 'npc';
+    if (!nome) return mostrarToast('Digite um nome.', 'aviso');
+    if (!macroNucleoAtual || !desbloqueioPaiId) return mostrarToast('Selecione um núcleo primeiro.', 'aviso');
+    try {
+        // 1) forja a entidade atrelada ao núcleo atual
+        const res = await API.fetch(`/cronicas/${cronicaId}/nodes`, {
+            method: 'POST', body: JSON.stringify({ nome, tipo, nucleo_id: macroNucleoAtual })
+        });
+        if (!res.ok) throw new Error('Falha ao criar entidade.');
+        const novo = await res.json();
+        // 2) liga pai → novo nó com tipo_vinculo 'progressao' (constrói a árvore)
+        await MundoApi.criarLink(cronicaId, desbloqueioPaiId, novo.id, 'progressao');
+        mostrarToast('Desbloqueio criado!', 'sucesso');
+        fecharNovoDesbloqueio();
+        await carregarArvore(macroNucleoAtual);
+    } catch (e) {
+        mostrarToast(e.message || 'Erro ao criar desbloqueio.', 'erro');
+    }
+};
