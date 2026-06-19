@@ -17,6 +17,10 @@ let nucleoAtivoTipo = 'entidade'; // 'entidade' | 'evento' | 'sessao'
 let mundoCurrentView = 'grid'; // 'grid' | 'kanban'
 let mundoListaAtual = [];
 
+// Interatividade Passiva (Fase 15.4): dicionário reverse-lookup Marco→Eventos, em
+// memória, p/ latência zero no tooltip de hover. Chave: `${node_id}_${flag_key}`.
+let mapaDependenciasMarcos = {};
+
 let textoBuscaMundo = '';
 let textoBuscaEventos = '';
 let textoBuscaSessoes = '';
@@ -48,6 +52,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             carregarEventos(),
             carregarSessoes()
         ]);
+        construirMapaDependencias(); // silencioso: prepara o reverse-lookup do hover
         
         // Se houver hash de sessão na URL, abre os detalhes
         if (window.location.hash.startsWith('#sessao-')) {
@@ -102,7 +107,7 @@ window.abrirTab = function(tab) {
     if (conteudoTab) conteudoTab.classList.add('ativa');
     
     // Atualiza o conteúdo baseando-se na aba ativa
-    if (tab === 'mundo') carregarMundo(document.getElementById('filtro-nucleo-entidade')?.value);
+    if (tab === 'mundo') { carregarMundo(document.getElementById('filtro-nucleo-entidade')?.value); construirMapaDependencias(); }
     else if (tab === 'eventos') {
         carregarNucleos('evento'); 
         carregarEventos(document.getElementById('filtro-nucleo-evento')?.value);
@@ -350,36 +355,35 @@ function cardMundoHTML(node) {
                 </div>
                 <div class="world-card__acoes">
                     <button class="btn btn-secondary btn-sm" data-id="${node.id}" onclick="abrirModalSinapses(this.dataset.id)" title="Conexões (Sinapses)"><i data-lucide="share-2"></i></button>
-                    <button class="btn btn-primary btn-sm" data-id="${node.id}" data-nome="${escapeHTML(node.nome)}" onclick="editarEntidade(this.dataset.id, this.dataset.nome)" title="Editar nome"><i data-lucide="pencil"></i></button>
-                    <button class="btn btn-danger btn-sm" data-id="${node.id}" data-nome="${escapeHTML(node.nome)}" onclick="deletarEntidade(this.dataset.id, this.dataset.nome)" title="Deletar entidade"><i data-lucide="trash-2"></i></button>
+                    <i data-lucide="more-vertical" class="kebab-trigger cursor-pointer" title="Mais ações" onclick="abrirMenuKebab(event, '${node.id}')"></i>
                 </div>
             </div>
 
             <div class="world-card__marcos-label">Marcos</div>
             <div id="flags-${node.id}" class="world-card__marcos">
-                ${(node.flags || []).filter(f => f.key).map(f => `
-                    <div class="marco-item">
-                        <label class="marco-item__label">
-                            <input type="checkbox" class="marco-item__check" ${f.value ? 'checked' : ''} data-node-id="${node.id}" data-flag-key="${escapeHTML(f.key)}" onchange="toggleFlag(this.dataset.nodeId, this.dataset.flagKey, this.checked)">
-                            <span id="flag-nome-${node.id}-${escapeHTML(f.key)}" class="marco-item__nome" title="${escapeHTML(f.key)}">${escapeHTML(humanizarMarco(f.key))}</span>
-                        </label>
-                        <div class="marco-item__acoes">
-                            <button class="btn btn-primary btn-sm" data-node-id="${node.id}" data-flag-key="${escapeHTML(f.key)}" onclick="editarFlag(this.dataset.nodeId, this.dataset.flagKey)" title="Renomear marco"><i data-lucide="pencil"></i></button>
-                            <button class="btn btn-danger btn-sm" data-node-id="${node.id}" data-flag-key="${escapeHTML(f.key)}" onclick="deletarFlag(this.dataset.nodeId, this.dataset.flagKey)" title="Deletar marco"><i data-lucide="x"></i></button>
-                        </div>
-                    </div>
-                `).join('')}
+                ${(node.flags || []).filter(f => f.key).map(f => marcoItemHTML(node.id, f)).join('')}
+                <input type="text" class="input-inline-marco" maxlength="60" placeholder="+ Novo Marco (Enter)" onkeydown="adicionarMarcoInline(event, '${node.id}')">
             </div>
 
             <div class="world-card__rodape">
                 <div class="world-card__nucleo">
                     <span>Núcleo: <span id="node-nucleo-${node.id}" class="world-card__nucleo-nome">${escapeHTML(node.nucleo_nome || 'Nenhum')}</span></span>
-                    <button class="btn btn-primary btn-sm flex-shrink-0" onclick="moverNodeNucleo('${node.id}')">Mover</button>
                 </div>
-                <button class="btn btn-primary btn-sm world-card__add-marco" onclick="adicionarFlag('${node.id}')"><i data-lucide="plus"></i> Novo Marco</button>
             </div>
         </div>
     `;
+}
+
+// Um item de Marco (extraído p/ reuso no card E no add inline otimista — DRY).
+// Nome editável por duplo-clique (inline); apagar via × que só aparece no hover (Regra 7.2).
+function marcoItemHTML(nodeId, f) {
+    const k = escapeHTML(f.key);
+    return `
+        <div class="marco-item" data-flag-key="${k}">
+            <input type="checkbox" class="marco-item__check" ${f.value ? 'checked' : ''} data-node-id="${nodeId}" data-flag-key="${k}" onchange="toggleFlag(this.dataset.nodeId, this.dataset.flagKey, this.checked)">
+            <span class="marco-item__nome" title="Duplo-clique renomeia" ondblclick="iniciarEdicaoMarco(event, '${nodeId}', '${k}')" onmouseenter="mostrarHoverMarco(event, '${nodeId}', '${k}')" onmouseleave="esconderHoverMarco()">${escapeHTML(humanizarMarco(f.key))}</span>
+            <i data-lucide="x" class="btn-del-marco" title="Apagar marco" onclick="confirmarDeletarMarco(this, '${nodeId}', '${k}')"></i>
+        </div>`;
 }
 
 // Lente GRELHA (renderizador clássico): galeria plana de todas as entidades filtradas.
@@ -537,38 +541,103 @@ window.salvarForja = async function() {
     } catch (err) { mostrarToast('Erro ao forjar entidade.', 'erro'); }
 }
 
-window.editarEntidade = async function(nodeId, nomeAtual) {
-    const novoNome = prompt('Novo nome da entidade:', nomeAtual);
-    if (!novoNome || novoNome.trim() === '' || novoNome === nomeAtual) return;
-
-    try {
-        const res = await API.fetch(`/cronicas/${cronicaId}/nodes/${nodeId}`, {
-            method: 'PUT', body: JSON.stringify({ nome: novoNome.trim() })
-        });
-        if (res.ok) {
-            carregarMundo(document.getElementById('filtro-nucleo-entidade')?.value);
-            const node = nodesCache.find(n => n.id === nodeId);
-            if (node) node.nome = novoNome.trim();
-        } else {
-            const err = await res.json();
-            mostrarToast(err.erro || 'Erro ao editar entidade.', 'erro');
-        }
-    } catch (err) { mostrarToast('Erro de conexão.', 'erro'); }
+// ── MENU KEBAB (Divulgação Progressiva — Regra 7.2) ─────────────────────────
+// Menu flutuante próprio da aba Mundo (a infra de popover da Fase 14 é acoplada ao
+// .board-canvas, outra aba). Click-outside dedicado.
+function kebabOutside(e) { if (!e.target.closest('#menu-kebab')) fecharMenuKebab(); }
+window.fecharMenuKebab = function() {
+    document.getElementById('menu-kebab')?.remove();
+    document.removeEventListener('pointerdown', kebabOutside, true);
+};
+window.abrirMenuKebab = function(e, nodeId) {
+    e.stopPropagation();
+    fecharMenuKebab();
+    const menu = document.createElement('div');
+    menu.className = 'menu-flutuante';
+    menu.id = 'menu-kebab';
+    menu.innerHTML = `
+        <button type="button" class="menu-flutuante__item" onclick="fecharMenuKebab(); iniciarEdicaoNome('${nodeId}');"><i data-lucide="pencil"></i> Editar Entidade</button>
+        <button type="button" class="menu-flutuante__item" onclick="fecharMenuKebab(); moverNodeNucleo('${nodeId}');"><i data-lucide="folder-tree"></i> Mudar Núcleo</button>
+        <button type="button" class="menu-flutuante__item menu-flutuante__item--perigo" onclick="confirmarDeletarEntidade(this, '${nodeId}')"><i data-lucide="trash-2"></i> Deletar</button>`;
+    document.body.appendChild(menu);
+    posicionarMenuFlutuante(menu, e);
+    lucide.createIcons();
+    setTimeout(() => document.addEventListener('pointerdown', kebabOutside, true), 0); // não captura o próprio clique
+};
+function posicionarMenuFlutuante(menu, e) {
+    const mw = menu.offsetWidth || 200, mh = menu.offsetHeight || 130;
+    const vw = window.innerWidth, vh = window.innerHeight;
+    let x = e.clientX, y = e.clientY;
+    if (x + mw + 8 > vw) x = vw - mw - 8;
+    if (y + mh + 8 > vh) y = vh - mh - 8;
+    menu.style.left = Math.max(8, x) + 'px';
+    menu.style.top = Math.max(8, y) + 'px';
 }
 
-window.deletarEntidade = async function(nodeId, nome) {
-    if (!confirm(`Deletar a entidade "${nome}"? Isso removerá TODOS os marcos e vínculos com eventos!`)) return;
-    if (!confirm('Esta ação é IRREVERSÍVEL. Continuar?')) return;
-
+// Deletar entidade em 2 passos dentro do kebab (sem confirm() nativo).
+window.confirmarDeletarEntidade = function(item, nodeId) {
+    if (item.dataset.armado === '1') { executarDeletarEntidade(nodeId); fecharMenuKebab(); return; }
+    item.dataset.armado = '1';
+    item.innerHTML = '<i data-lucide="alert-triangle"></i> Confirmar exclusão?';
+    lucide.createIcons();
+    setTimeout(() => {
+        if (item.isConnected && item.dataset.armado === '1') {
+            item.dataset.armado = '0';
+            item.innerHTML = '<i data-lucide="trash-2"></i> Deletar';
+            lucide.createIcons();
+        }
+    }, 3000);
+};
+async function executarDeletarEntidade(nodeId) {
+    const card = document.querySelector(`.world-card[data-node-id="${cssEscape(nodeId)}"]`);
+    const col = card?.closest('.kanban-column');
     try {
         const res = await API.fetch(`/cronicas/${cronicaId}/nodes/${nodeId}`, { method: 'DELETE' });
-        if (res.ok) carregarMundo(document.getElementById('filtro-nucleo-entidade')?.value);
-        else {
-            const err = await res.json();
-            mostrarToast(err.erro || 'Erro ao deletar entidade.', 'erro');
+        if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.erro); }
+        // Optimistic: remove do DOM + cache, sem recarregar a lista inteira.
+        const cards = card?.parentElement;
+        card?.remove();
+        nodesCache = nodesCache.filter(n => String(n.id) !== String(nodeId));
+        if (col) {
+            atualizarContagemColuna(col);
+            if (cards && !cards.querySelector('.world-card')) cards.innerHTML = '<div class="info-block-vazio">Vazio.</div>';
         }
-    } catch (err) { mostrarToast('Erro de conexão.', 'erro'); }
+        mostrarToast('Entidade deletada.', 'sucesso');
+    } catch (err) { mostrarToast(err.message || 'Erro ao deletar entidade.', 'erro'); }
 }
+
+// Renomear a entidade inline no próprio título do card (Enter salva, Esc cancela).
+window.iniciarEdicaoNome = function(nodeId) {
+    const strong = document.getElementById('node-nome-' + nodeId);
+    if (!strong || strong.querySelector('input')) return;
+    const atual = strong.textContent;
+    const input = document.createElement('input');
+    input.type = 'text'; input.className = 'input-inline-nome'; input.value = atual; input.maxLength = 120;
+    strong.textContent = ''; strong.appendChild(input);
+    input.focus(); input.select();
+    let done = false;
+    const fim = async (salvar) => {
+        if (done) return; done = true;
+        const novo = input.value.trim();
+        if (!salvar || !novo || novo === atual) { strong.textContent = atual; return; }
+        strong.textContent = novo; // optimistic
+        const node = nodesCache.find(n => String(n.id) === String(nodeId));
+        if (node) node.nome = novo;
+        try {
+            const res = await API.fetch(`/cronicas/${cronicaId}/nodes/${nodeId}`, { method: 'PUT', body: JSON.stringify({ nome: novo }) });
+            if (!res.ok) throw new Error();
+        } catch {
+            strong.textContent = atual;
+            if (node) node.nome = atual;
+            mostrarToast('Erro ao renomear. Revertido.', 'erro');
+        }
+    };
+    input.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter') { ev.preventDefault(); fim(true); }
+        else if (ev.key === 'Escape') { ev.preventDefault(); fim(false); }
+    });
+    input.addEventListener('blur', () => fim(true));
+};
 
 // ==========================================
 // SINAPSES (CONEXÕES BIDIRECIONAIS ENTRE ENTIDADES)
@@ -968,44 +1037,174 @@ window.toggleFlag = async function(nodeId, flagKey, value) {
     } catch (err) { console.error(err); }
 }
 
-window.adicionarFlag = async function(nodeId) {
-    const nome = prompt('Nome do novo Marco:');
+// Criar Marco inline (Enter) — Optimistic UI. Espelha a normalização do backend
+// (`flag_key.trim().toLowerCase().replace(/\s+/g,'_')`, mundoController.js) para a
+// chave otimista bater com a persistida (toggle/apagar funcionam sem reload).
+window.adicionarMarcoInline = async function(e, nodeId) {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    const input = e.target;
+    const nome = input.value.trim();
     if (!nome) return;
-    await API.fetch(`/cronicas/${cronicaId}/nodes/${nodeId}/flags`, {
-        method: 'POST', body: JSON.stringify({ flag_key: nome })
-    });
-    carregarMundo(document.getElementById('filtro-nucleo-entidade')?.value);
-}
-
-window.editarFlag = async function(nodeId, flagKey) {
-    const novoNome = prompt('Novo nome do marco:', humanizarMarco(flagKey));
-    if (!novoNome || novoNome.trim() === '' || novoNome === flagKey) return;
-
+    const chave = nome.toLowerCase().replace(/\s+/g, '_');
+    const node = nodesCache.find(n => String(n.id) === String(nodeId));
+    if (node?.flags?.some(f => f.key === chave)) return mostrarToast('Esse marco já existe.', 'aviso');
+    input.value = '';
     try {
-        const res = await API.fetch(`/cronicas/${cronicaId}/nodes/${nodeId}/flags/${flagKey}`, {
-            method: 'PUT', body: JSON.stringify({ novo_nome: novoNome.trim().toLowerCase().replace(/\s+/g, '_') })
+        const res = await API.fetch(`/cronicas/${cronicaId}/nodes/${nodeId}/flags`, {
+            method: 'POST', body: JSON.stringify({ flag_key: nome })
         });
-        if (res.ok) carregarMundo(document.getElementById('filtro-nucleo-entidade')?.value);
-        else {
-            const err = await res.json();
-            mostrarToast(err.erro || 'Erro ao renomear marco.', 'erro');
-        }
-    } catch (err) { mostrarToast('Erro de conexão.', 'erro'); }
+        if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.erro); }
+        if (node) { node.flags = node.flags || []; node.flags.push({ key: chave, value: false }); }
+        input.insertAdjacentHTML('beforebegin', marcoItemHTML(nodeId, { key: chave, value: false }));
+        lucide.createIcons();
+        input.focus(); // permite encadear vários marcos
+    } catch (err) {
+        input.value = nome; // devolve o texto p/ o utilizador tentar de novo
+        mostrarToast(err.message || 'Erro ao criar marco.', 'erro');
+    }
+};
+
+// Renomear marco inline (duplo-clique no nome). Re-renderiza só o item (chaves/handlers coerentes).
+window.iniciarEdicaoMarco = function(e, nodeId, flagKey) {
+    e.stopPropagation();
+    const item = e.target.closest('.marco-item');
+    const span = item?.querySelector('.marco-item__nome');
+    if (!span || span.querySelector('input')) return;
+    const atual = span.textContent;
+    const input = document.createElement('input');
+    input.type = 'text'; input.className = 'input-inline-marco input-inline-marco--edit'; input.value = atual; input.maxLength = 60;
+    span.textContent = ''; span.appendChild(input);
+    input.focus(); input.select();
+    let done = false;
+    const fim = async (salvar) => {
+        if (done) return; done = true;
+        const novo = input.value.trim();
+        if (!salvar || !novo || novo === atual) { span.textContent = atual; return; }
+        try {
+            const res = await API.fetch(`/cronicas/${cronicaId}/nodes/${nodeId}/flags/${flagKey}`, {
+                method: 'PUT', body: JSON.stringify({ novo_nome: novo })
+            });
+            if (!res.ok) throw new Error();
+            const novaKey = novo.toLowerCase().replace(/\s+/g, '_');
+            const node = nodesCache.find(n => String(n.id) === String(nodeId));
+            const fl = node?.flags?.find(f => f.key === flagKey); if (fl) fl.key = novaKey;
+            const checked = item.querySelector('.marco-item__check')?.checked;
+            item.outerHTML = marcoItemHTML(nodeId, { key: novaKey, value: checked });
+            lucide.createIcons();
+        } catch { span.textContent = atual; mostrarToast('Erro ao renomear marco.', 'erro'); }
+    };
+    input.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter') { ev.preventDefault(); fim(true); }
+        else if (ev.key === 'Escape') { ev.preventDefault(); fim(false); }
+    });
+    input.addEventListener('blur', () => fim(true));
+};
+
+// Apagar marco em 2 passos inline: × → botão "apagar?" (3s) → executa (sem confirm() nativo).
+window.confirmarDeletarMarco = function(icon, nodeId, flagKey) {
+    const item = icon.closest('.marco-item'); // referência sobrevive ao outerHTML do filho
+    icon.outerHTML = `<button type="button" class="btn-del-marco-confirmar" onclick="executarDeletarMarco('${nodeId}', '${flagKey}', this)">apagar?</button>`;
+    const btn = item?.querySelector('.btn-del-marco-confirmar'); // escopado ao card certo
+    if (btn) btn._timer = setTimeout(() => reverterDelMarco(btn, nodeId, flagKey), 3000);
+};
+function reverterDelMarco(btn, nodeId, flagKey) {
+    if (btn && btn.isConnected) {
+        btn.outerHTML = `<i data-lucide="x" class="btn-del-marco" title="Apagar marco" onclick="confirmarDeletarMarco(this, '${nodeId}', '${flagKey}')"></i>`;
+        lucide.createIcons();
+    }
 }
-
-window.deletarFlag = async function(nodeId, flagKey) {
-    if (!confirm(`Deletar o marco "${humanizarMarco(flagKey)}"? Isso removerá os vínculos com eventos!`)) return;
-
+async function executarDeletarMarco(nodeId, flagKey, btn) {
+    if (btn?._timer) clearTimeout(btn._timer);
+    const item = btn?.closest('.marco-item');
     try {
         const res = await API.fetch(`/cronicas/${cronicaId}/nodes/${nodeId}/flags/${flagKey}`, { method: 'DELETE' });
-        if (res.ok) {
-            carregarMundo(document.getElementById('filtro-nucleo-entidade')?.value);
-            if (document.getElementById('tab-eventos')?.classList.contains('ativa')) carregarEventos();
-        } else {
-            const err = await res.json();
-            mostrarToast(err.erro || 'Erro ao deletar marco.', 'erro');
-        }
-    } catch (err) { mostrarToast('Erro de conexão.', 'erro'); }
+        if (!res.ok) throw new Error();
+        item?.remove();
+        const node = nodesCache.find(n => String(n.id) === String(nodeId));
+        if (node?.flags) node.flags = node.flags.filter(f => f.key !== flagKey);
+        if (document.getElementById('tab-eventos')?.classList.contains('ativa')) carregarEventos();
+    } catch { mostrarToast('Erro ao deletar marco.', 'erro'); reverterDelMarco(btn, nodeId, flagKey); }
+}
+
+// ── INTERATIVIDADE PASSIVA: HOVER PREVIEW DE DEPENDÊNCIAS (FASE 15.4) ────────
+// Constrói o reverse-lookup Marco→Eventos a partir dos gatilhos (event_flag_weights,
+// expostos com node_id na query). Silencioso; latência zero no hover depois disto.
+async function construirMapaDependencias() {
+    mapaDependenciasMarcos = {};
+    let eventos = [];
+    try { eventos = await EventosApi.getEventos(cronicaId); } catch { return; }
+    eventos.forEach(ev => {
+        let gatilhos = ev.gatilhos;
+        if (typeof gatilhos === 'string') { try { gatilhos = JSON.parse(gatilhos); } catch { gatilhos = []; } }
+        if (!Array.isArray(gatilhos)) return;
+        gatilhos.forEach(g => {
+            if (!g || !g.node_id || !g.flag_key) return; // defensivo (Regra 4.2)
+            const chave = `${g.node_id}_${g.flag_key}`;
+            (mapaDependenciasMarcos[chave] ||= []).push({
+                idEvento: ev.id,
+                nomeEvento: ev.nome,
+                peso: g.peso,
+                pool_atual: ev.pool_atual,
+                pool_maxima: ev.pool_maxima
+            });
+        });
+    });
+}
+
+// Container único do tooltip (criado sob demanda, ancorado ao body).
+function ensureTooltipEl() {
+    let tip = document.getElementById('hover-preview-tooltip');
+    if (!tip) {
+        tip = document.createElement('div');
+        tip.id = 'hover-preview-tooltip';
+        tip.className = 'hover-preview-hidden';
+        document.body.appendChild(tip);
+    }
+    return tip;
+}
+window.mostrarHoverMarco = function(e, nodeId, flagKey) {
+    const deps = mapaDependenciasMarcos[`${nodeId}_${flagKey}`];
+    if (!deps || !deps.length) return; // marco sem evento atrelado → nada
+    const tip = ensureTooltipEl();
+    // Ícone Lucide (NUNCA emoji — Regra 2.3). Conteúdo rico: nome + peso + barra do pool.
+    tip.innerHTML = `
+        <div class="hover-preview-head"><i data-lucide="link"></i> Alimenta os Eventos:</div>
+        ${deps.map(d => {
+            const max = Number(d.pool_maxima) || 0;
+            const atual = Number(d.pool_atual) || 0;
+            const pct = max > 0 ? Math.min(100, Math.round((atual / max) * 100)) : 0;
+            return `<div class="hover-preview-evento">
+                <div class="hover-preview-evento__top">
+                    <span class="hover-preview-evento__nome">${escapeHTML(d.nomeEvento)}</span>
+                    <span class="hover-preview-evento__peso">+${escapeHTML(String(d.peso))}</span>
+                </div>
+                <div class="hover-preview-bar"><div class="hover-preview-bar__fill" style="width: ${pct}%;"></div></div>
+                <div class="hover-preview-evento__pool">${escapeHTML(String(atual))}/${escapeHTML(String(max))}</div>
+            </div>`;
+        }).join('')}`;
+    lucide.createIcons();
+    posicionarTooltip(tip, e.target);
+    tip.classList.remove('hover-preview-hidden');
+    tip.classList.add('hover-preview-visible');
+};
+window.esconderHoverMarco = function() {
+    const tip = document.getElementById('hover-preview-tooltip');
+    if (!tip) return;
+    tip.classList.remove('hover-preview-visible');
+    tip.classList.add('hover-preview-hidden');
+};
+// À direita do marco (vira p/ esquerda se faltar espaço); centrado e preso à viewport.
+function posicionarTooltip(tip, target) {
+    const r = target.getBoundingClientRect();
+    const tw = tip.offsetWidth, th = tip.offsetHeight, gap = 10;
+    let x = r.right + gap;
+    if (x + tw + 8 > window.innerWidth) x = r.left - tw - gap; // flip esquerda
+    x = Math.max(8, x);
+    let y = r.top + r.height / 2 - th / 2;
+    y = Math.max(8, Math.min(y, window.innerHeight - th - 8));
+    tip.style.left = Math.round(x) + 'px';
+    tip.style.top = Math.round(y) + 'px';
 }
 
 // ==========================================

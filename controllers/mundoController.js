@@ -374,7 +374,7 @@ exports.listarEventos = async (req, res) => {
                     WHERE en.event_id = e.id
                 ) AS nucleos,
                 (
-                    SELECT COALESCE(json_agg(json_build_object('node_nome', wn.nome, 'flag_key', w.flag_key, 'peso', w.peso)), '[]'::json)
+                    SELECT COALESCE(json_agg(json_build_object('node_id', w.node_id, 'node_nome', wn.nome, 'flag_key', w.flag_key, 'peso', w.peso)), '[]'::json)
                     FROM event_flag_weights w
                     JOIN world_nodes wn ON w.node_id = wn.id
                     WHERE w.event_id = e.id

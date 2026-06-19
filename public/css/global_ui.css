@@ -542,7 +542,26 @@ label {
     white-space: nowrap;
 }
 .world-card__tipo { width: fit-content; }
-.world-card__acoes { display: flex; gap: 6px; flex-shrink: 0; }
+/* Divulgação Progressiva (Regra 7.2): ações secundárias só no hover/foco do card. */
+.world-card__acoes {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: var(--transicao-suave);
+}
+.world-card:hover .world-card__acoes,
+.world-card:focus-within .world-card__acoes { opacity: 1; }
+.kebab-trigger {
+    width: 20px;
+    height: 20px;
+    color: var(--texto-mutado);
+    border-radius: 4px;
+    transition: var(--transicao-suave);
+}
+.kebab-trigger:hover { color: var(--texto-claro); background: rgba(255, 255, 255, 0.08); }
+.cursor-pointer { cursor: pointer; }
 .world-card__marcos-label {
     font-size: 11px;
     letter-spacing: 0.08em;
@@ -571,12 +590,10 @@ label {
     text-overflow: ellipsis;
 }
 .world-card__nucleo-nome { color: var(--texto-claro); }
-.world-card__add-marco { width: 100%; justify-content: center; }
 
-/* ── MARCO (ex-flag) — linha refinada ──────────────────── */
+/* ── MARCO (ex-flag) — linha refinada + edição inline (Fase 15.3) ─────── */
 .marco-item {
     display: flex;
-    justify-content: space-between;
     align-items: center;
     width: 100%;
     gap: 10px;
@@ -585,33 +602,161 @@ label {
     border-radius: 4px;
     transition: var(--transicao-suave);
 }
-.marco-item:last-child { border-bottom: none; }
 .marco-item:hover { background: var(--bg-principal); }
-.marco-item__label {
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 15px;
-    flex: 1;
-    min-width: 0;
-}
 .marco-item__check { margin: 0; width: 18px; height: 18px; flex-shrink: 0; cursor: pointer; }
 .marco-item__nome {
+    flex: 1;
+    min-width: 0;
+    font-size: 15px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     color: var(--texto-claro);
+    cursor: text;
 }
-.marco-item__acoes {
-    display: flex;
-    gap: 4px;
+/* Apagar marco: × oculto, só aparece no hover (Regra 7.2). */
+.marco-item .btn-del-marco {
+    display: none;
+    width: 15px;
+    height: 15px;
     flex-shrink: 0;
-    opacity: 0;
+    cursor: pointer;
+    color: var(--erro);
+    opacity: 0.7;
+}
+.marco-item:hover .btn-del-marco { display: inline-block; }
+.marco-item .btn-del-marco:hover { opacity: 1; }
+.btn-del-marco-confirmar {
+    flex-shrink: 0;
+    padding: 1px 6px;
+    font-size: 0.75em;
+    font-family: inherit;
+    color: #ffffff;
+    background: var(--erro);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+/* Inputs de edição inline (criar/renomear marco, renomear entidade): subtis, sem moldura pesada. */
+.input-inline-marco {
+    background: transparent;
+    border: none;
+    border-bottom: 1px dashed var(--borda);
+    color: var(--texto-claro);
+    font-family: inherit;
+    font-size: 0.85em;
+    outline: none;
+    width: 100%;
+    padding: 4px 2px;
+}
+.input-inline-marco::placeholder { color: var(--texto-mutado); }
+.input-inline-marco:focus { border-bottom-color: var(--roxo-mago); }
+.input-inline-marco--edit { font-size: 15px; }
+.input-inline-nome {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 1px dashed var(--roxo-mago);
+    color: var(--texto-claro);
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    outline: none;
+    padding: 0;
+}
+
+/* Menu flutuante (kebab) — Divulgação Progressiva. Ancorado ao body, fecha ao clicar fora. */
+.menu-flutuante {
+    position: fixed;
+    z-index: 1000;
+    min-width: 190px;
+    padding: 6px;
+    background: var(--bg-card);
+    border: 1px solid var(--borda);
+    border-radius: 8px;
+    box-shadow: var(--sombra-profunda);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.menu-flutuante__item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 10px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    text-align: left;
+    color: var(--texto-claro);
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
     transition: var(--transicao-suave);
 }
-.marco-item:hover .marco-item__acoes,
-.marco-item:focus-within .marco-item__acoes { opacity: 1; }
+.menu-flutuante__item:hover { background: var(--bg-principal); }
+.menu-flutuante__item i { width: 16px; height: 16px; }
+.menu-flutuante__item--perigo { color: var(--erro); }
+.menu-flutuante__item--perigo:hover { background: color-mix(in srgb, var(--erro) 14%, var(--bg-card)); }
+
+/* ── HOVER PREVIEW: Interatividade Passiva (Fase 15.4) ──────────────────── */
+#hover-preview-tooltip {
+    position: fixed;
+    z-index: 9999;
+    background: var(--bg-secundario);
+    border: 1px solid var(--borda);
+    border-radius: 6px;
+    padding: 12px;
+    box-shadow: 0 4px 12px var(--sombra-profunda);
+    pointer-events: none;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    width: max-content;
+    max-width: 250px;
+    font-size: 0.9em;
+}
+.hover-preview-hidden { opacity: 0; transform: translateY(5px); }
+.hover-preview-visible { opacity: 1; transform: translateY(0); }
+.hover-preview-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+    font-size: 0.8em;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--texto-mutado);
+}
+.hover-preview-head i { width: 13px; height: 13px; color: var(--roxo-mago); }
+.hover-preview-evento { margin-top: 8px; }
+.hover-preview-evento:first-of-type { margin-top: 0; }
+.hover-preview-evento__top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 4px;
+}
+.hover-preview-evento__nome { color: var(--texto-claro); font-weight: 600; }
+.hover-preview-evento__peso { font-family: 'Fira Code', monospace; font-size: 0.85em; color: var(--roxo-mago); flex-shrink: 0; }
+.hover-preview-bar {
+    height: 6px;
+    background: var(--bg-principal);
+    border: 1px solid var(--borda);
+    border-radius: 4px;
+    overflow: hidden;
+}
+.hover-preview-bar__fill { height: 100%; background: var(--roxo-mago); transition: width 0.2s ease; }
+.hover-preview-evento__pool {
+    margin-top: 3px;
+    font-family: 'Fira Code', monospace;
+    font-size: 0.8em;
+    color: var(--texto-mutado);
+    text-align: right;
+}
+.tema-pixel-16bit #hover-preview-tooltip,
+.tema-pixel-16bit .hover-preview-bar { border-radius: 0 !important; }
+.tema-pixel-16bit .menu-flutuante { border-radius: 0 !important; }
 
 /* ── BARRAS DE PROGRESSO ───────────────────────────────── */
 .barra-bg {
