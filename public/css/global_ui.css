@@ -25,6 +25,7 @@
     --azul-vida:       #3b82f6;
     --pressao-baixa:   #f0a020;
     --pressao-alta:    #7a1420;
+    --rosa:            #ec4899;
     --link-aliado:      #22c55e;
     --link-inimigo:     #ef4444;
     --link-associado:   #eab308;
@@ -2100,31 +2101,55 @@ input[type="radio"] {
     fill: currentColor;
 }
 
-/* ── MESA DE GUERRA (FASE 12 refatorada): CANVAS ESPACIAL ── */
-/* Canvas livre com fundo pontilhado; cards posicionados em px (dados.x/y). */
-.war-table-canvas {
-    position: relative;
-    overflow: auto;
-    width: 100%;
-    height: 600px;
-    background-color: var(--bg-principal);
-    background-image: radial-gradient(circle, var(--borda) 1px, transparent 1px);
-    background-size: 20px 20px;
+/* ── TABULEIRO DE CAMPANHA (FASE 13): INFINITE CANVAS ── */
+/* Toolbar flutuante no topo (dropdown de boards + ações). */
+.board-toolbar {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 10px;
+    padding: 8px 10px;
+    background: var(--bg-card-glass);
+    backdrop-filter: blur(8px);
     border: 1px solid var(--borda);
     border-radius: 8px;
 }
-.war-table-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
-.war-line {
-    fill: none;
-    stroke: color-mix(in srgb, var(--roxo-mago) 60%, transparent);
-    stroke-width: 2;
-}
-.war-table-vazio { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); max-width: 80%; }
+.board-toolbar select { min-width: 180px; }
 
-/* Card dark-fantasy glass (coeso com o app). Posição (left/top) é dinâmica/data-driven. */
-.war-table-card {
+/* Viewport (clipa) + mundo transformável (Pan/Zoom via transform). */
+.board-canvas {
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    height: 600px;
+    background: var(--bg-principal);
+    border: 1px solid var(--borda);
+    border-radius: 8px;
+    cursor: grab;
+    touch-action: none;
+}
+.board-canvas.panning { cursor: grabbing; }
+.board-world { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform-origin: 0 0; }
+/* Grid pontilhado no mundo, para acompanhar Pan/Zoom (fundo "infinito"). */
+.board-world::before {
+    content: '';
     position: absolute;
-    z-index: 2;
+    left: -2000px;
+    top: -2000px;
+    width: 6000px;
+    height: 6000px;
+    z-index: 0;
+    pointer-events: none;
+    background-image: radial-gradient(circle, var(--borda) 1px, transparent 1px);
+    background-size: 20px 20px;
+}
+.board-vazio { position: absolute; left: 50%; top: 40%; transform: translateX(-50%); z-index: 1; }
+
+/* Card de entidade (glass dark-fantasy). Cor-acento via token (.board-cor-*). */
+.board-card {
+    position: absolute;
+    z-index: 3;
     cursor: grab;
     user-select: none;
     display: flex;
@@ -2132,34 +2157,109 @@ input[type="radio"] {
     gap: 10px;
     width: 180px;
     padding: 10px 12px;
+    --board-accent: var(--roxo-mago);
     background: var(--bg-card-glass);
     backdrop-filter: blur(8px);
-    border: 1px solid var(--borda);
+    border: 1px solid var(--board-accent);
     border-radius: 8px;
     box-shadow: var(--sombra);
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
-.war-table-card:hover { border-color: var(--roxo-mago); box-shadow: 0 6px 18px var(--sombra-profunda); }
-.war-table-card.dragging { cursor: grabbing; z-index: 4; box-shadow: 0 10px 26px var(--sombra-profunda); }
-.war-table-card.raiz { border: 2px solid var(--roxo-mago); }
-.war-card-icone { width: 28px; height: 28px; color: var(--roxo-mago); flex-shrink: 0; }
-.war-card-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.war-card-nome { font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.war-card-cargo {
+.board-card:hover { box-shadow: 0 6px 18px var(--sombra-profunda); }
+.board-card.dragging { cursor: grabbing; z-index: 4; box-shadow: 0 10px 26px var(--sombra-profunda); }
+.board-card-icone { width: 28px; height: 28px; color: var(--board-accent); flex-shrink: 0; }
+.board-card-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.board-card-nome { font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.board-card-tipo {
     font-family: 'Fira Code', monospace;
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.06em;
     color: var(--texto-mutado);
 }
+.board-card-remover {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    cursor: pointer;
+    color: var(--texto-mutado);
+    opacity: 0;
+    transition: var(--transicao-suave);
+}
+.board-card:hover .board-card-remover { opacity: 1; }
+.board-card-remover:hover { color: var(--erro); }
 
-/* Popover de hierarquia (2º clique): grade de ícones + cargo. */
-.war-card-popover {
+/* Cores como tokens → variáveis CSS (Regra 2.5, nunca hex direto). */
+.board-cor-roxo     { --board-accent: var(--roxo-mago); }
+.board-cor-azul     { --board-accent: var(--azul-vida); }
+.board-cor-verde    { --board-accent: var(--destaque); }
+.board-cor-ambar    { --board-accent: var(--aviso); }
+.board-cor-vermelho { --board-accent: var(--erro); }
+.board-cor-cinza    { --board-accent: var(--texto-mutado); }
+.board-cor-rosa     { --board-accent: var(--rosa); }
+
+/* Zonas (shapes): retângulos de agrupamento, rótulo recortado na borda (legend). */
+.board-shape {
     position: absolute;
-    top: calc(100% + 6px);
-    left: 0;
-    z-index: 5;
-    width: 210px;
+    z-index: 1; /* sob os cards (z-2) — agrupa sem cobrir */
+    --board-accent: var(--roxo-mago);
+    border: 2px solid var(--board-accent);
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--board-accent) 7%, transparent);
+    cursor: grab;
+    user-select: none;
+}
+.board-shape-label {
+    position: absolute;
+    top: -11px;
+    left: 12px;
+    max-width: calc(100% - 44px);
+    padding: 0 6px;
+    background: var(--bg-principal);
+    color: var(--board-accent);
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: text;
+}
+.board-shape-remover {
+    position: absolute;
+    top: -10px;
+    right: 8px;
+    width: 14px;
+    height: 14px;
+    background: var(--bg-principal);
+    color: var(--texto-mutado);
+    cursor: pointer;
+    opacity: 0;
+    transition: var(--transicao-suave);
+}
+.board-shape:hover .board-shape-remover { opacity: 1; }
+.board-shape-remover:hover { color: var(--erro); }
+.board-shape-resize {
+    position: absolute;
+    right: -2px;
+    bottom: -2px;
+    width: 14px;
+    height: 14px;
+    cursor: nwse-resize;
+    border-right: 3px solid var(--board-accent);
+    border-bottom: 3px solid var(--board-accent);
+    border-bottom-right-radius: 6px;
+}
+
+/* Linhas (SVG): camada entre zonas (z1) e cards (z3). overflow visible p/ coords negativas. */
+.board-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 2; }
+.board-line { fill: none; stroke-width: 2.5; pointer-events: none; }
+.board-line-hit { fill: none; stroke: transparent; stroke-width: 14; pointer-events: stroke; cursor: pointer; }
+
+/* Popover de edição (linha ou nó) — ancorado ao canvas (fora do transform). */
+.board-popover {
+    position: absolute;
+    z-index: 10;
+    width: 224px;
     padding: 12px;
     background: var(--bg-card);
     border: 1px solid var(--roxo-mago);
@@ -2167,8 +2267,33 @@ input[type="radio"] {
     box-shadow: var(--sombra-profunda);
     cursor: default;
 }
-.war-icone-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 6px 0 10px; }
-.war-icone-opt {
+.board-estilo-row { display: flex; gap: 6px; margin: 4px 0 10px; }
+.board-estilo-opt {
+    flex: 1;
+    padding: 5px 6px;
+    font-size: 12px;
+    background: var(--bg-principal);
+    border: 1px solid var(--borda);
+    border-radius: 4px;
+    color: var(--texto-mutado);
+    cursor: pointer;
+    transition: var(--transicao-suave);
+}
+.board-estilo-opt:hover { border-color: var(--roxo-mago); color: var(--texto-claro); }
+.board-estilo-opt.sel { border-color: var(--roxo-mago); color: var(--roxo-mago); background: color-mix(in srgb, var(--roxo-mago) 14%, var(--bg-principal)); }
+.board-cor-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin: 4px 0 10px; }
+.board-cor-swatch {
+    width: 100%;
+    aspect-ratio: 1;
+    padding: 0;
+    background: var(--board-accent);
+    border: 2px solid transparent;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.board-cor-swatch.sel { border-color: var(--texto-claro); }
+.board-icone-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin: 4px 0 10px; }
+.board-icone-opt {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2180,17 +2305,18 @@ input[type="radio"] {
     cursor: pointer;
     transition: var(--transicao-suave);
 }
-.war-icone-opt:hover { border-color: var(--roxo-mago); color: var(--texto-claro); }
-.war-icone-opt.sel {
-    border-color: var(--roxo-mago);
-    color: var(--roxo-mago);
-    background: color-mix(in srgb, var(--roxo-mago) 14%, var(--bg-principal));
-}
-.war-icone-opt i { width: 18px; height: 18px; }
+.board-icone-opt:hover { border-color: var(--roxo-mago); color: var(--texto-claro); }
+.board-icone-opt.sel { border-color: var(--roxo-mago); color: var(--roxo-mago); }
+.board-icone-opt i { width: 16px; height: 16px; }
+.board-popover-acoes { display: flex; justify-content: space-between; gap: 8px; }
 
-/* Coerência 16-bit: bordas retas. */
-.tema-pixel-16bit .war-table-canvas,
-.tema-pixel-16bit .war-table-card,
-.tema-pixel-16bit .war-card-popover,
-.tema-pixel-16bit .war-icone-opt { border-radius: 0 !important; }
-.tema-pixel-16bit .war-card-cargo { font-family: 'VT323', monospace !important; }
+/* Coerência 16-bit: bordas retas + numerais pixelados. */
+.tema-pixel-16bit .board-toolbar,
+.tema-pixel-16bit .board-canvas,
+.tema-pixel-16bit .board-card,
+.tema-pixel-16bit .board-shape,
+.tema-pixel-16bit .board-popover,
+.tema-pixel-16bit .board-estilo-opt,
+.tema-pixel-16bit .board-cor-swatch,
+.tema-pixel-16bit .board-icone-opt { border-radius: 0 !important; }
+.tema-pixel-16bit .board-card-tipo { font-family: 'VT323', monospace !important; }

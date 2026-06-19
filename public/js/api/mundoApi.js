@@ -147,5 +147,36 @@ const MundoApi = {
         });
         if (!res.ok) throw new Error('Falha ao atualizar conexão.');
         return res.json();
+    },
+
+    // ── TABULEIROS DE CAMPANHA (FASE 13) — world_boards ──
+    async listarBoards(cronicaId) {
+        const res = await API.fetch(`/cronicas/${cronicaId}/boards`);
+        if (!res.ok) throw new Error('Falha ao listar tabuleiros.');
+        return res.json();
+    },
+    async buscarBoard(cronicaId, boardId) {
+        const res = await API.fetch(`/cronicas/${cronicaId}/boards/${boardId}`);
+        if (!res.ok) throw new Error('Falha ao carregar o tabuleiro.');
+        return res.json(); // { id, nome, dados, ..., atualizado_automaticamente }
+    },
+    async criarBoard(cronicaId, nome, dados = {}) {
+        const res = await API.fetch(`/cronicas/${cronicaId}/boards`, {
+            method: 'POST', body: JSON.stringify({ nome, dados })
+        });
+        if (!res.ok) throw new Error('Falha ao criar o tabuleiro.');
+        return res.json();
+    },
+    async atualizarBoard(cronicaId, boardId, payload) {
+        const res = await API.fetch(`/cronicas/${cronicaId}/boards/${boardId}`, {
+            method: 'PUT', body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error('Falha ao salvar o tabuleiro.');
+        return res.json();
+    },
+    async deletarBoard(cronicaId, boardId) {
+        const res = await API.fetch(`/cronicas/${cronicaId}/boards/${boardId}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Falha ao remover o tabuleiro.');
+        return res.json();
     }
 };
