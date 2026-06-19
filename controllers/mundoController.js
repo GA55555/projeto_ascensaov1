@@ -673,37 +673,3 @@ exports.atualizarLink = async (req, res) => {
         res.status(500).json({ erro: 'Erro ao atualizar detalhes da conexão.' });
     }
 };
-
-// =======================================================
-// MACRO-VISÃO (FASE 12) — ÁRVORE DE PROGRESSÃO POR NÚCLEO
-// Devolve { nodes, links } de um núcleo: todos os world_nodes do núcleo + os
-// world_links 'progressao' cujos DOIS extremos pertencem ao mesmo núcleo.
-// Escopo por cronica_id isola tenants (Regra 3.3.1); nucleoId é apenas filtro,
-// então um nucleoId de outra crônica devolve conjuntos vazios (não vaza dados).
-// =======================================================
-exports.getArvoreNucleo = async (req, res) => {
-    const { cronicaId, nucleoId } = req.params;
-    try {
-        const nodes = await pool.query(
-            `SELECT id, nome, tipo, nucleo_id
-               FROM world_nodes
-              WHERE cronica_id = $1 AND nucleo_id = $2
-              ORDER BY nome`,
-            [cronicaId, nucleoId]
-        );
-        const links = await pool.query(
-            `SELECT l.id, l.origem_node_id, l.destino_node_id, l.tipo_vinculo
-               FROM world_links l
-               JOIN world_nodes o ON o.id = l.origem_node_id
-               JOIN world_nodes d ON d.id = l.destino_node_id
-              WHERE l.cronica_id = $1
-                AND l.tipo_vinculo = 'progressao'
-                AND o.nucleo_id = $2 AND d.nucleo_id = $2`,
-            [cronicaId, nucleoId]
-        );
-        res.json({ nodes: nodes.rows, links: links.rows });
-    } catch (err) {
-        console.error('Erro ao montar árvore do núcleo:', err);
-        res.status(500).json({ erro: 'Erro ao carregar a árvore de progressão.' });
-    }
-};

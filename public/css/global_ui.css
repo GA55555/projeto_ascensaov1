@@ -25,7 +25,6 @@
     --azul-vida:       #3b82f6;
     --pressao-baixa:   #f0a020;
     --pressao-alta:    #7a1420;
-    --tech-neon:       #22d3ee;
     --link-aliado:      #22c55e;
     --link-inimigo:     #ef4444;
     --link-associado:   #eab308;
@@ -2101,108 +2100,97 @@ input[type="radio"] {
     fill: currentColor;
 }
 
-/* ── MACRO-VISÃO (FASE 12): ÁRVORE DE PROGRESSÃO (CSS TREE VERTICAL) ── */
-/* Tech tree puro em <ul>/<li> com conectores via ::before/::after. Sem libs. */
-.tech-tree { overflow-x: auto; padding: 10px 4px 24px; }
-.tech-tree ul {
+/* ── MESA DE GUERRA (FASE 12 refatorada): CANVAS ESPACIAL ── */
+/* Canvas livre com fundo pontilhado; cards posicionados em px (dados.x/y). */
+.war-table-canvas {
     position: relative;
-    display: flex;
-    justify-content: center;
-    padding-top: 22px;
-    list-style: none;
-    margin: 0;
+    overflow: auto;
+    width: 100%;
+    height: 600px;
+    background-color: var(--bg-principal);
+    background-image: radial-gradient(circle, var(--borda) 1px, transparent 1px);
+    background-size: 20px 20px;
+    border: 1px solid var(--borda);
+    border-radius: 8px;
 }
-.tech-tree-root { padding-top: 0; }
-.tech-tree li {
-    position: relative;
-    list-style: none;
-    text-align: center;
-    padding: 22px 12px 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+.war-table-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+.war-line {
+    fill: none;
+    stroke: color-mix(in srgb, var(--roxo-mago) 60%, transparent);
+    stroke-width: 2;
 }
-/* Conectores horizontais (topo de cada li). Cor neon esmaecida (Sci-fi escolhido). */
-.tech-tree li::before,
-.tech-tree li::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 50%;
-    width: 50%;
-    height: 22px;
-    border-top: 2px solid color-mix(in srgb, var(--tech-neon) 55%, transparent);
-}
-.tech-tree li::after {
-    right: auto;
-    left: 50%;
-    border-left: 2px solid color-mix(in srgb, var(--tech-neon) 55%, transparent);
-}
-/* Filho único: sem cotovelos, só o tronco vertical. */
-.tech-tree li:only-child::before,
-.tech-tree li:only-child::after { display: none; }
-.tech-tree li:only-child { padding-top: 22px; }
-/* Pontas: remove a metade externa e arredonda levemente a curva. */
-.tech-tree li:first-child::before,
-.tech-tree li:last-child::after { border: 0 none; }
-.tech-tree li:last-child::before { border-right: 2px solid color-mix(in srgb, var(--tech-neon) 55%, transparent); }
-/* Tronco vertical descendo de cada nó pai para o grupo de filhos. */
-.tech-tree ul ul::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 50%;
-    width: 0;
-    height: 22px;
-    border-left: 2px solid color-mix(in srgb, var(--tech-neon) 55%, transparent);
-}
+.war-table-vazio { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); max-width: 80%; }
 
-/* Card Sci-fi/Neon (escolha do utilizador) — contido a este componente. */
-.tech-card-wrap { display: inline-flex; flex-direction: column; align-items: center; gap: 6px; }
-.tech-card {
-    position: relative;
-    display: inline-flex;
+/* Card dark-fantasy glass (coeso com o app). Posição (left/top) é dinâmica/data-driven. */
+.war-table-card {
+    position: absolute;
+    z-index: 2;
+    cursor: grab;
+    user-select: none;
+    display: flex;
     align-items: center;
     gap: 10px;
-    min-width: 150px;
-    max-width: 240px;
-    padding: 10px 16px;
-    background: var(--bg-card);
-    border: 1px solid var(--tech-neon);
-    color: var(--texto-claro);
-    cursor: pointer;
-    /* cantos chanfrados sci-fi (geometria angular, não arredondada) */
-    clip-path: polygon(11px 0, 100% 0, 100% calc(100% - 11px), calc(100% - 11px) 100%, 0 100%, 0 11px);
-    transition: var(--transicao-suave);
+    width: 180px;
+    padding: 10px 12px;
+    background: var(--bg-card-glass);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--borda);
+    border-radius: 8px;
+    box-shadow: var(--sombra);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
-.tech-card:hover {
-    box-shadow: 0 0 12px color-mix(in srgb, var(--tech-neon) 45%, transparent),
-                inset 0 0 10px color-mix(in srgb, var(--tech-neon) 12%, transparent);
-}
-.tech-card-icone { width: 26px; height: 26px; color: var(--tech-neon); flex-shrink: 0; }
-.tech-card-info { display: flex; flex-direction: column; gap: 2px; text-align: left; min-width: 0; }
-.tech-card-nome {
-    font-size: 16px;
-    font-weight: 600;
-    line-height: 1.15;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-.tech-card-tipo {
+.war-table-card:hover { border-color: var(--roxo-mago); box-shadow: 0 6px 18px var(--sombra-profunda); }
+.war-table-card.dragging { cursor: grabbing; z-index: 4; box-shadow: 0 10px 26px var(--sombra-profunda); }
+.war-table-card.raiz { border: 2px solid var(--roxo-mago); }
+.war-card-icone { width: 28px; height: 28px; color: var(--roxo-mago); flex-shrink: 0; }
+.war-card-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.war-card-nome { font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.war-card-cargo {
     font-family: 'Fira Code', monospace;
     font-size: 10px;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--tech-neon);
-    opacity: 0.85;
+    letter-spacing: 0.06em;
+    color: var(--texto-mutado);
 }
-.tech-card-add { white-space: nowrap; }
 
-/* Coerência 16-bit: sem chanfro/glow (pixel sólido), borda reta. */
-.tema-pixel-16bit .tech-card {
-    clip-path: none !important;
-    box-shadow: 2px 2px 0 rgba(0,0,0,0.8) !important;
-    border-width: 2px !important;
+/* Popover de hierarquia (2º clique): grade de ícones + cargo. */
+.war-card-popover {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 5;
+    width: 210px;
+    padding: 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--roxo-mago);
+    border-radius: 8px;
+    box-shadow: var(--sombra-profunda);
+    cursor: default;
 }
-.tema-pixel-16bit .tech-card-tipo { font-family: 'VT323', monospace !important; }
+.war-icone-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 6px 0 10px; }
+.war-icone-opt {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    background: var(--bg-principal);
+    border: 1px solid var(--borda);
+    border-radius: 4px;
+    color: var(--texto-mutado);
+    cursor: pointer;
+    transition: var(--transicao-suave);
+}
+.war-icone-opt:hover { border-color: var(--roxo-mago); color: var(--texto-claro); }
+.war-icone-opt.sel {
+    border-color: var(--roxo-mago);
+    color: var(--roxo-mago);
+    background: color-mix(in srgb, var(--roxo-mago) 14%, var(--bg-principal));
+}
+.war-icone-opt i { width: 18px; height: 18px; }
+
+/* Coerência 16-bit: bordas retas. */
+.tema-pixel-16bit .war-table-canvas,
+.tema-pixel-16bit .war-table-card,
+.tema-pixel-16bit .war-card-popover,
+.tema-pixel-16bit .war-icone-opt { border-radius: 0 !important; }
+.tema-pixel-16bit .war-card-cargo { font-family: 'VT323', monospace !important; }

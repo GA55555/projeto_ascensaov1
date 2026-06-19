@@ -113,13 +113,18 @@ const sinapseParamsBase = {
 const listarLinksSchema = z.object({
     params: z.object({ ...sinapseParamsBase })
 });
-// Panela de Pressão (Fase 11 refatorada): a intriga é um conjunto de tags (FATE)
-// + um limite; pressao = tags.length, massa crítica quando pressao >= limite.
-// JSONB world_links.dados. Chaves desconhecidas (ex.: segredo/tensao antigos) são
-// descartadas pelo strip padrão do Zod — migração graciosa no primeiro save.
+// JSONB world_links.dados — guarda DUAS facetas opcionais, ambas opt-in:
+//  • Panela de Pressão (Fase 11): tags (FATE) + limite (pressao = tags.length).
+//  • Mesa de Guerra (Fase 12): posição no canvas (x,y) + hierarquia (icone, cargo).
+// Chaves desconhecidas são descartadas pelo strip padrão do Zod (migração graciosa).
+const ICONES_HIERARQUIA = ['user', 'shield', 'crown', 'castle', 'swords', 'flag', 'gem', 'eye'];
 const dadosLinkSchema = z.object({
     tags: z.array(z.string().trim().min(1).max(120)).max(50).default([]),
-    limite: z.number().int().min(1).max(20).default(3)
+    limite: z.number().int().min(1).max(20).default(3),
+    x: z.number().finite().optional(),
+    y: z.number().finite().optional(),
+    icone: z.enum(ICONES_HIERARQUIA).optional(),
+    cargo: z.string().trim().max(60).optional()
 }).optional();
 
 const criarLinkSchema = z.object({
@@ -138,14 +143,6 @@ const atualizarLinkSchema = z.object({
     body: z.object({ dados: dadosLinkSchema })
 });
 
-// Macro-Visão (Fase 12): árvore de progressão por núcleo. Params UUID estritos (Regra 4.3).
-const arvoreNucleoSchema = z.object({
-    params: z.object({
-        cronicaId: z.string().uuid('cronicaId inválido.'),
-        nucleoId: z.string().uuid('nucleoId inválido.')
-    })
-});
-
 module.exports = {
     criarAutomacaoSchema, toggleStatusSchema,
     criarNodeSchema, editarNodeSchema,
@@ -154,6 +151,5 @@ module.exports = {
     criarEventoSchema, criarVinculoSchema,
     criarSessaoSchema, editarSessaoSchema,
     atualizarNucleoNodeSchema,
-    listarLinksSchema, criarLinkSchema, deletarLinkSchema, atualizarLinkSchema,
-    arvoreNucleoSchema
+    listarLinksSchema, criarLinkSchema, deletarLinkSchema, atualizarLinkSchema
 };

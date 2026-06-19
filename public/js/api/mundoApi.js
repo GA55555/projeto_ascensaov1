@@ -147,12 +147,5 @@ const MundoApi = {
         });
         if (!res.ok) throw new Error('Falha ao atualizar conexão.');
         return res.json();
-    },
-
-    // Macro-Visão (Fase 12): { nodes, links } de progressão de um núcleo de entidades.
-    async buscarArvoreNucleo(cronicaId, nucleoId) {
-        const res = await API.fetch(`/cronicas/${cronicaId}/entidade-nucleos/${nucleoId}/arvore`);
-        if (!res.ok) throw new Error('Falha ao carregar a árvore de progressão.');
-        return res.json();
     }
 };

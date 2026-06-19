@@ -14,8 +14,7 @@ const {
     criarEventoSchema, criarVinculoSchema,
     criarSessaoSchema, editarSessaoSchema,
     atualizarNucleoNodeSchema,
-    listarLinksSchema, criarLinkSchema, deletarLinkSchema, atualizarLinkSchema,
-    arvoreNucleoSchema
+    listarLinksSchema, criarLinkSchema, deletarLinkSchema, atualizarLinkSchema
 } = require('../validators/mundoValidator');
 
 // Middleware apenas narrador
@@ -63,8 +62,6 @@ router.get('/entidade-nucleos', verificarToken, checarAcessoCronica, MundoContro
 router.post('/entidade-nucleos', verificarToken, checarAcessoCronica, apenasNarrador, validate(criarNucleoSchema), MundoController.criarNucleoEntidade);
 router.put('/entidade-nucleos/:nucleoId', verificarToken, checarAcessoCronica, apenasNarrador, validate(renomearNucleoSchema), MundoController.renomearNucleoEntidade);
 router.delete('/entidade-nucleos/:nucleoId', verificarToken, checarAcessoCronica, apenasNarrador, MundoController.excluirNucleoEntidade);
-// Macro-Visão (Fase 12): árvore de progressão (nodes + links 'progressao') de um núcleo.
-router.get('/entidade-nucleos/:nucleoId/arvore', verificarToken, checarAcessoCronica, validate(arvoreNucleoSchema), MundoController.getArvoreNucleo);
 
 // ==========================================
 // FLAGS
