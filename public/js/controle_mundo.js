@@ -2874,7 +2874,6 @@ function textHTML(t) {
     const conteudo = escapeHTML(t.texto || 'Texto').replace(/\n/g, '<br>');
     return `<div class="board-text board-cor-${cor}${fundoClasse}" data-text="${tid}" style="left: ${Math.round(t.x)}px; top: ${Math.round(t.y)}px; font-size: ${tam}px;">
         <span class="board-text-conteudo">${conteudo}</span>
-        <i data-lucide="x" class="board-text-remover" title="Remover texto"></i>
     </div>`;
 }
 
@@ -3038,7 +3037,7 @@ function centroMundo() {
 // de arrastar — num único handler (mesmo padrão dos shapes; evita drag+conexão duplos).
 function arrastarPorPonteiro(el, obj, onDrag, conectavel) {
     el.onpointerdown = (e) => {
-        if (e.button !== 0 || e.target.closest('.board-text-remover, .board-prop-remover')) return;
+        if (e.button !== 0 || e.target.closest('.board-prop-remover')) return;
         if (conectandoDe) { e.stopPropagation(); if (conectavel) finalizarConexaoLocal(obj.id); return; }
         e.stopPropagation();
         const z = boardState.camera.zoom || 1;
@@ -3065,6 +3064,7 @@ window.adicionarTexto = function() {
 };
 window.removerTextBoard = function(id) {
     boardState.texts = boardState.texts.filter(t => String(t.id) !== String(id));
+    fecharPopover(); // evita popover órfão quando a exclusão vem do editor
     renderBoard();
 };
 function ativarInteracoesTexts() {
@@ -3074,8 +3074,6 @@ function ativarInteracoesTexts() {
         if (!t) return;
         arrastarPorPonteiro(el, t);
         el.ondblclick = (e) => { e.stopPropagation(); abrirEditorText(t.id, e); };
-        const rem = el.querySelector('.board-text-remover');
-        if (rem) rem.onclick = (e) => { e.stopPropagation(); removerTextBoard(t.id); };
     });
 }
 // Micro-editor do texto: conteúdo + cor (token) + tamanho da fonte (slider).
@@ -3166,6 +3164,7 @@ window.adicionarSimbolo = function(icone) {
 window.removerPropBoard = function(id) {
     boardState.props = boardState.props.filter(p => String(p.id) !== String(id));
     removerLocalLinksDe(id); // limpa ligações órfãs
+    fecharPopover(); // evita popover órfão quando a exclusão vem do editor
     renderBoard();
 };
 function aplicarTransformProp(el, p) {
