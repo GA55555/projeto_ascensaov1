@@ -472,8 +472,8 @@ function renderElenco() {
         const id = escapeHTML(String(n.id));
         const x = noPalco ? `<i data-lucide="x" class="ator-remover" title="Remover de cena" onclick="removerAtorDaCena('${id}')"></i>` : '';
         return `<div class="ator-card${noPalco ? ' ator-fantasma' : ''}" draggable="${noPalco ? 'false' : 'true'}" data-node-id="${id}" data-origem="elenco">
-            <i data-lucide="${iconeEntidade(n.tipo)}" class="ator-card__icone"></i>
-            <span class="ator-card__nome">${escapeHTML(n.nome)}</span>
+            <i data-lucide="${iconeEntidade(n.tipo)}" class="ator-card__icone" title="Abrir ficha" onclick="abrirCardCompleto('${id}')"></i>
+            <span class="ator-card__nome" title="Abrir ficha" onclick="abrirCardCompleto('${id}')">${escapeHTML(n.nome)}</span>
             ${x}
         </div>`;
     }).join('');
@@ -496,10 +496,10 @@ function renderPalco() {
             .map(nodeId => nodesCache.find(n => String(n.id) === String(nodeId)))
             .filter(Boolean);
         const cards = atoresCol.length
-            ? atoresCol.map(n => `<div class="ator-card" draggable="true" data-node-id="${escapeHTML(String(n.id))}" data-origem="palco">
-                    <i data-lucide="${iconeEntidade(n.tipo)}" class="ator-card__icone"></i>
-                    <span class="ator-card__nome">${escapeHTML(n.nome)}</span>
-                </div>`).join('')
+            ? atoresCol.map(n => { const aid = escapeHTML(String(n.id)); return `<div class="ator-card" draggable="true" data-node-id="${aid}" data-origem="palco">
+                    <i data-lucide="${iconeEntidade(n.tipo)}" class="ator-card__icone" title="Abrir ficha" onclick="abrirCardCompleto('${aid}')"></i>
+                    <span class="ator-card__nome" title="Abrir ficha" onclick="abrirCardCompleto('${aid}')">${escapeHTML(n.nome)}</span>
+                </div>`; }).join('')
             : '<div class="info-block-vazio">Vazio.</div>';
         return `<div class="cena-coluna" data-col-id="${cid}">
             <div class="cena-coluna__header">
@@ -671,6 +671,32 @@ function handleCenaDrop(e) {
     renderPalco();
 }
 
+// ── EDIÇÃO RÁPIDA (FASE 17.1): ficha completa do NPC num modal ──────────────
+// Reutiliza cardMundoHTML (mesma ficha da Grelha) num modal padrão. Marcos/Sinapses/
+// kebab funcionam idênticos. Ao fechar, a Direção de Cena reflete as mudanças.
+window.abrirCardCompleto = function(nodeId) {
+    const node = nodesCache.find(n => String(n.id) === String(nodeId));
+    if (!node) return;
+    fecharCardCompleto();
+    const modal = document.createElement('div');
+    modal.className = 'modal show';
+    modal.id = 'modal-card-completo';
+    modal.innerHTML = `
+        <div class="modal-box modal-card-completo__box">
+            <button class="btn btn-ghost btn-sm modal-card-completo__fechar" onclick="fecharCardCompleto()" title="Fechar"><i data-lucide="x"></i></button>
+            ${cardMundoHTML(node)}
+        </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) fecharCardCompleto(); });
+    lucide.createIcons();
+};
+window.fecharCardCompleto = function() {
+    const m = document.getElementById('modal-card-completo');
+    if (m) m.remove();
+    fecharMenuKebab(); // garante que nenhum kebab do card fique órfão no body
+    // Reflete na Cena as edições feitas no card (marcos/núcleo/nome/exclusão).
+    if (mundoCurrentView === 'cena') { renderElenco(); renderPalco(); }
+};
 
 window.salvarForja = async function() {
     const nome = document.getElementById('forja-nome')?.value.trim();
@@ -699,6 +725,7 @@ window.fecharMenuKebab = function() {
 };
 window.abrirMenuKebab = function(e, nodeId) {
     e.stopPropagation();
+    const trigger = e.currentTarget || e.target; // o ícone ⋮ (gatilho) — base da geometria
     fecharMenuKebab();
     const menu = document.createElement('div');
     menu.className = 'menu-flutuante';
@@ -708,18 +735,25 @@ window.abrirMenuKebab = function(e, nodeId) {
         <button type="button" class="menu-flutuante__item" onclick="fecharMenuKebab(); moverNodeNucleo('${nodeId}');"><i data-lucide="folder-tree"></i> Mudar Núcleo</button>
         <button type="button" class="menu-flutuante__item menu-flutuante__item--perigo" onclick="confirmarDeletarEntidade(this, '${nodeId}')"><i data-lucide="trash-2"></i> Deletar</button>`;
     document.body.appendChild(menu);
-    posicionarMenuFlutuante(menu, e);
     lucide.createIcons();
+    posicionarFlutuante(menu, trigger.getBoundingClientRect(), 'direita'); // abaixo, alinhado à direita do ⋮
     setTimeout(() => document.addEventListener('pointerdown', kebabOutside, true), 0); // não captura o próprio clique
 };
-function posicionarMenuFlutuante(menu, e) {
-    const mw = menu.offsetWidth || 200, mh = menu.offsetHeight || 130;
-    const vw = window.innerWidth, vh = window.innerHeight;
-    let x = e.clientX, y = e.clientY;
-    if (x + mw + 8 > vw) x = vw - mw - 8;
-    if (y + mh + 8 > vh) y = vh - mh - 8;
-    menu.style.left = Math.max(8, x) + 'px';
-    menu.style.top = Math.max(8, y) + 'px';
+
+// Posiciona um elemento flutuante (position:absolute, no body) ancorado ao gatilho.
+// Abre ABAIXO do gatilho; `alinhar`: 'direita' (right do popover = right do gatilho)
+// ou 'esquerda' (left = left do gatilho). Colisão calculada em coords de viewport;
+// depois soma scrollX/scrollY para o espaço de documento (Regra: escapa overflow/transform).
+function posicionarFlutuante(el, rect, alinhar) {
+    const w = el.offsetWidth, h = el.offsetHeight;
+    let left = (alinhar === 'direita') ? (rect.right - w) : rect.left;
+    let top = rect.bottom + 4;
+    if (left + w > window.innerWidth - 8) left = window.innerWidth - w - 8; // não vaza à direita
+    if (left < 8) left = 8;                                                 // nem à esquerda
+    if (top + h > window.innerHeight - 8) top = rect.top - h - 4;           // sem espaço abaixo → acima
+    if (top < 8) top = 8;
+    el.style.left = Math.round(left + window.scrollX) + 'px';
+    el.style.top = Math.round(top + window.scrollY) + 'px';
 }
 
 // Deletar entidade em 2 passos dentro do kebab (sem confirm() nativo).
@@ -1326,7 +1360,7 @@ window.mostrarHoverMarco = function(e, nodeId, flagKey) {
             </div>`;
         }).join('')}`;
     lucide.createIcons();
-    posicionarTooltip(tip, e.target);
+    posicionarFlutuante(tip, e.target.getBoundingClientRect(), 'esquerda'); // abaixo, alinhado à esquerda da palavra
     tip.classList.remove('hover-preview-hidden');
     tip.classList.add('hover-preview-visible');
 };
@@ -1336,18 +1370,6 @@ window.esconderHoverMarco = function() {
     tip.classList.remove('hover-preview-visible');
     tip.classList.add('hover-preview-hidden');
 };
-// À direita do marco (vira p/ esquerda se faltar espaço); centrado e preso à viewport.
-function posicionarTooltip(tip, target) {
-    const r = target.getBoundingClientRect();
-    const tw = tip.offsetWidth, th = tip.offsetHeight, gap = 10;
-    let x = r.right + gap;
-    if (x + tw + 8 > window.innerWidth) x = r.left - tw - gap; // flip esquerda
-    x = Math.max(8, x);
-    let y = r.top + r.height / 2 - th / 2;
-    y = Math.max(8, Math.min(y, window.innerHeight - th - 8));
-    tip.style.left = Math.round(x) + 'px';
-    tip.style.top = Math.round(y) + 'px';
-}
 
 // ==========================================
 // AGENDA DE EVENTOS E VÍNCULOS (SISTEMA BLINDADO)

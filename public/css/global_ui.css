@@ -667,7 +667,7 @@ label {
 
 /* Menu flutuante (kebab) — Divulgação Progressiva. Ancorado ao body, fecha ao clicar fora. */
 .menu-flutuante {
-    position: fixed;
+    position: absolute; /* ancorado ao body; top/left em coords de documento (Fase 17.1) */
     z-index: 1000;
     min-width: 190px;
     padding: 6px;
@@ -702,7 +702,7 @@ label {
 
 /* ── HOVER PREVIEW: Interatividade Passiva (Fase 15.4) ──────────────────── */
 #hover-preview-tooltip {
-    position: fixed;
+    position: absolute; /* ancorado ao body; top/left em coords de documento (Fase 17.1) */
     z-index: 9999;
     background: var(--bg-secundario);
     border: 1px solid var(--borda);
@@ -2727,11 +2727,19 @@ input[type="radio"] {
 .ator-fantasma { opacity: 0.5; pointer-events: none; cursor: default; }
 .ator-fantasma .ator-remover { pointer-events: auto; }
 
+/* Nome/ícone do ator são clicáveis (abrir ficha completa — Fase 17.1). */
+.ator-card__nome, .ator-card__icone { cursor: pointer; }
+.ator-card__nome:hover { text-decoration: underline; }
+
 /* Zonas de drop ativas (DnD nativo — fatia 5). */
 .cena-coluna.drag-over, .cena-elenco.drag-over {
     border-color: var(--roxo-mago);
     background: color-mix(in srgb, var(--roxo-mago) 10%, var(--bg-secundario));
 }
+
+/* Edição Rápida (Fase 17.1): ficha completa do NPC num modal padrão. */
+.modal-card-completo__box { position: relative; width: 460px; max-width: 92%; max-height: 85vh; overflow-y: auto; }
+.modal-card-completo__fechar { position: absolute; top: 8px; right: 8px; z-index: 2; }
 
 /* Coerência 16-bit: bordas retas. */
 .tema-pixel-16bit .btn-group,
