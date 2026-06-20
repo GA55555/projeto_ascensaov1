@@ -742,38 +742,41 @@ window.abrirMenuKebab = function(e, nodeId) {
     setTimeout(() => document.addEventListener('pointerdown', kebabOutside, true), 0); // não captura o próprio clique
 };
 
-// Posiciona um popover (injetado no body, position:absolute) "colado" ao gatilho, com
-// margem constante e boundary-check. À PROVA DE ZOOM: o projeto usa `:root { zoom }`, então
-// getBoundingClientRect devolve px VISUAIS enquanto style.left/top são px LOCAIS. Em vez de
-// adivinhar o fator, MEDIMOS a escala (quanto o popover anda em px visuais por px de style) e
-// convertemos o alvo visual → style. Isso absorve zoom E scroll automaticamente.
+// Posiciona um popover (injetado no body, position:absolute) "colado" ao gatilho.
+// CORREÇÃO DO DOUBLE SCALING (Fase 17.3): o `:root { zoom }` faz o getBoundingClientRect
+// devolver px JÁ escalados; ao aplicar style.top/left, o navegador re-aplica o zoom → o
+// popover foge para baixo/direita proporcionalmente. Solução: ler o zoom computado e
+// DIVIDIR as coords (rect + scroll) por ele, anulando a dupla escala. Sem layout thrashing.
 // `modo`: 'baixo' (Kebab: abaixo, alinhado à borda direita) | 'lado' (Tooltip: à direita, topo).
 function posicionarPopoverAlinhado(gatilho, popover, margem = 8, modo = 'lado') {
     popover.style.position = 'absolute';
-    popover.style.left = '0px';
-    popover.style.top = '0px';
-    const base = popover.getBoundingClientRect();                 // posição/tamanho visual em style(0,0)
-    popover.style.left = '100px';
-    const escala = ((popover.getBoundingClientRect().left - base.left) / 100) || 1; // px visual por px style (≈ zoom)
-    const g = gatilho.getBoundingClientRect();                    // gatilho em px visuais
-    const m = margem * escala;                                    // margem visual constante
-    const vw = window.innerWidth, vh = window.innerHeight;
+    const zoom = parseFloat(getComputedStyle(document.documentElement).zoom) || 1;
+    const rect = gatilho.getBoundingClientRect();
+    const pw = popover.offsetWidth, ph = popover.offsetHeight; // já em px locais (não escalados)
+    // Converte px VISUAIS (viewport) → px LOCAIS de documento: (visual + scroll) / zoom.
+    const lx = (vx) => (vx + window.scrollX) / zoom;
+    const ly = (vy) => (vy + window.scrollY) / zoom;
+    const bordaEsq = lx(0), bordaTopo = ly(0);
+    const bordaDir = lx(window.innerWidth), bordaBaixo = ly(window.innerHeight);
 
-    let lv, tv; // alvo do canto sup-esq do popover, em px VISUAIS
+    let top, left;
     if (modo === 'baixo') {
-        tv = g.bottom + m;                                        // abaixo do gatilho
-        lv = g.right - base.width;                               // alinhado à borda direita
-        if (tv + base.height > vh - m) tv = g.top - base.height - m; // sem espaço abaixo → acima
-        if (lv < m) lv = g.left;                                 // não vaza à esquerda
+        // Menu Kebab: abaixo do gatilho, alinhado à sua borda direita.
+        top = ly(rect.bottom) + margem;
+        left = lx(rect.right) - pw;
+        if (top + ph > bordaBaixo - margem) top = ly(rect.top) - ph - margem; // sem espaço abaixo → acima
+        if (left < bordaEsq + margem) left = lx(rect.left);                   // não vaza à esquerda
     } else {
-        tv = g.top;                                              // topo alinhado ao gatilho
-        lv = g.right + m;                                        // ao lado direito
-        if (lv + base.width > vw - m) lv = g.left - base.width - m;   // sem espaço → à esquerda
+        // Tooltip: ao lado direito do gatilho, topo alinhado.
+        top = ly(rect.top);
+        left = lx(rect.right) + margem;
+        if (left + pw > bordaDir - margem) left = lx(rect.left) - pw - margem; // sem espaço → à esquerda
     }
-    lv = Math.max(m, Math.min(lv, vw - base.width - m));         // clamp na janela
-    tv = Math.max(m, Math.min(tv, vh - base.height - m));
-    popover.style.left = Math.round((lv - base.left) / escala) + 'px'; // alvo visual → px de style
-    popover.style.top = Math.round((tv - base.top) / escala) + 'px';
+    // Boundary final: mantém dentro da janela (já em coords locais; a janela também ÷ zoom).
+    left = Math.max(bordaEsq + margem, Math.min(left, bordaDir - pw - margem));
+    top = Math.max(bordaTopo + margem, Math.min(top, bordaBaixo - ph - margem));
+    popover.style.left = Math.round(left) + 'px';
+    popover.style.top = Math.round(top) + 'px';
 }
 
 // Deletar entidade em 2 passos dentro do kebab (sem confirm() nativo).
