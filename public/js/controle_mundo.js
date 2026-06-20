@@ -391,7 +391,7 @@ function marcoItemHTML(nodeId, f) {
     return `
         <div class="marco-item" data-flag-key="${k}">
             <input type="checkbox" class="marco-item__check" ${f.value ? 'checked' : ''} data-node-id="${nodeId}" data-flag-key="${k}" onchange="toggleFlag(this.dataset.nodeId, this.dataset.flagKey, this.checked)">
-            <span class="marco-item__nome" title="Duplo-clique renomeia" ondblclick="iniciarEdicaoMarco(event, '${nodeId}', '${k}')" onmouseenter="mostrarHoverMarco(event, '${nodeId}', '${k}')" onmouseleave="agendarFechoTooltip()">${escapeHTML(humanizarMarco(f.key))}</span>
+            <span class="marco-item__nome" title="Clique: detalhes · Duplo-clique: renomear" onclick="abrirDetalhesMarco('${nodeId}', '${k}')" ondblclick="iniciarEdicaoMarco(event, '${nodeId}', '${k}')">${escapeHTML(humanizarMarco(f.key))}</span>
             <i data-lucide="x" class="btn-del-marco" title="Apagar marco" onclick="confirmarDeletarMarco(this, '${nodeId}', '${k}')"></i>
         </div>`;
 }
@@ -721,15 +721,6 @@ window.salvarForja = async function() {
 }
 
 // ── MENU KEBAB (Divulgação Progressiva — Regra 7.2) ─────────────────────────
-// Tooltip de marco usa position:fixed (preso ao viewport). Qualquer scroll move o gatilho
-// mas não o tooltip → fechamos ao rolar. capture:true pega scrolls de divs internas
-// (ex.: .cena-palco, .elenco-lista), não só o da janela. (O kebab agora é inline no card,
-// então acompanha o scroll naturalmente — não precisa fechar.)
-function fecharPopoversGlobais() {
-    esconderTooltipGeral(); // esconde o tooltip de marco (e cancela o delay do túnel)
-}
-window.addEventListener('scroll', fecharPopoversGlobais, { passive: true, capture: true });
-
 // Kebab INLINE (pivô do GD): nada de menu flutuante. Apenas faz toggle da .card-acoes-inline
 // DENTRO do card clicado, empurrando o conteúdo para baixo. Imune a zoom/scroll por construção.
 window.abrirMenuKebab = function(e, nodeId) {
@@ -742,21 +733,6 @@ window.abrirMenuKebab = function(e, nodeId) {
     document.querySelectorAll('.card-acoes-inline').forEach(el => { if (el !== acoes) el.style.display = 'none'; });
     acoes.style.display = aberto ? 'none' : 'flex';
 };
-
-// PIVÔ (Fase 17.5): posiciona o popover ESTRITAMENTE nas coordenadas do PONTEIRO
-// (e.clientX/clientY) com position:fixed. Acaba com a guerra contra o zoom — clientX/Y já são
-// coords de viewport e fixed também, então não há caixa de elemento nem zoom a converter.
-// Boundary simples: se vazar à direita/baixo, abre para a esquerda/cima.
-function posicionarNoPonteiro(e, popover, offsetX = 10, offsetY = 10) {
-    popover.style.position = 'fixed';
-    const pw = popover.offsetWidth, ph = popover.offsetHeight;
-    let left = e.clientX + offsetX;
-    let top = e.clientY + offsetY;
-    if (e.clientX + pw + offsetX > window.innerWidth) left = e.clientX - pw - offsetX; // abre p/ esquerda
-    if (e.clientY + ph + offsetY > window.innerHeight) top = e.clientY - ph - offsetY; // abre p/ cima
-    popover.style.left = Math.round(Math.max(4, left)) + 'px';
-    popover.style.top = Math.round(Math.max(4, top)) + 'px';
-}
 
 // Deletar entidade em 2 passos no menu inline (sem confirm() nativo).
 window.confirmarDeletarEntidade = function(item, nodeId) {
@@ -1330,61 +1306,42 @@ async function construirMapaDependencias() {
     });
 }
 
-// Túnel de Hover (Fase 17.5): timeout de fecho com 250ms de tolerância a micro-movimentos.
-let tooltipDelayTimeout = null;
-
-// Container único do tooltip (criado sob demanda, ancorado ao body). Listeners do TÚNEL:
-// entrar no tooltip cancela o fecho; sair reagenda. Precisa de pointer-events:auto (CSS).
-function ensureTooltipEl() {
-    let tip = document.getElementById('hover-preview-tooltip');
-    if (!tip) {
-        tip = document.createElement('div');
-        tip.id = 'hover-preview-tooltip';
-        tip.className = 'hover-preview-hidden';
-        tip.addEventListener('mouseenter', () => clearTimeout(tooltipDelayTimeout));
-        tip.addEventListener('mouseleave', agendarFechoTooltip);
-        document.body.appendChild(tip);
-    }
-    return tip;
-}
-window.mostrarHoverMarco = function(e, nodeId, flagKey) {
+// ── GAVETA LATERAL "CANIVETE" (Fase 17.6) — detalhes do Marco por CLIQUE ─────
+// Substitui o tooltip flutuante (frágil a zoom/scroll). Ao clicar num Marco com eventos
+// atrelados, a gaveta (position:fixed, presa à direita) desliza com a lista de eventos.
+window.abrirDetalhesMarco = function(nodeId, flagKey) {
     const deps = mapaDependenciasMarcos[`${nodeId}_${flagKey}`];
-    if (!deps || !deps.length) return; // marco sem evento atrelado → nada
-    clearTimeout(tooltipDelayTimeout); // cancela qualquer fecho pendente
-    const tip = ensureTooltipEl();
-    // Ícone Lucide (NUNCA emoji — Regra 2.3). Conteúdo rico: nome + peso + barra do pool.
-    tip.innerHTML = `
-        <div class="hover-preview-head"><i data-lucide="link"></i> Alimenta os Eventos:</div>
+    if (!deps || !deps.length) return; // marco sem evento atrelado → não abre (Regra 4.2)
+    const gaveta = document.getElementById('gaveta-detalhes');
+    const titulo = document.getElementById('gaveta-titulo');
+    const corpo = document.getElementById('gaveta-conteudo');
+    if (!gaveta || !corpo) return;
+    if (titulo) titulo.textContent = humanizarMarco(flagKey);
+    corpo.innerHTML = `
+        <div class="gaveta-secao"><i data-lucide="link"></i> Alimenta os Eventos</div>
         ${deps.map(d => {
             const max = Number(d.pool_maxima) || 0;
             const atual = Number(d.pool_atual) || 0;
             const pct = max > 0 ? Math.min(100, Math.round((atual / max) * 100)) : 0;
-            return `<div class="hover-preview-evento">
-                <div class="hover-preview-evento__top">
-                    <span class="hover-preview-evento__nome">${escapeHTML(d.nomeEvento)}</span>
-                    <span class="hover-preview-evento__peso">+${escapeHTML(String(d.peso))}</span>
+            return `<div class="gaveta-evento">
+                <div class="gaveta-evento__top">
+                    <span class="gaveta-evento__nome">${escapeHTML(d.nomeEvento)}</span>
+                    <span class="gaveta-evento__peso">+${escapeHTML(String(d.peso))}</span>
                 </div>
-                <div class="hover-preview-bar"><div class="hover-preview-bar__fill" style="width: ${pct}%;"></div></div>
-                <div class="hover-preview-evento__pool">${escapeHTML(String(atual))}/${escapeHTML(String(max))}</div>
+                <div class="gaveta-bar"><div class="gaveta-bar__fill" style="width: ${pct}%;"></div></div>
+                <div class="gaveta-evento__pool">${escapeHTML(String(atual))}/${escapeHTML(String(max))}</div>
             </div>`;
         }).join('')}`;
     lucide.createIcons();
-    tip.classList.remove('hover-preview-hidden');
-    tip.classList.add('hover-preview-visible');
-    posicionarNoPonteiro(e, tip, 12, 12); // estritamente nas coords do ponteiro
+    gaveta.classList.remove('gaveta-fechada');
+    gaveta.classList.add('gaveta-aberta');
 };
-// Agenda o fecho do tooltip (250ms) — usado pelo mouseleave do marco E do próprio tooltip.
-window.agendarFechoTooltip = function() {
-    clearTimeout(tooltipDelayTimeout);
-    tooltipDelayTimeout = setTimeout(esconderTooltipGeral, 250);
+window.fecharGaveta = function() {
+    const gaveta = document.getElementById('gaveta-detalhes');
+    if (!gaveta) return;
+    gaveta.classList.remove('gaveta-aberta');
+    gaveta.classList.add('gaveta-fechada');
 };
-function esconderTooltipGeral() {
-    clearTimeout(tooltipDelayTimeout);
-    const tip = document.getElementById('hover-preview-tooltip');
-    if (!tip) return;
-    tip.classList.remove('hover-preview-visible');
-    tip.classList.add('hover-preview-hidden');
-}
 
 // ==========================================
 // AGENDA DE EVENTOS E VÍNCULOS (SISTEMA BLINDADO)
