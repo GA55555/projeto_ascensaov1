@@ -2792,13 +2792,14 @@ window.abrirSeletorEntidade = function() {
     modal.className = 'modal show';
     modal.id = 'modal-board-entidade';
     modal.innerHTML = `
-        <div class="modal-box" style="width: 460px; max-width: 92%; max-height: 80vh; display: flex; flex-direction: column;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-                <h3 class="texto-roxo" style="margin: 0; display: flex; align-items: center; gap: 8px;"><i data-lucide="plus-circle"></i> Adicionar Entidade</h3>
+        <div class="modal-box board-entidade-box">
+            <div class="board-modal-head">
+                <h3 class="texto-roxo board-modal-titulo"><i data-lucide="plus-circle"></i> Adicionar Entidade</h3>
                 <button class="btn btn-ghost btn-sm" onclick="fecharSeletorEntidade()" title="Fechar"><i data-lucide="x"></i></button>
             </div>
-            <div style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;">
-                ${disp.length ? disp.map(n => `<button type="button" class="btn btn-outline btn-sm" style="justify-content: flex-start; gap: 8px;" data-id="${escapeHTML(String(n.id))}" onclick="adicionarEntidadeBoard(this.dataset.id)"><i data-lucide="${iconeEntidade(n.tipo)}"></i> ${escapeHTML(n.nome)} <span class="board-card-tipo">${escapeHTML(n.tipo)}</span></button>`).join('')
+            <input type="text" id="busca-entidade-board" class="input-sm board-entidade-busca" placeholder="Buscar por nome ou tipo..." oninput="filtrarEntidadesBoard(this.value)">
+            <div class="board-entidade-lista">
+                ${disp.length ? disp.map(n => `<button type="button" class="btn btn-outline btn-sm btn-entidade-board" data-id="${escapeHTML(String(n.id))}" data-nome="${escapeHTML(n.nome.toLowerCase())}" data-tipo="${escapeHTML(n.tipo.toLowerCase())}" onclick="adicionarEntidadeBoard(this.dataset.id)"><i data-lucide="${iconeEntidade(n.tipo)}"></i> ${escapeHTML(n.nome)} <span class="board-card-tipo">${escapeHTML(n.tipo)}</span></button>`).join('')
                     : '<div class="info-block-vazio">Todas as entidades já estão no tabuleiro.</div>'}
             </div>
         </div>`;
@@ -2808,6 +2809,17 @@ window.abrirSeletorEntidade = function() {
 };
 window.fecharSeletorEntidade = function() {
     const m = document.getElementById('modal-board-entidade'); if (m) m.remove();
+};
+// Filtro client-side da lista do modal (sem refetch): casa o termo contra nome OU tipo
+// via data-attrs já normalizados (lowercase). Alterna só o display dos botões.
+window.filtrarEntidadesBoard = function(termo) {
+    const modal = document.getElementById('modal-board-entidade');
+    if (!modal) return;
+    const t = String(termo || '').toLowerCase().trim();
+    modal.querySelectorAll('.btn-entidade-board').forEach(btn => {
+        const ok = (btn.dataset.nome || '').includes(t) || (btn.dataset.tipo || '').includes(t);
+        btn.style.display = ok ? 'flex' : 'none';
+    });
 };
 window.adicionarEntidadeBoard = function(nodeId) {
     if (boardState.nodes.some(n => String(n.id) === String(nodeId))) return;
@@ -2850,53 +2862,21 @@ function shapeHTML(s) {
     </div>`;
 }
 
-// Texto flutuante (sem card): editável in-place (contenteditable). Cor/fundo/tamanho
-// data-driven. O conteúdo é SEMPRE re-sanitizado no render (Regra 6.1 + 4.2: nem o JSONB
-// é confiável → limpa até dado corrompido/POST malicioso que burlou o cliente).
+// Texto flutuante (sem card): exibição PASSIVA (a edição é só no Popover — duplo-clique).
+// Sem contenteditable (engolia os eventos de mouse). Render escapa o texto (Regra 6.1) e
+// converte \n em <br> → defesa de XSS no desenho, igual aos demais campos do board, mesmo
+// para dado cru/corrompido no JSONB (Regra 4.2). Cor/fundo/tamanho data-driven.
 function textHTML(t) {
     const cor = CORES_BOARD.includes(t.cor) ? t.cor : 'cinza'; // sempre um token (Regra 4.2)
     const fundoClasse = t.fundo === 'semi' ? ' board-text-semi' : t.fundo === 'denso' ? ' board-text-denso' : '';
     const tam = Math.min(96, Math.max(8, t.tamanho || 16));
     const tid = escapeHTML(String(t.id));
+    const conteudo = escapeHTML(t.texto || 'Texto').replace(/\n/g, '<br>');
     return `<div class="board-text board-cor-${cor}${fundoClasse}" data-text="${tid}" style="left: ${Math.round(t.x)}px; top: ${Math.round(t.y)}px; font-size: ${tam}px;">
-        <span class="board-text-conteudo" contenteditable="false" spellcheck="false" onblur="salvarTextoRico('${tid}', this)">${sanitizarTextoRico(t.texto || 'Texto')}</span>
-        <i data-lucide="settings" class="board-text-config" title="Estilo"></i>
+        <span class="board-text-conteudo">${conteudo}</span>
         <i data-lucide="x" class="board-text-remover" title="Remover texto"></i>
     </div>`;
 }
-
-// Allowlist estrita para o contenteditable: só <b>/<i>/<br> (sem atributos). strong/em são
-// normalizados p/ b/i; toda outra tag é DESEMBRULHADA (mantém o texto) e todo texto é escapado.
-// Sem regex em HTML — usa o parser do browser (robusto contra ofuscação de XSS).
-const TAGS_TEXTO_RICO = { B: 'b', STRONG: 'b', I: 'i', EM: 'i' };
-function sanitizarTextoRico(html) {
-    const tpl = document.createElement('template');
-    tpl.innerHTML = String(html == null ? '' : html);
-    const limpar = (no) => {
-        let out = '';
-        no.childNodes.forEach(n => {
-            if (n.nodeType === 3) { out += escapeHTML(n.nodeValue); return; } // texto
-            if (n.nodeType !== 1) return;                                     // ignora comentários etc
-            if (n.tagName === 'BR') { out += '<br>'; return; }
-            // Enter no contenteditable (Chrome/Edge) cria DIV/P: vira quebra de linha. O <br>
-            // só entra se já houver conteúdo antes (evita quebra extra no 1º bloco).
-            if (n.tagName === 'DIV' || n.tagName === 'P') { out += (out ? '<br>' : '') + limpar(n); return; }
-            const tag = TAGS_TEXTO_RICO[n.tagName];
-            out += tag ? `<${tag}>${limpar(n)}</${tag}>` : limpar(n);         // não permitida → desembrulha
-        });
-        return out;
-    };
-    return limpar(tpl.content).slice(0, 2000);
-}
-
-// onblur do contenteditable: sanitiza e grava no state (persiste só no Salvar, Regra 2.7).
-window.salvarTextoRico = function(id, el) {
-    const t = boardState.texts.find(x => String(x.id) === String(id)); if (!t) return;
-    const limpo = sanitizarTextoRico(el.innerHTML);
-    t.texto = limpo;
-    el.innerHTML = limpo;          // normaliza o DOM na hora (remove qualquer lixo colado)
-    el.contentEditable = 'false';  // sai do modo de edição → arrasto volta a mandar
-};
 
 // Prop (ícone RPG): SVG recolorido via CSS mask + cor por token (--board-accent).
 // scale/rotacao aplicados por transform (layout dinâmico permitido pela Regra 2.5).
@@ -3058,8 +3038,7 @@ function centroMundo() {
 // de arrastar — num único handler (mesmo padrão dos shapes; evita drag+conexão duplos).
 function arrastarPorPonteiro(el, obj, onDrag, conectavel) {
     el.onpointerdown = (e) => {
-        if (e.button !== 0 || e.target.closest('.board-text-remover, .board-prop-remover, .board-text-config')) return;
-        if (e.target.isContentEditable) return; // texto em edição (contenteditable=true): deixa o caret
+        if (e.button !== 0 || e.target.closest('.board-text-remover, .board-prop-remover')) return;
         if (conectandoDe) { e.stopPropagation(); if (conectavel) finalizarConexaoLocal(obj.id); return; }
         e.stopPropagation();
         const z = boardState.camera.zoom || 1;
@@ -3094,19 +3073,7 @@ function ativarInteracoesTexts() {
         const t = boardState.texts.find(x => String(x.id) === String(el.dataset.text));
         if (!t) return;
         arrastarPorPonteiro(el, t);
-        const span = el.querySelector('.board-text-conteudo');
-        // Duplo-clique entra em edição in-place (foca + seleciona tudo). Estilo fica na engrenagem.
-        el.ondblclick = (e) => {
-            if (e.target.closest('.board-text-config, .board-text-remover')) return;
-            e.stopPropagation();
-            if (!span) return;
-            span.contentEditable = 'true'; // entra em edição; volta a false no blur (salvarTextoRico)
-            span.focus();
-            const r = document.createRange(); r.selectNodeContents(span);
-            const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
-        };
-        const cfg = el.querySelector('.board-text-config');
-        if (cfg) cfg.onclick = (e) => { e.stopPropagation(); abrirEditorText(t.id, e); };
+        el.ondblclick = (e) => { e.stopPropagation(); abrirEditorText(t.id, e); };
         const rem = el.querySelector('.board-text-remover');
         if (rem) rem.onclick = (e) => { e.stopPropagation(); removerTextBoard(t.id); };
     });
@@ -3119,6 +3086,8 @@ window.abrirEditorText = function(id, e) {
     const swatch = c => `<button type="button" class="board-cor-swatch board-cor-${c}${t.cor === c ? ' sel' : ''}" data-c="${c}" title="${c}" onclick="setTextCor('${tid}', this)"></button>`;
     const opt = (v, r, atual) => `<option value="${v}"${(atual || 'transparente') === v ? ' selected' : ''}>${r}</option>`;
     const pop = montarPopover(`
+        <label>Texto</label>
+        <textarea class="board-popover-input" rows="3" oninput="setTextConteudo('${tid}', this.value)">${escapeHTML((t.texto || '').replace(/<br>/g, '\n'))}</textarea>
         <label>Cor</label>
         <div class="board-cor-grid">${CORES_BOARD.map(swatch).join('')}</div>
         <label>Fundo</label>
@@ -3134,6 +3103,12 @@ window.abrirEditorText = function(id, e) {
     elBoardCanvas().appendChild(pop);
     lucide.createIcons();
     posicionarPopover(pop, e, document.querySelector(`.board-text[data-text="${cssEscape(id)}"]`));
+};
+window.setTextConteudo = function(id, v) {
+    const t = boardState.texts.find(x => String(x.id) === String(id)); if (!t) return;
+    t.texto = String(v).slice(0, 2000); // guarda CRU; a higienização acontece no render
+    const span = document.querySelector(`.board-text[data-text="${cssEscape(id)}"] .board-text-conteudo`);
+    if (span) span.innerHTML = escapeHTML(t.texto).replace(/\n/g, '<br>'); // escapa + nl2br (Regra 6.1)
 };
 window.setTextFundo = function(id, v) {
     const t = boardState.texts.find(x => String(x.id) === String(id)); if (!t) return;
