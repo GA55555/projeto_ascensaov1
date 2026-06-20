@@ -363,6 +363,12 @@ function cardMundoHTML(node) {
                 </div>
             </div>
 
+            <div class="card-acoes-inline" style="display: none;">
+                <button class="btn btn-ghost btn-sm" onclick="iniciarEdicaoNome('${node.id}')"><i data-lucide="edit"></i> Editar</button>
+                <button class="btn btn-ghost btn-sm" onclick="moverNodeNucleo('${node.id}')"><i data-lucide="map-pin"></i> Mudar Núcleo</button>
+                <button class="btn btn-ghost btn-sm btn-del" onclick="confirmarDeletarEntidade(this, '${node.id}')"><i data-lucide="trash"></i> Deletar</button>
+            </div>
+
             <div class="world-card__marcos-label">Marcos</div>
             <div id="flags-${node.id}" class="world-card__marcos">
                 ${(node.flags || []).filter(f => f.key).map(f => marcoItemHTML(node.id, f)).join('')}
@@ -693,7 +699,6 @@ window.abrirCardCompleto = function(nodeId) {
 window.fecharCardCompleto = function() {
     const m = document.getElementById('modal-card-completo');
     if (m) m.remove();
-    fecharMenuKebab(); // garante que nenhum kebab do card fique órfão no body
     // Reflete na Cena as edições feitas no card (marcos/núcleo/nome/exclusão).
     if (mundoCurrentView === 'cena') { renderElenco(); renderPalco(); }
 };
@@ -716,36 +721,26 @@ window.salvarForja = async function() {
 }
 
 // ── MENU KEBAB (Divulgação Progressiva — Regra 7.2) ─────────────────────────
-// Menu flutuante próprio da aba Mundo (a infra de popover da Fase 14 é acoplada ao
-// .board-canvas, outra aba). Click-outside dedicado.
-function kebabOutside(e) { if (!e.target.closest('#menu-kebab')) fecharMenuKebab(); }
-window.fecharMenuKebab = function() {
-    document.getElementById('menu-kebab')?.remove();
-    document.removeEventListener('pointerdown', kebabOutside, true);
-};
-
-// Popovers usam position:fixed (presos ao viewport). Qualquer scroll move o gatilho mas não
-// o popover → fechamos os flutuantes ao rolar. capture:true pega scrolls de divs internas
-// (ex.: .cena-palco, .elenco-lista), não só o da janela.
+// Tooltip de marco usa position:fixed (preso ao viewport). Qualquer scroll move o gatilho
+// mas não o tooltip → fechamos ao rolar. capture:true pega scrolls de divs internas
+// (ex.: .cena-palco, .elenco-lista), não só o da janela. (O kebab agora é inline no card,
+// então acompanha o scroll naturalmente — não precisa fechar.)
 function fecharPopoversGlobais() {
-    fecharMenuKebab();    // destrói o menu kebab aberto
     esconderTooltipGeral(); // esconde o tooltip de marco (e cancela o delay do túnel)
 }
 window.addEventListener('scroll', fecharPopoversGlobais, { passive: true, capture: true });
+
+// Kebab INLINE (pivô do GD): nada de menu flutuante. Apenas faz toggle da .card-acoes-inline
+// DENTRO do card clicado, empurrando o conteúdo para baixo. Imune a zoom/scroll por construção.
 window.abrirMenuKebab = function(e, nodeId) {
     e.stopPropagation();
-    fecharMenuKebab();
-    const menu = document.createElement('div');
-    menu.className = 'menu-flutuante';
-    menu.id = 'menu-kebab';
-    menu.innerHTML = `
-        <button type="button" class="menu-flutuante__item" onclick="fecharMenuKebab(); iniciarEdicaoNome('${nodeId}');"><i data-lucide="pencil"></i> Editar Entidade</button>
-        <button type="button" class="menu-flutuante__item" onclick="fecharMenuKebab(); moverNodeNucleo('${nodeId}');"><i data-lucide="folder-tree"></i> Mudar Núcleo</button>
-        <button type="button" class="menu-flutuante__item menu-flutuante__item--perigo" onclick="confirmarDeletarEntidade(this, '${nodeId}')"><i data-lucide="trash-2"></i> Deletar</button>`;
-    document.body.appendChild(menu);
-    lucide.createIcons();
-    posicionarNoPonteiro(e, menu); // abre exatamente onde o rato clicou
-    setTimeout(() => document.addEventListener('pointerdown', kebabOutside, true), 0); // não captura o próprio clique
+    const card = e.target.closest('.world-card, .ator-card');
+    const acoes = card?.querySelector('.card-acoes-inline');
+    if (!acoes) return;
+    const aberto = acoes.style.display === 'flex';
+    // Fecha qualquer outro menu inline aberto (um de cada vez).
+    document.querySelectorAll('.card-acoes-inline').forEach(el => { if (el !== acoes) el.style.display = 'none'; });
+    acoes.style.display = aberto ? 'none' : 'flex';
 };
 
 // PIVÔ (Fase 17.5): posiciona o popover ESTRITAMENTE nas coordenadas do PONTEIRO
@@ -763,16 +758,16 @@ function posicionarNoPonteiro(e, popover, offsetX = 10, offsetY = 10) {
     popover.style.top = Math.round(Math.max(4, top)) + 'px';
 }
 
-// Deletar entidade em 2 passos dentro do kebab (sem confirm() nativo).
+// Deletar entidade em 2 passos no menu inline (sem confirm() nativo).
 window.confirmarDeletarEntidade = function(item, nodeId) {
-    if (item.dataset.armado === '1') { executarDeletarEntidade(nodeId); fecharMenuKebab(); return; }
+    if (item.dataset.armado === '1') { executarDeletarEntidade(nodeId); return; }
     item.dataset.armado = '1';
     item.innerHTML = '<i data-lucide="alert-triangle"></i> Confirmar exclusão?';
     lucide.createIcons();
     setTimeout(() => {
         if (item.isConnected && item.dataset.armado === '1') {
             item.dataset.armado = '0';
-            item.innerHTML = '<i data-lucide="trash-2"></i> Deletar';
+            item.innerHTML = '<i data-lucide="trash"></i> Deletar';
             lucide.createIcons();
         }
     }, 3000);
