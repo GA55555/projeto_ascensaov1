@@ -667,7 +667,7 @@ label {
 
 /* Menu flutuante (kebab) — Divulgação Progressiva. Ancorado ao body, fecha ao clicar fora. */
 .menu-flutuante {
-    position: absolute; /* ancorado ao body; top/left em coords de documento (Fase 17.1) */
+    position: fixed; /* viewport-relativo: consistente com getBoundingClientRect sob :root zoom */
     z-index: 1000;
     min-width: 190px;
     padding: 6px;
@@ -702,7 +702,7 @@ label {
 
 /* ── HOVER PREVIEW: Interatividade Passiva (Fase 15.4) ──────────────────── */
 #hover-preview-tooltip {
-    position: absolute; /* ancorado ao body; top/left em coords de documento (Fase 17.1) */
+    position: fixed; /* viewport-relativo: consistente com getBoundingClientRect sob :root zoom */
     z-index: 9999;
     background: var(--bg-secundario);
     border: 1px solid var(--borda);

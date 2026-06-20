@@ -725,7 +725,9 @@ window.fecharMenuKebab = function() {
 };
 window.abrirMenuKebab = function(e, nodeId) {
     e.stopPropagation();
-    const trigger = e.currentTarget || e.target; // o ícone ⋮ (gatilho) — base da geometria
+    // Gatilho = o ícone ⋮. closest('.kebab-trigger') é robusto mesmo após o Lucide trocar
+    // <i> por <svg> e quando o clique cai num <path> filho. Fallback p/ currentTarget/target.
+    const trigger = (e.target.closest && e.target.closest('.kebab-trigger')) || e.currentTarget || e.target;
     fecharMenuKebab();
     const menu = document.createElement('div');
     menu.className = 'menu-flutuante';
@@ -736,24 +738,26 @@ window.abrirMenuKebab = function(e, nodeId) {
         <button type="button" class="menu-flutuante__item menu-flutuante__item--perigo" onclick="confirmarDeletarEntidade(this, '${nodeId}')"><i data-lucide="trash-2"></i> Deletar</button>`;
     document.body.appendChild(menu);
     lucide.createIcons();
-    posicionarFlutuante(menu, trigger.getBoundingClientRect(), 'direita'); // abaixo, alinhado à direita do ⋮
+    posicionarFlutuante(menu, trigger.getBoundingClientRect()); // ao lado direito do ⋮, alinhado ao topo
     setTimeout(() => document.addEventListener('pointerdown', kebabOutside, true), 0); // não captura o próprio clique
 };
 
-// Posiciona um elemento flutuante (position:absolute, no body) ancorado ao gatilho.
-// Abre ABAIXO do gatilho; `alinhar`: 'direita' (right do popover = right do gatilho)
-// ou 'esquerda' (left = left do gatilho). Colisão calculada em coords de viewport;
-// depois soma scrollX/scrollY para o espaço de documento (Regra: escapa overflow/transform).
-function posicionarFlutuante(el, rect, alinhar) {
+// Posiciona um flutuante (position:fixed, no body) à DIREITA do gatilho e ALINHADO AO
+// TOPO dele (ao lado, não abaixo). Sem espaço à direita → vira para a esquerda do gatilho;
+// clampa na vertical. Usa coords de viewport CRUAS do getBoundingClientRect (sem somar
+// scroll): casa com position:fixed e com o `:root { zoom }` do projeto, evitando o desvio
+// que aparecia ao misturar rect (zoomado) com window.scrollX/innerWidth.
+function posicionarFlutuante(el, rect) {
+    const gap = 6;
     const w = el.offsetWidth, h = el.offsetHeight;
-    let left = (alinhar === 'direita') ? (rect.right - w) : rect.left;
-    let top = rect.bottom + 4;
-    if (left + w > window.innerWidth - 8) left = window.innerWidth - w - 8; // não vaza à direita
-    if (left < 8) left = 8;                                                 // nem à esquerda
-    if (top + h > window.innerHeight - 8) top = rect.top - h - 4;           // sem espaço abaixo → acima
+    let left = rect.right + gap;                                       // ao lado direito do gatilho
+    if (left + w > window.innerWidth - 8) left = rect.left - w - gap;  // sem espaço → à esquerda
+    if (left < 8) left = 8;
+    let top = rect.top;                                                // alinhado ao topo do gatilho
+    if (top + h > window.innerHeight - 8) top = window.innerHeight - h - 8;
     if (top < 8) top = 8;
-    el.style.left = Math.round(left + window.scrollX) + 'px';
-    el.style.top = Math.round(top + window.scrollY) + 'px';
+    el.style.left = Math.round(left) + 'px';
+    el.style.top = Math.round(top) + 'px';
 }
 
 // Deletar entidade em 2 passos dentro do kebab (sem confirm() nativo).
@@ -1360,7 +1364,7 @@ window.mostrarHoverMarco = function(e, nodeId, flagKey) {
             </div>`;
         }).join('')}`;
     lucide.createIcons();
-    posicionarFlutuante(tip, e.target.getBoundingClientRect(), 'esquerda'); // abaixo, alinhado à esquerda da palavra
+    posicionarFlutuante(tip, e.target.getBoundingClientRect()); // ao lado direito da palavra, alinhado ao topo
     tip.classList.remove('hover-preview-hidden');
     tip.classList.add('hover-preview-visible');
 };
