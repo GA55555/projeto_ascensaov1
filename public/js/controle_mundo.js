@@ -388,10 +388,13 @@ function cardMundoHTML(node) {
 // Nome editável por duplo-clique (inline); apagar via × que só aparece no hover (Regra 7.2).
 function marcoItemHTML(nodeId, f) {
     const k = escapeHTML(f.key);
+    // Affordance: se o Oráculo tem eventos atrelados a este marco, sinaliza (clicável).
+    const temEventos = (mapaDependenciasMarcos[chaveMarco(nodeId, f.key)] || []).length > 0;
+    const classeEventos = temEventos ? ' marco-has-events' : '';
     return `
         <div class="marco-item" data-flag-key="${k}">
             <input type="checkbox" class="marco-item__check" ${f.value ? 'checked' : ''} data-node-id="${nodeId}" data-flag-key="${k}" onchange="toggleFlag(this.dataset.nodeId, this.dataset.flagKey, this.checked)">
-            <span class="marco-item__nome" title="Clique: detalhes · Duplo-clique: renomear" onclick="abrirDetalhesMarco('${nodeId}', '${k}')" ondblclick="iniciarEdicaoMarco(event, '${nodeId}', '${k}')">${escapeHTML(humanizarMarco(f.key))}</span>
+            <span class="marco-item__nome${classeEventos}" title="Clique: detalhes · Duplo-clique: renomear" onclick="abrirDetalhesMarco('${nodeId}', '${k}')" ondblclick="iniciarEdicaoMarco(event, '${nodeId}', '${k}')">${escapeHTML(humanizarMarco(f.key))}</span>
             <i data-lucide="x" class="btn-del-marco" title="Apagar marco" onclick="confirmarDeletarMarco(this, '${nodeId}', '${k}')"></i>
         </div>`;
 }
@@ -1284,6 +1287,14 @@ async function executarDeletarMarco(nodeId, flagKey, btn) {
 // ── INTERATIVIDADE PASSIVA: HOVER PREVIEW DE DEPENDÊNCIAS (FASE 15.4) ────────
 // Constrói o reverse-lookup Marco→Eventos a partir dos gatilhos (event_flag_weights,
 // expostos com node_id na query). Silencioso; latência zero no hover depois disto.
+// PADRONIZAÇÃO ABSOLUTA DA CHAVE (Fase 17.6.2): a MESMA função gera a chave ao popular o
+// mapa E ao lê-lo, eliminando o Key Mismatch. Espelha a normalização do backend
+// (lowercase + trim + espaço→underscore), pois event_flag_weights pode guardar a chave
+// crua enquanto world_flags a guarda normalizada.
+function chaveMarco(nodeId, flagKey) {
+    return String(nodeId) + '_' + String(flagKey).toLowerCase().trim().replace(/\s+/g, '_');
+}
+
 async function construirMapaDependencias() {
     mapaDependenciasMarcos = {};
     let eventos = [];
@@ -1294,7 +1305,7 @@ async function construirMapaDependencias() {
         if (!Array.isArray(gatilhos)) return;
         gatilhos.forEach(g => {
             if (!g || !g.node_id || !g.flag_key) return; // defensivo (Regra 4.2)
-            const chave = `${g.node_id}_${g.flag_key}`;
+            const chave = chaveMarco(g.node_id, g.flag_key);
             (mapaDependenciasMarcos[chave] ||= []).push({
                 idEvento: ev.id,
                 nomeEvento: ev.nome,
@@ -1304,14 +1315,23 @@ async function construirMapaDependencias() {
             });
         });
     });
+    // Re-render para aplicar a affordance .marco-has-events nos cards já desenhados
+    // (o mapa é construído após carregarMundo no init).
+    if (mundoListaAtual.length) renderizarMundo();
 }
 
 // ── GAVETA LATERAL "CANIVETE" (Fase 17.6) — detalhes do Marco por CLIQUE ─────
 // Substitui o tooltip flutuante (frágil a zoom/scroll). Ao clicar num Marco com eventos
 // atrelados, a gaveta (position:fixed, presa à direita) desliza com a lista de eventos.
 window.abrirDetalhesMarco = function(nodeId, flagKey) {
-    const deps = mapaDependenciasMarcos[`${nodeId}_${flagKey}`];
-    if (!deps || !deps.length) return; // marco sem evento atrelado → não abre (Regra 4.2)
+    console.log('--- DEBUG GAVETA ---');
+    console.log('Node ID recebido:', nodeId, '| Chave recebida:', flagKey);
+    const chaveBusca = chaveMarco(nodeId, flagKey); // MESMA normalização do Oráculo
+    console.log('Procurando no mapa por:', chaveBusca);
+    console.log('Conteúdo atual do mapa para esta chave:', mapaDependenciasMarcos[chaveBusca]);
+    const deps = mapaDependenciasMarcos[chaveBusca];
+    // Sem return silencioso: dá feedback claro ao narrador.
+    if (!deps || !deps.length) return mostrarToast('Nenhum evento mecânico atrelado.', 'info');
     const gaveta = document.getElementById('gaveta-detalhes');
     const titulo = document.getElementById('gaveta-titulo');
     const corpo = document.getElementById('gaveta-conteudo');
