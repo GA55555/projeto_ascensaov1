@@ -50,6 +50,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const temAcesso = await verificarAcesso();
     if (temAcesso) {
         inicializarViewToggle();
+        inicializarGavetaHover(); // Canivete Magnético: mantém a gaveta viva no hover dela
         await carregarNucleos('entidade');
         await carregarNucleos('evento');
         await carregarNucleos('sessao');
@@ -388,13 +389,18 @@ function cardMundoHTML(node) {
 // Nome editável por duplo-clique (inline); apagar via × que só aparece no hover (Regra 7.2).
 function marcoItemHTML(nodeId, f) {
     const k = escapeHTML(f.key);
-    // Affordance: se o Oráculo tem eventos atrelados a este marco, sinaliza (clicável).
+    // Affordance (Pill) + gatilhos de HOVER só nos marcos QUE têm eventos atrelados —
+    // evita disparar a gaveta (e timers) em marcos sem dependência mecânica.
     const temEventos = (mapaDependenciasMarcos[chaveMarco(nodeId, f.key)] || []).length > 0;
     const classeEventos = temEventos ? ' marco-has-events' : '';
+    const hover = temEventos
+        ? ` onmouseenter="lidarMouseEnterMarco('${nodeId}', '${k}')" onmouseleave="lidarMouseLeaveMarco()"`
+        : '';
+    const titulo = temEventos ? 'Passe o rato: detalhes · Duplo-clique: renomear' : 'Duplo-clique: renomear';
     return `
         <div class="marco-item" data-flag-key="${k}">
             <input type="checkbox" class="marco-item__check" ${f.value ? 'checked' : ''} data-node-id="${nodeId}" data-flag-key="${k}" onchange="toggleFlag(this.dataset.nodeId, this.dataset.flagKey, this.checked)">
-            <span class="marco-item__nome${classeEventos}" title="Clique: detalhes · Duplo-clique: renomear" onclick="abrirDetalhesMarco('${nodeId}', '${k}')" ondblclick="iniciarEdicaoMarco(event, '${nodeId}', '${k}')">${escapeHTML(humanizarMarco(f.key))}</span>
+            <span class="marco-item__nome${classeEventos}" title="${titulo}"${hover} ondblclick="iniciarEdicaoMarco(event, '${nodeId}', '${k}')">${escapeHTML(humanizarMarco(f.key))}</span>
             <i data-lucide="x" class="btn-del-marco" title="Apagar marco" onclick="confirmarDeletarMarco(this, '${nodeId}', '${k}')"></i>
         </div>`;
 }
@@ -1320,18 +1326,32 @@ async function construirMapaDependencias() {
     if (mundoListaAtual.length) renderizarMundo();
 }
 
-// ── GAVETA LATERAL "CANIVETE" (Fase 17.6) — detalhes do Marco por CLIQUE ─────
-// Substitui o tooltip flutuante (frágil a zoom/scroll). Ao clicar num Marco com eventos
-// atrelados, a gaveta (position:fixed, presa à direita) desliza com a lista de eventos.
+// ── GAVETA LATERAL "CANIVETE MAGNÉTICO" (Fase 17.6.4) — ativação por HOVER ───
+// Timers de intenção: abre 150ms após entrar no marco; fecha 300ms após sair (tempo de
+// o rato "saltar" para a gaveta, que mantém viva enquanto o rato estiver dentro dela).
+let gavetaHoverTimer = null;
+let gavetaCloseTimer = null;
+window.lidarMouseEnterMarco = function(nodeId, flagKey) {
+    clearTimeout(gavetaCloseTimer);
+    gavetaHoverTimer = setTimeout(() => abrirDetalhesMarco(nodeId, flagKey), 150);
+};
+window.lidarMouseLeaveMarco = function() {
+    clearTimeout(gavetaHoverTimer);
+    gavetaCloseTimer = setTimeout(() => fecharGaveta(), 300);
+};
+// Mantém a gaveta viva enquanto o rato está dentro dela (cancela o fecho pendente).
+function inicializarGavetaHover() {
+    const gaveta = document.getElementById('gaveta-detalhes');
+    if (!gaveta) return;
+    gaveta.addEventListener('mouseenter', () => clearTimeout(gavetaCloseTimer));
+    gaveta.addEventListener('mouseleave', () => lidarMouseLeaveMarco());
+}
+
+// Preenche e abre a gaveta com os eventos do marco. Sem deps → não abre (silencioso: o
+// hover só dispara em marcos que têm a Pill, então o caminho vazio é defensivo).
 window.abrirDetalhesMarco = function(nodeId, flagKey) {
-    console.log('--- DEBUG GAVETA ---');
-    console.log('Node ID recebido:', nodeId, '| Chave recebida:', flagKey);
-    const chaveBusca = chaveMarco(nodeId, flagKey); // MESMA normalização do Oráculo
-    console.log('Procurando no mapa por:', chaveBusca);
-    console.log('Conteúdo atual do mapa para esta chave:', mapaDependenciasMarcos[chaveBusca]);
-    const deps = mapaDependenciasMarcos[chaveBusca];
-    // Sem return silencioso: dá feedback claro ao narrador.
-    if (!deps || !deps.length) return mostrarToast('Nenhum evento mecânico atrelado.', 'info');
+    const deps = mapaDependenciasMarcos[chaveMarco(nodeId, flagKey)];
+    if (!deps || !deps.length) return;
     const gaveta = document.getElementById('gaveta-detalhes');
     const titulo = document.getElementById('gaveta-titulo');
     const corpo = document.getElementById('gaveta-conteudo');
