@@ -665,40 +665,21 @@ label {
     padding: 0;
 }
 
-/* Menu flutuante (kebab) — Divulgação Progressiva. Ancorado ao body, fecha ao clicar fora. */
-.menu-flutuante {
-    position: fixed; /* coords estritas de viewport (Fase 17.4 — fecha no scroll) */
-    z-index: 1000;
-    min-width: 190px;
-    padding: 6px;
-    background: var(--bg-card);
+/* Menu de ações INLINE do card (kebab): toggled por JS (display none↔flex). Empurra o
+   conteúdo do card para baixo — nada de flutuante, logo imune a zoom/scroll. */
+.card-acoes-inline {
+    display: none; /* JS faz toggle p/ flex */
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0 0 10px;
+    padding: 8px;
+    background: var(--bg-principal);
     border: 1px solid var(--borda);
-    border-radius: 8px;
-    box-shadow: var(--sombra-profunda);
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
+    border-radius: 6px;
 }
-.menu-flutuante__item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    width: 100%;
-    padding: 8px 10px;
-    font-size: 0.9rem;
-    font-family: inherit;
-    text-align: left;
-    color: var(--texto-claro);
-    background: transparent;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: var(--transicao-suave);
-}
-.menu-flutuante__item:hover { background: var(--bg-principal); }
-.menu-flutuante__item i { width: 16px; height: 16px; }
-.menu-flutuante__item--perigo { color: var(--erro); }
-.menu-flutuante__item--perigo:hover { background: color-mix(in srgb, var(--erro) 14%, var(--bg-card)); }
+.card-acoes-inline .btn { gap: 6px; }
+.card-acoes-inline .btn-del { color: var(--erro); }
+.card-acoes-inline .btn-del:hover { background: color-mix(in srgb, var(--erro) 14%, var(--bg-card)); color: var(--erro); }
 
 /* ── HOVER PREVIEW: Interatividade Passiva (Fase 15.4) ──────────────────── */
 #hover-preview-tooltip {
@@ -756,8 +737,8 @@ label {
     text-align: right;
 }
 .tema-pixel-16bit #hover-preview-tooltip,
-.tema-pixel-16bit .hover-preview-bar { border-radius: 0 !important; }
-.tema-pixel-16bit .menu-flutuante { border-radius: 0 !important; }
+.tema-pixel-16bit .hover-preview-bar,
+.tema-pixel-16bit .card-acoes-inline { border-radius: 0 !important; }
 
 /* ── BARRAS DE PROGRESSO ───────────────────────────────── */
 .barra-bg {
