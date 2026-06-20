@@ -614,10 +614,21 @@ label {
     color: var(--texto-claro);
     cursor: text;
 }
-/* Affordance (Fase 17.6.2): marco com evento mecânico atrelado → clicável (abre a gaveta). */
+/* Affordance (Fase 17.6.4): marco com evento mecânico atrelado vira uma Pill (tag) —
+   hover abre a Gaveta. Cor por token + color-mix (sem rgba hardcoded — Regra 2.5). */
 .marco-item__nome.marco-has-events {
-    border-bottom: 1px dashed var(--roxo-mago);
+    flex: 0 1 auto;
+    margin-right: auto; /* mantém o X à direita; a Pill abraça o texto */
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background-color: color-mix(in srgb, var(--roxo-mago) 15%, transparent);
+    color: var(--texto-claro);
     cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+.marco-item__nome.marco-has-events:hover {
+    background-color: color-mix(in srgb, var(--roxo-mago) 28%, transparent);
 }
 /* Apagar marco: × oculto, só aparece no hover (Regra 7.2). */
 .marco-item .btn-del-marco {
