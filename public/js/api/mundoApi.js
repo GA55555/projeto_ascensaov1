@@ -77,15 +77,6 @@ const MundoApi = {
         if (!res.ok) throw new Error('Falha ao mover entidade.');
     },
 
-    // Escrita ATÓMICA do estado de uma lente Kanban (Fase 15.6): patch só de
-    // dados.kanban[lente] no backend (jsonb_set), livre de clobber concorrente.
-    async moverKanban(cronicaId, nodeId, lente, colunaId) {
-        const res = await API.fetch(`/cronicas/${cronicaId}/nodes/${nodeId}/kanban/${encodeURIComponent(lente)}`, {
-            method: 'PUT',
-            body: JSON.stringify({ colunaId })
-        });
-        if (!res.ok) throw new Error('Falha ao atualizar o Kanban da entidade.');
-    },
 
     // ── FLAGS ──────────────────────────────────────────────────
     async adicionarFlag(cronicaId, nodeId, flagKey) {
@@ -187,6 +178,37 @@ const MundoApi = {
     async deletarBoard(cronicaId, boardId) {
         const res = await API.fetch(`/cronicas/${cronicaId}/boards/${boardId}`, { method: 'DELETE' });
         if (!res.ok) throw new Error('Falha ao remover o tabuleiro.');
+        return res.json();
+    },
+
+    // ── DIREÇÃO DE CENA (FASE 17): world_cenas (layouts efêmeros) ──
+    async listarCenas(cronicaId) {
+        const res = await API.fetch(`/cronicas/${cronicaId}/cenas`);
+        if (!res.ok) throw new Error('Falha ao listar cenas.');
+        return res.json();
+    },
+    async buscarCena(cronicaId, cenaId) {
+        const res = await API.fetch(`/cronicas/${cronicaId}/cenas/${cenaId}`);
+        if (!res.ok) throw new Error('Falha ao carregar a cena.');
+        return res.json(); // { id, nome, dados: { colunas, atores }, ... }
+    },
+    async criarCena(cronicaId, nome, dados = { colunas: [], atores: {} }) {
+        const res = await API.fetch(`/cronicas/${cronicaId}/cenas`, {
+            method: 'POST', body: JSON.stringify({ nome, dados })
+        });
+        if (!res.ok) throw new Error('Falha ao criar a cena.');
+        return res.json();
+    },
+    async atualizarCena(cronicaId, cenaId, payload) {
+        const res = await API.fetch(`/cronicas/${cronicaId}/cenas/${cenaId}`, {
+            method: 'PUT', body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error('Falha ao salvar a cena.');
+        return res.json();
+    },
+    async deletarCena(cronicaId, cenaId) {
+        const res = await API.fetch(`/cronicas/${cronicaId}/cenas/${cenaId}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Falha ao remover a cena.');
         return res.json();
     }
 };

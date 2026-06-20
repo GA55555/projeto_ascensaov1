@@ -2620,10 +2620,10 @@ input[type="radio"] {
 .tema-pixel-16bit .board-card-tipo { font-family: 'VT323', monospace !important; }
 
 /* ════════════════════════════════════════════════════════════
-   LENTES TÁTICAS (FASE 15.1) — Toggle de visualização + Kanban
+   TOGGLE DE VISUALIZAÇÃO (Grelha / Direção de Cena)
    ════════════════════════════════════════════════════════════ */
 
-/* ButtonGroup: botões "colados" para alternância de lente (Grelha/Kanban). */
+/* ButtonGroup: botões "colados" para alternância de visualização. */
 .btn-group {
     display: inline-flex;
     border: 1px solid var(--borda);
@@ -2643,77 +2643,99 @@ input[type="radio"] {
     color: #ffffff; /* alto contraste sobre preenchimento (Regra 2.6) */
 }
 
-/* Seletor de Lentes (Fase 15.5): largura ao conteúdo, ao lado do toggle. */
-.kanban-lens-select { width: auto; margin-left: 8px; }
+/* Container mestre: esconde a Grelha quando a Direção de Cena está ativa. */
+#mundo-view-container.view-cena > #grid-mundo { display: none; }
 
-/* Container mestre: esconde a Grelha quando a lente Kanban está ativa. */
-#mundo-view-container.view-kanban > #grid-mundo { display: none; }
-
-/* Quadro Kanban: trilho horizontal de colunas roláveis. */
-.kanban-board {
+/* ════════════════════════════════════════════════════════════
+   DIREÇÃO DE CENA (FASE 17) — Toolbar + Elenco (sidebar) + Palco
+   ════════════════════════════════════════════════════════════ */
+.cena-toolbar {
     display: flex;
-    gap: 16px;
-    overflow-x: auto;
-    padding-bottom: 8px;
-    min-height: 60vh;
-    align-items: flex-start;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 10px;
+    padding: 8px 10px;
+    background: var(--bg-card-glass);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--borda);
+    border-radius: 8px;
 }
-.kanban-column {
-    flex: 0 0 320px;
+.cena-toolbar select { min-width: 180px; width: auto; }
+.cena-corpo { display: flex; gap: 12px; align-items: flex-start; min-height: 60vh; }
+
+/* Elenco — sidebar de largura fixa. */
+.cena-elenco {
+    flex: 0 0 280px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 72vh;
+    padding: 10px;
     background: var(--bg-secundario);
     border: 1px solid var(--borda);
     border-radius: 8px;
+}
+.cena-elenco select, .cena-elenco input { width: 100%; }
+.elenco-lista { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; min-height: 80px; }
+
+/* Palco — trilho horizontal de colunas roláveis. */
+.cena-palco { flex: 1; min-width: 0; display: flex; gap: 12px; overflow-x: auto; align-items: flex-start; padding-bottom: 8px; min-height: 60vh; }
+.cena-coluna {
+    flex: 0 0 260px;
     display: flex;
     flex-direction: column;
+    background: var(--bg-secundario);
+    border: 1px solid var(--borda);
+    border-radius: 8px;
 }
-.kanban-header {
-    padding: 12px;
+.cena-coluna__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--borda);
     font-family: 'Cormorant Garamond', serif;
     font-weight: 700;
-    font-size: 1.1rem;
+    font-size: 1.05rem;
     color: var(--texto-claro);
-    border-bottom: 1px solid var(--borda);
+}
+.cena-coluna__nome { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: text; }
+.cena-coluna__del { color: var(--texto-mutado); cursor: pointer; width: 16px; height: 16px; flex-shrink: 0; }
+.cena-coluna__del:hover { color: var(--erro); }
+.cena-coluna__cards { padding: 8px; display: flex; flex-direction: column; gap: 8px; min-height: 100px; flex: 1; }
+
+/* Ator (card minimalista: ícone + nome). */
+.ator-card {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: 8px;
-}
-.kanban-header__contagem {
-    font-family: 'Fira Code', monospace;
-    font-size: 0.75rem;
-    color: var(--texto-mutado);
-    background: var(--bg-principal);
+    padding: 8px 10px;
+    background: var(--bg-card);
     border: 1px solid var(--borda);
-    border-radius: 4px;
-    padding: 1px 7px;
+    border-radius: 6px;
+    cursor: grab;
+    user-select: none;
 }
-/* Zona de drop (recebe os cards). min-height garante alvo de drop mesmo vazia. */
-.kanban-cards {
-    padding: 8px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    min-height: 100px;
-}
-.kanban-cards .info-block-vazio { font-size: 0.85rem; }
+.ator-card:hover { border-color: var(--roxo-mago); }
+.ator-card.dragging { opacity: 0.5; }
+.ator-card__icone { width: 20px; height: 20px; color: var(--roxo-mago); flex-shrink: 0; }
+.ator-card__nome { flex: 1; min-width: 0; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ator-remover { width: 15px; height: 15px; flex-shrink: 0; color: var(--erro); cursor: pointer; }
+/* Fantasma: ator que já está no palco (inerte no elenco, salvo o X). */
+.ator-fantasma { opacity: 0.5; pointer-events: none; cursor: default; }
+.ator-fantasma .ator-remover { pointer-events: auto; }
 
-/* Drag & Drop nativo (Fase 15.2): feedback de arrasto + zona de drop ativa. */
-.world-card[draggable="true"] { cursor: grab; }
-.world-card.dragging {
-    opacity: 0.5;
-    transform: scale(0.95);
-    cursor: grabbing;
-}
-.kanban-column.drag-over {
+/* Zonas de drop ativas (DnD nativo — fatia 5). */
+.cena-coluna.drag-over, .cena-elenco.drag-over {
     border-color: var(--roxo-mago);
     background: color-mix(in srgb, var(--roxo-mago) 10%, var(--bg-secundario));
-}
-.kanban-column.drag-over .kanban-cards {
-    outline: 2px dashed var(--roxo-mago);
-    outline-offset: -4px;
 }
 
 /* Coerência 16-bit: bordas retas. */
 .tema-pixel-16bit .btn-group,
-.tema-pixel-16bit .kanban-column,
-.tema-pixel-16bit .kanban-header__contagem { border-radius: 0 !important; }
+.tema-pixel-16bit .cena-toolbar,
+.tema-pixel-16bit .cena-elenco,
+.tema-pixel-16bit .cena-coluna,
+.tema-pixel-16bit .ator-card { border-radius: 0 !important; }

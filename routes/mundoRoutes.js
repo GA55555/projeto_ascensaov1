@@ -13,7 +13,7 @@ const {
     criarNucleoSchema, renomearNucleoSchema,
     criarEventoSchema, criarVinculoSchema,
     criarSessaoSchema, editarSessaoSchema,
-    atualizarNucleoNodeSchema, atualizarKanbanNodeSchema,
+    atualizarNucleoNodeSchema,
     listarLinksSchema, criarLinkSchema, deletarLinkSchema, atualizarLinkSchema,
     criarBoardSchema, atualizarBoardSchema, boardIdParamsSchema
 } = require('../validators/mundoValidator');
@@ -51,7 +51,6 @@ router.post('/nodes', verificarToken, checarAcessoCronica, apenasNarrador, valid
 router.put('/nodes/:nodeId', verificarToken, checarAcessoCronica, apenasNarrador, validate(editarNodeSchema), MundoController.editarNode);
 router.delete('/nodes/:nodeId', verificarToken, checarAcessoCronica, apenasNarrador, MundoController.deletarNode);
 router.put('/nodes/:nodeId/nucleo', verificarToken, checarAcessoCronica, apenasNarrador, validate(atualizarNucleoNodeSchema), MundoController.atualizarNucleoNode);
-router.put('/nodes/:nodeId/kanban/:lente', verificarToken, checarAcessoCronica, apenasNarrador, validate(atualizarKanbanNodeSchema), MundoController.atualizarKanbanNode);
 
 // Sinapses (links bidirecionais entre entidades) — world_links. Params validados (Regra 4.3).
 router.get('/nodes/:nodeId/links', verificarToken, checarAcessoCronica, validate(listarLinksSchema), MundoController.listarLinks);
