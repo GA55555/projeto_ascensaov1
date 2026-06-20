@@ -614,6 +614,11 @@ label {
     color: var(--texto-claro);
     cursor: text;
 }
+/* Affordance (Fase 17.6.2): marco com evento mecânico atrelado → clicável (abre a gaveta). */
+.marco-item__nome.marco-has-events {
+    border-bottom: 1px dashed var(--roxo-mago);
+    cursor: pointer;
+}
 /* Apagar marco: × oculto, só aparece no hover (Regra 7.2). */
 .marco-item .btn-del-marco {
     display: none;
