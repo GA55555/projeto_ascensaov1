@@ -723,6 +723,15 @@ window.fecharMenuKebab = function() {
     document.getElementById('menu-kebab')?.remove();
     document.removeEventListener('pointerdown', kebabOutside, true);
 };
+
+// Popovers usam position:fixed (presos ao viewport). Qualquer scroll move o gatilho mas não
+// o popover → fechamos os flutuantes ao rolar. capture:true pega scrolls de divs internas
+// (ex.: .cena-palco, .elenco-lista), não só o da janela.
+function fecharPopoversGlobais() {
+    fecharMenuKebab();    // destrói o menu kebab aberto
+    esconderHoverMarco(); // esconde o tooltip de marco
+}
+window.addEventListener('scroll', fecharPopoversGlobais, { passive: true, capture: true });
 window.abrirMenuKebab = function(e, nodeId) {
     e.stopPropagation();
     // Gatilho = o ícone ⋮. closest('.kebab-trigger') é robusto mesmo após o Lucide trocar
@@ -742,39 +751,33 @@ window.abrirMenuKebab = function(e, nodeId) {
     setTimeout(() => document.addEventListener('pointerdown', kebabOutside, true), 0); // não captura o próprio clique
 };
 
-// Posiciona um popover (injetado no body, position:absolute) "colado" ao gatilho.
-// CORREÇÃO DO DOUBLE SCALING (Fase 17.3): o `:root { zoom }` faz o getBoundingClientRect
-// devolver px JÁ escalados; ao aplicar style.top/left, o navegador re-aplica o zoom → o
-// popover foge para baixo/direita proporcionalmente. Solução: ler o zoom computado e
-// DIVIDIR as coords (rect + scroll) por ele, anulando a dupla escala. Sem layout thrashing.
-// `modo`: 'baixo' (Kebab: abaixo, alinhado à borda direita) | 'lado' (Tooltip: à direita, topo).
+// BALA DE PRATA (Fase 17.4): coordenadas ESTRITAS de viewport (position:fixed) + rect cru.
+// Abandona absolute+scroll+÷zoom: como fixed e getBoundingClientRect vivem ambos no espaço
+// do viewport, basta colar top/left no rect — sem matemática de zoom nem scroll. O scroll é
+// tratado FECHANDO os popovers (fecharPopoversGlobais), evitando que o gatilho role e o
+// popover fixo fique para trás. `modo`: 'baixo' (Kebab) | 'lado' (Tooltip).
 function posicionarPopoverAlinhado(gatilho, popover, margem = 8, modo = 'lado') {
-    popover.style.position = 'absolute';
-    const zoom = parseFloat(getComputedStyle(document.documentElement).zoom) || 1;
+    popover.style.position = 'fixed';
     const rect = gatilho.getBoundingClientRect();
-    const pw = popover.offsetWidth, ph = popover.offsetHeight; // já em px locais (não escalados)
-    // Converte px VISUAIS (viewport) → px LOCAIS de documento: (visual + scroll) / zoom.
-    const lx = (vx) => (vx + window.scrollX) / zoom;
-    const ly = (vy) => (vy + window.scrollY) / zoom;
-    const bordaEsq = lx(0), bordaTopo = ly(0);
-    const bordaDir = lx(window.innerWidth), bordaBaixo = ly(window.innerHeight);
+    const pw = popover.offsetWidth, ph = popover.offsetHeight;
+    const vw = window.innerWidth, vh = window.innerHeight;
 
     let top, left;
     if (modo === 'baixo') {
         // Menu Kebab: abaixo do gatilho, alinhado à sua borda direita.
-        top = ly(rect.bottom) + margem;
-        left = lx(rect.right) - pw;
-        if (top + ph > bordaBaixo - margem) top = ly(rect.top) - ph - margem; // sem espaço abaixo → acima
-        if (left < bordaEsq + margem) left = lx(rect.left);                   // não vaza à esquerda
+        top = rect.bottom + margem;
+        left = rect.right - pw;
+        if (top + ph > vh) top = rect.top - ph - margem; // sem espaço abaixo → acima
+        if (left < 0) left = rect.left;                  // não vaza à esquerda
     } else {
         // Tooltip: ao lado direito do gatilho, topo alinhado.
-        top = ly(rect.top);
-        left = lx(rect.right) + margem;
-        if (left + pw > bordaDir - margem) left = lx(rect.left) - pw - margem; // sem espaço → à esquerda
+        top = rect.top;
+        left = rect.right + margem;
+        if (left + pw > vw) left = rect.left - pw - margem; // sem espaço → à esquerda
     }
-    // Boundary final: mantém dentro da janela (já em coords locais; a janela também ÷ zoom).
-    left = Math.max(bordaEsq + margem, Math.min(left, bordaDir - pw - margem));
-    top = Math.max(bordaTopo + margem, Math.min(top, bordaBaixo - ph - margem));
+    // Boundary final estrito ao viewport (innerWidth/innerHeight nativos).
+    left = Math.max(margem, Math.min(left, vw - pw - margem));
+    top = Math.max(margem, Math.min(top, vh - ph - margem));
     popover.style.left = Math.round(left) + 'px';
     popover.style.top = Math.round(top) + 'px';
 }
