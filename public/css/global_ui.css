@@ -2541,21 +2541,6 @@ input[type="radio"] {
 /* Densidade do fundo: tokens, nunca hex. Denso inverte o texto p/ contraste (Regra 2.6). */
 .board-text-semi { background: color-mix(in srgb, var(--board-accent) 30%, transparent); padding: 4px 8px; border-radius: 6px; }
 .board-text-denso { background: var(--board-accent); color: var(--bg-principal); padding: 4px 8px; border-radius: 6px; }
-.board-text-remover {
-    position: absolute;
-    top: -8px;
-    right: -8px;
-    width: 14px;
-    height: 14px;
-    color: var(--texto-mutado);
-    background: var(--bg-principal);
-    border-radius: 4px;
-    cursor: pointer;
-    opacity: 0;
-    transition: var(--transicao-suave);
-}
-.board-text:hover .board-text-remover { opacity: 1; }
-.board-text-remover:hover { color: var(--erro); }
 
 /* Prop (ícone RPG): SVG recolorido por máscara CSS + cor por token. */
 .board-prop {
