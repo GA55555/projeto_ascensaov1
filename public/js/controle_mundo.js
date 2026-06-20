@@ -738,26 +738,42 @@ window.abrirMenuKebab = function(e, nodeId) {
         <button type="button" class="menu-flutuante__item menu-flutuante__item--perigo" onclick="confirmarDeletarEntidade(this, '${nodeId}')"><i data-lucide="trash-2"></i> Deletar</button>`;
     document.body.appendChild(menu);
     lucide.createIcons();
-    posicionarFlutuante(menu, trigger.getBoundingClientRect()); // ao lado direito do ⋮, alinhado ao topo
+    posicionarPopoverAlinhado(trigger, menu, 8, 'baixo'); // abaixo do ⋮, alinhado à borda direita
     setTimeout(() => document.addEventListener('pointerdown', kebabOutside, true), 0); // não captura o próprio clique
 };
 
-// Posiciona um flutuante (position:fixed, no body) à DIREITA do gatilho e ALINHADO AO
-// TOPO dele (ao lado, não abaixo). Sem espaço à direita → vira para a esquerda do gatilho;
-// clampa na vertical. Usa coords de viewport CRUAS do getBoundingClientRect (sem somar
-// scroll): casa com position:fixed e com o `:root { zoom }` do projeto, evitando o desvio
-// que aparecia ao misturar rect (zoomado) com window.scrollX/innerWidth.
-function posicionarFlutuante(el, rect) {
-    const gap = 6;
-    const w = el.offsetWidth, h = el.offsetHeight;
-    let left = rect.right + gap;                                       // ao lado direito do gatilho
-    if (left + w > window.innerWidth - 8) left = rect.left - w - gap;  // sem espaço → à esquerda
-    if (left < 8) left = 8;
-    let top = rect.top;                                                // alinhado ao topo do gatilho
-    if (top + h > window.innerHeight - 8) top = window.innerHeight - h - 8;
-    if (top < 8) top = 8;
-    el.style.left = Math.round(left) + 'px';
-    el.style.top = Math.round(top) + 'px';
+// Posiciona um popover (injetado no body, position:absolute) "colado" ao gatilho, com
+// margem constante e boundary-check. À PROVA DE ZOOM: o projeto usa `:root { zoom }`, então
+// getBoundingClientRect devolve px VISUAIS enquanto style.left/top são px LOCAIS. Em vez de
+// adivinhar o fator, MEDIMOS a escala (quanto o popover anda em px visuais por px de style) e
+// convertemos o alvo visual → style. Isso absorve zoom E scroll automaticamente.
+// `modo`: 'baixo' (Kebab: abaixo, alinhado à borda direita) | 'lado' (Tooltip: à direita, topo).
+function posicionarPopoverAlinhado(gatilho, popover, margem = 8, modo = 'lado') {
+    popover.style.position = 'absolute';
+    popover.style.left = '0px';
+    popover.style.top = '0px';
+    const base = popover.getBoundingClientRect();                 // posição/tamanho visual em style(0,0)
+    popover.style.left = '100px';
+    const escala = ((popover.getBoundingClientRect().left - base.left) / 100) || 1; // px visual por px style (≈ zoom)
+    const g = gatilho.getBoundingClientRect();                    // gatilho em px visuais
+    const m = margem * escala;                                    // margem visual constante
+    const vw = window.innerWidth, vh = window.innerHeight;
+
+    let lv, tv; // alvo do canto sup-esq do popover, em px VISUAIS
+    if (modo === 'baixo') {
+        tv = g.bottom + m;                                        // abaixo do gatilho
+        lv = g.right - base.width;                               // alinhado à borda direita
+        if (tv + base.height > vh - m) tv = g.top - base.height - m; // sem espaço abaixo → acima
+        if (lv < m) lv = g.left;                                 // não vaza à esquerda
+    } else {
+        tv = g.top;                                              // topo alinhado ao gatilho
+        lv = g.right + m;                                        // ao lado direito
+        if (lv + base.width > vw - m) lv = g.left - base.width - m;   // sem espaço → à esquerda
+    }
+    lv = Math.max(m, Math.min(lv, vw - base.width - m));         // clamp na janela
+    tv = Math.max(m, Math.min(tv, vh - base.height - m));
+    popover.style.left = Math.round((lv - base.left) / escala) + 'px'; // alvo visual → px de style
+    popover.style.top = Math.round((tv - base.top) / escala) + 'px';
 }
 
 // Deletar entidade em 2 passos dentro do kebab (sem confirm() nativo).
@@ -1364,9 +1380,10 @@ window.mostrarHoverMarco = function(e, nodeId, flagKey) {
             </div>`;
         }).join('')}`;
     lucide.createIcons();
-    posicionarFlutuante(tip, e.target.getBoundingClientRect()); // ao lado direito da palavra, alinhado ao topo
+    // Estado visível ANTES de medir (o translateY(5px) do estado oculto falsearia a base).
     tip.classList.remove('hover-preview-hidden');
     tip.classList.add('hover-preview-visible');
+    posicionarPopoverAlinhado(e.target, tip, 8, 'lado'); // à direita da palavra, topo alinhado
 };
 window.esconderHoverMarco = function() {
     const tip = document.getElementById('hover-preview-tooltip');
