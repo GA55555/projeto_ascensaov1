@@ -1325,26 +1325,25 @@ async function construirMapaDependencias() {
 }
 
 // ── TOOLTIP DE MARCO POR HOVER (Fase 17.6.5) — fixed + rect cru, imune ao zoom ───
-// Túnel de 250ms (não pisca): sair do marco/tooltip agenda o fecho; entrar cancela.
+// Fecho instantâneo (Fase 17.8): sair do marco/tooltip esconde de imediato (sem túnel).
 let tooltipDelayTimeout = null;
 
-// Container único (no body) com os listeners do túnel (entrar mantém; sair reagenda).
 function ensureTooltipMarcoEl() {
     let tip = document.getElementById('tooltip-marco');
     if (!tip) {
         tip = document.createElement('div');
         tip.id = 'tooltip-marco';
         tip.className = 'tooltip-marco-oculto';
-        tip.addEventListener('mouseenter', () => clearTimeout(tooltipDelayTimeout));
-        tip.addEventListener('mouseleave', agendarFechoTooltip);
+        tip.addEventListener('mouseleave', esconderTooltipMarco);
         document.body.appendChild(tip);
     }
     return tip;
 }
+
 window.mostrarTooltipMarco = function(e, nodeId, flagKey) {
     const deps = mapaDependenciasMarcos[chaveMarco(nodeId, flagKey)];
-    if (!deps || !deps.length) return; // hover só dispara em marcos com Pill; defensivo
-    clearTimeout(tooltipDelayTimeout);
+    if (!deps || !deps.length) return;
+
     const tip = ensureTooltipMarcoEl();
     tip.innerHTML = `
         <div class="tooltip-marco__head"><i data-lucide="link"></i> ${escapeHTML(humanizarMarco(flagKey))}</div>
@@ -1364,14 +1363,15 @@ window.mostrarTooltipMarco = function(e, nodeId, flagKey) {
     lucide.createIcons();
     tip.classList.remove('tooltip-marco-oculto');
     tip.classList.add('tooltip-marco-visivel');
-    posicionarTooltipHover(e.currentTarget, tip); // gatilho = a Pill do marco
+
+    posicionarTooltipHover(e.currentTarget, tip);
 };
+
 window.agendarFechoTooltip = function() {
-    clearTimeout(tooltipDelayTimeout);
-    tooltipDelayTimeout = setTimeout(esconderTooltipMarco, 250);
+    esconderTooltipMarco();
 };
+
 function esconderTooltipMarco() {
-    clearTimeout(tooltipDelayTimeout);
     const tip = document.getElementById('tooltip-marco');
     if (!tip) return;
     tip.classList.remove('tooltip-marco-visivel');

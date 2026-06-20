@@ -1,0 +1,244 @@
+"table_name","column_name","data_type","is_key"
+"aba_permissoes","nivel_acesso","character varying",False
+"aba_permissoes","jogador_id","uuid",True
+"aba_permissoes","criado_em","timestamp without time zone",False
+"aba_permissoes","id","uuid",True
+"aba_permissoes","aba_id","uuid",True
+"automacao_log","detalhes","text",False
+"automacao_log","status","character varying",False
+"automacao_log","executado_em","timestamp with time zone",False
+"automacao_log","automacao_id","uuid",True
+"automacao_log","evento_id","uuid",True
+"automacao_log","id","uuid",True
+"automacao_tipos","id","uuid",True
+"automacao_tipos","parametros_schema","jsonb",False
+"automacao_tipos","descricao","text",False
+"automacao_tipos","nome","character varying",True
+"automacoes","evento_id","uuid",True
+"automacoes","criado_em","timestamp with time zone",False
+"automacoes","parametros","jsonb",False
+"automacoes","tipo_id","uuid",True
+"automacoes","ativo","boolean",False
+"automacoes","id","uuid",True
+"comentarios","conteudo","text",False
+"comentarios","criado_em","timestamp without time zone",False
+"comentarios","postagem_id","uuid",True
+"comentarios","autor_id","uuid",True
+"comentarios","id","uuid",True
+"cronica_abas","id","uuid",True
+"cronica_abas","tipo","character varying",False
+"cronica_abas","nome","character varying",False
+"cronica_abas","criado_em","timestamp without time zone",False
+"cronica_abas","cronica_id","uuid",True
+"cronica_jogadores","id","uuid",True
+"cronica_jogadores","usuario_id","uuid",True
+"cronica_jogadores","papel","character varying",False
+"cronica_jogadores","cronica_id","uuid",True
+"cronicas","nome","character varying",False
+"cronicas","data_termino","timestamp without time zone",False
+"cronicas","layout_escudo","jsonb",False
+"cronicas","sistema_id","uuid",True
+"cronicas","id","uuid",True
+"cronicas","sistema","character varying",False
+"cronicas","criado_em","timestamp without time zone",False
+"cronicas","narrador_id","uuid",True
+"cronicas","status","character varying",False
+"cronicas","capa_url","character varying",False
+"cronicas","descricao","text",False
+"elementos_cronica","descricao","text",False
+"elementos_cronica","id","uuid",True
+"elementos_cronica","visivel_para_jogadores","boolean",False
+"elementos_cronica","tipo","character varying",False
+"elementos_cronica","nome","character varying",False
+"elementos_cronica","imagem_url","character varying",False
+"elementos_cronica","criado_em","timestamp without time zone",False
+"elementos_cronica","cronica_id","uuid",True
+"elementos_cronica","dados_ficha","jsonb",False
+"entidade_nucleos","nome","character varying",False
+"entidade_nucleos","tipo","character varying",False
+"entidade_nucleos","criado_em","timestamp with time zone",False
+"entidade_nucleos","id","uuid",True
+"entidade_nucleos","cronica_id","uuid",True
+"entidades_mundo","id","uuid",True
+"entidades_mundo","nome","character varying",False
+"entidades_mundo","cronica_id","uuid",True
+"entidades_mundo","usuario_id","uuid",True
+"entidades_mundo","dados","jsonb",False
+"entidades_mundo","criado_em","timestamp with time zone",False
+"entidades_mundo","atualizado_em","timestamp with time zone",False
+"entidades_mundo","tipo","character varying",False
+"escudo_cards_monstros","imagem_url","text",False
+"escudo_cards_monstros","criado_em","timestamp with time zone",False
+"escudo_cards_monstros","iniciativa","integer",False
+"escudo_cards_monstros","hp_atual","integer",False
+"escudo_cards_monstros","hp_max","integer",False
+"escudo_cards_monstros","id","uuid",True
+"escudo_cards_monstros","cronica_id","uuid",True
+"escudo_cards_monstros","nome","character varying",False
+"escudo_saves","criado_em","timestamp with time zone",False
+"escudo_saves","id","uuid",True
+"escudo_saves","cronica_id","uuid",True
+"escudo_saves","sessao_id","uuid",True
+"escudo_saves","dados","jsonb",False
+"escudo_saves","nucleo_id","uuid",True
+"escudo_saves","nome","character varying",False
+"event_flag_weights","id","uuid",True
+"event_flag_weights","flag_key","character varying",True
+"event_flag_weights","event_id","uuid",True
+"event_flag_weights","node_id","uuid",True
+"event_flag_weights","peso","integer",False
+"event_nucleos","event_id","uuid",True
+"event_nucleos","nucleo_id","uuid",True
+"evento_nucleos","nome","character varying",False
+"evento_nucleos","id","uuid",True
+"evento_nucleos","criado_em","timestamp with time zone",False
+"evento_nucleos","cronica_id","uuid",True
+"fichas_base","avatar_url","character varying",False
+"fichas_base","sistema_id","uuid",True
+"fichas_base","usuario_id","uuid",True
+"fichas_base","criado_em","timestamp without time zone",False
+"fichas_base","nome_personagem","character varying",False
+"fichas_base","dados_ficha","jsonb",False
+"fichas_base","id","uuid",True
+"fichas_base","atualizado_em","timestamp without time zone",False
+"gaveta_fichas","id","uuid",True
+"gaveta_fichas","criado_em","timestamp with time zone",False
+"gaveta_fichas","nome","character varying",False
+"gaveta_fichas","usuario_id","uuid",True
+"gaveta_fichas","tipo","character varying",False
+"gaveta_fichas","dados_ficha","jsonb",False
+"perfis_cronica","apelido","character varying",False
+"perfis_cronica","avatar_url","character varying",False
+"perfis_cronica","cronica_id","uuid",True
+"perfis_cronica","id","uuid",True
+"perfis_cronica","usuario_id","uuid",True
+"personagens","conceito","character varying",False
+"personagens","natureza","character varying",False
+"personagens","comportamento","character varying",False
+"personagens","usuario_id","uuid",True
+"personagens","cronica_id","uuid",True
+"personagens","id","uuid",True
+"personagens","arete","integer",False
+"personagens","criado_em","timestamp with time zone",False
+"personagens","dados_ficha","jsonb",False
+"personagens","exp_total","integer",False
+"personagens","exp_gasta","integer",False
+"personagens","nome","character varying",False
+"personagens","essencia","character varying",False
+"personagens","tradicao","character varying",False
+"personagens_cronica","aprovado_pelo_narrador","boolean",False
+"personagens_cronica","cronica_id","uuid",True
+"personagens_cronica","jogador_id","uuid",True
+"personagens_cronica","ficha_base_id","uuid",True
+"personagens_cronica","dados_ficha","jsonb",False
+"personagens_cronica","id","uuid",True
+"personagens_cronica","exp_total","integer",False
+"personagens_cronica","exp_gasta","integer",False
+"personagens_cronica","criado_em","timestamp without time zone",False
+"personagens_cronica","nome_personagem","character varying",False
+"personagens_historico","exp_gasta","integer",False
+"personagens_historico","id","uuid",True
+"personagens_historico","criado_em","timestamp with time zone",False
+"personagens_historico","personagem_id","uuid",True
+"personagens_historico","dados_ficha","jsonb",False
+"personagens_historico","exp_total","integer",False
+"post_album_itens","descricao","text",False
+"post_album_itens","post_id","uuid",True
+"post_album_itens","ordem","integer",False
+"post_album_itens","id","uuid",True
+"post_album_itens","imagem_url","character varying",False
+"post_comentarios","criado_em","timestamp without time zone",False
+"post_comentarios","autor_id","uuid",True
+"post_comentarios","post_id","uuid",True
+"post_comentarios","conteudo","text",False
+"post_comentarios","id","uuid",True
+"post_votacao_opcoes","id","integer",True
+"post_votacao_opcoes","post_id","uuid",True
+"post_votacao_opcoes","votos","integer",False
+"post_votacao_opcoes","texto","character varying",False
+"post_votacao_votos","usuario_id","uuid",True
+"post_votacao_votos","opcao_id","integer",True
+"post_votacao_votos","id","integer",True
+"postagens","conteudo","text",False
+"postagens","multipla_escolha","boolean",False
+"postagens","tipo","character varying",False
+"postagens","autor_id","uuid",True
+"postagens","imagens","jsonb",False
+"postagens","criado_em","timestamp without time zone",False
+"postagens","id","uuid",True
+"postagens","atualizado_em","timestamp without time zone",False
+"postagens","aba_id","uuid",True
+"postagens","imagem_url","character varying",False
+"sessoes","criado_em","timestamp with time zone",False
+"sessoes","eventos","jsonb",False
+"sessoes","desfechos","jsonb",False
+"sessoes","entidades","jsonb",False
+"sessoes","status","character varying",False
+"sessoes","resumo","text",False
+"sessoes","data_sessao","date",False
+"sessoes","id","uuid",True
+"sessoes","automacoes","jsonb",False
+"sessoes","nucleo_id","uuid",True
+"sessoes","titulo","character varying",False
+"sessoes","cronica_id","uuid",True
+"sistemas","criado_em","timestamp without time zone",False
+"sistemas","nome","character varying",True
+"sistemas","slug","character varying",True
+"sistemas","id","uuid",True
+"usuarios","email","character varying",True
+"usuarios","criado_em","timestamp without time zone",False
+"usuarios","tema_interface","character varying",False
+"usuarios","senha_hash","character varying",False
+"usuarios","avatar_url","character varying",False
+"usuarios","id","uuid",True
+"usuarios","nome_usuario","character varying",False
+"world_boards","nome","character varying",False
+"world_boards","dados","jsonb",False
+"world_boards","id","uuid",True
+"world_boards","atualizado_em","timestamp with time zone",False
+"world_boards","criado_em","timestamp with time zone",False
+"world_boards","cronica_id","uuid",True
+"world_cenas","atualizado_em","timestamp with time zone",False
+"world_cenas","criado_em","timestamp with time zone",False
+"world_cenas","nome","character varying",False
+"world_cenas","dados","jsonb",False
+"world_cenas","id","uuid",True
+"world_cenas","cronica_id","uuid",True
+"world_events","pool_atual","integer",False
+"world_events","id","uuid",True
+"world_events","nome","character varying",False
+"world_events","descricao","text",False
+"world_events","status","character varying",False
+"world_events","cronica_id","uuid",True
+"world_events","pool_maxima","integer",False
+"world_events","criado_em","timestamp without time zone",False
+"world_events","ultima_excedida_em","timestamp with time zone",False
+"world_flags","id","uuid",True
+"world_flags","criado_em","timestamp without time zone",False
+"world_flags","atualizado_em","timestamp without time zone",False
+"world_flags","node_id","uuid",True
+"world_flags","flag_value","boolean",False
+"world_flags","flag_key","character varying",True
+"world_links","destino_node_id","uuid",True
+"world_links","origem_node_id","uuid",True
+"world_links","cronica_id","uuid",True
+"world_links","tipo_vinculo","character varying",False
+"world_links","criado_em","timestamp with time zone",False
+"world_links","id","uuid",True
+"world_links","dados","jsonb",False
+"world_nodes","id","uuid",True
+"world_nodes","tipo","character varying",False
+"world_nodes","status","character varying",False
+"world_nodes","nome","character varying",False
+"world_nodes","cronica_id","uuid",True
+"world_nodes","parent_node_id","uuid",True
+"world_nodes","metadata","jsonb",False
+"world_nodes","is_public","boolean",False
+"world_nodes","dados","jsonb",False
+"world_nodes","nucleo_id","uuid",True
+"world_nodes","criado_em","timestamp without time zone",False
+"world_triggers","cronica_id","uuid",True
+"world_triggers","id","uuid",True
+"world_triggers","ativo","boolean",False
+"world_triggers","effect_json","jsonb",False
+"world_triggers","condition_json","jsonb",False
