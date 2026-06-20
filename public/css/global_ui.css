@@ -711,7 +711,7 @@ label {
     border: 1px solid var(--borda);
     border-radius: 6px;
     box-shadow: 0 4px 12px var(--sombra-profunda);
-    transition: opacity 0.15s ease;
+    transition: none;
 }
 .tooltip-marco-oculto { opacity: 0; pointer-events: none; }
 .tooltip-marco-visivel { opacity: 1; pointer-events: auto; }
