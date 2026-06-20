@@ -50,7 +50,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const temAcesso = await verificarAcesso();
     if (temAcesso) {
         inicializarViewToggle();
-        inicializarGavetaHover(); // Canivete Magnético: mantém a gaveta viva no hover dela
         await carregarNucleos('entidade');
         await carregarNucleos('evento');
         await carregarNucleos('sessao');
@@ -390,18 +389,21 @@ function cardMundoHTML(node) {
 function marcoItemHTML(nodeId, f) {
     const k = escapeHTML(f.key);
     // Affordance (Pill) + gatilhos de HOVER só nos marcos QUE têm eventos atrelados —
-    // evita disparar a gaveta (e timers) em marcos sem dependência mecânica.
+    // evita disparar o tooltip (e timers) em marcos sem dependência mecânica.
     const temEventos = (mapaDependenciasMarcos[chaveMarco(nodeId, f.key)] || []).length > 0;
     const classeEventos = temEventos ? ' marco-has-events' : '';
     const hover = temEventos
-        ? ` onmouseenter="lidarMouseEnterMarco('${nodeId}', '${k}')" onmouseleave="lidarMouseLeaveMarco()"`
+        ? ` onmouseenter="mostrarTooltipMarco(event, '${nodeId}', '${k}')" onmouseleave="agendarFechoTooltip()"`
         : '';
     const titulo = temEventos ? 'Passe o rato: detalhes · Duplo-clique: renomear' : 'Duplo-clique: renomear';
+    // Dica inline (só nos marcos com Pill): a pista visual de que há detalhes no hover.
+    const dica = temEventos ? '<span class="marco-dica">Passe o rato: detalhes · Duplo-clique: renomear</span>' : '';
     return `
         <div class="marco-item" data-flag-key="${k}">
             <input type="checkbox" class="marco-item__check" ${f.value ? 'checked' : ''} data-node-id="${nodeId}" data-flag-key="${k}" onchange="toggleFlag(this.dataset.nodeId, this.dataset.flagKey, this.checked)">
             <span class="marco-item__nome${classeEventos}" title="${titulo}"${hover} ondblclick="iniciarEdicaoMarco(event, '${nodeId}', '${k}')">${escapeHTML(humanizarMarco(f.key))}</span>
             <i data-lucide="x" class="btn-del-marco" title="Apagar marco" onclick="confirmarDeletarMarco(this, '${nodeId}', '${k}')"></i>
+            ${dica}
         </div>`;
 }
 
@@ -1326,62 +1328,77 @@ async function construirMapaDependencias() {
     if (mundoListaAtual.length) renderizarMundo();
 }
 
-// ── GAVETA LATERAL "CANIVETE MAGNÉTICO" (Fase 17.6.4) — ativação por HOVER ───
-// Timers de intenção: abre 150ms após entrar no marco; fecha 300ms após sair (tempo de
-// o rato "saltar" para a gaveta, que mantém viva enquanto o rato estiver dentro dela).
-let gavetaHoverTimer = null;
-let gavetaCloseTimer = null;
-window.lidarMouseEnterMarco = function(nodeId, flagKey) {
-    clearTimeout(gavetaCloseTimer);
-    gavetaHoverTimer = setTimeout(() => abrirDetalhesMarco(nodeId, flagKey), 150);
-};
-window.lidarMouseLeaveMarco = function() {
-    clearTimeout(gavetaHoverTimer);
-    gavetaCloseTimer = setTimeout(() => fecharGaveta(), 300);
-};
-// Mantém a gaveta viva enquanto o rato está dentro dela (cancela o fecho pendente).
-function inicializarGavetaHover() {
-    const gaveta = document.getElementById('gaveta-detalhes');
-    if (!gaveta) return;
-    gaveta.addEventListener('mouseenter', () => clearTimeout(gavetaCloseTimer));
-    gaveta.addEventListener('mouseleave', () => lidarMouseLeaveMarco());
-}
+// ── TOOLTIP DE MARCO POR HOVER (Fase 17.6.5) — fixed + rect cru, imune ao zoom ───
+// Túnel de 250ms (não pisca): sair do marco/tooltip agenda o fecho; entrar cancela.
+let tooltipDelayTimeout = null;
 
-// Preenche e abre a gaveta com os eventos do marco. Sem deps → não abre (silencioso: o
-// hover só dispara em marcos que têm a Pill, então o caminho vazio é defensivo).
-window.abrirDetalhesMarco = function(nodeId, flagKey) {
+// Container único (no body) com os listeners do túnel (entrar mantém; sair reagenda).
+function ensureTooltipMarcoEl() {
+    let tip = document.getElementById('tooltip-marco');
+    if (!tip) {
+        tip = document.createElement('div');
+        tip.id = 'tooltip-marco';
+        tip.className = 'tooltip-marco-oculto';
+        tip.addEventListener('mouseenter', () => clearTimeout(tooltipDelayTimeout));
+        tip.addEventListener('mouseleave', agendarFechoTooltip);
+        document.body.appendChild(tip);
+    }
+    return tip;
+}
+window.mostrarTooltipMarco = function(e, nodeId, flagKey) {
     const deps = mapaDependenciasMarcos[chaveMarco(nodeId, flagKey)];
-    if (!deps || !deps.length) return;
-    const gaveta = document.getElementById('gaveta-detalhes');
-    const titulo = document.getElementById('gaveta-titulo');
-    const corpo = document.getElementById('gaveta-conteudo');
-    if (!gaveta || !corpo) return;
-    if (titulo) titulo.textContent = humanizarMarco(flagKey);
-    corpo.innerHTML = `
-        <div class="gaveta-secao"><i data-lucide="link"></i> Alimenta os Eventos</div>
+    if (!deps || !deps.length) return; // hover só dispara em marcos com Pill; defensivo
+    clearTimeout(tooltipDelayTimeout);
+    const tip = ensureTooltipMarcoEl();
+    tip.innerHTML = `
+        <div class="tooltip-marco__head"><i data-lucide="link"></i> ${escapeHTML(humanizarMarco(flagKey))}</div>
         ${deps.map(d => {
             const max = Number(d.pool_maxima) || 0;
             const atual = Number(d.pool_atual) || 0;
             const pct = max > 0 ? Math.min(100, Math.round((atual / max) * 100)) : 0;
-            return `<div class="gaveta-evento">
-                <div class="gaveta-evento__top">
-                    <span class="gaveta-evento__nome">${escapeHTML(d.nomeEvento)}</span>
-                    <span class="gaveta-evento__peso">+${escapeHTML(String(d.peso))}</span>
+            return `<div class="tooltip-marco__evento">
+                <div class="tooltip-marco__top">
+                    <span class="tooltip-marco__nome">${escapeHTML(d.nomeEvento)}</span>
+                    <span class="tooltip-marco__peso">+${escapeHTML(String(d.peso))}</span>
                 </div>
-                <div class="gaveta-bar"><div class="gaveta-bar__fill" style="width: ${pct}%;"></div></div>
-                <div class="gaveta-evento__pool">${escapeHTML(String(atual))}/${escapeHTML(String(max))}</div>
+                <div class="tooltip-marco__bar"><div class="tooltip-marco__fill" style="width: ${pct}%;"></div></div>
+                <div class="tooltip-marco__pool">${escapeHTML(String(atual))}/${escapeHTML(String(max))}</div>
             </div>`;
         }).join('')}`;
     lucide.createIcons();
-    gaveta.classList.remove('gaveta-fechada');
-    gaveta.classList.add('gaveta-aberta');
+    tip.classList.remove('tooltip-marco-oculto');
+    tip.classList.add('tooltip-marco-visivel');
+    posicionarTooltipHover(e.currentTarget, tip); // gatilho = a Pill do marco
 };
-window.fecharGaveta = function() {
-    const gaveta = document.getElementById('gaveta-detalhes');
-    if (!gaveta) return;
-    gaveta.classList.remove('gaveta-aberta');
-    gaveta.classList.add('gaveta-fechada');
+window.agendarFechoTooltip = function() {
+    clearTimeout(tooltipDelayTimeout);
+    tooltipDelayTimeout = setTimeout(esconderTooltipMarco, 250);
 };
+function esconderTooltipMarco() {
+    clearTimeout(tooltipDelayTimeout);
+    const tip = document.getElementById('tooltip-marco');
+    if (!tip) return;
+    tip.classList.remove('tooltip-marco-visivel');
+    tip.classList.add('tooltip-marco-oculto');
+}
+
+// Posicionamento por VIEWPORT (position:fixed) imune ao :root { zoom }. O rect do
+// getBoundingClientRect e as coords de um elemento fixed vivem no MESMO sistema de
+// referência (o viewport, já escalado pelo navegador) — então aplicamos rect.bottom /
+// rect.left DIRETO, sem multiplicar/dividir por zoom. Só inverto se vazar a janela.
+function posicionarTooltipHover(gatilho, tooltip) {
+    tooltip.style.position = 'fixed';
+    const rect = gatilho.getBoundingClientRect();
+    const tw = tooltip.offsetWidth, th = tooltip.offsetHeight, gap = 6;
+    let top = rect.bottom + gap;          // abaixo do marco
+    let left = rect.left;                 // alinhado à esquerda do marco
+    if (left + tw > window.innerWidth - 8) left = rect.right - tw;       // vaza à direita → alinha pela direita
+    if (left < 8) left = 8;
+    if (top + th > window.innerHeight - 8) top = rect.top - th - gap;    // sem espaço abaixo → acima
+    if (top < 8) top = 8;
+    tooltip.style.left = Math.round(left) + 'px';
+    tooltip.style.top = Math.round(top) + 'px';
+}
 
 // ==========================================
 // AGENDA DE EVENTOS E VÍNCULOS (SISTEMA BLINDADO)
