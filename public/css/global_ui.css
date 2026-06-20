@@ -595,8 +595,9 @@ label {
 .marco-item {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;        /* permite a .marco-dica cair em nova linha abaixo da Pill */
     width: 100%;
-    gap: 10px;
+    gap: 4px 10px;
     padding: 7px 6px;
     border-bottom: 1px solid var(--borda);
     border-radius: 4px;
@@ -697,80 +698,70 @@ label {
 .card-acoes-inline .btn-del { color: var(--erro); }
 .card-acoes-inline .btn-del:hover { background: color-mix(in srgb, var(--erro) 14%, var(--bg-card)); color: var(--erro); }
 
-/* ── GAVETA LATERAL "CANIVETE" (Fase 17.6) — detalhes de Marco por clique ──── */
-/* Fixa à direita; desliza via classe. Imune a zoom/scroll (não depende de coords do gatilho). */
-#gaveta-detalhes {
+/* ── TOOLTIP DE MARCO POR HOVER (Fase 17.6.5) — fixed; posição via JS ──────── */
+/* position:fixed (mesmo referencial do getBoundingClientRect) → imune ao :root zoom.
+   pointer-events:auto quando visível (túnel de hover); z-index alto. Sem margin/transform
+   de deslocamento (a posição vem do JS). */
+#tooltip-marco {
     position: fixed;
-    top: 0;
-    right: -350px;            /* escondida fora da tela */
-    width: 320px;
-    max-width: 90vw;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    background: var(--bg-principal);
-    border-left: 1px solid var(--borda);
-    box-shadow: -4px 0 15px rgba(0, 0, 0, 0.5);
-    transition: right 0.3s ease;
-    z-index: 2000;
-}
-.gaveta-aberta { right: 0; }
-.gaveta-fechada { right: -350px; }
-.gaveta-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    padding: 14px 16px;
-    border-bottom: 1px solid var(--borda);
-}
-.gaveta-header h3 { margin: 0; }
-.gaveta-body { flex: 1; overflow-y: auto; padding: 16px; }
-.gaveta-secao {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-bottom: 12px;
-    font-size: 0.8em;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: var(--texto-mutado);
-}
-.gaveta-secao i { width: 14px; height: 14px; color: var(--roxo-mago); }
-.gaveta-evento {
-    margin-bottom: 14px;
-    padding: 10px;
+    z-index: 9999;
+    width: max-content;
+    max-width: 260px;
+    padding: 12px;
     background: var(--bg-secundario);
     border: 1px solid var(--borda);
     border-radius: 6px;
+    box-shadow: 0 4px 12px var(--sombra-profunda);
+    transition: opacity 0.15s ease;
 }
-.gaveta-evento__top {
+.tooltip-marco-oculto { opacity: 0; pointer-events: none; }
+.tooltip-marco-visivel { opacity: 1; pointer-events: auto; }
+.tooltip-marco__head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 10px;
+    font-weight: 600;
+    color: var(--texto-claro);
+}
+.tooltip-marco__head i { width: 14px; height: 14px; color: var(--roxo-mago); }
+.tooltip-marco__evento {
+    margin-bottom: 10px;
+    padding: 8px;
+    background: var(--bg-principal);
+    border: 1px solid var(--borda);
+    border-radius: 6px;
+}
+.tooltip-marco__evento:last-child { margin-bottom: 0; }
+.tooltip-marco__top {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
     gap: 10px;
     margin-bottom: 6px;
 }
-.gaveta-evento__nome { color: var(--texto-claro); font-weight: 600; }
-.gaveta-evento__peso { font-family: 'Fira Code', monospace; font-size: 0.85em; color: var(--roxo-mago); flex-shrink: 0; }
-.gaveta-bar {
+.tooltip-marco__nome { color: var(--texto-claro); font-weight: 600; }
+.tooltip-marco__peso { font-family: 'Fira Code', monospace; font-size: 0.85em; color: var(--roxo-mago); flex-shrink: 0; }
+.tooltip-marco__bar {
     height: 6px;
-    background: var(--bg-principal);
+    background: var(--bg-secundario);
     border: 1px solid var(--borda);
     border-radius: 4px;
     overflow: hidden;
 }
-.gaveta-bar__fill { height: 100%; background: var(--roxo-mago); transition: width 0.2s ease; }
-.gaveta-evento__pool {
+.tooltip-marco__fill { height: 100%; background: var(--roxo-mago); transition: width 0.2s ease; }
+.tooltip-marco__pool {
     margin-top: 4px;
     font-family: 'Fira Code', monospace;
     font-size: 0.8em;
     color: var(--texto-mutado);
     text-align: right;
 }
-.tema-pixel-16bit #gaveta-detalhes,
-.tema-pixel-16bit .gaveta-evento,
-.tema-pixel-16bit .gaveta-bar,
+/* Dica inline abaixo da Pill (pista de que há detalhes no hover). */
+.marco-dica { flex-basis: 100%; font-size: 0.7em; color: var(--texto-mutado); padding-left: 28px; }
+.tema-pixel-16bit #tooltip-marco,
+.tema-pixel-16bit .tooltip-marco__evento,
+.tema-pixel-16bit .tooltip-marco__bar,
 .tema-pixel-16bit .card-acoes-inline { border-radius: 0 !important; }
 
 /* ── BARRAS DE PROGRESSO ───────────────────────────────── */
