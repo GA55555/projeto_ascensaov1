@@ -2536,29 +2536,11 @@ input[type="radio"] {
 }
 .board-world { --board-accent: var(--texto-claro); } /* fallback p/ shapes/texts/props sem token */
 .board-text:hover { outline: 1px dashed var(--borda); }
-/* Conteúdo editável in-place (Fatia 3). Editável só após focar (duplo-clique); enquanto
-   não focado, o arrasto do container manda. Placeholder quando vazio. */
-.board-text-conteudo { outline: none; cursor: inherit; user-select: text; white-space: pre-wrap; }
-.board-text-conteudo:focus { cursor: text; }
-.board-text-conteudo:empty::before { content: 'Texto'; opacity: 0.45; }
-/* Densidade do fundo (Fatia 3): tokens, nunca hex. Denso inverte o texto p/ contraste (Regra 2.6). */
+/* Exibição passiva: o container manda no clique (arrasto/duplo-clique → Popover). */
+.board-text-conteudo { pointer-events: none; }
+/* Densidade do fundo: tokens, nunca hex. Denso inverte o texto p/ contraste (Regra 2.6). */
 .board-text-semi { background: color-mix(in srgb, var(--board-accent) 30%, transparent); padding: 4px 8px; border-radius: 6px; }
 .board-text-denso { background: var(--board-accent); color: var(--bg-principal); padding: 4px 8px; border-radius: 6px; }
-.board-text-config {
-    position: absolute;
-    top: -8px;
-    right: 10px;
-    width: 14px;
-    height: 14px;
-    color: var(--texto-mutado);
-    background: var(--bg-principal);
-    border-radius: 4px;
-    cursor: pointer;
-    opacity: 0;
-    transition: var(--transicao-suave);
-}
-.board-text:hover .board-text-config { opacity: 1; }
-.board-text-config:hover { color: var(--roxo-mago); }
 .board-text-remover {
     position: absolute;
     top: -8px;
@@ -2627,7 +2609,7 @@ input[type="radio"] {
 }
 
 /* Modal de seleção de símbolos (props). */
-.board-simbolo-box { width: 460px; max-width: 92%; max-height: 80vh; display: flex; flex-direction: column; }
+.board-simbolo-box, .board-entidade-box { width: 460px; max-width: 92%; max-height: 80vh; display: flex; flex-direction: column; }
 .board-modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
 .board-modal-titulo { margin: 0; display: flex; align-items: center; gap: 8px; }
 .board-simbolo-grid {
@@ -2650,6 +2632,11 @@ input[type="radio"] {
 }
 .board-simbolo-opt:hover { border-color: var(--roxo-mago); }
 .board-simbolo-opt .board-prop-icone { width: 36px; height: 36px; --board-accent: var(--texto-claro); }
+
+/* Modal "+ Entidade" (refatorado p/ classes — Regra 2.5, sem inline). Reusa .board-modal-head/-titulo. */
+.board-entidade-busca { width: 100%; margin-bottom: 12px; }
+.board-entidade-lista { flex: 1; min-height: 0; max-height: 55vh; overflow-y: auto; padding-right: 8px; display: flex; flex-direction: column; gap: 6px; }
+.btn-entidade-board { justify-content: flex-start; gap: 8px; }
 
 /* Coerência 16-bit: bordas retas + numerais pixelados. */
 .tema-pixel-16bit .board-toolbar,
