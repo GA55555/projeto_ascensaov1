@@ -165,7 +165,7 @@ const dadosBoardSchema = z.object({
         h: z.number().finite().min(0),
         label: z.string().trim().max(120).optional(),
         cor: z.enum(CORES_BOARD).optional(),
-        forma: z.enum(['retangulo', 'circulo']).optional(),
+        forma: z.enum(['retangulo', 'circulo', 'triangulo']).optional(),
         stroke: z.enum(['solid', 'dashed']).optional()
     })).max(200).default([]),
     // Textos flutuantes (sem card): texto puro arrastável. tamanho em px.
@@ -173,8 +173,10 @@ const dadosBoardSchema = z.object({
         id: z.string().min(1).max(64),
         x: z.number().finite(),
         y: z.number().finite(),
-        texto: z.string().trim().max(280).optional(),
+        // Permite <b>/<i>/<br> do contenteditable (sanitizados no cliente); max maior p/ as tags.
+        texto: z.string().trim().max(2000).optional(),
         cor: z.enum(CORES_BOARD).optional(),
+        fundo: z.enum(['transparente', 'semi', 'denso']).optional(),
         tamanho: z.number().finite().min(8).max(96).optional()
     })).max(200).default([]),
     // Props (ícones SVG de /public/icons/rpg/). `icone` = nome do ficheiro sem extensão;

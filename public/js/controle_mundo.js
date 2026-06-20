@@ -527,30 +527,29 @@ function renderPalco() {
 
 // Expansão In-place (accordion) do ator — Fase 17.9. Substitui o modal abrirCardCompleto:
 // clicar no nome/ícone expande o próprio card com os Marcos, sem tirar o Narrador do fluxo.
-// Lazy: os detalhes são injetados 1× (na 1ª expansão) e reaproveitados depois. Os marcos
-// reusam marcoItemHTML (DRY, Regra 3) e os handlers são DOM-relativos → sem id global que
+// Renderização Just-in-Time (Fase 17.9.1): a cada expansão o .ator-detalhes é RECONSTRUÍDO
+// a partir do nó fresco do nodesCache → nunca mostra dado obsoleto (resolve o stale-data).
+// Marcos reusam marcoItemHTML (DRY, Regra 3); handlers são DOM-relativos → sem id global que
 // colida com a Grelha. Mover ator entre colunas continua só por arrasto (DnD nativo).
 window.toggleExpandirAtor = function(e, nodeId) {
     const card = e.target.closest('.ator-card');
     if (!card) return;
-    const abrindo = !card.classList.contains('ator-card--expandido');
-    card.classList.toggle('ator-card--expandido');
-    if (abrindo && !card.querySelector('.ator-detalhes')) {
-        const node = nodesCache.find(n => String(n.id) === String(nodeId));
-        if (!node) return;
-        const id = escapeHTML(String(node.id));
-        const marcos = (node.flags || []).filter(f => f.key).map(f => marcoItemHTML(node.id, f)).join('');
-        const det = document.createElement('div');
-        det.className = 'ator-detalhes';
-        det.innerHTML = `
-            <div class="world-card__marcos-label">Marcos</div>
-            <div class="world-card__marcos">
-                ${marcos}
-                <input type="text" class="input-inline-marco" maxlength="60" placeholder="+ Novo Marco (Enter)" onkeydown="adicionarMarcoInline(event, '${id}')">
-            </div>`;
-        card.appendChild(det);
-        lucide.createIcons();
-    }
+    // toggle() devolve true se a classe foi ADICIONADA (expandindo).
+    const abrindo = card.classList.toggle('ator-card--expandido');
+    if (!abrindo) return; // fechando: o CSS oculta; não mexe nos dados
+    const node = nodesCache.find(n => String(n.id) === String(nodeId));
+    if (!node) return;
+    let det = card.querySelector('.ator-detalhes');
+    if (!det) { det = document.createElement('div'); det.className = 'ator-detalhes'; card.appendChild(det); }
+    const id = escapeHTML(String(node.id));
+    const marcos = (node.flags || []).filter(f => f.key).map(f => marcoItemHTML(node.id, f)).join('');
+    det.innerHTML = `
+        <div class="world-card__marcos-label">Marcos</div>
+        <div class="world-card__marcos">
+            ${marcos}
+            <input type="text" class="input-inline-marco" maxlength="60" placeholder="+ Novo Marco (Enter)" onkeydown="adicionarMarcoInline(event, '${id}')">
+        </div>`;
+    lucide.createIcons({ elements: det.querySelectorAll('[data-lucide]') });
 };
 
 // ── CRUD de Cenas (toolbar superior) ────────────────────────
@@ -711,32 +710,6 @@ function handleCenaDrop(e) {
     renderElenco();   // re-render completo rápido do painel da Cena
     renderPalco();
 }
-
-// ── EDIÇÃO RÁPIDA (FASE 17.1): ficha completa do NPC num modal ──────────────
-// Reutiliza cardMundoHTML (mesma ficha da Grelha) num modal padrão. Marcos/Sinapses/
-// kebab funcionam idênticos. Ao fechar, a Direção de Cena reflete as mudanças.
-window.abrirCardCompleto = function(nodeId) {
-    const node = nodesCache.find(n => String(n.id) === String(nodeId));
-    if (!node) return;
-    fecharCardCompleto();
-    const modal = document.createElement('div');
-    modal.className = 'modal show';
-    modal.id = 'modal-card-completo';
-    modal.innerHTML = `
-        <div class="modal-box modal-card-completo__box">
-            <button class="btn btn-ghost btn-sm modal-card-completo__fechar" onclick="fecharCardCompleto()" title="Fechar"><i data-lucide="x"></i></button>
-            ${cardMundoHTML(node)}
-        </div>`;
-    document.body.appendChild(modal);
-    modal.addEventListener('click', (e) => { if (e.target === modal) fecharCardCompleto(); });
-    lucide.createIcons();
-};
-window.fecharCardCompleto = function() {
-    const m = document.getElementById('modal-card-completo');
-    if (m) m.remove();
-    // Reflete na Cena as edições feitas no card (marcos/núcleo/nome/exclusão).
-    if (mundoCurrentView === 'cena') { renderElenco(); renderPalco(); }
-};
 
 window.salvarForja = async function() {
     const nome = document.getElementById('forja-nome')?.value.trim();
@@ -2559,6 +2532,7 @@ const boardVazio = () => ({ camera: { x: 0, y: 0, zoom: 1 }, nodes: [], shapes: 
 let boardAtualId = null;
 let boardNomeAtual = '';
 let boardState = boardVazio();
+let hoveredNodeId = null; // card sob o cursor → re-aplica .linha-destaque a cada redraw (persiste no arrasto)
 let boardNodesCache = []; // todos os world_nodes (id → nome/tipo para render)
 let boardPan = null;      // estado do pan em curso
 
@@ -2726,10 +2700,36 @@ function ativarArrastoCards() {
             card.addEventListener('pointerup', onUp);
         };
         card.ondblclick = (e) => { e.stopPropagation(); abrirEditorNode(card, e); };
+        // Dimming seletivo: ao passar o cursor, realça só as linhas ligadas a este card.
+        card.onmouseenter = () => { hoveredNodeId = card.dataset.node; destacarLinhasDe(hoveredNodeId, true); };
+        card.onmouseleave = () => { hoveredNodeId = null; destacarLinhasDe(card.dataset.node, false); };
         const rem = card.querySelector('.board-card-remover');
         if (rem) rem.onclick = (e) => { e.stopPropagation(); removerNodeBoard(card.dataset.node); };
     });
 }
+
+// Liga/desliga .linha-destaque nas linhas cujo data-a/data-b casa com o nó (sem seletor
+// dinâmico → imune a id com caracteres especiais). on=false limpa todas as casadas.
+function destacarLinhasDe(nodeId, on) {
+    const svg = elBoardWorld()?.querySelector('.board-svg');
+    if (!svg) return;
+    const id = String(nodeId);
+    svg.querySelectorAll('.board-line').forEach(p => {
+        const ligada = p.dataset.a === id || p.dataset.b === id;
+        if (ligada) p.classList.toggle('linha-destaque', on);
+    });
+}
+
+// Visibilidade das conexões (view-only; não persiste em boardState). A classe vive no
+// board-canvas, que sobrevive aos re-renders do board-world.
+window.toggleLinhasBoard = function(btn) {
+    const canvas = elBoardCanvas();
+    if (!canvas) return;
+    const ocultas = canvas.classList.toggle('board-linhas-ocultas');
+    btn.title = ocultas ? 'Mostrar conexões' : 'Ocultar conexões';
+    btn.innerHTML = `<i data-lucide="${ocultas ? 'eye-off' : 'eye'}"></i>`;
+    lucide.createIcons({ elements: btn.querySelectorAll('[data-lucide]') });
+};
 
 window.removerNodeBoard = function(nodeId) {
     boardState.nodes = boardState.nodes.filter(n => String(n.id) !== String(nodeId));
@@ -2831,25 +2831,72 @@ window.adicionarEntidadeBoard = function(nodeId) {
 function novoIdShape() { return 'z' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 
 function shapeHTML(s) {
-    const corClasse = CORES_BOARD.includes(s.cor) ? ` board-cor-${s.cor}` : '';
-    const formaClasse = s.forma === 'circulo' ? ' board-shape-circulo' : '';
+    // Sempre emite um token de cor (default 'roxo' p/ shapes legados sem cor — Regra 4.2);
+    // isso garante que o .board-cor-* aplique o acento (o .board-shape não redeclara mais).
+    const cor = CORES_BOARD.includes(s.cor) ? s.cor : 'roxo';
+    const formaClasse = s.forma === 'circulo' ? ' board-shape-circulo'
+                      : s.forma === 'triangulo' ? ' board-shape-triangulo' : '';
     const strokeClasse = s.stroke === 'dashed' ? ' board-shape-dashed' : '';
-    return `<div class="board-shape${corClasse}${formaClasse}${strokeClasse}" data-shape="${escapeHTML(String(s.id))}" style="left: ${Math.round(s.x)}px; top: ${Math.round(s.y)}px; width: ${Math.round(s.w)}px; height: ${Math.round(s.h)}px;">
+    // Triângulo: SVG interno (preserveAspectRatio none → escala com o resize; stroke não-
+    // escalável evita distorção). pointer-events:none p/ não roubar o arrasto do container.
+    const triSvg = s.forma === 'triangulo'
+        ? '<svg class="board-shape-tri" viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="50,2 98,98 2,98"></polygon></svg>'
+        : '';
+    return `<div class="board-shape board-cor-${cor}${formaClasse}${strokeClasse}" data-shape="${escapeHTML(String(s.id))}" style="left: ${Math.round(s.x)}px; top: ${Math.round(s.y)}px; width: ${Math.round(s.w)}px; height: ${Math.round(s.h)}px;">
+        ${triSvg}
         <span class="board-shape-label" title="Duplo-clique edita; corpo abre opções">${escapeHTML(s.label || 'Zona')}</span>
         <i data-lucide="x" class="board-shape-remover" title="Remover zona"></i>
         <span class="board-shape-resize" title="Redimensionar"></span>
     </div>`;
 }
 
-// Texto flutuante: texto puro arrastável, sem card. Tamanho/cor dinâmicos (data-driven).
+// Texto flutuante (sem card): editável in-place (contenteditable). Cor/fundo/tamanho
+// data-driven. O conteúdo é SEMPRE re-sanitizado no render (Regra 6.1 + 4.2: nem o JSONB
+// é confiável → limpa até dado corrompido/POST malicioso que burlou o cliente).
 function textHTML(t) {
-    const corClasse = CORES_BOARD.includes(t.cor) ? ` board-cor-${t.cor}` : '';
+    const cor = CORES_BOARD.includes(t.cor) ? t.cor : 'cinza'; // sempre um token (Regra 4.2)
+    const fundoClasse = t.fundo === 'semi' ? ' board-text-semi' : t.fundo === 'denso' ? ' board-text-denso' : '';
     const tam = Math.min(96, Math.max(8, t.tamanho || 16));
-    return `<div class="board-text${corClasse}" data-text="${escapeHTML(String(t.id))}" style="left: ${Math.round(t.x)}px; top: ${Math.round(t.y)}px; font-size: ${tam}px;">
-        <span class="board-text-conteudo">${escapeHTML(t.texto || 'Texto')}</span>
+    const tid = escapeHTML(String(t.id));
+    return `<div class="board-text board-cor-${cor}${fundoClasse}" data-text="${tid}" style="left: ${Math.round(t.x)}px; top: ${Math.round(t.y)}px; font-size: ${tam}px;">
+        <span class="board-text-conteudo" contenteditable="false" spellcheck="false" onblur="salvarTextoRico('${tid}', this)">${sanitizarTextoRico(t.texto || 'Texto')}</span>
+        <i data-lucide="settings" class="board-text-config" title="Estilo"></i>
         <i data-lucide="x" class="board-text-remover" title="Remover texto"></i>
     </div>`;
 }
+
+// Allowlist estrita para o contenteditable: só <b>/<i>/<br> (sem atributos). strong/em são
+// normalizados p/ b/i; toda outra tag é DESEMBRULHADA (mantém o texto) e todo texto é escapado.
+// Sem regex em HTML — usa o parser do browser (robusto contra ofuscação de XSS).
+const TAGS_TEXTO_RICO = { B: 'b', STRONG: 'b', I: 'i', EM: 'i' };
+function sanitizarTextoRico(html) {
+    const tpl = document.createElement('template');
+    tpl.innerHTML = String(html == null ? '' : html);
+    const limpar = (no) => {
+        let out = '';
+        no.childNodes.forEach(n => {
+            if (n.nodeType === 3) { out += escapeHTML(n.nodeValue); return; } // texto
+            if (n.nodeType !== 1) return;                                     // ignora comentários etc
+            if (n.tagName === 'BR') { out += '<br>'; return; }
+            // Enter no contenteditable (Chrome/Edge) cria DIV/P: vira quebra de linha. O <br>
+            // só entra se já houver conteúdo antes (evita quebra extra no 1º bloco).
+            if (n.tagName === 'DIV' || n.tagName === 'P') { out += (out ? '<br>' : '') + limpar(n); return; }
+            const tag = TAGS_TEXTO_RICO[n.tagName];
+            out += tag ? `<${tag}>${limpar(n)}</${tag}>` : limpar(n);         // não permitida → desembrulha
+        });
+        return out;
+    };
+    return limpar(tpl.content).slice(0, 2000);
+}
+
+// onblur do contenteditable: sanitiza e grava no state (persiste só no Salvar, Regra 2.7).
+window.salvarTextoRico = function(id, el) {
+    const t = boardState.texts.find(x => String(x.id) === String(id)); if (!t) return;
+    const limpo = sanitizarTextoRico(el.innerHTML);
+    t.texto = limpo;
+    el.innerHTML = limpo;          // normaliza o DOM na hora (remove qualquer lixo colado)
+    el.contentEditable = 'false';  // sai do modo de edição → arrasto volta a mandar
+};
 
 // Prop (ícone RPG): SVG recolorido via CSS mask + cor por token (--board-accent).
 // scale/rotacao aplicados por transform (layout dinâmico permitido pela Regra 2.5).
@@ -2911,7 +2958,7 @@ window.abrirEditorShape = function(shapeId, e) {
         <div class="board-cor-grid">${CORES_BOARD.map(swatch).join('')}</div>
         <label>Forma</label>
         <select class="board-popover-select" onchange="setShapeForma('${sid}', this.value)">
-            ${opt('retangulo', 'Retângulo', s.forma || 'retangulo')}${opt('circulo', 'Círculo / Elipse', s.forma || 'retangulo')}
+            ${opt('retangulo', 'Retângulo', s.forma || 'retangulo')}${opt('circulo', 'Círculo / Elipse', s.forma || 'retangulo')}${opt('triangulo', 'Triângulo', s.forma || 'retangulo')}
         </select>
         <label>Borda</label>
         <select class="board-popover-select" onchange="setShapeStroke('${sid}', this.value)">
@@ -2935,7 +2982,7 @@ window.setShapeCor = function(shapeId, btn) {
 };
 window.setShapeForma = function(shapeId, v) {
     const s = boardState.shapes.find(z => String(z.id) === String(shapeId));
-    if (s) { s.forma = v === 'circulo' ? 'circulo' : 'retangulo'; renderBoard(); }
+    if (s) { s.forma = ['circulo', 'triangulo'].includes(v) ? v : 'retangulo'; renderBoard(); }
 };
 window.setShapeStroke = function(shapeId, v) {
     const s = boardState.shapes.find(z => String(z.id) === String(shapeId));
@@ -3011,7 +3058,8 @@ function centroMundo() {
 // de arrastar — num único handler (mesmo padrão dos shapes; evita drag+conexão duplos).
 function arrastarPorPonteiro(el, obj, onDrag, conectavel) {
     el.onpointerdown = (e) => {
-        if (e.button !== 0 || e.target.closest('.board-text-remover, .board-prop-remover')) return;
+        if (e.button !== 0 || e.target.closest('.board-text-remover, .board-prop-remover, .board-text-config')) return;
+        if (e.target.isContentEditable) return; // texto em edição (contenteditable=true): deixa o caret
         if (conectandoDe) { e.stopPropagation(); if (conectavel) finalizarConexaoLocal(obj.id); return; }
         e.stopPropagation();
         const z = boardState.camera.zoom || 1;
@@ -3046,7 +3094,19 @@ function ativarInteracoesTexts() {
         const t = boardState.texts.find(x => String(x.id) === String(el.dataset.text));
         if (!t) return;
         arrastarPorPonteiro(el, t);
-        el.ondblclick = (e) => { e.stopPropagation(); abrirEditorText(t.id, e); };
+        const span = el.querySelector('.board-text-conteudo');
+        // Duplo-clique entra em edição in-place (foca + seleciona tudo). Estilo fica na engrenagem.
+        el.ondblclick = (e) => {
+            if (e.target.closest('.board-text-config, .board-text-remover')) return;
+            e.stopPropagation();
+            if (!span) return;
+            span.contentEditable = 'true'; // entra em edição; volta a false no blur (salvarTextoRico)
+            span.focus();
+            const r = document.createRange(); r.selectNodeContents(span);
+            const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+        };
+        const cfg = el.querySelector('.board-text-config');
+        if (cfg) cfg.onclick = (e) => { e.stopPropagation(); abrirEditorText(t.id, e); };
         const rem = el.querySelector('.board-text-remover');
         if (rem) rem.onclick = (e) => { e.stopPropagation(); removerTextBoard(t.id); };
     });
@@ -3057,11 +3117,14 @@ window.abrirEditorText = function(id, e) {
     const t = boardState.texts.find(x => String(x.id) === String(id)); if (!t) return;
     const tid = escapeHTML(String(id));
     const swatch = c => `<button type="button" class="board-cor-swatch board-cor-${c}${t.cor === c ? ' sel' : ''}" data-c="${c}" title="${c}" onclick="setTextCor('${tid}', this)"></button>`;
+    const opt = (v, r, atual) => `<option value="${v}"${(atual || 'transparente') === v ? ' selected' : ''}>${r}</option>`;
     const pop = montarPopover(`
-        <label>Texto</label>
-        <input type="text" class="board-popover-input" maxlength="280" value="${escapeHTML(t.texto || '')}" oninput="setTextConteudo('${tid}', this.value)">
         <label>Cor</label>
         <div class="board-cor-grid">${CORES_BOARD.map(swatch).join('')}</div>
+        <label>Fundo</label>
+        <select class="board-popover-select" onchange="setTextFundo('${tid}', this.value)">
+            ${opt('transparente', 'Transparente', t.fundo)}${opt('semi', 'Semi (translúcido)', t.fundo)}${opt('denso', 'Denso (sólido)', t.fundo)}
+        </select>
         <label>Tamanho (<span id="board-text-tam">${Math.round(t.tamanho || 18)}</span>px)</label>
         <input type="range" class="board-popover-range" min="8" max="96" value="${Math.round(t.tamanho || 18)}" oninput="setTextTamanho('${tid}', this.value)">
         <div class="board-popover-acoes">
@@ -3072,11 +3135,11 @@ window.abrirEditorText = function(id, e) {
     lucide.createIcons();
     posicionarPopover(pop, e, document.querySelector(`.board-text[data-text="${cssEscape(id)}"]`));
 };
-window.setTextConteudo = function(id, v) {
+window.setTextFundo = function(id, v) {
     const t = boardState.texts.find(x => String(x.id) === String(id)); if (!t) return;
-    t.texto = String(v).slice(0, 280);
-    const span = document.querySelector(`.board-text[data-text="${cssEscape(id)}"] .board-text-conteudo`);
-    if (span) span.textContent = t.texto; // textContent = sem risco de XSS
+    t.fundo = ['semi', 'denso'].includes(v) ? v : 'transparente';
+    const el = document.querySelector(`.board-text[data-text="${cssEscape(id)}"]`);
+    if (el) { el.classList.remove('board-text-semi', 'board-text-denso'); if (t.fundo !== 'transparente') el.classList.add('board-text-' + t.fundo); }
 };
 window.setTextTamanho = function(id, v) {
     const t = boardState.texts.find(x => String(x.id) === String(id)); if (!t) return;
@@ -3290,14 +3353,40 @@ async function atualizarLinksBoard() {
     desenharLinhasBoard();
 }
 
-// Desenha world_links (Bézier entre cards) E localLinks (retas entre zonas/props).
-// Caminho duplo: hit transparente largo (clicável) + linha visível. Cor/dash/rótulo
-// são data-driven. Rótulo (<text>) no ponto médio, tanto para world quanto local.
+// Caminho Bézier com âncoras cardeais deslizantes: o eixo dominante (maior delta) decide se
+// a linha sai pelas laterais (Esq/Dir) ou pelo topo/baixo, e a alça puxa no mesmo eixo p/ a
+// curva nascer perpendicular à borda. Compartilhado por world_links e localLinks (DRY, Fatia 4).
+function caminhoCardeal(elA, elB) {
+    const a = { x: elA.offsetLeft + elA.offsetWidth / 2, y: elA.offsetTop + elA.offsetHeight / 2 };
+    const b = { x: elB.offsetLeft + elB.offsetWidth / 2, y: elB.offsetTop + elB.offsetHeight / 2 };
+    const dx = b.x - a.x, dy = b.y - a.y;
+    let p1, p2, c1, c2;
+    if (Math.abs(dx) > Math.abs(dy)) {
+        const s = dx >= 0 ? 1 : -1;
+        p1 = { x: a.x + s * elA.offsetWidth / 2, y: a.y };
+        p2 = { x: b.x - s * elB.offsetWidth / 2, y: b.y };
+        const pull = Math.max(40, Math.abs(p2.x - p1.x) * 0.4);
+        c1 = { x: p1.x + s * pull, y: p1.y };
+        c2 = { x: p2.x - s * pull, y: p2.y };
+    } else {
+        const s = dy >= 0 ? 1 : -1;
+        p1 = { x: a.x, y: a.y + s * elA.offsetHeight / 2 };
+        p2 = { x: b.x, y: b.y - s * elB.offsetHeight / 2 };
+        const pull = Math.max(40, Math.abs(p2.y - p1.y) * 0.4);
+        c1 = { x: p1.x, y: p1.y + s * pull };
+        c2 = { x: p2.x, y: p2.y - s * pull };
+    }
+    return { d: `M ${p1.x} ${p1.y} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${p2.x} ${p2.y}`,
+             mx: (p1.x + p2.x) / 2, my: (p1.y + p2.y) / 2 };
+}
+
+// Desenha world_links (entre cards) E localLinks (entre zonas/props) — ambos em Bézier
+// cardeal (Fatia 4). Caminho duplo: hit transparente largo (clicável) + linha visível.
+// Cor/dash/rótulo data-driven; rótulo (<text>) no ponto médio do caminho.
 function desenharLinhasBoard() {
     const world = elBoardWorld();
     const svg = world?.querySelector('.board-svg');
     if (!svg) return;
-    const centro = (el) => ({ x: el.offsetLeft + el.offsetWidth / 2, y: el.offsetTop + el.offsetHeight / 2 });
     const rotulo = (mx, my, txt) => txt ? `<text class="board-line-label" x="${Math.round(mx)}" y="${Math.round(my) - 6}">${escapeHTML(txt)}</text>` : '';
     let paths = '';
 
@@ -3307,18 +3396,17 @@ function desenharLinhasBoard() {
     boardLinks.forEach(lk => {
         const ca = cardEl[lk.a], cb = cardEl[lk.b];
         if (!ca || !cb) return;
-        const a = centro(ca), b = centro(cb);
-        const dx = Math.max(40, Math.abs(b.x - a.x) * 0.4);
-        const d = `M ${a.x} ${a.y} C ${a.x + dx} ${a.y}, ${b.x - dx} ${b.y}, ${b.x} ${b.y}`;
+        const { d, mx, my } = caminhoCardeal(ca, cb);
         const key = chaveLinha(lk.a, lk.b);
         const ov = boardState.overrides_linhas[key] || {};
         const dash = ov.stroke === 'dashed' ? '7 6' : '';
+        const ea = escapeHTML(String(lk.a)), eb = escapeHTML(String(lk.b)); // data p/ hover-destaque
         paths += `<path class="board-line-hit" onclick="editarLinha('${escapeHTML(key)}', event)" d="${d}"></path>`;
-        paths += `<path class="board-line" d="${d}" style="stroke: ${corLinhaVar(ov.cor, lk.tipo)}; stroke-dasharray: ${dash};"></path>`;
-        paths += rotulo((a.x + b.x) / 2, (a.y + b.y) / 2, ov.label);
+        paths += `<path class="board-line" data-a="${ea}" data-b="${eb}" d="${d}" style="stroke: ${corLinhaVar(ov.cor, lk.tipo)}; stroke-dasharray: ${dash};"></path>`;
+        paths += rotulo(mx, my, ov.label);
     });
 
-    // localLinks (entre zonas/props — retas)
+    // localLinks (entre zonas/props) — agora também Bézier cardeal (Fatia 4)
     const localEl = {};
     world.querySelectorAll('.board-shape, .board-prop').forEach(el => {
         localEl[String(el.dataset.shape || el.dataset.prop)] = el;
@@ -3326,16 +3414,17 @@ function desenharLinhasBoard() {
     boardState.localLinks.forEach(l => {
         const ea = localEl[String(l.sourceId)], eb = localEl[String(l.targetId)];
         if (!ea || !eb) return; // endpoint removido → não desenha (limpeza no próximo save)
-        const a = centro(ea), b = centro(eb);
-        const d = `M ${a.x} ${a.y} L ${b.x} ${b.y}`;
+        const { d, mx, my } = caminhoCardeal(ea, eb);
         const dash = l.stroke === 'dashed' ? '7 6' : '';
         const lid = escapeHTML(String(l.id));
         paths += `<path class="board-line-hit" onclick="editarLocalLink('${lid}', event)" d="${d}"></path>`;
         paths += `<path class="board-line" d="${d}" style="stroke: ${corBoardVar(l.cor)}; stroke-dasharray: ${dash};"></path>`;
-        paths += rotulo((a.x + b.x) / 2, (a.y + b.y) / 2, l.label);
+        paths += rotulo(mx, my, l.label);
     });
 
     svg.innerHTML = paths;
+    // Persiste o destaque do card sob o cursor após qualquer redraw (Ressalva 2 da Fatia 2).
+    if (hoveredNodeId) destacarLinhasDe(hoveredNodeId, true);
 }
 
 // Cria o popover já com botão de fechar no canto (R5 + UX). Conteúdo via template.

@@ -2343,7 +2343,9 @@ input[type="radio"] {
 .board-shape {
     position: absolute;
     z-index: 1; /* sob os cards (z-2) — agrupa sem cobrir */
-    --board-accent: var(--roxo-mago);
+    /* O acento vem SEMPRE da classe .board-cor-* (shapeHTML garante uma; default roxo).
+       Não redeclarar --board-accent aqui: como esta regra vem depois de .board-cor-*,
+       ela venceria a cascata e prenderia toda zona no roxo (bug da cor). */
     border: 2px solid var(--board-accent);
     border-radius: 6px;
     background: color-mix(in srgb, var(--board-accent) 7%, transparent);
@@ -2393,8 +2395,12 @@ input[type="radio"] {
 
 /* Linhas (SVG): camada entre zonas (z1) e cards (z3). overflow visible p/ coords negativas. */
 .board-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 2; }
-.board-line { fill: none; stroke-width: 2.5; pointer-events: none; }
+/* Dimming seletivo (Fatia 2): linhas esmaecidas por padrão; o hover no card realça só
+   as suas (.linha-destaque, via JS). Toggle .board-linhas-ocultas no canvas some com tudo. */
+.board-line { fill: none; stroke-width: 2.5; pointer-events: none; opacity: 0.25; transition: opacity 0.2s ease, stroke-width 0.2s ease; }
+.board-line.linha-destaque { opacity: 1; stroke-width: 3.5; }
 .board-line-hit { fill: none; stroke: transparent; stroke-width: 14; pointer-events: stroke; cursor: pointer; }
+.board-linhas-ocultas .board-svg { display: none; }
 
 /* Popover de edição (linha ou nó) — ancorado ao canvas (fora do transform). */
 .board-popover {
@@ -2500,13 +2506,26 @@ input[type="radio"] {
 .board-shape-dashed { border-style: dashed; }
 .board-canvas.conectando { cursor: crosshair; }
 
+/* Triângulo (FASE 14.1): a moldura retangular some e a forma é desenhada por um SVG
+   interno; o rótulo (legend) e as alças seguem ancorados à caixa, intactos. */
+.board-shape-triangulo { border-color: transparent; background: transparent; }
+.board-shape-tri { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.board-shape-tri polygon {
+    fill: color-mix(in srgb, var(--board-accent) 7%, transparent);
+    stroke: var(--board-accent);
+    stroke-width: 2;
+    vector-effect: non-scaling-stroke;
+}
+.board-shape-triangulo.board-shape-dashed .board-shape-tri polygon { stroke-dasharray: 6 4; }
+
 /* Texto flutuante (FASE 14): texto puro arrastável, sem fundo de card. */
 .board-text {
     position: absolute;
     z-index: 3;
     cursor: grab;
-    user-select: none;
-    --board-accent: var(--texto-claro);
+    /* NÃO redeclarar --board-accent aqui: viria depois de .board-cor-* e prenderia a cor
+       (mesmo bug curado em .board-shape). O acento vem do token; textHTML garante uma classe
+       .board-cor-* (default cinza). Default seguro fica no ancestral .board-world. */
     color: var(--board-accent);
     font-family: 'Cormorant Garamond', serif;
     font-weight: 600;
@@ -2515,8 +2534,31 @@ input[type="radio"] {
     white-space: pre-wrap;
     max-width: 360px;
 }
+.board-world { --board-accent: var(--texto-claro); } /* fallback p/ shapes/texts/props sem token */
 .board-text:hover { outline: 1px dashed var(--borda); }
-.board-text-conteudo { pointer-events: none; }
+/* Conteúdo editável in-place (Fatia 3). Editável só após focar (duplo-clique); enquanto
+   não focado, o arrasto do container manda. Placeholder quando vazio. */
+.board-text-conteudo { outline: none; cursor: inherit; user-select: text; white-space: pre-wrap; }
+.board-text-conteudo:focus { cursor: text; }
+.board-text-conteudo:empty::before { content: 'Texto'; opacity: 0.45; }
+/* Densidade do fundo (Fatia 3): tokens, nunca hex. Denso inverte o texto p/ contraste (Regra 2.6). */
+.board-text-semi { background: color-mix(in srgb, var(--board-accent) 30%, transparent); padding: 4px 8px; border-radius: 6px; }
+.board-text-denso { background: var(--board-accent); color: var(--bg-principal); padding: 4px 8px; border-radius: 6px; }
+.board-text-config {
+    position: absolute;
+    top: -8px;
+    right: 10px;
+    width: 14px;
+    height: 14px;
+    color: var(--texto-mutado);
+    background: var(--bg-principal);
+    border-radius: 4px;
+    cursor: pointer;
+    opacity: 0;
+    transition: var(--transicao-suave);
+}
+.board-text:hover .board-text-config { opacity: 1; }
+.board-text-config:hover { color: var(--roxo-mago); }
 .board-text-remover {
     position: absolute;
     top: -8px;
@@ -2540,7 +2582,8 @@ input[type="radio"] {
     cursor: grab;
     user-select: none;
     transform-origin: center;
-    --board-accent: var(--texto-claro);
+    /* NÃO redeclarar --board-accent aqui (viria depois de .board-cor-* → prenderia a cor;
+       mesma cura de .board-shape/.board-text). Cor via token; fallback em .board-world. */
 }
 .board-prop-icone {
     display: block;
@@ -2753,10 +2796,6 @@ input[type="radio"] {
     border-color: var(--roxo-mago);
     background: color-mix(in srgb, var(--roxo-mago) 10%, var(--bg-secundario));
 }
-
-/* Edição Rápida (Fase 17.1): ficha completa do NPC num modal padrão. */
-.modal-card-completo__box { position: relative; width: 460px; max-width: 92%; max-height: 85vh; overflow-y: auto; }
-.modal-card-completo__fechar { position: absolute; top: 8px; right: 8px; z-index: 2; }
 
 /* Coerência 16-bit: bordas retas. */
 .tema-pixel-16bit .btn-group,
