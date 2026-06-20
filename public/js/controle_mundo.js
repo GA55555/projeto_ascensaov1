@@ -385,7 +385,7 @@ function marcoItemHTML(nodeId, f) {
     return `
         <div class="marco-item" data-flag-key="${k}">
             <input type="checkbox" class="marco-item__check" ${f.value ? 'checked' : ''} data-node-id="${nodeId}" data-flag-key="${k}" onchange="toggleFlag(this.dataset.nodeId, this.dataset.flagKey, this.checked)">
-            <span class="marco-item__nome" title="Duplo-clique renomeia" ondblclick="iniciarEdicaoMarco(event, '${nodeId}', '${k}')" onmouseenter="mostrarHoverMarco(event, '${nodeId}', '${k}')" onmouseleave="esconderHoverMarco()">${escapeHTML(humanizarMarco(f.key))}</span>
+            <span class="marco-item__nome" title="Duplo-clique renomeia" ondblclick="iniciarEdicaoMarco(event, '${nodeId}', '${k}')" onmouseenter="mostrarHoverMarco(event, '${nodeId}', '${k}')" onmouseleave="agendarFechoTooltip()">${escapeHTML(humanizarMarco(f.key))}</span>
             <i data-lucide="x" class="btn-del-marco" title="Apagar marco" onclick="confirmarDeletarMarco(this, '${nodeId}', '${k}')"></i>
         </div>`;
 }
@@ -729,14 +729,11 @@ window.fecharMenuKebab = function() {
 // (ex.: .cena-palco, .elenco-lista), não só o da janela.
 function fecharPopoversGlobais() {
     fecharMenuKebab();    // destrói o menu kebab aberto
-    esconderHoverMarco(); // esconde o tooltip de marco
+    esconderTooltipGeral(); // esconde o tooltip de marco (e cancela o delay do túnel)
 }
 window.addEventListener('scroll', fecharPopoversGlobais, { passive: true, capture: true });
 window.abrirMenuKebab = function(e, nodeId) {
     e.stopPropagation();
-    // Gatilho = o ícone ⋮. closest('.kebab-trigger') é robusto mesmo após o Lucide trocar
-    // <i> por <svg> e quando o clique cai num <path> filho. Fallback p/ currentTarget/target.
-    const trigger = (e.target.closest && e.target.closest('.kebab-trigger')) || e.currentTarget || e.target;
     fecharMenuKebab();
     const menu = document.createElement('div');
     menu.className = 'menu-flutuante';
@@ -747,39 +744,23 @@ window.abrirMenuKebab = function(e, nodeId) {
         <button type="button" class="menu-flutuante__item menu-flutuante__item--perigo" onclick="confirmarDeletarEntidade(this, '${nodeId}')"><i data-lucide="trash-2"></i> Deletar</button>`;
     document.body.appendChild(menu);
     lucide.createIcons();
-    posicionarPopoverAlinhado(trigger, menu, 8, 'baixo'); // abaixo do ⋮, alinhado à borda direita
+    posicionarNoPonteiro(e, menu); // abre exatamente onde o rato clicou
     setTimeout(() => document.addEventListener('pointerdown', kebabOutside, true), 0); // não captura o próprio clique
 };
 
-// BALA DE PRATA (Fase 17.4): coordenadas ESTRITAS de viewport (position:fixed) + rect cru.
-// Abandona absolute+scroll+÷zoom: como fixed e getBoundingClientRect vivem ambos no espaço
-// do viewport, basta colar top/left no rect — sem matemática de zoom nem scroll. O scroll é
-// tratado FECHANDO os popovers (fecharPopoversGlobais), evitando que o gatilho role e o
-// popover fixo fique para trás. `modo`: 'baixo' (Kebab) | 'lado' (Tooltip).
-function posicionarPopoverAlinhado(gatilho, popover, margem = 8, modo = 'lado') {
+// PIVÔ (Fase 17.5): posiciona o popover ESTRITAMENTE nas coordenadas do PONTEIRO
+// (e.clientX/clientY) com position:fixed. Acaba com a guerra contra o zoom — clientX/Y já são
+// coords de viewport e fixed também, então não há caixa de elemento nem zoom a converter.
+// Boundary simples: se vazar à direita/baixo, abre para a esquerda/cima.
+function posicionarNoPonteiro(e, popover, offsetX = 10, offsetY = 10) {
     popover.style.position = 'fixed';
-    const rect = gatilho.getBoundingClientRect();
     const pw = popover.offsetWidth, ph = popover.offsetHeight;
-    const vw = window.innerWidth, vh = window.innerHeight;
-
-    let top, left;
-    if (modo === 'baixo') {
-        // Menu Kebab: abaixo do gatilho, alinhado à sua borda direita.
-        top = rect.bottom + margem;
-        left = rect.right - pw;
-        if (top + ph > vh) top = rect.top - ph - margem; // sem espaço abaixo → acima
-        if (left < 0) left = rect.left;                  // não vaza à esquerda
-    } else {
-        // Tooltip: ao lado direito do gatilho, topo alinhado.
-        top = rect.top;
-        left = rect.right + margem;
-        if (left + pw > vw) left = rect.left - pw - margem; // sem espaço → à esquerda
-    }
-    // Boundary final estrito ao viewport (innerWidth/innerHeight nativos).
-    left = Math.max(margem, Math.min(left, vw - pw - margem));
-    top = Math.max(margem, Math.min(top, vh - ph - margem));
-    popover.style.left = Math.round(left) + 'px';
-    popover.style.top = Math.round(top) + 'px';
+    let left = e.clientX + offsetX;
+    let top = e.clientY + offsetY;
+    if (e.clientX + pw + offsetX > window.innerWidth) left = e.clientX - pw - offsetX; // abre p/ esquerda
+    if (e.clientY + ph + offsetY > window.innerHeight) top = e.clientY - ph - offsetY; // abre p/ cima
+    popover.style.left = Math.round(Math.max(4, left)) + 'px';
+    popover.style.top = Math.round(Math.max(4, top)) + 'px';
 }
 
 // Deletar entidade em 2 passos dentro do kebab (sem confirm() nativo).
@@ -1354,13 +1335,19 @@ async function construirMapaDependencias() {
     });
 }
 
-// Container único do tooltip (criado sob demanda, ancorado ao body).
+// Túnel de Hover (Fase 17.5): timeout de fecho com 250ms de tolerância a micro-movimentos.
+let tooltipDelayTimeout = null;
+
+// Container único do tooltip (criado sob demanda, ancorado ao body). Listeners do TÚNEL:
+// entrar no tooltip cancela o fecho; sair reagenda. Precisa de pointer-events:auto (CSS).
 function ensureTooltipEl() {
     let tip = document.getElementById('hover-preview-tooltip');
     if (!tip) {
         tip = document.createElement('div');
         tip.id = 'hover-preview-tooltip';
         tip.className = 'hover-preview-hidden';
+        tip.addEventListener('mouseenter', () => clearTimeout(tooltipDelayTimeout));
+        tip.addEventListener('mouseleave', agendarFechoTooltip);
         document.body.appendChild(tip);
     }
     return tip;
@@ -1368,6 +1355,7 @@ function ensureTooltipEl() {
 window.mostrarHoverMarco = function(e, nodeId, flagKey) {
     const deps = mapaDependenciasMarcos[`${nodeId}_${flagKey}`];
     if (!deps || !deps.length) return; // marco sem evento atrelado → nada
+    clearTimeout(tooltipDelayTimeout); // cancela qualquer fecho pendente
     const tip = ensureTooltipEl();
     // Ícone Lucide (NUNCA emoji — Regra 2.3). Conteúdo rico: nome + peso + barra do pool.
     tip.innerHTML = `
@@ -1386,17 +1374,22 @@ window.mostrarHoverMarco = function(e, nodeId, flagKey) {
             </div>`;
         }).join('')}`;
     lucide.createIcons();
-    // Estado visível ANTES de medir (o translateY(5px) do estado oculto falsearia a base).
     tip.classList.remove('hover-preview-hidden');
     tip.classList.add('hover-preview-visible');
-    posicionarPopoverAlinhado(e.target, tip, 8, 'lado'); // à direita da palavra, topo alinhado
+    posicionarNoPonteiro(e, tip, 12, 12); // estritamente nas coords do ponteiro
 };
-window.esconderHoverMarco = function() {
+// Agenda o fecho do tooltip (250ms) — usado pelo mouseleave do marco E do próprio tooltip.
+window.agendarFechoTooltip = function() {
+    clearTimeout(tooltipDelayTimeout);
+    tooltipDelayTimeout = setTimeout(esconderTooltipGeral, 250);
+};
+function esconderTooltipGeral() {
+    clearTimeout(tooltipDelayTimeout);
     const tip = document.getElementById('hover-preview-tooltip');
     if (!tip) return;
     tip.classList.remove('hover-preview-visible');
     tip.classList.add('hover-preview-hidden');
-};
+}
 
 // ==========================================
 // AGENDA DE EVENTOS E VÍNCULOS (SISTEMA BLINDADO)
