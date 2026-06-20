@@ -702,21 +702,21 @@ label {
 
 /* ── HOVER PREVIEW: Interatividade Passiva (Fase 15.4) ──────────────────── */
 #hover-preview-tooltip {
-    position: fixed; /* coords estritas de viewport (Fase 17.4 — fecha no scroll) */
+    position: fixed; /* coords do ponteiro (Fase 17.5); fecha no scroll */
     z-index: 9999;
     background: var(--bg-secundario);
     border: 1px solid var(--borda);
     border-radius: 6px;
     padding: 12px;
     box-shadow: 0 4px 12px var(--sombra-profunda);
-    pointer-events: none;
+    pointer-events: auto; /* Túnel de Hover: o rato precisa poder entrar na caixa */
     transition: opacity 0.15s ease;
     width: max-content;
     max-width: 250px;
     font-size: 0.9em;
 }
-/* Só opacidade (sem transform/margin que desloque — a posição vem do JS). */
-.hover-preview-hidden { opacity: 0; }
+/* Estado oculto: sem eventos de ponteiro p/ não capturar hover quando invisível. */
+.hover-preview-hidden { opacity: 0; pointer-events: none; }
 .hover-preview-visible { opacity: 1; }
 .hover-preview-head {
     display: flex;
