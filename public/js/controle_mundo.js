@@ -485,8 +485,8 @@ function renderElenco() {
         const id = escapeHTML(String(n.id));
         const x = noPalco ? `<i data-lucide="x" class="ator-remover" title="Remover de cena" onclick="removerAtorDaCena('${id}')"></i>` : '';
         return `<div class="ator-card${noPalco ? ' ator-fantasma' : ''}" draggable="${noPalco ? 'false' : 'true'}" data-node-id="${id}" data-origem="elenco">
-            <i data-lucide="${iconeEntidade(n.tipo)}" class="ator-card__icone" title="Abrir ficha" onclick="abrirCardCompleto('${id}')"></i>
-            <span class="ator-card__nome" title="Abrir ficha" onclick="abrirCardCompleto('${id}')">${escapeHTML(n.nome)}</span>
+            <i data-lucide="${iconeEntidade(n.tipo)}" class="ator-card__icone" title="Expandir detalhes" onclick="toggleExpandirAtor(event, '${id}')"></i>
+            <span class="ator-card__nome" title="Expandir detalhes" onclick="toggleExpandirAtor(event, '${id}')">${escapeHTML(n.nome)}</span>
             ${x}
         </div>`;
     }).join('');
@@ -510,8 +510,8 @@ function renderPalco() {
             .filter(Boolean);
         const cards = atoresCol.length
             ? atoresCol.map(n => { const aid = escapeHTML(String(n.id)); return `<div class="ator-card" draggable="true" data-node-id="${aid}" data-origem="palco">
-                    <i data-lucide="${iconeEntidade(n.tipo)}" class="ator-card__icone" title="Abrir ficha" onclick="abrirCardCompleto('${aid}')"></i>
-                    <span class="ator-card__nome" title="Abrir ficha" onclick="abrirCardCompleto('${aid}')">${escapeHTML(n.nome)}</span>
+                    <i data-lucide="${iconeEntidade(n.tipo)}" class="ator-card__icone" title="Expandir detalhes" onclick="toggleExpandirAtor(event, '${aid}')"></i>
+                    <span class="ator-card__nome" title="Expandir detalhes" onclick="toggleExpandirAtor(event, '${aid}')">${escapeHTML(n.nome)}</span>
                 </div>`; }).join('')
             : '<div class="info-block-vazio">Vazio.</div>';
         return `<div class="cena-coluna" data-col-id="${cid}">
@@ -524,6 +524,34 @@ function renderPalco() {
     }).join('');
     lucide.createIcons();
 }
+
+// Expansão In-place (accordion) do ator — Fase 17.9. Substitui o modal abrirCardCompleto:
+// clicar no nome/ícone expande o próprio card com os Marcos, sem tirar o Narrador do fluxo.
+// Lazy: os detalhes são injetados 1× (na 1ª expansão) e reaproveitados depois. Os marcos
+// reusam marcoItemHTML (DRY, Regra 3) e os handlers são DOM-relativos → sem id global que
+// colida com a Grelha. Mover ator entre colunas continua só por arrasto (DnD nativo).
+window.toggleExpandirAtor = function(e, nodeId) {
+    const card = e.target.closest('.ator-card');
+    if (!card) return;
+    const abrindo = !card.classList.contains('ator-card--expandido');
+    card.classList.toggle('ator-card--expandido');
+    if (abrindo && !card.querySelector('.ator-detalhes')) {
+        const node = nodesCache.find(n => String(n.id) === String(nodeId));
+        if (!node) return;
+        const id = escapeHTML(String(node.id));
+        const marcos = (node.flags || []).filter(f => f.key).map(f => marcoItemHTML(node.id, f)).join('');
+        const det = document.createElement('div');
+        det.className = 'ator-detalhes';
+        det.innerHTML = `
+            <div class="world-card__marcos-label">Marcos</div>
+            <div class="world-card__marcos">
+                ${marcos}
+                <input type="text" class="input-inline-marco" maxlength="60" placeholder="+ Novo Marco (Enter)" onkeydown="adicionarMarcoInline(event, '${id}')">
+            </div>`;
+        card.appendChild(det);
+        lucide.createIcons();
+    }
+};
 
 // ── CRUD de Cenas (toolbar superior) ────────────────────────
 async function carregarListaCenas() {

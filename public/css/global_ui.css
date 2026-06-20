@@ -2730,9 +2730,23 @@ input[type="radio"] {
 .ator-fantasma { opacity: 0.5; pointer-events: none; cursor: default; }
 .ator-fantasma .ator-remover { pointer-events: auto; }
 
-/* Nome/ícone do ator são clicáveis (abrir ficha completa — Fase 17.1). */
+/* Nome/ícone do ator são clicáveis (expandir in-place — Fase 17.9). */
 .ator-card__nome, .ator-card__icone { cursor: pointer; }
 .ator-card__nome:hover { text-decoration: underline; }
+
+/* Expansão In-place (accordion) do ator — Fase 17.9. flex-wrap mantém o cabeçalho
+   (ícone + nome + ×) na 1ª linha e empurra os detalhes p/ a linha de baixo (full width),
+   preservando o Design System (vidro/dark fantasy via vars já existentes). */
+.ator-card--expandido { flex-wrap: wrap; cursor: default; }
+.ator-detalhes {
+    display: none;
+    flex-basis: 100%;
+    margin-top: 4px;
+    padding-top: 8px;
+    border-top: 1px solid var(--borda);
+}
+.ator-card--expandido .ator-detalhes { display: block; }
+.ator-detalhes .world-card__marcos-label { margin-top: 0; }
 
 /* Zonas de drop ativas (DnD nativo — fatia 5). */
 .cena-coluna.drag-over, .cena-elenco.drag-over {
