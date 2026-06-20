@@ -395,15 +395,11 @@ function marcoItemHTML(nodeId, f) {
     const hover = temEventos
         ? ` onmouseenter="mostrarTooltipMarco(event, '${nodeId}', '${k}')" onmouseleave="agendarFechoTooltip()"`
         : '';
-    const titulo = temEventos ? 'Passe o rato: detalhes · Duplo-clique: renomear' : 'Duplo-clique: renomear';
-    // Dica inline (só nos marcos com Pill): a pista visual de que há detalhes no hover.
-    const dica = temEventos ? '<span class="marco-dica">Passe o rato: detalhes · Duplo-clique: renomear</span>' : '';
     return `
         <div class="marco-item" data-flag-key="${k}">
             <input type="checkbox" class="marco-item__check" ${f.value ? 'checked' : ''} data-node-id="${nodeId}" data-flag-key="${k}" onchange="toggleFlag(this.dataset.nodeId, this.dataset.flagKey, this.checked)">
-            <span class="marco-item__nome${classeEventos}" title="${titulo}"${hover} ondblclick="iniciarEdicaoMarco(event, '${nodeId}', '${k}')">${escapeHTML(humanizarMarco(f.key))}</span>
+            <span class="marco-item__nome${classeEventos}"${hover} ondblclick="iniciarEdicaoMarco(event, '${nodeId}', '${k}')">${escapeHTML(humanizarMarco(f.key))}</span>
             <i data-lucide="x" class="btn-del-marco" title="Apagar marco" onclick="confirmarDeletarMarco(this, '${nodeId}', '${k}')"></i>
-            ${dica}
         </div>`;
 }
 
@@ -1382,19 +1378,22 @@ function esconderTooltipMarco() {
     tip.classList.add('tooltip-marco-oculto');
 }
 
-// Posicionamento por VIEWPORT (position:fixed) imune ao :root { zoom }. O rect do
-// getBoundingClientRect e as coords de um elemento fixed vivem no MESMO sistema de
-// referência (o viewport, já escalado pelo navegador) — então aplicamos rect.bottom /
-// rect.left DIRETO, sem multiplicar/dividir por zoom. Só inverto se vazar a janela.
+// SORO ANTI-ZOOM (Fase 17.7.1): position:fixed + DIVISÃO pelo fator de zoom. O Chrome
+// aplica double-scaling com :root{zoom} — getBoundingClientRect vem escalado E o style.top/
+// left é re-escalado ao renderizar. Dividir as coords pelo zoom anula a 2ª multiplicação,
+// colando o tooltip abaixo-esquerda do gatilho. Injetado no body, sem margin/transform.
 function posicionarTooltipHover(gatilho, tooltip) {
     tooltip.style.position = 'fixed';
+    const zoom = parseFloat(getComputedStyle(document.documentElement).zoom) || 1;
     const rect = gatilho.getBoundingClientRect();
-    const tw = tooltip.offsetWidth, th = tooltip.offsetHeight, gap = 6;
-    let top = rect.bottom + gap;          // abaixo do marco
-    let left = rect.left;                 // alinhado à esquerda do marco
-    if (left + tw > window.innerWidth - 8) left = rect.right - tw;       // vaza à direita → alinha pela direita
+    const tw = tooltip.offsetWidth, th = tooltip.offsetHeight;
+    // Espaço /zoom: rect e janela divididos pelo fator, p/ casar com o style aplicado.
+    const vw = window.innerWidth / zoom, vh = window.innerHeight / zoom;
+    let top = (rect.bottom + 4) / zoom;   // logo abaixo do gatilho
+    let left = rect.left / zoom;          // alinhado à esquerda (não foge p/ a direita)
+    if (left + tw > vw - 8) left = (rect.right / zoom) - tw;   // vaza à direita → alinha pela direita
     if (left < 8) left = 8;
-    if (top + th > window.innerHeight - 8) top = rect.top - th - gap;    // sem espaço abaixo → acima
+    if (top + th > vh - 8) top = (rect.top / zoom) - th - 4;   // sem espaço abaixo → acima
     if (top < 8) top = 8;
     tooltip.style.left = Math.round(left) + 'px';
     tooltip.style.top = Math.round(top) + 'px';

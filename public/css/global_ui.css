@@ -595,9 +595,8 @@ label {
 .marco-item {
     display: flex;
     align-items: center;
-    flex-wrap: wrap;        /* permite a .marco-dica cair em nova linha abaixo da Pill */
     width: 100%;
-    gap: 4px 10px;
+    gap: 10px;
     padding: 7px 6px;
     border-bottom: 1px solid var(--borda);
     border-radius: 4px;
@@ -757,8 +756,6 @@ label {
     color: var(--texto-mutado);
     text-align: right;
 }
-/* Dica inline abaixo da Pill (pista de que há detalhes no hover). */
-.marco-dica { flex-basis: 100%; font-size: 0.7em; color: var(--texto-mutado); padding-left: 28px; }
 .tema-pixel-16bit #tooltip-marco,
 .tema-pixel-16bit .tooltip-marco__evento,
 .tema-pixel-16bit .tooltip-marco__bar,
