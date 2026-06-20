@@ -12,35 +12,16 @@ let sessoesCache = [];
 let nucleosCache = { entidade: [], evento: [], sessao: [] };
 let nucleoAtivoTipo = 'entidade'; // 'entidade' | 'evento' | 'sessao'
 
-// Lentes Táticas (Fase 15.1): visualização atual da aba Mundo + cache da lista já
-// filtrada, para o Toggle re-renderizar sem refetch (troca é só de apresentação).
-let mundoCurrentView = 'grid'; // 'grid' | 'kanban'
+// Visualização atual da aba Mundo + cache da lista já filtrada (Toggle re-renderiza
+// sem refetch — troca é só de apresentação). Fase 17: 'kanban' deu lugar a 'cena'.
+let mundoCurrentView = 'grid'; // 'grid' | 'cena'
 let mundoListaAtual = [];
 
-// Seletor de Lentes do Kanban. 'nucleos' = geografia (nucleo_id, via moverNode); as
-// demais são facetas não-geográficas persistidas em world_nodes.dados.kanban[lente].
-// Fase 15.6: IDs ESTÁVEIS — `id` é a chave de armazenamento (imune a renomear o `label`),
-// `label` é só exibição. Labels em texto puro (sem emoji — Regra 2.3).
-const KANBAN_LENSES = {
-    cena: [
-        { id: 'em_cena', label: 'Em Cena' },
-        { id: 'aguardando', label: 'Aguardando' },
-        { id: 'fora_combate', label: 'Fora de Combate' }
-    ],
-    politica: [
-        { id: 'leais', label: 'Aliados/Leais' },
-        { id: 'neutros', label: 'Neutros' },
-        { id: 'desconhecidos', label: 'Desconhecidos' },
-        { id: 'rebeldes', label: 'Rebeldes/Inimigos' }
-    ],
-    investigacao: [
-        { id: 'nao_descoberto', label: 'Não Descoberto' },
-        { id: 'pistas_livres', label: 'Pistas Livres' },
-        { id: 'suspeitos', label: 'Suspeitos' },
-        { id: 'resolvido', label: 'Resolvido' }
-    ]
-};
-let currentLens = 'nucleos';
+// Direção de Cena (Fase 17): layout efêmero em memória (persiste só no "Salvar Cena").
+// cenaState.atores[nodeId] = colunaId → ator no palco; ausente → no Elenco (sidebar).
+let cenaState = { colunas: [], atores: {} };
+let cenaAtualId = null;
+let cenaNomeAtual = '';
 
 // Interatividade Passiva (Fase 15.4): dicionário reverse-lookup Marco→Eventos, em
 // memória, p/ latência zero no tooltip de hover. Chave: `${node_id}_${flag_key}`.
@@ -349,27 +330,25 @@ async function carregarMundo(nucleoFiltro = '', textoFiltro = '') {
     } catch (err) { console.error(err); }
 }
 
-// Dispatcher de Lente (Fase 15.1): a troca de visualização NÃO refaz fetch — opera
-// sobre a mesma lista filtrada já em memória (Regra 7). Decide o renderizador.
+// Dispatcher de visualização: a troca NÃO refaz fetch — opera sobre a mesma lista já
+// em memória. Fase 17: 'cena' (Direção de Cena) substitui o antigo Kanban.
 function renderizarMundo(lista) {
     if (lista) mundoListaAtual = lista; // guarda p/ re-render no Toggle
     const container = document.getElementById('mundo-view-container');
-    if (container) container.classList.toggle('view-kanban', mundoCurrentView === 'kanban');
-    if (mundoCurrentView === 'kanban') {
-        renderizarKanban(mundoListaAtual);
+    if (container) container.classList.toggle('view-cena', mundoCurrentView === 'cena');
+    if (mundoCurrentView === 'cena') {
+        renderizarCena(mundoListaAtual);
     } else {
-        document.getElementById('kanban-mundo')?.remove(); // não deixa o quadro pendurado
+        document.getElementById('cena-painel')?.remove(); // não deixa o painel pendurado
         renderizarGridMundo(mundoListaAtual);
     }
 }
 
-// Markup de um card de entidade (extraído p/ ser reusado pela Grelha E pelo Kanban — DRY).
-// Na lente Kanban o card vira draggable (DnD nativo HTML5 — Regra 7.1); data-node-id
-// é o identificador usado pelo dataTransfer e pela cirurgia de DOM no drop.
+// Markup de um card de entidade da Grelha (não-arrastável; o Elenco da Cena usa cards
+// minimalistas próprios). data-node-id mantido para edição/kebab.
 function cardMundoHTML(node) {
-    const drag = mundoCurrentView === 'kanban' ? ' draggable="true"' : '';
     return `
-        <div class="card world-card" data-node-id="${escapeHTML(String(node.id))}"${drag}>
+        <div class="card world-card" data-node-id="${escapeHTML(String(node.id))}">
             <div class="world-card__head">
                 <div class="world-card__ident">
                     <span class="world-card__icone"><i data-lucide="${iconeEntidade(node.tipo)}"></i></span>
@@ -424,183 +403,274 @@ function renderizarGridMundo(lista) {
     lucide.createIcons();
 }
 
-// Lente KANBAN (Fase 15.5 — multi-lente). Lente 'nucleos' = geografia (nucleo_id).
-// Lentes customizadas = facetas de world_nodes.dados.kanban[lente] (fallback: 1ª coluna).
-function renderizarKanban(lista) {
-    const container = document.getElementById('mundo-view-container');
-    if (!container) return;
-    let board = document.getElementById('kanban-mundo');
-    if (!board) {
-        board = document.createElement('div');
-        board.id = 'kanban-mundo';
-        board.className = 'kanban-board';
-        container.appendChild(board);
-    }
-    bindKanbanDnD(board); // motor de Drag & Drop (uma vez; sobrevive aos re-renders)
-
-    if (currentLens === 'nucleos') {
-        // Colunas = núcleos de entidade + bucket de órfãs (nucleo_id nulo).
-        const colunas = [
-            ...nucleosCache.entidade.map(n => ({ tipo: 'nucleo', id: String(n.id), nome: n.nome })),
-            { tipo: 'nucleo', id: null, nome: 'Sem Núcleo' }
-        ];
-        board.innerHTML = colunas.map(col => colunaKanbanHTML(col, lista.filter(node =>
-            col.id === null ? !node.nucleo_id : String(node.nucleo_id) === col.id))).join('');
-    } else {
-        // Colunas = estágios fixos (IDs estáveis). P1: valida o id armazenado contra as
-        // colunas reais; valor inválido/legado → fallback FORÇADO p/ a 1ª coluna.
-        const cols = KANBAN_LENSES[currentLens] || [];
-        const fallbackId = cols[0]?.id;
-        board.innerHTML = cols.map(col => colunaKanbanHTML(
-            { tipo: 'lens', lente: currentLens, id: col.id, nome: col.label },
-            lista.filter(node => {
-                const stored = node.dados?.kanban?.[currentLens];
-                const colId = cols.some(c => c.id === stored) ? stored : fallbackId;
-                return colId === col.id;
-            })
-        )).join('');
-    }
-    lucide.createIcons();
-}
-
-// Uma coluna Kanban (reusada pelos dois modos). P2: a dropzone carrega no DOM toda a
-// identidade que o drop precisa — núcleo: `data-nucleo-id`; lente: `data-lens-id` +
-// `data-col-id` — para o handler ler do alvo, nunca do estado global (anti race condition).
-function colunaKanbanHTML(col, cards) {
-    const attr = col.tipo === 'lens'
-        ? `data-col-tipo="lens" data-lens-id="${escapeHTML(String(col.lente))}" data-col-id="${escapeHTML(String(col.id))}"`
-        : `data-col-tipo="nucleo" data-nucleo-id="${col.id === null ? '' : escapeHTML(col.id)}"`;
-    const corpo = cards.length ? cards.map(cardMundoHTML).join('') : '<div class="info-block-vazio">Vazio.</div>';
+// ══════════════════════════════════════════════════════════════════════════
+// DIREÇÃO DE CENA (FASE 17) — Elenco (sidebar) + Palco (colunas dinâmicas).
+// Layout efêmero em world_cenas; mover um ator NÃO altera o nucleo_id do nó (Salvar
+// manual, Regra 2.7). [Fatia 3: estrutura + render + CRUD de cena. DnD → fatia 5.]
+// ══════════════════════════════════════════════════════════════════════════
+function cenaSkeletonHTML() {
     return `
-        <div class="kanban-column" ${attr}>
-            <div class="kanban-header">
-                <span>${escapeHTML(col.nome)}</span>
-                <span class="kanban-header__contagem">${cards.length}</span>
-            </div>
-            <div class="kanban-cards">${corpo}</div>
+        <div class="cena-toolbar">
+            <select id="cena-salva-select" onchange="abrirCena(this.value)"><option value="">— Selecione uma cena —</option></select>
+            <button class="btn btn-primary btn-sm" onclick="novaCena()"><i data-lucide="plus"></i> Nova</button>
+            <button class="btn btn-primary btn-sm" onclick="salvarCena()"><i data-lucide="save"></i> Salvar Cena</button>
+            <button class="btn btn-secondary btn-sm" onclick="adicionarColunaCena()"><i data-lucide="plus-square"></i> Nova Coluna</button>
+            <button class="btn btn-danger btn-sm" onclick="deletarCenaAtual()" title="Excluir cena"><i data-lucide="trash-2"></i></button>
+        </div>
+        <div class="cena-corpo">
+            <aside class="cena-elenco" id="cena-elenco">
+                <select id="elenco-nucleo-select" onchange="filtrarElenco()"><option value="">Todos os núcleos</option></select>
+                <input type="text" id="elenco-busca" placeholder="Filtrar ator..." oninput="filtrarElenco()">
+                <div class="elenco-lista" id="elenco-lista"></div>
+            </aside>
+            <div class="cena-palco" id="cena-palco"></div>
         </div>`;
 }
 
-// ── MOTOR DRAG & DROP NATIVO (FASE 15.2) ────────────────────────────────────
-// API HTML5 pura (Regra 7.1), por delegação no quadro (sobrevive aos re-renders).
-// Escopo 100% separado do Pan/Zoom da Mesa (que usa Pointer Events) — sem conflito.
-function bindKanbanDnD(board) {
-    if (board.dataset.dndBound === '1') return;
-    board.dataset.dndBound = '1';
-    board.addEventListener('dragstart', (e) => {
-        const card = e.target.closest('.world-card');
+function renderizarCena() {
+    const container = document.getElementById('mundo-view-container');
+    if (!container) return;
+    let painel = document.getElementById('cena-painel');
+    if (!painel) {
+        painel = document.createElement('div');
+        painel.id = 'cena-painel';
+        painel.className = 'cena-painel';
+        painel.innerHTML = cenaSkeletonHTML();
+        container.appendChild(painel);
+        popularNucleoSelectElenco();
+        carregarListaCenas();
+        bindCenaDnD(painel); // motor de Drag & Drop (uma vez; sobrevive aos re-renders)
+        lucide.createIcons();
+    }
+    renderElenco();
+    renderPalco();
+}
+
+function popularNucleoSelectElenco() {
+    const sel = document.getElementById('elenco-nucleo-select');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">Todos os núcleos</option>'
+        + nucleosCache.entidade.map(n => `<option value="${escapeHTML(String(n.id))}">${escapeHTML(n.nome)}</option>`).join('');
+}
+
+// O Elenco lista os atores (NPCs) filtrados por núcleo + busca. Quem está no palco vira
+// "fantasma" (inerte, salvo o X de remover de cena).
+window.filtrarElenco = function() { renderElenco(); };
+function renderElenco() {
+    const cont = document.getElementById('elenco-lista');
+    if (!cont) return;
+    const nucleo = document.getElementById('elenco-nucleo-select')?.value || '';
+    const busca = (document.getElementById('elenco-busca')?.value || '').trim().toLowerCase();
+    let atores = nodesCache;
+    if (nucleo) atores = atores.filter(n => String(n.nucleo_id) === String(nucleo));
+    if (busca) atores = atores.filter(n => n.nome.toLowerCase().includes(busca));
+    if (!atores.length) { cont.innerHTML = '<div class="info-block-vazio">Nenhum ator.</div>'; return; }
+    const colIds = new Set(cenaState.colunas.map(c => String(c.id)));
+    cont.innerHTML = atores.map(n => {
+        // Fantasma só se o ator estiver mapeado a uma coluna QUE AINDA EXISTE (resiliência).
+        const noPalco = colIds.has(String(cenaState.atores[String(n.id)]));
+        const id = escapeHTML(String(n.id));
+        const x = noPalco ? `<i data-lucide="x" class="ator-remover" title="Remover de cena" onclick="removerAtorDaCena('${id}')"></i>` : '';
+        return `<div class="ator-card${noPalco ? ' ator-fantasma' : ''}" draggable="${noPalco ? 'false' : 'true'}" data-node-id="${id}" data-origem="elenco">
+            <i data-lucide="${iconeEntidade(n.tipo)}" class="ator-card__icone"></i>
+            <span class="ator-card__nome">${escapeHTML(n.nome)}</span>
+            ${x}
+        </div>`;
+    }).join('');
+    lucide.createIcons();
+}
+
+// O Palco renderiza as colunas de cenaState.colunas; cada ator cai na sua coluna
+// (cenaState.atores[nodeId]). Cards de ator que apontam p/ nós inexistentes são ignorados.
+function renderPalco() {
+    const palco = document.getElementById('cena-palco');
+    if (!palco) return;
+    if (!cenaState.colunas.length) {
+        palco.innerHTML = '<div class="info-block-vazio">Sem colunas. Use “+ Nova Coluna”.</div>';
+        return;
+    }
+    palco.innerHTML = cenaState.colunas.map(col => {
+        const cid = escapeHTML(String(col.id));
+        const atoresCol = Object.keys(cenaState.atores)
+            .filter(nodeId => String(cenaState.atores[nodeId]) === String(col.id))
+            .map(nodeId => nodesCache.find(n => String(n.id) === String(nodeId)))
+            .filter(Boolean);
+        const cards = atoresCol.length
+            ? atoresCol.map(n => `<div class="ator-card" draggable="true" data-node-id="${escapeHTML(String(n.id))}" data-origem="palco">
+                    <i data-lucide="${iconeEntidade(n.tipo)}" class="ator-card__icone"></i>
+                    <span class="ator-card__nome">${escapeHTML(n.nome)}</span>
+                </div>`).join('')
+            : '<div class="info-block-vazio">Vazio.</div>';
+        return `<div class="cena-coluna" data-col-id="${cid}">
+            <div class="cena-coluna__header">
+                <span class="cena-coluna__nome" title="Duplo-clique renomeia" ondblclick="renomearColunaCena('${cid}')">${escapeHTML(col.nome)}</span>
+                <i data-lucide="trash-2" class="cena-coluna__del" title="Excluir coluna" onclick="deletarColunaCena('${cid}')"></i>
+            </div>
+            <div class="cena-coluna__cards" data-col-id="${cid}">${cards}</div>
+        </div>`;
+    }).join('');
+    lucide.createIcons();
+}
+
+// ── CRUD de Cenas (toolbar superior) ────────────────────────
+async function carregarListaCenas() {
+    const sel = document.getElementById('cena-salva-select');
+    if (!sel) return;
+    let lista = [];
+    try { lista = await MundoApi.listarCenas(cronicaId); }
+    catch (e) { mostrarToast('Erro ao listar cenas.', 'erro'); return; }
+    sel.innerHTML = '<option value="">— Selecione uma cena —</option>'
+        + lista.map(c => `<option value="${escapeHTML(String(c.id))}">${escapeHTML(c.nome)}</option>`).join('');
+    sel.value = cenaAtualId || '';
+}
+
+window.novaCena = async function() {
+    const nome = (prompt('Nome da nova cena:') || '').trim();
+    if (!nome) return;
+    try {
+        const c = await MundoApi.criarCena(cronicaId, nome);
+        mostrarToast('Cena criada!', 'sucesso');
+        await carregarListaCenas();
+        await abrirCena(c.id);
+    } catch (e) { mostrarToast(e.message || 'Erro ao criar cena.', 'erro'); }
+};
+
+window.abrirCena = async function(cenaId) {
+    cenaAtualId = cenaId || null;
+    if (!cenaId) { cenaState = { colunas: [], atores: {} }; cenaNomeAtual = ''; renderElenco(); renderPalco(); return; }
+    let resp;
+    try { resp = await MundoApi.buscarCena(cronicaId, cenaId); }
+    catch (e) { mostrarToast(e.message || 'Erro ao carregar a cena.', 'erro'); return; }
+    cenaNomeAtual = resp.nome || '';
+    const d = resp.dados || {};
+    cenaState = {
+        colunas: Array.isArray(d.colunas) ? d.colunas : [],
+        atores: (d.atores && typeof d.atores === 'object') ? d.atores : {}
+    };
+    const sel = document.getElementById('cena-salva-select'); if (sel) sel.value = cenaAtualId;
+    renderElenco();
+    renderPalco();
+};
+
+window.salvarCena = async function() {
+    if (!cenaAtualId) return mostrarToast('Selecione ou crie uma cena primeiro.', 'aviso');
+    try {
+        await MundoApi.atualizarCena(cronicaId, cenaAtualId, { dados: cenaState });
+        mostrarToast('Cena salva.', 'sucesso');
+    } catch (e) { mostrarToast(e.message || 'Erro ao salvar a cena.', 'erro'); }
+};
+
+window.deletarCenaAtual = async function() {
+    if (!cenaAtualId) return mostrarToast('Nenhuma cena aberta.', 'aviso');
+    if (!confirm(`Excluir a cena "${cenaNomeAtual}"? Esta ação é permanente.`)) return;
+    try {
+        await MundoApi.deletarCena(cronicaId, cenaAtualId);
+        mostrarToast('Cena removida.', 'sucesso');
+        cenaAtualId = null; cenaNomeAtual = ''; cenaState = { colunas: [], atores: {} };
+        await carregarListaCenas();
+        renderElenco(); renderPalco();
+    } catch (e) { mostrarToast(e.message || 'Erro ao remover a cena.', 'erro'); }
+};
+
+// Remove um ator do palco (apaga do mapa atores) — devolve-o ao Elenco. Não toca no banco
+// até "Salvar Cena". Os NPCs nunca são deletados daqui.
+window.removerAtorDaCena = function(nodeId) {
+    delete cenaState.atores[String(nodeId)];
+    renderElenco();
+    renderPalco();
+};
+
+// ── Colunas dinâmicas do Palco (memória; persiste só no "Salvar Cena") ──
+function novoIdColuna() { return 'col' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+window.adicionarColunaCena = function() {
+    if (!cenaAtualId) return mostrarToast('Abra ou crie uma cena primeiro.', 'aviso');
+    const nome = (prompt('Nome da nova coluna:') || '').trim();
+    if (!nome) return;
+    cenaState.colunas.push({ id: novoIdColuna(), nome: nome.slice(0, 120) });
+    renderPalco();
+};
+
+window.renomearColunaCena = function(colId) {
+    const col = cenaState.colunas.find(c => String(c.id) === String(colId));
+    if (!col) return;
+    const raw = prompt('Nome da coluna:', col.nome || '');
+    if (raw === null) return;
+    col.nome = raw.trim().slice(0, 120);
+    renderPalco();
+};
+
+// Deleta a coluna e DEVOLVE os atores dela ao Elenco (apaga só o mapeamento; o NPC
+// permanece no banco, intocado).
+window.deletarColunaCena = function(colId) {
+    const col = cenaState.colunas.find(c => String(c.id) === String(colId));
+    if (!col) return;
+    if (!confirm(`Excluir a coluna "${col.nome}"? Os atores voltam ao Elenco.`)) return;
+    cenaState.colunas = cenaState.colunas.filter(c => String(c.id) !== String(colId));
+    for (const nodeId of Object.keys(cenaState.atores)) {
+        if (String(cenaState.atores[nodeId]) === String(colId)) delete cenaState.atores[nodeId];
+    }
+    renderElenco();
+    renderPalco();
+};
+
+// ── MOTOR DRAG & DROP NATIVO (FASE 17 — fatia 4) ────────────────────────────
+// API HTML5 pura (Regra 7.1), por delegação no painel (sobrevive aos re-renders).
+// Drop atualiza SÓ a RAM (cenaState.atores) + re-render completo; persiste no Salvar.
+// Escopo isolado do DnD da Mesa (Pointer Events) — sem conflito.
+function bindCenaDnD(painel) {
+    if (painel.dataset.dndBound === '1') return;
+    painel.dataset.dndBound = '1';
+    painel.addEventListener('dragstart', (e) => {
+        const card = e.target.closest('.ator-card[draggable="true"]');
         if (!card) return;
         e.dataTransfer.setData('text/plain', card.dataset.nodeId);
         e.dataTransfer.effectAllowed = 'move';
         card.classList.add('dragging');
     });
-    board.addEventListener('dragend', (e) => {
-        e.target.closest('.world-card')?.classList.remove('dragging');
-        limparDragOver(board);
+    painel.addEventListener('dragend', (e) => {
+        e.target.closest('.ator-card')?.classList.remove('dragging');
+        limparCenaDragOver(painel);
     });
-    board.addEventListener('dragover', (e) => {
-        const col = e.target.closest('.kanban-column');
-        if (!col) return;
-        e.preventDefault(); // obrigatório p/ habilitar o drop
+    painel.addEventListener('dragover', (e) => {
+        const alvo = e.target.closest('.cena-coluna, .cena-elenco');
+        if (!alvo) return;
+        e.preventDefault(); // habilita o drop
         e.dataTransfer.dropEffect = 'move';
-        limparDragOver(board);
-        col.classList.add('drag-over');
+        limparCenaDragOver(painel);
+        alvo.classList.add('drag-over');
     });
-    board.addEventListener('dragleave', (e) => {
-        if (!board.contains(e.relatedTarget)) limparDragOver(board); // saiu do quadro
+    painel.addEventListener('dragleave', (e) => {
+        if (!painel.contains(e.relatedTarget)) limparCenaDragOver(painel);
     });
-    board.addEventListener('drop', handleKanbanDrop);
+    painel.addEventListener('drop', handleCenaDrop);
 }
-function limparDragOver(board) {
-    board.querySelectorAll('.kanban-column.drag-over').forEach(c => c.classList.remove('drag-over'));
+function limparCenaDragOver(painel) {
+    painel.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
 }
-
-function handleKanbanDrop(e) {
+function handleCenaDrop(e) {
+    const painel = document.getElementById('cena-painel');
+    const alvo = e.target.closest('.cena-coluna, .cena-elenco');
+    if (!alvo) return;            // drop fora de zona válida → ignora
     e.preventDefault();
-    const board = document.getElementById('kanban-mundo');
-    limparDragOver(board);
-    const col = e.target.closest('.kanban-column');
-    if (!col) return;
+    limparCenaDragOver(painel);
     const nodeId = e.dataTransfer.getData('text/plain');
     if (!nodeId) return;
-    const card = board.querySelector(`.world-card[data-node-id="${cssEscape(nodeId)}"]`);
-    if (!card) return;
-    const node = nodesCache.find(n => String(n.id) === String(nodeId));
-    const colOrigem = card.closest('.kanban-column');
 
-    // P2: ramifica pelo TIPO da dropzone alvo (DOM), não pelo currentLens global —
-    // imune a uma troca de lente concorrente durante o arrasto.
-    if (col.dataset.colTipo === 'lens') dropLenteCustom(card, node, col, colOrigem);
-    else dropLenteNucleos(card, node, col, colOrigem, nodeId);
-}
-
-// Drop na lente geográfica: persiste nucleo_id via moverNode (fluxo da Fase 15.2).
-function dropLenteNucleos(card, node, col, colOrigem, nodeId) {
-    const destId = col.dataset.nucleoId || '';   // '' = Sem Núcleo
-    const origemId = node && node.nucleo_id ? String(node.nucleo_id) : '';
-    if (destId === origemId) return;              // mesmo núcleo → no-op
-    const origemNome = node ? (node.nucleo_nome || 'Nenhum') : 'Nenhum';
-    const destNome = destId ? (nucleosCache.entidade.find(n => String(n.id) === destId)?.nome || 'Nenhum') : 'Nenhum';
-
-    moverCardKanban(card, col.querySelector('.kanban-cards'));
-    if (node) { node.nucleo_id = destId || null; node.nucleo_nome = destNome; }
-    const nomeEl = card.querySelector('.world-card__nucleo-nome');
-    if (nomeEl) nomeEl.textContent = destNome;
-    atualizarContagemColuna(col); atualizarContagemColuna(colOrigem);
-
-    MundoApi.moverNode(cronicaId, nodeId, destId || null).catch(() => {
-        moverCardKanban(card, colOrigem.querySelector('.kanban-cards'));
-        if (node) { node.nucleo_id = origemId || null; node.nucleo_nome = origemNome; }
-        if (nomeEl) nomeEl.textContent = origemNome;
-        atualizarContagemColuna(col); atualizarContagemColuna(colOrigem);
-        mostrarToast('Não foi possível mover a entidade. Alteração revertida.', 'erro');
-    });
-}
-
-// Drop numa lente customizada: lê lente+coluna do DOM da dropzone (P2) e persiste de
-// forma ATÓMICA (P3) via jsonb_set no caminho dados.kanban[lente] (sem clobber).
-function dropLenteCustom(card, node, col, colOrigem) {
-    if (!node) return;
-    const lente = col.dataset.lensId;
-    const destCol = col.dataset.colId;
-    if (!lente || !destCol) return;
-    const cols = KANBAN_LENSES[lente] || [];
-    const fallbackId = cols[0]?.id;
-    const stored = node.dados?.kanban?.[lente];
-    const origemCol = cols.some(c => c.id === stored) ? stored : fallbackId; // P1 também no drop
-    if (destCol === origemCol) return; // mesma coluna → no-op
-
-    // Optimistic: move o card + grava só a faceta da lente no estado local.
-    moverCardKanban(card, col.querySelector('.kanban-cards'));
-    atualizarContagemColuna(col); atualizarContagemColuna(colOrigem);
-    node.dados = node.dados || {};
-    node.dados.kanban = node.dados.kanban || {};
-    node.dados.kanban[lente] = destCol;
-
-    // Backend atómico (P3): PUT focado; silencioso no sucesso, reverte no erro.
-    MundoApi.moverKanban(cronicaId, node.id, lente, destCol).catch(() => {
-        node.dados.kanban[lente] = origemCol;
-        moverCardKanban(card, colOrigem.querySelector('.kanban-cards'));
-        atualizarContagemColuna(col); atualizarContagemColuna(colOrigem);
-        mostrarToast('Não foi possível atualizar a entidade. Alteração revertida.', 'erro');
-    });
-}
-
-// Move o card para a zona de drop destino, gerindo o placeholder "Vazio." das colunas.
-function moverCardKanban(card, destCards) {
-    if (!destCards) return;
-    const origemCards = card.parentElement;
-    destCards.querySelector('.info-block-vazio')?.remove();
-    destCards.appendChild(card);
-    if (origemCards && origemCards !== destCards && !origemCards.querySelector('.world-card')) {
-        origemCards.innerHTML = '<div class="info-block-vazio">Vazio.</div>';
+    if (alvo.classList.contains('cena-coluna')) {
+        const destId = alvo.dataset.colId;
+        if (!destId) return;
+        if (String(cenaState.atores[String(nodeId)]) === String(destId)) return; // mesma coluna → no-op
+        cenaState.atores[String(nodeId)] = destId; // SÓ RAM (Regra 2.7 — persiste no Salvar)
+    } else {
+        // drop no Elenco → tira de cena (devolve ao elenco), sem tocar no NPC do banco.
+        if (cenaState.atores[String(nodeId)] === undefined) return;
+        delete cenaState.atores[String(nodeId)];
     }
+    renderElenco();   // re-render completo rápido do painel da Cena
+    renderPalco();
 }
-function atualizarContagemColuna(col) {
-    if (!col) return;
-    const badge = col.querySelector('.kanban-header__contagem');
-    if (badge) badge.textContent = col.querySelectorAll('.world-card').length;
-}
+
 
 window.salvarForja = async function() {
     const nome = document.getElementById('forja-nome')?.value.trim();
@@ -668,18 +738,12 @@ window.confirmarDeletarEntidade = function(item, nodeId) {
 };
 async function executarDeletarEntidade(nodeId) {
     const card = document.querySelector(`.world-card[data-node-id="${cssEscape(nodeId)}"]`);
-    const col = card?.closest('.kanban-column');
     try {
         const res = await API.fetch(`/cronicas/${cronicaId}/nodes/${nodeId}`, { method: 'DELETE' });
         if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.erro); }
-        // Optimistic: remove do DOM + cache, sem recarregar a lista inteira.
-        const cards = card?.parentElement;
+        // Optimistic: remove do DOM (Grelha) + cache, sem recarregar a lista inteira.
         card?.remove();
         nodesCache = nodesCache.filter(n => String(n.id) !== String(nodeId));
-        if (col) {
-            atualizarContagemColuna(col);
-            if (cards && !cards.querySelector('.world-card')) cards.innerHTML = '<div class="info-block-vazio">Vazio.</div>';
-        }
         mostrarToast('Entidade deletada.', 'sucesso');
     } catch (err) { mostrarToast(err.message || 'Erro ao deletar entidade.', 'erro'); }
 }
@@ -2318,8 +2382,8 @@ window.aplicarFiltrosMundo = function() {
     carregarMundo(nucleoId, textoBuscaMundo);
 }
 
-// Toggle de Lente (Grelha/Kanban): troca só a apresentação, re-renderizando a lista
-// já em memória — sem refetch (Regra 7). Listeners nativos, sem onclick inline.
+// Toggle de visualização (Grelha / Direção de Cena): troca só a apresentação,
+// re-renderizando a lista já em memória — sem refetch. Listeners nativos.
 function inicializarViewToggle() {
     const toggle = document.querySelector('.view-toggle');
     if (!toggle) return;
@@ -2329,22 +2393,9 @@ function inicializarViewToggle() {
             if (view === mundoCurrentView) return;
             mundoCurrentView = view;
             toggle.querySelectorAll('button[data-view]').forEach(b => b.classList.toggle('active', b === btn));
-            atualizarVisibilidadeLente();
             renderizarMundo(); // re-render da lista atual na nova visualização
         });
     });
-    // Seletor de Lentes: troca a faceta do Kanban e re-renderiza (só apresentação).
-    const lensSel = document.getElementById('kanban-lens-select');
-    if (lensSel) lensSel.addEventListener('change', () => {
-        currentLens = lensSel.value;
-        renderizarMundo();
-    });
-    atualizarVisibilidadeLente();
-}
-// O seletor de lentes só existe no contexto Kanban.
-function atualizarVisibilidadeLente() {
-    const lensSel = document.getElementById('kanban-lens-select');
-    if (lensSel) lensSel.style.display = mundoCurrentView === 'kanban' ? '' : 'none';
 }
 
 window.aplicarFiltrosEventos = function() {
