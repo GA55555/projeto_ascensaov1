@@ -210,5 +210,22 @@ const MundoApi = {
         const res = await API.fetch(`/cronicas/${cronicaId}/cenas/${cenaId}`, { method: 'DELETE' });
         if (!res.ok) throw new Error('Falha ao remover a cena.');
         return res.json();
+    },
+
+    // ── DIPLOMACIA (FASE 14): relações núcleo↔núcleo (global por crônica) ──
+    // Tolerante a backend ausente no GET (cai p/ []), para o board não quebrar.
+    async getDiplomacia(cronicaId) {
+        try {
+            const res = await API.fetch(`/cronicas/${cronicaId}/diplomacia`);
+            if (!res.ok) return [];
+            return res.json(); // [{ id, nucleoA, nucleoB, status }]
+        } catch (e) { return []; }
+    },
+    async salvarDiplomacia(cronicaId, relacoes) {
+        const res = await API.fetch(`/cronicas/${cronicaId}/diplomacia`, {
+            method: 'PUT', body: JSON.stringify({ relacoes })
+        });
+        if (!res.ok) throw new Error('Falha ao salvar a diplomacia.');
+        return res.json();
     }
 };

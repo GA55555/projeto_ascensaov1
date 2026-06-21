@@ -245,6 +245,22 @@ const atualizarBoardSchema = z.object({
 });
 const boardIdParamsSchema = z.object({ params: z.object({ ...boardIdParams }) });
 
+// ── DIPLOMACIA (FASE 14): relações núcleo↔núcleo (nucleo_diplomacia) ──
+// PUT substitui o conjunto inteiro. status fechado em enum; A≠B garantido aqui.
+const STATUS_DIPLOMACIA = ['aliado', 'inimigo', 'neutro'];
+const salvarDiplomaciaSchema = z.object({
+    params: z.object({ ...cronicaParamOnly }),
+    body: z.object({
+        relacoes: z.array(
+            z.object({
+                nucleoA: z.string().uuid('Núcleo A inválido.'),
+                nucleoB: z.string().uuid('Núcleo B inválido.'),
+                status: z.enum(STATUS_DIPLOMACIA)
+            }).refine(r => r.nucleoA !== r.nucleoB, { message: 'Um núcleo não pode ter relação consigo mesmo.' })
+        ).max(200).default([])
+    })
+});
+
 module.exports = {
     criarAutomacaoSchema, toggleStatusSchema,
     criarNodeSchema, editarNodeSchema,
@@ -254,5 +270,6 @@ module.exports = {
     criarSessaoSchema, editarSessaoSchema,
     atualizarNucleoNodeSchema,
     listarLinksSchema, criarLinkSchema, deletarLinkSchema, atualizarLinkSchema,
-    criarBoardSchema, atualizarBoardSchema, boardIdParamsSchema
+    criarBoardSchema, atualizarBoardSchema, boardIdParamsSchema,
+    salvarDiplomaciaSchema
 };

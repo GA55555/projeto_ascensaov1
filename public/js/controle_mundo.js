@@ -11,6 +11,10 @@ let automacoesCache = [];
 let sessoesCache = [];
 let nucleosCache = { entidade: [], evento: [], sessao: [] };
 let nucleoAtivoTipo = 'entidade'; // 'entidade' | 'evento' | 'sessao'
+// Diplomacia (Fase 14): relações núcleo↔núcleo. Fonte da verdade no Mundo; o Tabuleiro
+// só reflete (auto-draw em desenharLinhasBoard). [{ id, nucleoA, nucleoB, status }]
+let diplomaciaCache = [];
+const STATUS_DIP = { aliado: 'Aliados', inimigo: 'Inimigos', neutro: 'Neutros' };
 
 // Visualização atual da aba Mundo + cache da lista já filtrada (Toggle re-renderiza
 // sem refetch — troca é só de apresentação). Fase 17: 'kanban' deu lugar a 'cena'.
@@ -2524,6 +2528,77 @@ const ICONES_RPG = [
     'backpack', 'lockpicks', 'id-card', 'dice-six-faces-six', 'dice-twenty-faces-twenty',
     'perspective-dice-six-faces-random', 'gears', 'cogsplosion', 'clout', 'laptop', 'smartphone'
 ];
+
+// ============================================
+// DIPLOMACIA (FASE 14) — controle global na aba Mundo (fonte única da verdade).
+// Selects populados com nucleosCache.entidade; persistência via bulk replace.
+// ============================================
+window.abrirModalDiplomacia = async function() {
+    if (nucleosCache.entidade.length === 0) await carregarNucleos('entidade');
+    diplomaciaCache = await MundoApi.getDiplomacia(cronicaId); // tolerante a backend ausente (→ [])
+    const opts = nucleosCache.entidade.map(n => `<option value="${escapeHTML(String(n.id))}">${escapeHTML(n.nome)}</option>`).join('');
+    const selA = document.getElementById('dip-nucleo-a'), selB = document.getElementById('dip-nucleo-b');
+    if (selA) selA.innerHTML = opts;
+    if (selB) selB.innerHTML = opts;
+    renderizarListaDiplomacia();
+    abrirModal('modal-diplomacia');
+};
+
+function nomeNucleoDip(id) {
+    const n = nucleosCache.entidade.find(x => String(x.id) === String(id));
+    return n ? n.nome : '—';
+}
+
+function renderizarListaDiplomacia() {
+    const div = document.getElementById('lista-diplomacia');
+    if (!div) return;
+    const grupos = ['aliado', 'inimigo', 'neutro'].map(st => {
+        const rels = diplomaciaCache.filter(r => r.status === st);
+        if (!rels.length) return '';
+        return `<div class="diplomacia-grupo diplomacia-grupo--${st}">
+            <div class="diplomacia-grupo-titulo">${STATUS_DIP[st]}</div>
+            ${rels.map(r => `<div class="diplomacia-linha">
+                <span class="diplomacia-par">${escapeHTML(nomeNucleoDip(r.nucleoA))} <i data-lucide="arrow-left-right"></i> ${escapeHTML(nomeNucleoDip(r.nucleoB))}</span>
+                <button class="btn btn-ghost btn-sm diplomacia-remover" title="Remover" onclick="removerDiplomacia('${escapeHTML(String(r.id))}')"><i data-lucide="x"></i></button>
+            </div>`).join('')}
+        </div>`;
+    }).join('');
+    div.innerHTML = grupos || '<div class="info-block-vazio">Nenhuma relação definida.</div>';
+    lucide.createIcons();
+}
+
+window.adicionarDiplomacia = async function() {
+    const a = document.getElementById('dip-nucleo-a')?.value;
+    const b = document.getElementById('dip-nucleo-b')?.value;
+    const status = document.getElementById('dip-status')?.value;
+    if (!a || !b) return mostrarToast('Selecione os dois núcleos.', 'aviso');
+    if (a === b) return mostrarToast('Um núcleo não pode ter relação consigo mesmo.', 'aviso');
+    // Par já existe (em qualquer ordem)? então só troca o status; senão, cria.
+    const existente = diplomaciaCache.find(r =>
+        (String(r.nucleoA) === a && String(r.nucleoB) === b) ||
+        (String(r.nucleoA) === b && String(r.nucleoB) === a));
+    if (existente) existente.status = status;
+    else diplomaciaCache.push({ id: novoIdLocal('dip'), nucleoA: a, nucleoB: b, status });
+    await persistirDiplomacia();
+    renderizarListaDiplomacia();
+};
+
+window.removerDiplomacia = async function(id) {
+    diplomaciaCache = diplomaciaCache.filter(r => String(r.id) !== String(id));
+    await persistirDiplomacia();
+    renderizarListaDiplomacia();
+};
+
+// Bulk replace: envia o conjunto inteiro e adota os ids reais devolvidos pelo servidor.
+async function persistirDiplomacia() {
+    try {
+        const salvo = await MundoApi.salvarDiplomacia(cronicaId, diplomaciaCache.map(r => ({ nucleoA: r.nucleoA, nucleoB: r.nucleoB, status: r.status })));
+        if (Array.isArray(salvo)) diplomaciaCache = salvo;
+    } catch (e) {
+        mostrarToast(e.message || 'Erro ao salvar diplomacia.', 'erro');
+    }
+}
+
 const boardVazio = () => ({ camera: { x: 0, y: 0, zoom: 1 }, fundo: 'dots', nodes: [], shapes: [], celulas: [], texts: [], props: [], localLinks: [], overrides_linhas: {} });
 let boardAtualId = null;
 let boardNomeAtual = '';
@@ -2541,9 +2616,14 @@ async function carregarMesaGuerra() {
     if (!elBoardCanvas()) return;
     try { boardNodesCache = await MundoApi.getNodes(cronicaId); }
     catch (e) { mostrarToast('Erro ao carregar entidades.', 'erro'); }
+    diplomaciaCache = await MundoApi.getDiplomacia(cronicaId); // board reflete a diplomacia do Mundo (tolerante → [])
     await recarregarListaBoards();
     ativarPanZoom();
-    if (!boardAtualId) renderBoard();
+    // Re-render ao (re)entrar na aba com o cache fresco: o agrupamento das células e a
+    // ocultação de membros passam a refletir mudanças de núcleo feitas na aba Mundo
+    // (re-sync passivo, não-destrutivo — não move nem importa cards; só recomputa
+    // grupo/visibilidade a partir do nucleo_id atual). Render trata board aberto e vazio.
+    renderBoard();
 }
 
 async function recarregarListaBoards() {
@@ -2955,7 +3035,7 @@ function celulaHTML(c) {
     // height inline só quando expandida; minimizada → a CSS (.is-minimizada) assume a altura.
     const dims = `left: ${Math.round(c.x)}px; top: ${Math.round(c.y)}px; width: ${Math.round(c.w)}px;`
                + (c.minimizada ? '' : ` height: ${Math.round(c.h)}px;`);
-    return `<div class="board-celula board-cor-${cor}${c.minimizada ? ' is-minimizada' : ''}" data-celula="${cid}" style="${dims}">
+    return `<div class="board-celula board-cor-${cor}${c.minimizada ? ' is-minimizada' : ''}" data-celula="${cid}" data-nucleo="${escapeHTML(String(c.nucleo_id))}" style="${dims}">
         <div class="board-celula-header">
             <i data-lucide="users" class="board-celula-icone"></i>
             <span class="board-celula-nome" title="${escapeHTML(nome)}">${escapeHTML(nome)}</span>
@@ -2990,6 +3070,7 @@ window.abrirEditorCelula = function(id, e) {
         <label>Largura (<span id="board-celula-larg">${Math.round(c.w)}</span>px)</label>
         <input type="range" class="board-popover-range" min="${CELULA_MIN_W}" max="1200" step="20" value="${Math.round(c.w)}" oninput="setCelulaLargura('${cid}', this.value)">
         <div class="board-popover-acoes board-popover-acoes--coluna">
+            <button class="btn btn-outline btn-sm" onclick="ressincronizarCelula('${cid}')"><i data-lucide="refresh-cw"></i> Sincronizar membros</button>
             <button class="btn btn-outline btn-sm" onclick="reorganizarCelula('${cid}')"><i data-lucide="layout-grid"></i> Reorganizar em grade</button>
             <button class="btn btn-outline btn-sm" onclick="desimportarCelula('${cid}')"><i data-lucide="package-open"></i> Desimportar (mantém os cards)</button>
             <button class="btn btn-ghost btn-sm" onclick="removerCelulaBoard('${cid}')"><i data-lucide="trash-2"></i> Remover célula e cards</button>
@@ -3027,6 +3108,24 @@ window.reorganizarCelula = function(id) {
     organizarMembrosNaCelula(c);
     fecharPopover();
     renderBoard();
+};
+// Re-sincroniza com o estado ATUAL do núcleo: re-busca os nós (o nucleo_id pode ter mudado
+// na aba Mundo), importa membros novos que ainda não estão no tabuleiro e re-arruma a grade.
+// Não remove cards — quem saiu do núcleo apenas deixa de ser agrupado (membership dinâmica).
+window.ressincronizarCelula = async function(id) {
+    const c = (boardState.celulas || []).find(x => String(x.id) === String(id)); if (!c) return;
+    fecharPopover();
+    try { boardNodesCache = await MundoApi.getNodes(cronicaId); }
+    catch (e) { return mostrarToast('Erro ao sincronizar entidades.', 'erro'); }
+    const noBoard = new Set(boardState.nodes.map(n => String(n.id)));
+    let novos = 0;
+    boardNodesCache.filter(n => String(n.nucleo_id) === String(c.nucleo_id)).forEach(m => {
+        if (!noBoard.has(String(m.id))) { boardState.nodes.push({ id: m.id, x: c.x, y: c.y }); novos++; }
+    });
+    organizarMembrosNaCelula(c); // re-arruma (puxa os novos + quem migrou para este núcleo)
+    renderBoard();
+    atualizarLinksBoard();
+    mostrarToast(novos ? `${novos} novo(s) membro(s) importado(s).` : 'Núcleo já sincronizado.', novos ? 'sucesso' : 'aviso');
 };
 // Desimporta: tira a moldura, mas os cards-membros permanecem onde estão.
 window.desimportarCelula = function(id) {
@@ -3700,6 +3799,20 @@ function desenharLinhasBoard() {
         paths += `<path class="board-line-hit" onclick="editarLocalLink('${lid}', event)" d="${d}"></path>`;
         paths += `<path class="board-line" d="${d}" style="stroke: ${corBoardVar(l.cor)}; stroke-dasharray: ${dash};"></path>`;
         paths += rotulo(mx, my, l.label);
+    });
+
+    // Macro-links de Diplomacia (Fase 14): linhas "fantasma" entre Células de núcleo,
+    // derivadas SÓ do diplomaciaCache (Mundo é a fonte da verdade — read-only, não toca
+    // boardState, sem hit clicável). `color` espelha o stroke p/ o halo (drop-shadow).
+    const corDip = { aliado: 'var(--link-aliado)', inimigo: 'var(--link-inimigo)', neutro: 'var(--texto-mutado)' };
+    (diplomaciaCache || []).forEach(rel => {
+        const ea = world.querySelector(`.board-celula[data-nucleo="${cssEscape(rel.nucleoA)}"]`);
+        const eb = world.querySelector(`.board-celula[data-nucleo="${cssEscape(rel.nucleoB)}"]`);
+        if (!ea || !eb) return;
+        const { d, mx, my } = caminhoCardeal(ea, eb);
+        const cor = corDip[rel.status] || 'var(--texto-mutado)';
+        paths += `<path class="board-line board-line-diplomacia" d="${d}" style="stroke: ${cor}; color: ${cor};"></path>`;
+        paths += rotulo(mx, my, STATUS_DIP[rel.status] || rel.status);
     });
 
     svg.innerHTML = paths;
