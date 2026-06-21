@@ -2831,12 +2831,14 @@ input[type="radio"] {
     line-height: 1.1;
     padding: 2px 4px;
     white-space: pre-wrap;
-    /* Abraça o conteúdo (não estica até 360 à toa) e quebra palavras gigantes sem espaço,
-       impedindo o vazamento da caixa. Sem altura fixa: a altura segue o texto. */
-    width: fit-content;
-    max-width: 360px;
-    overflow-wrap: anywhere;
-    word-break: break-word;
+    /* Piso de 40px + teto de 320px com width:max-content abraçam o conteúdo SEM colapsar a
+       largura. (fit-content + overflow-wrap:anywhere quebrava letra a letra → texto vertical.)
+       break-word só quebra palavras longas demais; altura sem fixar, segue o texto. */
+    min-width: 40px;
+    width: max-content;
+    max-width: 320px;
+    overflow-wrap: break-word;
+    word-break: normal;
 }
 .board-world { --board-accent: var(--texto-claro); } /* fallback p/ shapes/texts/props sem token */
 .board-text:hover { outline: 1px dashed var(--borda); }

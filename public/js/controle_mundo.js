@@ -3180,9 +3180,9 @@ const FIS_REP_FORCA   = 4000;  // intensidade da repulsão (inverse-linear: forc
 const FIS_MOLA        = 0.015; // rigidez da mola (neutro/inimigo)
 const FIS_MOLA_ALIADO = 0.03;  // aliados puxam mais (distância menor)
 const FIS_GRAV        = 0.01;  // gravidade ao centro (anti-fuga)
-const FIS_ATRITO      = 0.82;  // amortecimento (anti-jitter: perde mais energia/frame)
-const FIS_VMAX        = 18;    // teto de velocidade por frame (anti-jitter rígido)
-const FIS_PARADA      = 0.4;   // energia média/célula p/ assentar e parar o rAF
+const FIS_ATRITO      = 0.55;  // amortecimento pesado → assenta em <2s (perde 45%/frame)
+const FIS_VMAX        = 12;    // teto de velocidade por frame (estabilidade)
+const FIS_PARADA      = 2.5;   // sleep threshold (energia média/célula): "dorme" cedo (<2s)
 
 window.toggleConstelacao = function() {
     if (!boardAtualId) return mostrarToast('Abra um tabuleiro primeiro.', 'aviso');
