@@ -140,6 +140,7 @@
             <button class="btn btn-secondary btn-sm" onclick="adicionarTexto()"><i data-lucide="type"></i> Texto</button>
             <button class="btn btn-secondary btn-sm" onclick="abrirSeletorSimbolo()"><i data-lucide="shapes"></i> Símbolo</button>
             <button class="btn btn-secondary btn-sm" onclick="abrirSeletorNucleoBoard()"><i data-lucide="users"></i> Importar Núcleo</button>
+            <button class="btn btn-secondary btn-sm" id="btn-constelacao" onclick="toggleConstelacao()" title="Modo Constelação (vista force-directed dos núcleos)"><i data-lucide="network"></i> Constelação</button>
             <select id="board-fundo-select" class="btn btn-secondary btn-sm" onchange="mudarFundoBoard(this.value)" title="Plano de Fundo da Mesa"><option value="dots">Pontilhado</option><option value="grid">Grade</option><option value="none">Liso</option></select>
             <button class="btn btn-secondary btn-sm" id="board-toggle-linhas" onclick="toggleLinhasBoard(this)" title="Ocultar conexões"><i data-lucide="eye"></i></button>
             <button class="btn btn-danger btn-sm" onclick="deletarBoardAtual()" title="Excluir tabuleiro"><i data-lucide="trash-2"></i></button>

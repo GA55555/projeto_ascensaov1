@@ -2557,6 +2557,9 @@ input[type="radio"] {
     border-radius: 8px;
 }
 .board-toolbar select { min-width: 180px; }
+/* Toggle ativo (ex.: Constelação): preenchimento de acento + texto/ícone em alto contraste (Regra 2.6). */
+.board-toolbar .btn.ativo { background: var(--roxo-mago); border-color: var(--roxo-mago); color: #fff; }
+.board-toolbar .btn.ativo:hover { background: var(--roxo-hover); border-color: var(--roxo-hover); }
 
 /* Viewport (clipa) + mundo transformável (Pan/Zoom via transform). O grid pontilhado
    vive no viewport ESTÁTICO (tile CSS infinito): background-size/position são
