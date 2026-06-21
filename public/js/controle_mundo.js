@@ -2889,9 +2889,10 @@ function textHTML(t) {
     const tam = Math.min(96, Math.max(8, t.tamanho || 16));
     const tid = escapeHTML(String(t.id));
     const conteudo = escapeHTML(t.texto || 'Texto').replace(/\n/g, '<br>');
-    return `<div class="board-text board-cor-${cor}${fundoClasse}${alignClasse}" data-text="${tid}" style="left: ${Math.round(t.x)}px; top: ${Math.round(t.y)}px; font-size: ${tam}px;">
-        <span class="board-text-conteudo">${conteudo}</span>
-    </div>`;
+    // O <span> COLA no <div> e no </div> (sem espaço/quebra entre as tags): como .board-text usa
+    // white-space: pre-wrap, qualquer whitespace de indentação do template viraria texto renderizado
+    // — uma falsa "indentação"/linha em branco no início. NÃO reintroduzir espaços entre as tags.
+    return `<div class="board-text board-cor-${cor}${fundoClasse}${alignClasse}" data-text="${tid}" style="left: ${Math.round(t.x)}px; top: ${Math.round(t.y)}px; font-size: ${tam}px;"><span class="board-text-conteudo">${conteudo}</span></div>`;
 }
 
 // Prop (ícone RPG): SVG recolorido via CSS mask + cor por token (--board-accent).
