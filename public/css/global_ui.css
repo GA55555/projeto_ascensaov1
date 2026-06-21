@@ -2952,6 +2952,17 @@ input[type="radio"] {
 }
 .board-celula-btn:hover { background: rgba(255, 255, 255, 0.30); }
 .board-celula-btn i { width: 14px; height: 14px; }
+.board-celula-resize {
+    position: absolute;
+    right: -2px;
+    bottom: -2px;
+    width: 14px;
+    height: 14px;
+    cursor: nwse-resize;
+    border-right: 3px solid var(--board-accent);
+    border-bottom: 3px solid var(--board-accent);
+    border-bottom-right-radius: 6px;
+}
 /* Minimizada: o celulaHTML não emite height inline → a CSS assume (só a faixa). */
 .board-celula.is-minimizada { height: 40px; }
 /* Membros de um núcleo minimizado: somem do tabuleiro. */

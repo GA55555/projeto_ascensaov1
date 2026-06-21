@@ -2857,6 +2857,7 @@ window.adicionarEntidadeBoard = function(nodeId) {
 // Núcleos vivem em entidade_nucleos (nucleosCache.entidade), NÃO em world_nodes.
 // Um node sabe seu núcleo por world_nodes.nucleo_id (vem no boardNodesCache).
 const CELULA_HEADER_H = 40, CELULA_PAD = 16, MEMBRO_W = 180, MEMBRO_H = 64, MEMBRO_GAP = 12;
+const CELULA_MIN_W = 220, CELULA_MIN_H = 140; // resize: cabe pelo menos 1 card + paddings
 
 window.abrirSeletorNucleoBoard = async function() {
     if (!boardAtualId) return mostrarToast('Abra ou crie um tabuleiro primeiro.', 'aviso');
@@ -2916,17 +2917,27 @@ function membrosDaCelula(nucleoId) {
     });
 }
 
-// Grade simples dos membros DENTRO da célula (abaixo do cabeçalho). Cresce a altura
-// para caber todas as linhas; nunca encolhe abaixo do tamanho pedido.
-function organizarMembrosNaCelula(c) {
+// Nº de colunas que cabem na largura atual da célula.
+function colsDaCelula(c) {
+    return Math.max(1, Math.floor((c.w - CELULA_PAD * 2 + MEMBRO_GAP) / (MEMBRO_W + MEMBRO_GAP)));
+}
+// Posiciona os membros numa grade dentro da célula (largura atual). SÓ posiciona — não
+// mexe na altura (usado no resize ao vivo). Devolve a lista de membros (na ordem da grade).
+function reflowMembrosCelula(c) {
     const membros = membrosDaCelula(c.nucleo_id);
-    if (!membros.length) return;
-    const cols = Math.max(1, Math.floor((c.w - CELULA_PAD * 2 + MEMBRO_GAP) / (MEMBRO_W + MEMBRO_GAP)));
+    const cols = colsDaCelula(c);
     membros.forEach((n, i) => {
         n.x = Math.round(c.x + CELULA_PAD + (i % cols) * (MEMBRO_W + MEMBRO_GAP));
         n.y = Math.round(c.y + CELULA_HEADER_H + CELULA_PAD + Math.floor(i / cols) * (MEMBRO_H + MEMBRO_GAP));
     });
-    const linhas = Math.ceil(membros.length / cols);
+    return membros;
+}
+// Importação / "Reorganizar": reflow + cresce a altura p/ caber todas as linhas
+// (nunca encolhe abaixo do tamanho pedido).
+function organizarMembrosNaCelula(c) {
+    const membros = reflowMembrosCelula(c);
+    if (!membros.length) return;
+    const linhas = Math.ceil(membros.length / colsDaCelula(c));
     c.h = Math.max(c.h, CELULA_HEADER_H + CELULA_PAD * 2 + linhas * MEMBRO_H + (linhas - 1) * MEMBRO_GAP);
 }
 
@@ -2945,6 +2956,7 @@ function celulaHTML(c) {
             <button type="button" class="board-celula-btn" title="${c.minimizada ? 'Expandir' : 'Minimizar'}" onclick="toggleMinimizarCelula('${cid}')"><i data-lucide="${c.minimizada ? 'plus' : 'minus'}"></i></button>
             <button type="button" class="board-celula-btn" title="Opções do núcleo" onclick="abrirEditorCelula('${cid}', event)"><i data-lucide="settings"></i></button>
         </div>
+        ${c.minimizada ? '' : '<span class="board-celula-resize" title="Redimensionar"></span>'}
     </div>`;
 }
 
@@ -3027,7 +3039,7 @@ function ativarArrastoCelulas() {
         if (!c) return;
         el.onpointerdown = (e) => {
             if (e.button !== 0) return;
-            if (e.target.closest('.board-celula-btn')) return;   // botões não arrastam (deixa o onclick passar)
+            if (e.target.closest('.board-celula-btn, .board-celula-resize')) return; // botões/handle não arrastam
             e.stopPropagation();                                  // não inicia o Pan do canvas
             const z = boardState.camera.zoom || 1;
             const sx = e.clientX, sy = e.clientY, ox = c.x, oy = c.y;
@@ -3054,6 +3066,29 @@ function ativarArrastoCelulas() {
             };
             el.addEventListener('pointermove', mv);
             el.addEventListener('pointerup', up);
+        };
+        // Resize pelo canto: muda w/h e RE-FLUI a grade dos membros ao vivo conforme a
+        // nova largura (só posiciona; a altura é manual aqui). Leve: aritmética + writes.
+        const handle = el.querySelector('.board-celula-resize');
+        if (handle) handle.onpointerdown = (e) => {
+            if (e.button !== 0) return;
+            e.stopPropagation();
+            const z = boardState.camera.zoom || 1;
+            const sx = e.clientX, sy = e.clientY, ow = c.w, oh = c.h;
+            handle.setPointerCapture(e.pointerId);
+            const mv = (ev) => {
+                c.w = Math.max(CELULA_MIN_W, Math.round(ow + (ev.clientX - sx) / z));
+                c.h = Math.max(CELULA_MIN_H, Math.round(oh + (ev.clientY - sy) / z));
+                el.style.width = c.w + 'px'; el.style.height = c.h + 'px';
+                reflowMembrosCelula(c).forEach(n => {
+                    const cd = cardEls[String(n.id)];
+                    if (cd) { cd.style.left = n.x + 'px'; cd.style.top = n.y + 'px'; }
+                });
+                desenharLinhasBoard();
+            };
+            const up = () => { handle.removeEventListener('pointermove', mv); handle.removeEventListener('pointerup', up); };
+            handle.addEventListener('pointermove', mv);
+            handle.addEventListener('pointerup', up);
         };
     });
 }
