@@ -1175,6 +1175,37 @@ label {
 .modal-vinculo-lista { max-height: 150px; overflow-y: auto; border: 1px solid var(--borda); padding: 8px; border-radius: 4px; }
 .modal-linha { display: flex; gap: 10px; }
 .modal-linha input[type="text"] { flex: 1; }
+
+/* ── DIPLOMACIA (FASE 14): modal agrupado por status ── */
+.modal-diplomacia-form select { flex: 1; min-width: 0; }
+.diplomacia-grupo { margin-bottom: 12px; }
+.diplomacia-grupo--aliado  { --cor-status: var(--link-aliado); }
+.diplomacia-grupo--inimigo { --cor-status: var(--link-inimigo); }
+.diplomacia-grupo--neutro  { --cor-status: var(--texto-mutado); }
+.diplomacia-grupo-titulo {
+    font-size: 11px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--cor-status, var(--texto-mutado));
+    border-left: 3px solid var(--cor-status, var(--texto-mutado));
+    padding-left: 8px;
+    margin-bottom: 6px;
+}
+.diplomacia-linha {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 8px;
+    margin-bottom: 4px;
+    background: var(--bg-afundado);
+    border-radius: 4px;
+}
+.diplomacia-par { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 13px; color: var(--texto-claro); }
+.diplomacia-par i { width: 14px; height: 14px; flex-shrink: 0; color: var(--cor-status, var(--texto-mutado)); }
+.diplomacia-remover { flex-shrink: 0; }
+.diplomacia-remover:hover { color: var(--erro); }
 .select-multi { height: 100px; margin-bottom: 10px; }
 .modal-detalhes { margin-top: 15px; }
 .modal-detalhes > summary { cursor: pointer; color: var(--roxo-mago); }
@@ -2643,6 +2674,9 @@ input[type="radio"] {
 .board-line { fill: none; stroke-width: 2.5; pointer-events: none; opacity: 0.25; transition: opacity 0.2s ease, stroke-width 0.2s ease; }
 .board-line.linha-destaque { opacity: 1; stroke-width: 3.5; }
 .board-line-hit { fill: none; stroke: transparent; stroke-width: 14; pointer-events: stroke; cursor: pointer; }
+/* Diplomacia (Fase 14): macro-link entre Células. Visível por padrão (sem hover de card
+   que a acenda), traço médio + halo na cor do status (color = stroke, via inline). Read-only. */
+.board-line-diplomacia { stroke-width: 3; opacity: 0.85; filter: drop-shadow(0 0 2.5px currentColor); }
 .board-linhas-ocultas .board-svg { display: none; }
 
 /* Popover de edição (linha ou nó) — ancorado ao canvas (fora do transform). */

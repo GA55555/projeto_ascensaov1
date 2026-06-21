@@ -15,7 +15,8 @@ const {
     criarSessaoSchema, editarSessaoSchema,
     atualizarNucleoNodeSchema,
     listarLinksSchema, criarLinkSchema, deletarLinkSchema, atualizarLinkSchema,
-    criarBoardSchema, atualizarBoardSchema, boardIdParamsSchema
+    criarBoardSchema, atualizarBoardSchema, boardIdParamsSchema,
+    salvarDiplomaciaSchema
 } = require('../validators/mundoValidator');
 
 // Middleware apenas narrador
@@ -101,5 +102,11 @@ router.get('/boards/:boardId', verificarToken, checarAcessoCronica, validate(boa
 router.post('/boards', verificarToken, checarAcessoCronica, apenasNarrador, validate(criarBoardSchema), MundoController.criarBoard);
 router.put('/boards/:boardId', verificarToken, checarAcessoCronica, apenasNarrador, validate(atualizarBoardSchema), MundoController.atualizarBoard);
 router.delete('/boards/:boardId', verificarToken, checarAcessoCronica, apenasNarrador, validate(boardIdParamsSchema), MundoController.deletarBoard);
+
+// ============================================
+// DIPLOMACIA (FASE 14) — nucleo_diplomacia (relações núcleo↔núcleo, global por crônica)
+// ============================================
+router.get('/diplomacia', verificarToken, checarAcessoCronica, MundoController.listarDiplomacia);
+router.put('/diplomacia', verificarToken, checarAcessoCronica, apenasNarrador, validate(salvarDiplomaciaSchema), MundoController.salvarDiplomacia);
 
 module.exports = router;

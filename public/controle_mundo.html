@@ -41,6 +41,7 @@
             </select>
             <input type="text" id="busca-mundo" placeholder="Filtrar por nome..." oninput="aplicarFiltrosMundo()" class="input-busca">
             <button class="btn btn-primary btn-sm" onclick="gerenciarNucleos('entidade')"><i data-lucide="settings"></i> Núcleos</button>
+            <button class="btn btn-primary btn-sm" onclick="abrirModalDiplomacia()"><i data-lucide="handshake"></i> Diplomacia</button>
             <button class="btn btn-primary" onclick="abrirModal('modal-forja')">+ Forjar Entidade</button>
         </div>
     </div>
@@ -222,6 +223,27 @@
             </div>
             <div class="modal-acoes">
                 <button class="btn btn-outline" onclick="fecharModal('modal-nucleos')">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Diplomacia (Fase 14): relações núcleo↔núcleo. Fonte da verdade; o board reflete. -->
+    <div id="modal-diplomacia" class="modal">
+        <div class="modal-box modal-box-md">
+            <h3 class="texto-destaque"><i data-lucide="handshake"></i> Diplomacia entre Núcleos</h3>
+            <div id="lista-diplomacia" class="modal-lista"></div>
+            <div class="modal-linha modal-diplomacia-form">
+                <select id="dip-nucleo-a" title="Núcleo A"></select>
+                <select id="dip-status" title="Status">
+                    <option value="aliado">Aliados</option>
+                    <option value="inimigo">Inimigos</option>
+                    <option value="neutro">Neutros</option>
+                </select>
+                <select id="dip-nucleo-b" title="Núcleo B"></select>
+                <button class="btn btn-primary btn-sm" onclick="adicionarDiplomacia()"><i data-lucide="plus"></i> Adicionar</button>
+            </div>
+            <div class="modal-acoes">
+                <button class="btn btn-outline" onclick="fecharModal('modal-diplomacia')">Fechar</button>
             </div>
         </div>
     </div>

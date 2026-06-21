@@ -794,3 +794,65 @@ exports.deletarBoard = async (req, res) => {
         res.status(500).json({ erro: 'Erro ao remover o tabuleiro.' });
     }
 };
+
+// ============================================
+// DIPLOMACIA (FASE 14) — nucleo_diplomacia (relações núcleo↔núcleo, escopo crônica)
+// Contrato do front: { id, nucleoA, nucleoB, status }.
+// ============================================
+const mapDip = (x) => ({ id: x.id, nucleoA: x.nucleo_a_id, nucleoB: x.nucleo_b_id, status: x.status });
+
+exports.listarDiplomacia = async (req, res) => {
+    const { cronicaId } = req.params;
+    try {
+        const r = await pool.query(
+            `SELECT id, nucleo_a_id, nucleo_b_id, status FROM nucleo_diplomacia WHERE cronica_id = $1`,
+            [cronicaId]
+        );
+        res.json(r.rows.map(mapDip));
+    } catch (err) {
+        console.error('Erro ao listar diplomacia:', err);
+        res.status(500).json({ erro: 'Erro ao listar diplomacia.' });
+    }
+};
+
+// Substitui o conjunto inteiro de relações da crônica (bulk replace), em transação.
+exports.salvarDiplomacia = async (req, res) => {
+    const { cronicaId } = req.params;
+    const relacoes = req.body.relacoes || [];
+    const client = await pool.connect();
+    try {
+        // Anti-IDOR (Regra 3.3.1): todos os núcleos citados DEVEM pertencer a esta crônica.
+        const idsCitados = [...new Set(relacoes.flatMap(r => [r.nucleoA, r.nucleoB]))];
+        if (idsCitados.length) {
+            const val = await client.query(
+                `SELECT id FROM entidade_nucleos WHERE cronica_id = $1 AND id = ANY($2::uuid[])`,
+                [cronicaId, idsCitados]
+            );
+            const validos = new Set(val.rows.map(x => String(x.id)));
+            if (idsCitados.some(id => !validos.has(String(id)))) {
+                return res.status(404).json({ erro: 'Núcleo inválido para esta crônica.' });
+            }
+        }
+        await client.query('BEGIN');
+        await client.query('DELETE FROM nucleo_diplomacia WHERE cronica_id = $1', [cronicaId]);
+        for (const r of relacoes) {
+            await client.query(
+                `INSERT INTO nucleo_diplomacia (cronica_id, nucleo_a_id, nucleo_b_id, status)
+                 VALUES ($1, $2, $3, $4)`,
+                [cronicaId, r.nucleoA, r.nucleoB, r.status]
+            );
+        }
+        await client.query('COMMIT');
+        const out = await client.query(
+            `SELECT id, nucleo_a_id, nucleo_b_id, status FROM nucleo_diplomacia WHERE cronica_id = $1`,
+            [cronicaId]
+        );
+        res.json(out.rows.map(mapDip));
+    } catch (err) {
+        await client.query('ROLLBACK').catch(() => {});
+        console.error('Erro ao salvar diplomacia:', err);
+        res.status(500).json({ erro: 'Erro ao salvar diplomacia.' });
+    } finally {
+        client.release();
+    }
+};
