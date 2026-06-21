@@ -150,6 +150,9 @@ const dadosBoardSchema = z.object({
         y: z.number().finite().default(0),
         zoom: z.number().finite().min(0.2).max(4).default(1)
     }).default({ x: 0, y: 0, zoom: 1 }),
+    // Plano de fundo da mesa (anti-Moiré aplicado no cliente). Opcional p/ migração
+    // graciosa de boards antigos sem a chave (o cliente assume 'dots' por defeito).
+    fundo: z.enum(['dots', 'grid', 'none']).optional(),
     nodes: z.array(z.object({
         id: z.string().uuid(),
         x: z.number().finite(),

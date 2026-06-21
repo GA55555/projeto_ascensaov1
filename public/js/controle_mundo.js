@@ -2528,7 +2528,7 @@ const ICONES_RPG = [
     'backpack', 'lockpicks', 'id-card', 'dice-six-faces-six', 'dice-twenty-faces-twenty',
     'perspective-dice-six-faces-random', 'gears', 'cogsplosion', 'clout', 'laptop', 'smartphone'
 ];
-const boardVazio = () => ({ camera: { x: 0, y: 0, zoom: 1 }, nodes: [], shapes: [], texts: [], props: [], localLinks: [], overrides_linhas: {} });
+const boardVazio = () => ({ camera: { x: 0, y: 0, zoom: 1 }, fundo: 'dots', nodes: [], shapes: [], texts: [], props: [], localLinks: [], overrides_linhas: {} });
 let boardAtualId = null;
 let boardNomeAtual = '';
 let boardState = boardVazio();
@@ -2582,6 +2582,7 @@ window.abrirBoard = async function(boardId) {
     const d = resp.dados || {};
     boardState = {
         camera: d.camera || { x: 0, y: 0, zoom: 1 },
+        fundo: d.fundo || 'dots',
         nodes: Array.isArray(d.nodes) ? d.nodes : [],
         shapes: Array.isArray(d.shapes) ? d.shapes : [],
         texts: Array.isArray(d.texts) ? d.texts : [],
@@ -2593,6 +2594,7 @@ window.abrirBoard = async function(boardId) {
         mostrarToast('Aviso: Entidades ausentes foram removidas do tabuleiro.', 'aviso');
     }
     const sel = document.getElementById('board-select'); if (sel) sel.value = boardAtualId;
+    const selFundo = document.getElementById('board-fundo-select'); if (selFundo) selFundo.value = boardState.fundo;
     renderBoard();
     atualizarLinksBoard(); // busca os world_links reais entre os nós e desenha as linhas
 };
@@ -2638,7 +2640,6 @@ function renderBoard() {
                 <span class="board-card-nome">${escapeHTML(info.nome)}</span>
                 <span class="board-card-tipo">${escapeHTML(info.tipo)}</span>
             </span>
-            <i data-lucide="x" class="board-card-remover" title="Remover do tabuleiro"></i>
         </div>`;
     }).join('');
     const shapes = boardState.shapes.map(shapeHTML).join(''); // zonas (z-index 1, sob os cards)
@@ -2660,13 +2661,26 @@ function aplicarCamera() {
     if (!world) return;
     const c = boardState.camera;
     world.style.transform = `translate(${c.x}px, ${c.y}px) scale(${c.zoom})`;
-    // Fundo pontilhado no viewport estático segue a câmera (parallax 1:1, infinito).
+    // Fundo no viewport estático segue a câmera (parallax 1:1, infinito). O tipo
+    // (pontilhado/grade/liso) é escolhido pelo Narrador; o background-image/-size são
+    // aplicados aqui (o .board-canvas já não os declara estaticamente).
     const canvas = elBoardCanvas();
-    if (canvas) {
-        const passo = 20 * c.zoom;
+    if (!canvas) return;
+    const tipo = boardState.fundo || 'dots';
+    let passo = (tipo === 'grid' ? 32 : 24) * c.zoom;
+    // Anti-Moiré: duplica o passo até ele sair da faixa de "chiado" (pontos colidindo).
+    while (passo > 0 && passo < 14) passo *= 2;
+
+    if (tipo === 'none') {
+        canvas.style.backgroundImage = 'none';
+    } else if (tipo === 'grid') {
+        canvas.style.backgroundImage = 'linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)';
         canvas.style.backgroundSize = `${passo}px ${passo}px`;
-        canvas.style.backgroundPosition = `${c.x}px ${c.y}px`;
+    } else {
+        canvas.style.backgroundImage = 'radial-gradient(circle, rgba(255,255,255,0.12) 1.5px, transparent 1.5px)';
+        canvas.style.backgroundSize = `${passo}px ${passo}px`;
     }
+    canvas.style.backgroundPosition = `${c.x}px ${c.y}px`;
 }
 
 // Arrasto dos cards (coordenadas de mundo = delta de tela / zoom). Atualiza
@@ -2676,7 +2690,7 @@ function ativarArrastoCards() {
     if (!world) return;
     world.querySelectorAll('.board-card').forEach(card => {
         card.onpointerdown = (e) => {
-            if (e.button !== 0 || e.target.closest('.board-card-remover')) return;
+            if (e.button !== 0) return;
             e.stopPropagation(); // não inicia o Pan do canvas
             const node = boardState.nodes.find(n => String(n.id) === String(card.dataset.node));
             if (!node) return;
@@ -2703,8 +2717,6 @@ function ativarArrastoCards() {
         // Dimming seletivo: ao passar o cursor, realça só as linhas ligadas a este card.
         card.onmouseenter = () => { hoveredNodeId = card.dataset.node; destacarLinhasDe(hoveredNodeId, true); };
         card.onmouseleave = () => { hoveredNodeId = null; destacarLinhasDe(card.dataset.node, false); };
-        const rem = card.querySelector('.board-card-remover');
-        if (rem) rem.onclick = (e) => { e.stopPropagation(); removerNodeBoard(card.dataset.node); };
     });
 }
 
@@ -2731,7 +2743,12 @@ window.toggleLinhasBoard = function(btn) {
     lucide.createIcons({ elements: btn.querySelectorAll('[data-lucide]') });
 };
 
+// Plano de fundo da mesa (pontilhado/grade/liso). Muta boardState.fundo e repinta o
+// canvas via aplicarCamera (que aplica o passo anti-Moiré). Persiste só no Salvar (Regra 2.7).
+window.mudarFundoBoard = function(v) { boardState.fundo = v; aplicarCamera(); };
+
 window.removerNodeBoard = function(nodeId) {
+    fecharPopover(); // evita popover órfão quando a exclusão vem do editor
     boardState.nodes = boardState.nodes.filter(n => String(n.id) !== String(nodeId));
     renderBoard();
     atualizarLinksBoard();
@@ -2857,7 +2874,6 @@ function shapeHTML(s) {
     return `<div class="board-shape board-cor-${cor}${formaClasse}${strokeClasse}" data-shape="${escapeHTML(String(s.id))}" style="left: ${Math.round(s.x)}px; top: ${Math.round(s.y)}px; width: ${Math.round(s.w)}px; height: ${Math.round(s.h)}px;">
         ${triSvg}
         <span class="board-shape-label" title="Duplo-clique edita; corpo abre opções">${escapeHTML(s.label || 'Zona')}</span>
-        <i data-lucide="x" class="board-shape-remover" title="Remover zona"></i>
         <span class="board-shape-resize" title="Redimensionar"></span>
     </div>`;
 }
@@ -2887,7 +2903,6 @@ function propHTML(p) {
     const rot = Math.min(360, Math.max(0, p.rotacao || 0));
     return `<div class="board-prop${corClasse}" data-prop="${escapeHTML(String(p.id))}" style="left: ${Math.round(p.x)}px; top: ${Math.round(p.y)}px; transform: scale(${scale}) rotate(${rot}deg);">
         <span class="board-prop-icone" style="-webkit-mask-image: url('${url}'); mask-image: url('${url}');"></span>
-        <i data-lucide="x" class="board-prop-remover" title="Remover símbolo"></i>
     </div>`;
 }
 
@@ -2904,6 +2919,7 @@ window.adicionarZona = function() {
 };
 
 window.removerShapeBoard = function(shapeId) {
+    fecharPopover(); // evita popover órfão quando a exclusão vem do editor
     boardState.shapes = boardState.shapes.filter(s => String(s.id) !== String(shapeId));
     removerLocalLinksDe(shapeId); // limpa ligações órfãs
     renderBoard();
@@ -2946,6 +2962,7 @@ window.abrirEditorShape = function(shapeId, e) {
         <div class="board-popover-acoes">
             <button class="btn btn-ghost btn-sm" onclick="renomearZona('${sid}')"><i data-lucide="pencil"></i> Renomear</button>
             <button class="btn btn-secondary btn-sm" onclick="iniciarConexaoLocal('${sid}')"><i data-lucide="spline"></i> Conectar</button>
+            <button class="btn btn-ghost btn-sm" onclick="removerShapeBoard('${sid}')"><i data-lucide="trash-2"></i> Excluir</button>
         </div>`);
     elBoardCanvas().appendChild(pop);
     lucide.createIcons();
@@ -2979,7 +2996,7 @@ function ativarInteracoesShapes() {
         shape.onpointerdown = (e) => {
             if (e.button !== 0) return;
             if (conectandoDe) { e.stopPropagation(); finalizarConexaoLocal(s.id); return; } // fecha ligação
-            if (e.target.closest('.board-shape-remover, .board-shape-resize, .board-shape-label')) { e.stopPropagation(); return; }
+            if (e.target.closest('.board-shape-resize, .board-shape-label')) { e.stopPropagation(); return; }
             e.stopPropagation();
             const z = boardState.camera.zoom || 1;
             const sx = e.clientX, sy = e.clientY, ox = s.x, oy = s.y;
@@ -3010,13 +3027,11 @@ function ativarInteracoesShapes() {
             handle.addEventListener('pointermove', onMove);
             handle.addEventListener('pointerup', onUp);
         };
-        const rem = shape.querySelector('.board-shape-remover');
-        if (rem) rem.onclick = (e) => { e.stopPropagation(); removerShapeBoard(s.id); };
         const label = shape.querySelector('.board-shape-label');
         if (label) label.ondblclick = (e) => { e.stopPropagation(); renomearZona(s.id); };
         // Duplo-clique no corpo da zona → editor de cor (o label trata o seu próprio dblclick).
         shape.ondblclick = (e) => {
-            if (e.target.closest('.board-shape-label, .board-shape-remover, .board-shape-resize')) return;
+            if (e.target.closest('.board-shape-label, .board-shape-resize')) return;
             e.stopPropagation();
             abrirEditorShape(s.id, e);
         };
@@ -3037,7 +3052,7 @@ function centroMundo() {
 // de arrastar — num único handler (mesmo padrão dos shapes; evita drag+conexão duplos).
 function arrastarPorPonteiro(el, obj, onDrag, conectavel) {
     el.onpointerdown = (e) => {
-        if (e.button !== 0 || e.target.closest('.board-prop-remover')) return;
+        if (e.button !== 0) return;
         if (conectandoDe) { e.stopPropagation(); if (conectavel) finalizarConexaoLocal(obj.id); return; }
         e.stopPropagation();
         const z = boardState.camera.zoom || 1;
@@ -3177,8 +3192,6 @@ function ativarInteracoesProps() {
         if (!p) return;
         arrastarPorPonteiro(el, p, desenharLinhasBoard, true); // arrasta; em modo conexão, conecta
         el.ondblclick = (e) => { e.stopPropagation(); abrirEditorProp(p.id, e); };
-        const rem = el.querySelector('.board-prop-remover');
-        if (rem) rem.onclick = (e) => { e.stopPropagation(); removerPropBoard(p.id); };
     });
 }
 // Editor do prop: tamanho (slider) + rotação (slider) + cor (token).
@@ -3514,6 +3527,7 @@ function abrirEditorNode(card, e) {
             <button class="btn btn-secondary btn-sm" onclick="puxarConectadosBoard('${escapeHTML(String(editorNodeId))}')"><i data-lucide="network"></i> Puxar Conectados</button>
         </div>
         <div class="board-popover-acoes">
+            <button class="btn btn-ghost btn-sm" onclick="removerNodeBoard('${escapeHTML(String(editorNodeId))}')"><i data-lucide="trash-2"></i> Excluir</button>
             <button class="btn btn-ghost btn-sm" onclick="resetNodeVisual()">Padrão</button>
             <button class="btn btn-primary btn-sm" onclick="salvarEditorNode()"><i data-lucide="check"></i> Salvar</button>
         </div>`);

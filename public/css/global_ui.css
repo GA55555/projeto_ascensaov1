@@ -2276,8 +2276,8 @@ input[type="radio"] {
     width: 100%;
     height: 600px;
     background-color: var(--bg-principal);
-    background-image: radial-gradient(circle, var(--borda) 1px, transparent 1px);
-    background-size: 20px 20px;
+    /* O padrão de fundo (pontilhado/grade/liso) e o background-size são aplicados
+       dinamicamente por aplicarCamera() em controle_mundo.js (segue a câmera + anti-Moiré). */
     border: 1px solid var(--borda);
     border-radius: 8px;
     cursor: grab;
@@ -2318,18 +2318,6 @@ input[type="radio"] {
     letter-spacing: 0.06em;
     color: var(--texto-mutado);
 }
-.board-card-remover {
-    width: 14px;
-    height: 14px;
-    flex-shrink: 0;
-    cursor: pointer;
-    color: var(--texto-mutado);
-    opacity: 0;
-    transition: var(--transicao-suave);
-}
-.board-card:hover .board-card-remover { opacity: 1; }
-.board-card-remover:hover { color: var(--erro); }
-
 /* Cores como tokens → variáveis CSS (Regra 2.5, nunca hex direto). */
 .board-cor-roxo     { --board-accent: var(--roxo-mago); }
 .board-cor-azul     { --board-accent: var(--azul-vida); }
@@ -2367,20 +2355,6 @@ input[type="radio"] {
     text-overflow: ellipsis;
     cursor: text;
 }
-.board-shape-remover {
-    position: absolute;
-    top: -10px;
-    right: 8px;
-    width: 14px;
-    height: 14px;
-    background: var(--bg-principal);
-    color: var(--texto-mutado);
-    cursor: pointer;
-    opacity: 0;
-    transition: var(--transicao-suave);
-}
-.board-shape:hover .board-shape-remover { opacity: 1; }
-.board-shape-remover:hover { color: var(--erro); }
 .board-shape-resize {
     position: absolute;
     right: -2px;
@@ -2565,22 +2539,6 @@ input[type="radio"] {
     mask-position: center;
     pointer-events: none;
 }
-.board-prop-remover {
-    position: absolute;
-    top: -8px;
-    right: -8px;
-    width: 14px;
-    height: 14px;
-    color: var(--texto-mutado);
-    background: var(--bg-principal);
-    border-radius: 4px;
-    cursor: pointer;
-    opacity: 0;
-    transition: var(--transicao-suave);
-}
-.board-prop:hover .board-prop-remover { opacity: 1; }
-.board-prop-remover:hover { color: var(--erro); }
-
 /* Rótulo de linha (SVG <text>) no ponto médio — world e local. */
 .board-line-label {
     fill: var(--texto-claro);
