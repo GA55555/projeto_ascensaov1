@@ -3044,6 +3044,14 @@ input[type="radio"] {
 .modo-constelacao .board-celula-icone,
 .modo-constelacao .board-celula-btn { display: none !important; }
 .modo-constelacao .board-celula-nome { white-space: normal; font-size: 14px; }
+/* Lente puramente política: some tudo que não é núcleo nem diplomacia.
+   (.board-card inclui entidades soltas — os membros já somem ao minimizar.) */
+.modo-constelacao .board-shape,
+.modo-constelacao .board-text,
+.modo-constelacao .board-prop,
+.modo-constelacao .board-card { display: none !important; }
+.modo-constelacao .board-line:not(.board-line-diplomacia) { display: none !important; }
+.modo-constelacao .board-line-hit { display: none !important; }
 
 /* Coerência 16-bit: bordas retas + numerais pixelados. */
 .tema-pixel-16bit .board-toolbar,

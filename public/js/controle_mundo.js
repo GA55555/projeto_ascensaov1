@@ -3180,8 +3180,8 @@ const FIS_REP_FORCA   = 4000;  // intensidade da repulsão (inverse-linear: forc
 const FIS_MOLA        = 0.015; // rigidez da mola (neutro/inimigo)
 const FIS_MOLA_ALIADO = 0.03;  // aliados puxam mais (distância menor)
 const FIS_GRAV        = 0.01;  // gravidade ao centro (anti-fuga)
-const FIS_ATRITO      = 0.90;  // amortecimento menor → mais fluido (desliza mais)
-const FIS_VMAX        = 30;    // teto de velocidade (estabilidade)
+const FIS_ATRITO      = 0.82;  // amortecimento (anti-jitter: perde mais energia/frame)
+const FIS_VMAX        = 18;    // teto de velocidade por frame (anti-jitter rígido)
 const FIS_PARADA      = 0.4;   // energia média/célula p/ assentar e parar o rAF
 
 window.toggleConstelacao = function() {
@@ -3254,7 +3254,7 @@ function tickFisica() {
             const dx = b.x - a.x, dy = b.y - a.y;
             const dist = Math.max(1, Math.hypot(dx, dy));
             if (dist >= FIS_REP_DIST) continue;
-            const f = FIS_REP_FORCA / Math.max(dist, 10); // inverse-linear → repulsão forte e de longo alcance
+            const f = FIS_REP_FORCA / Math.max(dist, 40); // soft-clamp: piso 40 evita pico de força (jitter) a curta distância
             const ux = dx / dist, uy = dy / dist;
             F[a.id].x -= ux * f; F[a.id].y -= uy * f;
             F[b.id].x += ux * f; F[b.id].y += uy * f;
