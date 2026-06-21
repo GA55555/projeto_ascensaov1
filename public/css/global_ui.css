@@ -953,6 +953,15 @@ label {
 .modal-label-forte { font-weight: bold; margin-top: 14px; }
 /* Caixa de campos dinâmicos da automação (display:none = estado inicial; o JS faz o toggle inline). */
 .modal-automacao-campos { margin-top: 15px; padding: 15px; background: var(--bg-afundado); border: 1px dashed var(--borda); border-radius: 4px; display: none; }
+/* Corpo do modal de Sinapses (de-inline do template JS, Regra 2.5). */
+.campo-label { font-size: 12px; color: var(--texto-mutado); display: block; margin-bottom: 4px; }
+.input-full { width: 100%; }
+.sinapse-lista { flex: 1; overflow-y: auto; min-height: 60px; margin-bottom: 16px; display: flex; flex-wrap: wrap; align-content: flex-start; }
+.sinapse-lista .info-block-vazio { width: 100%; }
+.sinapse-form { border-top: 1px solid var(--borda); padding-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; }
+.sinapse-col-ent { flex: 1; min-width: 150px; }
+.sinapse-col-tipo { min-width: 120px; }
+.sinapse-col-max { width: 72px; }
 
 /* Editor de fichas: proporção próxima a uma folha A4, sem esticar infinitamente.
    (Movido do <style> inline de index.html para centralizar — Regra 2.5.) */
@@ -2614,6 +2623,7 @@ input[type="radio"] {
    injetados via JS (sinapses/contrato/mapa). Generalizado de .board-modal-* (Regra 2.5, DRY). */
 .modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
 .modal-titulo { margin: 0; display: flex; align-items: center; gap: 8px; }
+.modal-head-botoes { display: flex; gap: 6px; }
 .board-simbolo-grid {
     flex: 1;
     overflow-y: auto;

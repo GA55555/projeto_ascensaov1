@@ -828,33 +828,33 @@ window.abrirModalSinapses = async function(nodeId) {
         <div class="modal-box modal-sinapses-box">
             <div class="modal-head">
                 <h3 class="texto-roxo modal-titulo"><i data-lucide="share-2"></i> Conexões — ${escapeHTML(nomeNo)}</h3>
-                <div style="display: flex; gap: 6px;">
+                <div class="modal-head-botoes">
                     <button class="btn btn-secondary btn-sm" data-id="${escapeHTML(String(nodeId))}" onclick="abrirMapaSinapses(this.dataset.id)" title="Ver Mapa de Sinapses"><i data-lucide="network"></i> Mapa</button>
                     <button class="btn btn-ghost btn-sm" onclick="fecharModalSinapses()" title="Fechar"><i data-lucide="x"></i></button>
                 </div>
             </div>
 
-            <div id="sinapses-lista" style="flex: 1; overflow-y: auto; min-height: 60px; margin-bottom: 16px; display: flex; flex-wrap: wrap; align-content: flex-start;">
-                <div class="info-block-vazio" style="width: 100%;"><span class="spinner"></span> A carregar conexões...</div>
+            <div id="sinapses-lista" class="sinapse-lista">
+                <div class="info-block-vazio"><span class="spinner"></span> A carregar conexões...</div>
             </div>
 
-            <div style="border-top: 1px solid var(--borda); padding-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end;">
-                <div style="flex: 1; min-width: 150px;">
-                    <label style="font-size: 12px; color: var(--texto-mutado); display: block; margin-bottom: 4px;">Entidade</label>
-                    <select id="sinapse-destino" class="input-sm" style="width: 100%;"></select>
+            <div class="sinapse-form">
+                <div class="sinapse-col-ent">
+                    <label class="campo-label">Entidade</label>
+                    <select id="sinapse-destino" class="input-sm input-full"></select>
                 </div>
-                <div style="min-width: 120px;">
-                    <label style="font-size: 12px; color: var(--texto-mutado); display: block; margin-bottom: 4px;">Tipo</label>
-                    <select id="sinapse-tipo" class="input-sm" style="width: 100%;">
+                <div class="sinapse-col-tipo">
+                    <label class="campo-label">Tipo</label>
+                    <select id="sinapse-tipo" class="input-sm input-full">
                         <option value="associado">Associado</option>
                         <option value="aliado">Aliado</option>
                         <option value="inimigo">Inimigo</option>
                         <option value="localizacao">Localização</option>
                     </select>
                 </div>
-                <div style="width: 72px;">
-                    <label style="font-size: 12px; color: var(--texto-mutado); display: block; margin-bottom: 4px;" title="Máximo de pressão (limite do termômetro)">Máx.</label>
-                    <input type="number" id="sinapse-limite" class="input-sm" min="1" max="20" value="3" style="width: 100%;">
+                <div class="sinapse-col-max">
+                    <label class="campo-label" title="Máximo de pressão (limite do termômetro)">Máx.</label>
+                    <input type="number" id="sinapse-limite" class="input-sm input-full" min="1" max="20" value="3">
                 </div>
                 <button class="btn btn-primary btn-sm" data-id="${escapeHTML(String(nodeId))}" onclick="conectarSinapse(this.dataset.id)"><i data-lucide="link"></i> Conectar</button>
             </div>
@@ -880,7 +880,7 @@ async function recarregarSinapses(nodeId) {
     try {
         links = await MundoApi.listarLinks(cronicaId, nodeId);
     } catch (e) {
-        cont.innerHTML = '<div class="info-block-vazio" style="width: 100%;">Erro ao carregar conexões.</div>';
+        cont.innerHTML = '<div class="info-block-vazio">Erro ao carregar conexões.</div>';
         return;
     }
 
@@ -889,7 +889,7 @@ async function recarregarSinapses(nodeId) {
     sinapsesAtuais = links;
 
     if (!links.length) {
-        cont.innerHTML = '<div class="info-block-vazio" style="width: 100%;">Nenhuma conexão ainda.</div>';
+        cont.innerHTML = '<div class="info-block-vazio">Nenhuma conexão ainda.</div>';
     } else {
         cont.innerHTML = links.map(l => {
             const d = l.dados || {};
@@ -1022,7 +1022,7 @@ window.abrirContratoRelacao = function(linkId) {
             </div>
             <p class="contrato-tipo">Tipo: ${escapeHTML(capitalizar(l.tipo_vinculo))}</p>
             <label>Incidentes / Motivos</label>
-            <input type="text" id="contrato-tag-input" class="input-sm" placeholder="Adicionar incidente/motivo... (Enter)" onkeydown="contratoTagKeydown(event)" style="width: 100%;">
+            <input type="text" id="contrato-tag-input" class="input-sm input-full" placeholder="Adicionar incidente/motivo... (Enter)" onkeydown="contratoTagKeydown(event)">
             <div id="contrato-corpo">${corpoContratoHTML()}</div>
         </div>`;
     document.body.appendChild(modal);
