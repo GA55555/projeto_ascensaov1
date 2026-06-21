@@ -8,14 +8,14 @@
     <link rel="stylesheet" href="/css/global_ui.css">
 </head>
 <body>
-    <div style="max-width: 1600px; width: 95%; margin: 40px auto; padding: 20px;">
+    <div class="page-container">
 
         <div class="header">
             <div>
                 <a href="#" id="link-voltar-painel" class="btn btn-outline btn-sm"><i data-lucide="arrow-left"></i> Voltar ao Painel</a>
             <h2 class="texto-roxo"><i data-lucide="settings"></i> Controle de Mundo & Eventos</h2>
         </div>
-        <span id="nome-cronica" style="color: var(--roxo-mago); font-weight: bold;"></span>
+        <span id="nome-cronica" class="cronica-nome"></span>
     </div>
 
     <!-- TABS -->
@@ -29,9 +29,9 @@
 
     <!-- TAB: MUNDO -->
 <div id="tab-mundo" class="tab-content ativa">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap;">
+    <div class="secao-toolbar">
         <h3 class="texto-destaque">Entidades do Mundo</h3>
-        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+        <div class="toolbar-acoes">
             <div class="btn-group view-toggle">
                 <button class="btn btn-sm active" data-view="grid"><i data-lucide="layout-grid"></i> Grelha</button>
                 <button class="btn btn-sm" data-view="cena"><i data-lucide="clapperboard"></i> Direção de Cena</button>
@@ -39,7 +39,7 @@
             <select id="filtro-nucleo-entidade" onchange="aplicarFiltrosMundo()">
                 <option value="">Todos os núcleos</option>
             </select>
-            <input type="text" id="busca-mundo" placeholder="Filtrar por nome..." oninput="aplicarFiltrosMundo()" style="width: 200px;">
+            <input type="text" id="busca-mundo" placeholder="Filtrar por nome..." oninput="aplicarFiltrosMundo()" class="input-busca">
             <button class="btn btn-primary btn-sm" onclick="gerenciarNucleos('entidade')"><i data-lucide="settings"></i> Núcleos</button>
             <button class="btn btn-primary" onclick="abrirModal('modal-forja')">+ Forjar Entidade</button>
         </div>
@@ -52,13 +52,13 @@
 
     <!-- TAB: EVENTOS -->
 <div id="tab-eventos" class="tab-content">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap;">
+    <div class="secao-toolbar">
         <h3 class="texto-destaque">Eventos Programados</h3>
-        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+        <div class="toolbar-acoes">
             <select id="filtro-nucleo-evento" onchange="aplicarFiltrosEventos()">
                 <option value="">Todos os núcleos</option>
             </select>
-            <input type="text" id="busca-eventos" placeholder="Filtrar por nome..." oninput="aplicarFiltrosEventos()" style="width: 200px;">
+            <input type="text" id="busca-eventos" placeholder="Filtrar por nome..." oninput="aplicarFiltrosEventos()" class="input-busca">
             <button class="btn btn-primary btn-sm" onclick="gerenciarNucleos('evento')"><i data-lucide="settings"></i> Núcleos</button>
             <button class="btn btn-primary" onclick="prepararModalEvento()">+ Forjar Evento</button>
         </div>
@@ -68,11 +68,11 @@
     
     <!--TAB: AUTOMACOES-->
     <div id="tab-automacoes" class="tab-content">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap;">
+    <div class="secao-toolbar">
         <h3 class="texto-destaque">Efeito Dominó (Automações)</h3>
         <button class="btn btn-primary" onclick="abrirModalAutomacao()">+ Nova Automação</button>
     </div>
-    <p style="color: var(--texto-mutado); font-size: 13px; margin-bottom: 20px;">
+    <p class="secao-nota">
         As automações são engatilhadas silenciosamente sempre que a tensão (Pool) de um Evento atinge seu limite máximo.
     </p>
     <div id="grid-automacoes" class="grid-2"><div class="info-block-vazio">Carregando motores do destino...</div></div>
@@ -80,10 +80,10 @@
 
     <!--TAB: SESSOES-->
     <div id="tab-sessoes" class="tab-content">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap;">
+    <div class="secao-toolbar">
         <h3 class="texto-destaque">Sessões</h3>
         
-        <div style="display: flex; gap: 10px; align-items: center;">
+        <div class="toolbar-acoes">
             <select id="filtro-nucleo-sessao" onchange="filtrarPorNucleoSessao()">
                 <option value="">Todos os núcleos</option>
             </select>
@@ -92,36 +92,36 @@
         </div>
     </div>
     
-    <div id="grid-sessoes" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; margin-top: 15px;"></div>
+    <div id="grid-sessoes" class="grid-sessoes"></div>
 
     <!-- Container de Leitura da Sessão (Oculto por padrão) -->
-    <div id="sessao-detalhes" class="card" style="display: none; margin-top: 15px; padding: 30px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <div id="sessao-detalhes" class="card sessao-detalhes">
+    <div class="secao-toolbar">
     <button class="btn btn-outline btn-sm" onclick="fecharDetalhesSessao()"><i data-lucide="arrow-left"></i> Voltar ao Índice</button>
     <button class="btn btn-primary btn-sm" id="btn-editar-sessao-detalhe"><i data-lucide="pencil"></i> Editar Sessão</button>
     </div>
 
-    <h2 id="detalhe-titulo" class="texto-destaque" style="margin-top: 0; font-size: 24px;"></h2>
-    <p id="detalhe-meta" class="texto-mutado" style="font-size: 12px; margin-bottom: 20px;"></p>
+    <h2 id="detalhe-titulo" class="texto-destaque detalhe-titulo"></h2>
+    <p id="detalhe-meta" class="texto-mutado detalhe-meta"></p>
 
-    <h4 class="texto-roxo" style="margin-bottom: 12px;"><i data-lucide="scroll"></i> Resumo dos Acontecimentos</h4>
-    <p id="detalhe-resumo" style="white-space: pre-wrap; line-height: 1.6; color: var(--texto-claro); margin-bottom: 30px;"></p>
+    <h4 class="texto-roxo detalhe-secao-titulo"><i data-lucide="scroll"></i> Resumo dos Acontecimentos</h4>
+    <p id="detalhe-resumo" class="detalhe-resumo"></p>
 
     <div class="grid-2">
     <div>
-      <h4 class="texto-roxo" style="margin-bottom: 12px;"><i data-lucide="globe"></i> Entidades Envolvidas</h4>
-      <ul id="detalhe-entidades" style="font-size: 13px; color: var(--texto-claro); line-height: 1.8; padding-left: 20px;"></ul>
+      <h4 class="texto-roxo detalhe-secao-titulo"><i data-lucide="globe"></i> Entidades Envolvidas</h4>
+      <ul id="detalhe-entidades" class="detalhe-lista"></ul>
     </div>
     <div>
-      <h4 class="texto-roxo" style="margin-bottom: 12px;"><i data-lucide="settings"></i> Eventos e Automações</h4>
-      <ul id="detalhe-eventos" style="font-size: 13px; color: var(--texto-claro); line-height: 1.8; padding-left: 20px;"></ul>
+      <h4 class="texto-roxo detalhe-secao-titulo"><i data-lucide="settings"></i> Eventos e Automações</h4>
+      <ul id="detalhe-eventos" class="detalhe-lista"></ul>
     </div>
     </div>
 
-    <h4 class="texto-roxo" style="margin-top: 20px; margin-bottom: 12px;"><i data-lucide="target"></i> Desfechos da Cena</h4>
-    <ol id="detalhe-desfechos" style="font-size: 14px; color: var(--texto-claro); line-height: 1.8; padding-left: 20px;"></ol>
-    <h4 class="texto-roxo" style="margin-top: 20px; margin-bottom: 12px;"><i data-lucide="swords"></i> Combates Salvos (Escudo do Narrador)</h4>
-    <ul id="detalhe-saves-escudo" style="font-size: 13px; color: var(--texto-claro); line-height: 1.8; padding-left: 20px;">
+    <h4 class="texto-roxo detalhe-secao-titulo com-espaco"><i data-lucide="target"></i> Desfechos da Cena</h4>
+    <ol id="detalhe-desfechos" class="detalhe-lista"></ol>
+    <h4 class="texto-roxo detalhe-secao-titulo com-espaco"><i data-lucide="swords"></i> Combates Salvos (Escudo do Narrador)</h4>
+    <ul id="detalhe-saves-escudo" class="detalhe-lista">
     <li class="texto-mutado">Nenhum save de combate vinculado.</li>
     </ul>
     </div> </div> 

@@ -206,9 +206,9 @@ function renderizarListaNucleos(lista, tipo) {
     const div = document.getElementById('lista-nucleos');
     if (!div) return;
     div.innerHTML = lista.map(n => `
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 5px 0; margin-bottom: 4px;">
+        <div class="nucleo-linha">
             <span id="nucleo-nome-${n.id}">${escapeHTML(n.nome)}</span>
-            <div style="display: flex; gap: 5px;">
+            <div class="card-topo-acoes">
                 <button class="btn btn-primary btn-sm" onclick="editarNucleo('${n.id}', '${tipo}')"><i data-lucide="pencil"></i></button>
                 <button class="btn btn-danger btn-sm" onclick="excluirNucleo('${n.id}', '${tipo}')"><i data-lucide="trash-2"></i></button>
             </div>
@@ -363,7 +363,7 @@ function cardMundoHTML(node) {
                 </div>
             </div>
 
-            <div class="card-acoes-inline" style="display: none;">
+            <div class="card-acoes-inline">
                 <button class="btn btn-ghost btn-sm" onclick="iniciarEdicaoNome('${node.id}')"><i data-lucide="edit"></i> Editar</button>
                 <button class="btn btn-ghost btn-sm" onclick="moverNodeNucleo('${node.id}')"><i data-lucide="map-pin"></i> Mudar Núcleo</button>
                 <button class="btn btn-ghost btn-sm btn-del" onclick="confirmarDeletarEntidade(this, '${node.id}')"><i data-lucide="trash"></i> Deletar</button>
@@ -408,7 +408,7 @@ function renderizarGridMundo(lista) {
     const grid = document.getElementById('grid-mundo');
     if (!grid) return;
     if (!lista.length) {
-        grid.innerHTML = '<div class="info-block-vazio" style="grid-column: 1 / -1;">Nenhuma entidade encontrada.</div>';
+        grid.innerHTML = '<div class="info-block-vazio col-full">Nenhuma entidade encontrada.</div>';
         lucide.createIcons();
         return;
     }
@@ -1128,7 +1128,7 @@ window.abrirMapaSinapses = async function(nodeId) {
                 </div>
                 ${ls.map(miniCardSinapse).join('')}
             </div>`).join('')
-        : '<div class="info-block-vazio" style="grid-column: 1 / -1;">Nenhuma conexão para mapear.</div>';
+        : '<div class="info-block-vazio col-full">Nenhuma conexão para mapear.</div>';
 
     const modal = document.createElement('div');
     modal.className = 'modal show';
@@ -1439,12 +1439,12 @@ function renderizarGridEventos(lista) {
     grid.innerHTML = lista.map(ev => {
         const pct = Math.min((ev.pool_atual / ev.pool_maxima) * 100, 100);
         const alerta = pct >= 100;
-        const corBarra = pct < 50 ? '#2ecc71' : (pct < 75 ? '#f1c40f' : '#e74c3c');
+        const classeBarraCor = pct < 50 ? '' : (pct < 75 ? ' barra-fill--aviso' : ' barra-alerta');
         
         let gatilhosHtml = '';
         if (ev.gatilhos && ev.gatilhos.length > 0) {
             gatilhosHtml = ev.gatilhos.filter(g => g && g.node_nome).map(g => `
-                <div style="font-size: 11px; background: rgba(255,255,255,0.03); padding: 4px 8px; border-radius: 4px; margin-bottom: 3px;">
+                <div class="evento-gatilho">
                     <i data-lucide="settings"></i> <strong>${escapeHTML(g.node_nome)}</strong> → ${escapeHTML(humanizarMarco(g.flag_key))} (+${g.peso})
                 </div>
             `).join('');
@@ -1457,36 +1457,36 @@ function renderizarGridEventos(lista) {
             : 'Nenhum';
             
         return `
-        <div class="card" style="display: flex; flex-direction: column; height: 100%;">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 10px;">
-                <div style="flex: 1; min-width: 0;">
-                    <strong style="font-size: 16px; line-height: 1.2; display: block;">${escapeHTML(ev.nome)}</strong>
-                    <span style="font-size: 11px; color: ${alerta ? 'var(--erro)' : 'var(--destaque)'}; display: block; margin-top: 4px; display: flex; align-items: center; gap: 4px;">
+        <div class="card card-col">
+            <div class="card-topo">
+                <div class="card-topo-info">
+                    <strong class="card-titulo">${escapeHTML(ev.nome)}</strong>
+                    <span class="evento-estado${alerta ? ' evento-estado--alerta' : ''}">
                         ${alerta ? '<i data-lucide="alert-triangle"></i> PRONTO' : '<i data-lucide="eye"></i> Monitorando'}
                     </span>
                 </div>
-                <div style="display: flex; gap: 5px; flex-shrink: 0;">
+                <div class="card-topo-acoes">
                     <button class="btn btn-primary btn-sm" onclick="abrirModalVinculo('${ev.id}')">+ Vincular</button>
                     <button class="btn btn-danger btn-sm" data-id="${ev.id}" data-nome="${escapeHTML(ev.nome)}" onclick="deletarEvento(this.dataset.id, this.dataset.nome)" title="Deletar evento"><i data-lucide="trash-2"></i></button>
                 </div>
             </div>
 
-            <div style="flex: 1; display: flex; flex-direction: column; margin-bottom: 10px;">
-                ${gatilhosHtml || '<p style="font-size: 11px; color: var(--texto-mutado);">Nenhuma causa vinculada.</p>'}
+            <div class="evento-corpo">
+                ${gatilhosHtml || '<p class="nota-mini">Nenhuma causa vinculada.</p>'}
             </div>
 
-            <div style="margin-top: auto; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px;">
+            <div class="card-rodape">
                 <div class="barra-bg">
-                    <div class="barra-fill ${alerta ? 'barra-alerta' : ''}" style="width: ${pct}%; background-color: ${corBarra};"></div>
+                    <div class="barra-fill${classeBarraCor}" style="width: ${pct}%;"></div>
                 </div>
                 <div class="evento-pool-info">
                     <span class="evento-pool-caption">Pool</span>
                     <span class="evento-pool-valor ${alerta ? 'evento-pool-valor--alerta' : ''}">${ev.pool_atual} / ${ev.pool_maxima}</span>
                 </div>
-                ${ev.ultima_excedida_em ? `<div style="font-size: 10px; color: var(--texto-mutado); margin-top: 5px; display: flex; align-items: center; gap: 4px;"><i data-lucide="clock"></i> Ativado em: ${new Date(ev.ultima_excedida_em).toLocaleString()}</div>` : ''}
-                
-                <div style="font-size: 11px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center; gap: 5px;">
-                    <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Núcleos: ${nucleosBadges}</span>
+                ${ev.ultima_excedida_em ? `<div class="evento-ativado"><i data-lucide="clock"></i> Ativado em: ${new Date(ev.ultima_excedida_em).toLocaleString()}</div>` : ''}
+
+                <div class="evento-nucleos-linha">
+                    <span class="truncate">Núcleos: ${nucleosBadges}</span>
                     <button class="btn btn-primary btn-sm flex-shrink-0" onclick="gerenciarNucleosEvento('${ev.id}')">Editar</button>
                 </div>
             </div>
@@ -1809,32 +1809,32 @@ async function carregarAutomacoes() {
                 
                 // BOAS PRÁTICAS 1: Tabela Dinâmica e Limpa em vez de JSON cru
                 const parametrosHtml = Object.entries(auto.parametros || {}).map(([key, value]) => `
-                    <div style="display: contents;">
-                        <span style="color: var(--texto-mutado); text-align: right;">${escapeHTML(String(key))}:</span>
-                        <strong style="color: var(--texto-claro); word-break: break-word;">${escapeHTML(String(value))}</strong>
+                    <div class="auto-param">
+                        <span class="auto-param__chave">${escapeHTML(String(key))}:</span>
+                        <strong class="auto-param__valor">${escapeHTML(String(value))}</strong>
                     </div>
                 `).join('');
 
                 return `
-                <div class="card" id="auto-card-${auto.id}" style="display: flex; flex-direction: column; height: 100%;">
-                    
-                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px;">
-                        <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; align-items: flex-start;">
-                            <span class="badge" style="max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escapeHTML(auto.evento_nome)}">
+                <div class="card card-col" id="auto-card-${auto.id}">
+
+                    <div class="card-topo">
+                        <div class="auto-ident">
+                            <span class="badge truncate" title="${escapeHTML(auto.evento_nome)}">
                                 Gatilho: ${escapeHTML(auto.evento_nome)}
                             </span>
-                            <strong style="font-size: 14px; color: var(--texto-claro);">Ação: ${badgeTxt}</strong>
+                            <strong class="auto-acao">Ação: ${badgeTxt}</strong>
                         </div>
                         <button class="btn btn-danger btn-sm flex-shrink-0" onclick="deletarAutomacao('${auto.id}')"><i data-lucide="trash-2"></i></button>
                     </div>
 
-                    <div style="flex: 1; display: grid; grid-template-columns: max-content 1fr; gap: 6px 12px; align-items: start; background: rgba(0,0,0,0.2); padding: 12px; border-radius: 6px; font-size: 12px; margin-bottom: 12px;">
-                        ${parametrosHtml || '<span style="grid-column: span 2; color: var(--texto-mutado);">Sem parâmetros.</span>'}
+                    <div class="auto-params">
+                        ${parametrosHtml || '<span class="auto-param-vazio">Sem parâmetros.</span>'}
                     </div>
-                    
-                    <div style="margin-top: auto; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 12px;">
-                        <label style="font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 8px; color: ${auto.ativo ? 'var(--texto)' : 'var(--texto-mutado)'}; margin: 0;">
-                            <input type="checkbox" onchange="toggleAutomacaoStatus('${auto.id}', this)" ${auto.ativo ? 'checked' : ''} style="margin: 0; width: 16px; height: 16px; cursor: pointer;">
+
+                    <div class="card-rodape">
+                        <label class="auto-toggle${auto.ativo ? '' : ' auto-toggle--off'}">
+                            <input type="checkbox" class="auto-toggle__check" onchange="toggleAutomacaoStatus('${auto.id}', this)" ${auto.ativo ? 'checked' : ''}>
                             ${auto.ativo ? '<i data-lucide="zap"></i> Automação Armada' : '<i data-lucide="moon"></i> Automação Desarmada'}
                         </label>
                     </div>
@@ -1955,9 +1955,9 @@ window.renderizarCamposAutomacao = function() {
         </select>
         <label>Marcos (opcional)</label>
         <div id="param-flags-container">
-            <div class="flag-row" style="display: flex; gap: 10px; margin-bottom: 5px;">
-                <input type="text" class="flag-key" placeholder="Chave" style="flex:1;">
-                <select class="flag-value" style="width: 120px;">
+            <div class="flag-row">
+                <input type="text" class="flag-key" placeholder="Chave">
+                <select class="flag-value">
                     <option value="true">Verdadeiro</option>
                     <option value="false">Falso</option>
                 </select>
@@ -2086,10 +2086,9 @@ window.adicionarLinhaFlag = function() {
     if (!container) return;
     const row = document.createElement('div');
     row.className = 'flag-row';
-    row.style.cssText = 'display: flex; gap: 10px; margin-bottom: 5px;';
     row.innerHTML = `
-        <input type="text" class="flag-key" placeholder="Chave" style="flex:1;">
-        <select class="flag-value" style="width: 120px;">
+        <input type="text" class="flag-key" placeholder="Chave">
+        <select class="flag-value">
             <option value="true">Verdadeiro</option>
             <option value="false">Falso</option>
         </select>
@@ -2137,7 +2136,7 @@ function renderizarSessoes(listaParaRenderizar = sessoesCache) {
     if (!grid) return;
     
     if (listaParaRenderizar.length === 0) {
-        grid.innerHTML = '<div class="info-block-vazio" style="grid-column: 1 / -1;">Nenhuma sessão registrada (ou encontrada neste núcleo).</div>';
+        grid.innerHTML = '<div class="info-block-vazio col-full">Nenhuma sessão registrada (ou encontrada neste núcleo).</div>';
         return;
     }
     
@@ -2146,35 +2145,32 @@ function renderizarSessoes(listaParaRenderizar = sessoesCache) {
         
         // Badge alinhada e protegida contra textos longos
         const nucleoBadge = s.nucleo_nome 
-            ? `<span class="badge" style="max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: inline-block; margin-bottom: 6px;">${escapeHTML(s.nucleo_nome)}</span>`
+            ? `<span class="badge sessao-badge truncate">${escapeHTML(s.nucleo_nome)}</span>`
             : '';
 
         return `
-        <div class="card" onclick="abrirDetalhesSessao('${s.id}')" 
-             style="cursor: pointer; transition: border-color 0.2s ease; border: 1px solid var(--borda); display: flex; flex-direction: column; height: 100%;" 
-             onmouseover="this.style.borderColor='var(--destaque)'" 
-             onmouseout="this.style.borderColor='var(--borda)'">
-            
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 12px;">
-                <div style="flex: 1; min-width: 0;">
+        <div class="card card-col card-clicavel" onclick="abrirDetalhesSessao('${s.id}')">
+
+            <div class="card-topo">
+                <div class="card-topo-info">
                     ${nucleoBadge}
-                    <strong style="font-size: 16px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escapeHTML(s.titulo)}">
+                    <strong class="card-titulo truncate" title="${escapeHTML(s.titulo)}">
                         ${escapeHTML(s.titulo)}
                     </strong>
                 </div>
-                <span style="color: var(--texto-mutado); font-size: 12px; flex-shrink: 0; margin-top: 4px;">
+                <span class="sessao-data">
                     ${dataFormatada}
                 </span>
             </div>
 
-            <div style="flex: 1; margin-bottom: 15px;">
-                <p style="font-size:13px; margin: 0; color: var(--texto-mutado); display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; line-height: 1.5;">
+            <div class="sessao-corpo">
+                <p class="sessao-resumo-preview">
                     ${escapeHTML(s.resumo || 'Clique para ler os registros, entidades presentes e desfechos deste encontro...')}
                 </p>
             </div>
 
-            <div style="margin-top: auto; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px; display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-size: 11px; font-weight: bold; text-transform: uppercase; color: ${s.status === 'jogada' ? 'var(--destaque)' : 'var(--texto-mutado)'};">
+            <div class="card-rodape card-rodape--flex">
+                <span class="sessao-status${s.status === 'jogada' ? ' sessao-status--ativa' : ''}">
                     Status: ${escapeHTML(s.status || 'planejada')}
                 </span>
                 <button class="btn btn-danger btn-sm"
@@ -2357,22 +2353,22 @@ window.abrirDetalhesSessao = async function(id) {
         ulEntidades.innerHTML = entidadesIds.length > 0
         ? entidadesIds.map(nodeId => {
             const node = nodesCache.find(n => n.id === nodeId);
-            return `<li style="display: flex; align-items: center; gap: 8px;">
+            return `<li class="detalhe-item">
                 <span><i data-lucide="user"></i> ${escapeHTML(node.nome)}</span>
-                <button class="btn btn-danger btn-sm" style="padding: 2px 6px; font-size: 10px;"
+                <button class="btn btn-danger btn-sm btn-mini"
                         onclick="removerVinculoSessao('entidade', '${nodeId}')"><i data-lucide="x"></i></button>
             </li>`;
         }).join('')
-        : '<li style="color: var(--texto-mutado);">Nenhuma entidade atrelada.</li>';
+        : '<li class="texto-mutado">Nenhuma entidade atrelada.</li>';
     }
 
     const ulEventos = document.getElementById('detalhe-eventos');
     const eventosIds = s.eventos || [];
     let eventosHtml = eventosIds.map(evId => {
         const ev = eventosCache.find(e => e.id === evId);
-        return `<li style="display: flex; align-items: center; gap: 8px;">
+        return `<li class="detalhe-item">
             <span><i data-lucide="calendar"></i> <strong class="texto-destaque">${ev ? escapeHTML(ev.nome) : 'Evento Desconhecido'}</strong></span>
-            <button class="btn btn-danger btn-sm" style="padding: 2px 6px; font-size: 10px;"
+            <button class="btn btn-danger btn-sm btn-mini"
                     onclick="removerVinculoSessao('evento', '${evId}')"><i data-lucide="x"></i></button>
         </li>`;
     }).join('');
@@ -2380,14 +2376,14 @@ window.abrirDetalhesSessao = async function(id) {
     const automacoesIds = s.automacoes || [];
     let automacoesHtml = automacoesIds.map(autoId => {
         const auto = automacoesCache.find(a => a.id === autoId);
-        return `<li style="display: flex; align-items: center; gap: 6px;"><i data-lucide="zap"></i> Automação: ${auto ? escapeHTML(auto.tipo_nome) + ' via ' + escapeHTML(auto.evento_nome) : 'Desconhecida'}</li>`;
+        return `<li class="detalhe-item"><i data-lucide="zap"></i> Automação: ${auto ? escapeHTML(auto.tipo_nome) + ' via ' + escapeHTML(auto.evento_nome) : 'Desconhecida'}</li>`;
     }).join('');
     
-    if(ulEventos) ulEventos.innerHTML = eventosHtml + automacoesHtml || '<li style="color: var(--texto-mutado);">Nenhum evento ou automação.</li>';
+    if(ulEventos) ulEventos.innerHTML = eventosHtml + automacoesHtml || '<li class="texto-mutado">Nenhum evento ou automação.</li>';
 
     const ulDesfechos = document.getElementById('detalhe-desfechos');
     const desfechos = s.desfechos || [];
-    if(ulDesfechos) ulDesfechos.innerHTML = desfechos.map(d => `<li>${escapeHTML(d)}</li>`).join('') || '<li style="color: var(--texto-mutado);">Nenhum desfecho registrado.</li>';
+    if(ulDesfechos) ulDesfechos.innerHTML = desfechos.map(d => `<li>${escapeHTML(d)}</li>`).join('') || '<li class="texto-mutado">Nenhum desfecho registrado.</li>';
 
     lucide.createIcons();
     carregarSavesEscudo(s.id);
@@ -2488,20 +2484,20 @@ async function carregarSavesEscudo(sessaoId) {
         if (res.ok) {
             const saves = await res.json();
             if (saves.length === 0) {
-                ulSaves.innerHTML = '<li style="color: var(--texto-mutado);">Nenhum save de combate vinculado.</li>';
+                ulSaves.innerHTML = '<li class="texto-mutado">Nenhum save de combate vinculado.</li>';
                 return;
             }
             ulSaves.innerHTML = saves.map(s => `
-                <li style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                <li class="save-item">
                     <i data-lucide="swords"></i> <strong>${escapeHTML(s.nome)}</strong>
-                    <span class="texto-mutado" style="font-size: 11px;">(${new Date(s.criado_em).toLocaleString('pt-BR')})</span>
-                    <button class="btn btn-outline-primary btn-sm" style="margin-left: 10px;" onclick="abrirEscudoComSave('${s.id}')">Carregar no Escudo</button>
+                    <span class="nota-mini">(${new Date(s.criado_em).toLocaleString('pt-BR')})</span>
+                    <button class="btn btn-outline-primary btn-sm save-item__acao" onclick="abrirEscudoComSave('${s.id}')">Carregar no Escudo</button>
                 </li>
             `).join('');
             lucide.createIcons();
         }
     } catch (err) {
-        ulSaves.innerHTML = '<li style="color: var(--erro);">Erro ao carregar saves.</li>';
+        ulSaves.innerHTML = '<li class="texto-erro">Erro ao carregar saves.</li>';
     }
 }
 
@@ -2662,8 +2658,9 @@ function aplicarCamera() {
     const c = boardState.camera;
     world.style.transform = `translate(${c.x}px, ${c.y}px) scale(${c.zoom})`;
     // Fundo no viewport estático segue a câmera (parallax 1:1, infinito). O tipo
-    // (pontilhado/grade/liso) é escolhido pelo Narrador; o background-image/-size são
-    // aplicados aqui (o .board-canvas já não os declara estaticamente).
+    // (pontilhado/grade/liso) é escolhido pelo Narrador: a IMAGEM/cor do padrão vem das
+    // classes CSS .board-canvas--grid/--dots (cores em tokens); aqui só togglamos o tipo
+    // e mantemos background-size/-position seguindo a câmera (anti-Moiré).
     const canvas = elBoardCanvas();
     if (!canvas) return;
     const tipo = boardState.fundo || 'dots';
@@ -2671,13 +2668,9 @@ function aplicarCamera() {
     // Anti-Moiré: duplica o passo até ele sair da faixa de "chiado" (pontos colidindo).
     while (passo > 0 && passo < 14) passo *= 2;
 
-    if (tipo === 'none') {
-        canvas.style.backgroundImage = 'none';
-    } else if (tipo === 'grid') {
-        canvas.style.backgroundImage = 'linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)';
-        canvas.style.backgroundSize = `${passo}px ${passo}px`;
-    } else {
-        canvas.style.backgroundImage = 'radial-gradient(circle, rgba(255,255,255,0.12) 1.5px, transparent 1.5px)';
+    canvas.classList.toggle('board-canvas--grid', tipo === 'grid');
+    canvas.classList.toggle('board-canvas--dots', tipo === 'dots');
+    if (tipo !== 'none') {
         canvas.style.backgroundSize = `${passo}px ${passo}px`;
     }
     canvas.style.backgroundPosition = `${c.x}px ${c.y}px`;

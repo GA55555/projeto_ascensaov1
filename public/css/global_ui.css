@@ -14,6 +14,8 @@
     --bg-card:         #27272a;
     --bg-card-glass:   rgba(20, 20, 28, 0.65);
     --bg-afundado:     rgba(0, 0, 0, 0.2);  /* caixas recuadas/afundadas (ex.: campos dinâmicos) */
+    --board-grid-cor:  rgba(255, 255, 255, 0.05);  /* linhas da grade do tabuleiro */
+    --board-dots-cor:  rgba(255, 255, 255, 0.12);  /* pontos do fundo pontilhado do tabuleiro */
     --borda:           #3f3f46;
     --borda-glass:     rgba(255, 255, 255, 0.08);
     --texto-claro:     #e4e4e7;
@@ -699,6 +701,165 @@ label {
 .card-acoes-inline .btn-del { color: var(--erro); }
 .card-acoes-inline .btn-del:hover { background: color-mix(in srgb, var(--erro) 14%, var(--bg-card)); color: var(--erro); }
 
+/* ════════════════════════════════════════════════════════════════
+   CONTROLE DE MUNDO — classes extraídas dos renderizadores (ex-inline)
+   Cores hardcoded migradas p/ tokens; layout data-driven (barras %,
+   board, masks) permanece inline conforme Regra 2.5.
+   ════════════════════════════════════════════════════════════════ */
+
+/* Utilitários */
+.flex-shrink-0 { flex-shrink: 0; }
+.truncate { max-width: 100%; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.col-full { grid-column: 1 / -1; }
+.nota-mini { font-size: 11px; color: var(--texto-mutado); }
+.btn-mini { padding: 2px 6px; font-size: 10px; }
+.texto-erro { color: var(--erro); }
+
+/* Scaffold de card (compartilhado entre eventos / automações / sessões) */
+.card-col { display: flex; flex-direction: column; height: 100%; }
+.card-topo {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+.card-topo-info { flex: 1; min-width: 0; }
+.card-topo-acoes { display: flex; gap: 5px; flex-shrink: 0; }
+.card-titulo { font-size: 16px; line-height: 1.2; display: block; }
+.card-rodape {
+    margin-top: auto;
+    border-top: 1px solid var(--borda-glass);
+    padding-top: 10px;
+}
+.card-rodape--flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+/* Card clicável (ex.: card de sessão) — hover em CSS, sem onmouseover inline (Regra 2.6) */
+.card-clicavel { cursor: pointer; transition: var(--transicao-suave); }
+.card-clicavel:hover { border-color: var(--destaque); }
+
+/* Evento */
+.evento-gatilho {
+    font-size: 11px;
+    background: var(--bg-afundado);
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-bottom: 3px;
+}
+.evento-estado {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 4px;
+    font-size: 11px;
+    color: var(--destaque);
+}
+.evento-estado--alerta { color: var(--erro); }
+.evento-corpo { flex: 1; display: flex; flex-direction: column; margin-bottom: 10px; }
+.evento-ativado {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 5px;
+    font-size: 10px;
+    color: var(--texto-mutado);
+}
+.evento-nucleos-linha {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 5px;
+    margin-top: 10px;
+    font-size: 11px;
+}
+.barra-fill--aviso { background: var(--aviso); }
+
+/* Automação */
+.auto-ident {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: flex-start;
+}
+.auto-acao { font-size: 14px; color: var(--texto-claro); }
+.auto-params {
+    flex: 1;
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 6px 12px;
+    align-items: start;
+    background: var(--bg-afundado);
+    padding: 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    margin-bottom: 12px;
+}
+.auto-param { display: contents; }
+.auto-param__chave { color: var(--texto-mutado); text-align: right; }
+.auto-param__valor { color: var(--texto-claro); word-break: break-word; }
+.auto-param-vazio { grid-column: span 2; color: var(--texto-mutado); }
+.auto-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-size: 13px;
+    color: var(--texto-claro);
+    cursor: pointer;
+}
+.auto-toggle--off { color: var(--texto-mutado); }
+.auto-toggle__check { margin: 0; width: 16px; height: 16px; cursor: pointer; }
+
+/* Sessão (card) */
+.sessao-badge { display: inline-block; margin-bottom: 6px; }
+.sessao-data {
+    flex-shrink: 0;
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--texto-mutado);
+}
+.sessao-corpo { flex: 1; margin-bottom: 15px; }
+.sessao-resumo-preview {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--texto-mutado);
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.sessao-status {
+    font-size: 11px;
+    font-weight: bold;
+    text-transform: uppercase;
+    color: var(--texto-mutado);
+}
+.sessao-status--ativa { color: var(--destaque); }
+
+/* Detalhe da sessão (listas) e saves do escudo */
+.detalhe-item { display: flex; align-items: center; gap: 8px; }
+.save-item { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.save-item__acao { margin-left: 10px; }
+
+/* Lista de núcleos e linhas de marco (flag-row) */
+.nucleo-linha {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+    margin-bottom: 4px;
+}
+.flag-row { display: flex; gap: 10px; margin-bottom: 5px; }
+.flag-key { flex: 1; }
+.flag-value { width: 120px; }
+
 /* ── TOOLTIP DE MARCO POR HOVER (Fase 17.6.5) — fixed; posição via JS ──────── */
 /* position:fixed (mesmo referencial do getBoundingClientRect) → imune ao :root zoom.
    pointer-events:auto quando visível (túnel de hover); z-index alto. Sem margin/transform
@@ -902,6 +1063,73 @@ label {
     padding: 20px;
     margin-bottom: 25px;
     box-shadow: 0 2px 8px var(--sombra);
+}
+
+/* ── CONTROLE DE MUNDO: container de página, toolbars de secção e painel de detalhes ── */
+.page-container {
+    max-width: 1600px;
+    width: 95%;
+    margin: 40px auto;
+    padding: 20px;
+}
+.cronica-nome {
+    color: var(--roxo-mago);
+    font-weight: bold;
+}
+/* Linha de título + ações no topo de cada aba */
+.secao-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.toolbar-acoes {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+.input-busca { width: 200px; }
+.secao-nota {
+    color: var(--texto-mutado);
+    font-size: 13px;
+    margin-bottom: 20px;
+}
+.grid-sessoes {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    margin-top: 15px;
+}
+/* Painel de leitura de uma sessão (oculto por padrão; o JS alterna display) */
+.sessao-detalhes {
+    display: none;
+    margin-top: 15px;
+    padding: 30px;
+}
+.detalhe-titulo {
+    margin-top: 0;
+    font-size: 24px;
+}
+.detalhe-meta {
+    font-size: 12px;
+    margin-bottom: 20px;
+}
+.detalhe-secao-titulo { margin-bottom: 12px; }
+.detalhe-secao-titulo.com-espaco { margin-top: 20px; }
+.detalhe-resumo {
+    white-space: pre-wrap;
+    line-height: 1.6;
+    color: var(--texto-claro);
+    margin-bottom: 30px;
+}
+.detalhe-lista {
+    font-size: 13px;
+    color: var(--texto-claro);
+    line-height: 1.8;
+    padding-left: 20px;
 }
 
 /* ── MOTOR DE MODAIS (CORREÇÃO DE LAYOUT) ──────────────── */
@@ -2308,12 +2536,21 @@ input[type="radio"] {
     width: 100%;
     height: 600px;
     background-color: var(--bg-principal);
-    /* O padrão de fundo (pontilhado/grade/liso) e o background-size são aplicados
-       dinamicamente por aplicarCamera() em controle_mundo.js (segue a câmera + anti-Moiré). */
+    /* O tipo de fundo (pontilhado/grade/liso) é uma classe (.board-canvas--grid/--dots),
+       togglada por aplicarCamera(); já o background-size/-position seguem a câmera
+       dinamicamente via JS (parallax + anti-Moiré). */
     border: 1px solid var(--borda);
     border-radius: 8px;
     cursor: grab;
     touch-action: none;
+}
+.board-canvas--grid {
+    background-image:
+        linear-gradient(var(--board-grid-cor) 1px, transparent 1px),
+        linear-gradient(90deg, var(--board-grid-cor) 1px, transparent 1px);
+}
+.board-canvas--dots {
+    background-image: radial-gradient(circle, var(--board-dots-cor) 1.5px, transparent 1.5px);
 }
 .board-canvas.panning { cursor: grabbing; }
 .board-world { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform-origin: 0 0; }
