@@ -2517,9 +2517,28 @@ input[type="radio"] {
 .board-text:hover { outline: 1px dashed var(--borda); }
 /* Exibição passiva: o container manda no clique (arrasto/duplo-clique → Popover). */
 .board-text-conteudo { pointer-events: none; }
-/* Densidade do fundo: tokens, nunca hex. Denso inverte o texto p/ contraste (Regra 2.6). */
-.board-text-semi { background: color-mix(in srgb, var(--board-accent) 30%, transparent); padding: 4px 8px; border-radius: 6px; }
-.board-text-denso { background: var(--board-accent); color: var(--bg-principal); padding: 4px 8px; border-radius: 6px; }
+/* "Placa Coesa": o fundo (semi/denso) vira um painel único refinado — padding equilibrado,
+   borda fina do acento, sombra em camadas + glass no semi (Regra 2.5). Tokens, nunca hex.
+   Denso inverte o texto p/ contraste (Regra 2.6). O alinhamento move o texto DENTRO da placa. */
+.board-text-semi {
+    padding: 6px 12px;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--board-accent) 22%, transparent);
+    border: 1px solid color-mix(in srgb, var(--board-accent) 55%, transparent);
+    backdrop-filter: blur(6px);
+    box-shadow: 0 4px 14px var(--sombra-profunda);
+}
+.board-text-denso {
+    padding: 6px 12px;
+    border-radius: 6px;
+    background: var(--board-accent);
+    color: var(--bg-principal);
+    border: 1px solid var(--board-accent);
+    box-shadow: 0 4px 14px var(--sombra-profunda);
+}
+/* Alinhamento do texto (Esq é o default sem classe — modificadores p/ centro/direita). */
+.board-text-center { text-align: center; }
+.board-text-right  { text-align: right; }
 
 /* Prop (ícone RPG): SVG recolorido por máscara CSS + cor por token. */
 .board-prop {

@@ -2885,10 +2885,11 @@ function shapeHTML(s) {
 function textHTML(t) {
     const cor = CORES_BOARD.includes(t.cor) ? t.cor : 'cinza'; // sempre um token (Regra 4.2)
     const fundoClasse = t.fundo === 'semi' ? ' board-text-semi' : t.fundo === 'denso' ? ' board-text-denso' : '';
+    const alignClasse = t.align === 'center' ? ' board-text-center' : t.align === 'right' ? ' board-text-right' : '';
     const tam = Math.min(96, Math.max(8, t.tamanho || 16));
     const tid = escapeHTML(String(t.id));
     const conteudo = escapeHTML(t.texto || 'Texto').replace(/\n/g, '<br>');
-    return `<div class="board-text board-cor-${cor}${fundoClasse}" data-text="${tid}" style="left: ${Math.round(t.x)}px; top: ${Math.round(t.y)}px; font-size: ${tam}px;">
+    return `<div class="board-text board-cor-${cor}${fundoClasse}${alignClasse}" data-text="${tid}" style="left: ${Math.round(t.x)}px; top: ${Math.round(t.y)}px; font-size: ${tam}px;">
         <span class="board-text-conteudo">${conteudo}</span>
     </div>`;
 }
@@ -3080,7 +3081,7 @@ function arrastarPorPonteiro(el, obj, onDrag, conectavel) {
 window.adicionarTexto = function() {
     if (!boardAtualId) return mostrarToast('Abra ou crie um tabuleiro primeiro.', 'aviso');
     const c = centroMundo();
-    boardState.texts.push({ id: novoIdLocal('t'), x: c.x, y: c.y, texto: 'Texto', cor: 'cinza', tamanho: 18 });
+    boardState.texts.push({ id: novoIdLocal('t'), x: c.x, y: c.y, texto: 'Texto', cor: 'cinza', tamanho: 18, align: 'center' });
     renderBoard();
 };
 window.removerTextBoard = function(id) {
@@ -3113,6 +3114,11 @@ window.abrirEditorText = function(id, e) {
         <select class="board-popover-select" onchange="setTextFundo('${tid}', this.value)">
             ${opt('transparente', 'Transparente', t.fundo)}${opt('semi', 'Semi (translúcido)', t.fundo)}${opt('denso', 'Denso (sólido)', t.fundo)}
         </select>
+        <label>Alinhamento</label>
+        <div class="board-icone-grid">
+            ${[['left', 'align-left'], ['center', 'align-center'], ['right', 'align-right']].map(([v, ic]) =>
+                `<button type="button" class="board-icone-opt${(t.align || 'left') === v ? ' sel' : ''}" data-al="${v}" title="${v}" onclick="setTextAlign('${tid}', this)"><i data-lucide="${ic}"></i></button>`).join('')}
+        </div>
         <label>Tamanho (<span id="board-text-tam">${Math.round(t.tamanho || 18)}</span>px)</label>
         <input type="range" class="board-popover-range" min="8" max="96" value="${Math.round(t.tamanho || 18)}" oninput="setTextTamanho('${tid}', this.value)">
         <div class="board-popover-acoes">
@@ -3134,6 +3140,14 @@ window.setTextFundo = function(id, v) {
     t.fundo = ['semi', 'denso'].includes(v) ? v : 'transparente';
     const el = document.querySelector(`.board-text[data-text="${cssEscape(id)}"]`);
     if (el) { el.classList.remove('board-text-semi', 'board-text-denso'); if (t.fundo !== 'transparente') el.classList.add('board-text-' + t.fundo); }
+};
+window.setTextAlign = function(id, btn) {
+    const t = boardState.texts.find(x => String(x.id) === String(id)); if (!t) return;
+    t.align = ['center', 'right'].includes(btn.dataset.al) ? btn.dataset.al : 'left';
+    btn.parentElement.querySelectorAll('.board-icone-opt').forEach(b => b.classList.remove('sel'));
+    btn.classList.add('sel');
+    const el = document.querySelector(`.board-text[data-text="${cssEscape(id)}"]`);
+    if (el) { el.classList.remove('board-text-center', 'board-text-right'); if (t.align !== 'left') el.classList.add('board-text-' + t.align); }
 };
 window.setTextTamanho = function(id, v) {
     const t = boardState.texts.find(x => String(x.id) === String(id)); if (!t) return;

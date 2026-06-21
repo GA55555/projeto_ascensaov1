@@ -180,6 +180,7 @@ const dadosBoardSchema = z.object({
         texto: z.string().trim().max(2000).optional(),
         cor: z.enum(CORES_BOARD).optional(),
         fundo: z.enum(['transparente', 'semi', 'denso']).optional(),
+        align: z.enum(['left', 'center', 'right']).optional(),
         tamanho: z.number().finite().min(8).max(96).optional()
     })).max(200).default([]),
     // Props (ícones SVG de /public/icons/rpg/). `icone` = nome do ficheiro sem extensão;
