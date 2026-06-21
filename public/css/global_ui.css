@@ -2747,6 +2747,10 @@ input[type="radio"] {
 .board-icone-opt.sel { border-color: var(--roxo-mago); color: var(--roxo-mago); }
 .board-icone-opt i { width: 16px; height: 16px; }
 .board-popover-acoes { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.board-popover-acoes--coluna { flex-direction: column; }
+.board-popover-acoes--coluna .btn { width: 100%; justify-content: flex-start; }
+.board-popover-info { display: flex; align-items: center; gap: 6px; font-size: 13px; margin: 2px 0 10px; }
+.board-popover-info i { width: 16px; height: 16px; }
 
 /* Variações de forma/borda das zonas (FASE 14). */
 .board-shape-circulo { border-radius: 50%; }
@@ -2887,9 +2891,80 @@ input[type="radio"] {
 .board-entidade-lista { flex: 1; min-height: 0; max-height: 55vh; overflow-y: auto; padding-right: 8px; display: flex; flex-direction: column; gap: 6px; }
 .btn-entidade-board { justify-content: flex-start; gap: 8px; }
 
+/* ── CÉLULAS DE NÚCLEO (FASE 14 — Smart Containers) ───────────────────────
+   "Banner de Facção": borda + faixa de cabeçalho no acento da facção.
+   --board-accent vem SEMPRE da classe .board-cor-* que o celulaHTML emite —
+   NÃO redeclarar default aqui (senão prende a cor; ver armadilha de cascata).
+   Fica sob os cards (z-index 1, como as zonas). */
+.board-celula {
+    position: absolute;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--board-accent);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--board-accent) 7%, var(--bg-card-glass));
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    box-shadow: 0 2px 8px var(--sombra);
+    overflow: hidden;
+}
+.board-celula-header {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 8px;
+    /* Faixa "sólida" da facção, escurecida p/ o branco contrastar em QUALQUER
+       acento (inclusive âmbar/verde claros) — Regra 2.6. */
+    background: color-mix(in srgb, var(--board-accent) 72%, var(--bg-principal));
+    color: #fff;
+    cursor: grab;
+    user-select: none;
+}
+.board-celula.arrastando-grupo .board-celula-header { cursor: grabbing; }
+.board-celula-icone { width: 16px; height: 16px; flex-shrink: 0; }
+.board-celula-nome {
+    flex: 1;
+    min-width: 0;
+    font-family: 'Cormorant Garamond', serif;   /* título → serifada (Regra 2.5) */
+    font-size: 17px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.board-celula-btn {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.16);   /* overlay sobre a faixa colorida (padrão do .btn-group) */
+    color: #fff;
+    cursor: pointer;
+    transition: var(--transicao-suave);
+}
+.board-celula-btn:hover { background: rgba(255, 255, 255, 0.30); }
+.board-celula-btn i { width: 14px; height: 14px; }
+/* Minimizada: o celulaHTML não emite height inline → a CSS assume (só a faixa). */
+.board-celula.is-minimizada { height: 40px; }
+/* Membros de um núcleo minimizado: somem do tabuleiro. */
+.board-card.is-membro-oculto { display: none; }
+/* Atenuação durante o arrasto em bando (célula + cards-membros). */
+.board-celula.arrastando-grupo,
+.board-card.arrastando-grupo { opacity: 0.6; }
+
 /* Coerência 16-bit: bordas retas + numerais pixelados. */
 .tema-pixel-16bit .board-toolbar,
 .tema-pixel-16bit .board-canvas,
+.tema-pixel-16bit .board-celula,
+.tema-pixel-16bit .board-celula-btn,
 .tema-pixel-16bit .board-card,
 .tema-pixel-16bit .board-shape,
 .tema-pixel-16bit .board-prop,

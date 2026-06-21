@@ -2524,7 +2524,7 @@ const ICONES_RPG = [
     'backpack', 'lockpicks', 'id-card', 'dice-six-faces-six', 'dice-twenty-faces-twenty',
     'perspective-dice-six-faces-random', 'gears', 'cogsplosion', 'clout', 'laptop', 'smartphone'
 ];
-const boardVazio = () => ({ camera: { x: 0, y: 0, zoom: 1 }, fundo: 'dots', nodes: [], shapes: [], texts: [], props: [], localLinks: [], overrides_linhas: {} });
+const boardVazio = () => ({ camera: { x: 0, y: 0, zoom: 1 }, fundo: 'dots', nodes: [], shapes: [], celulas: [], texts: [], props: [], localLinks: [], overrides_linhas: {} });
 let boardAtualId = null;
 let boardNomeAtual = '';
 let boardState = boardVazio();
@@ -2581,6 +2581,7 @@ window.abrirBoard = async function(boardId) {
         fundo: d.fundo || 'dots',
         nodes: Array.isArray(d.nodes) ? d.nodes : [],
         shapes: Array.isArray(d.shapes) ? d.shapes : [],
+        celulas: Array.isArray(d.celulas) ? d.celulas : [],
         texts: Array.isArray(d.texts) ? d.texts : [],
         props: Array.isArray(d.props) ? d.props : [],
         localLinks: Array.isArray(d.localLinks) ? d.localLinks : [],
@@ -2625,12 +2626,15 @@ function renderBoard() {
         world.style.transform = '';
         return;
     }
+    // Núcleos minimizados → esconder os cards-membros (cruza via boardNodeInfo).
+    const nucleosMin = new Set((boardState.celulas || []).filter(c => c.minimizada).map(c => String(c.nucleo_id)));
     const cards = boardState.nodes.map(node => {
         const info = boardNodeInfo(node.id);
         if (!info) return ''; // defensivo: o sync já deveria ter removido órfãos
         const corClasse = CORES_BOARD.includes(node.cor) ? ` board-cor-${node.cor}` : '';
+        const oculto = info.nucleo_id != null && nucleosMin.has(String(info.nucleo_id)) ? ' is-membro-oculto' : '';
         const icone = node.icone || iconeEntidade(info.tipo);
-        return `<div class="board-card${corClasse}" data-node="${escapeHTML(String(node.id))}" style="left: ${Math.round(node.x)}px; top: ${Math.round(node.y)}px;">
+        return `<div class="board-card${corClasse}${oculto}" data-node="${escapeHTML(String(node.id))}" style="left: ${Math.round(node.x)}px; top: ${Math.round(node.y)}px;">
             <i data-lucide="${escapeHTML(icone)}" class="board-card-icone"></i>
             <span class="board-card-info">
                 <span class="board-card-nome">${escapeHTML(info.nome)}</span>
@@ -2638,14 +2642,16 @@ function renderBoard() {
             </span>
         </div>`;
     }).join('');
+    const celulas = (boardState.celulas || []).map(celulaHTML).join(''); // células de núcleo (z-index 1, sob os cards)
     const shapes = boardState.shapes.map(shapeHTML).join(''); // zonas (z-index 1, sob os cards)
     const props = boardState.props.map(propHTML).join('');     // ícones RPG (z-index 1)
     const texts = boardState.texts.map(textHTML).join('');     // textos flutuantes (z-index 3)
-    const corpo = shapes + props + texts + cards;
+    const corpo = celulas + shapes + props + texts + cards;
     world.innerHTML = '<svg class="board-svg"></svg>' + (corpo || '<div class="board-vazio info-block-vazio">Tabuleiro vazio. Use “+ Entidade” ou “+ Zona” para começar.</div>');
     aplicarCamera();
     lucide.createIcons();
     ativarArrastoCards();
+    ativarArrastoCelulas();
     ativarInteracoesShapes();
     ativarInteracoesProps();
     ativarInteracoesTexts();
@@ -2760,7 +2766,7 @@ function ativarPanZoom() {
     }, true);
     canvas.addEventListener('pointerdown', (e) => {
         if (!boardAtualId || e.button !== 0) return;
-        if (e.target.closest('.board-card, .board-shape, .board-prop, .board-text, .board-line-hit, .board-popover')) return; // não panja sobre elementos
+        if (e.target.closest('.board-card, .board-celula, .board-shape, .board-prop, .board-text, .board-line-hit, .board-popover')) return; // não panja sobre elementos
         // clique no fundo: cancela o modo de conexão pendente.
         if (conectandoDe) { conectandoDe = null; canvas.classList.remove('conectando'); }
         boardPan = { sx: e.clientX, sy: e.clientY, ox: boardState.camera.x, oy: boardState.camera.y };
@@ -2846,6 +2852,211 @@ window.adicionarEntidadeBoard = function(nodeId) {
     renderBoard();
     atualizarLinksBoard();
 };
+
+// ── CÉLULAS DE NÚCLEO (FASE 14 — Smart Containers) ─────────────────────────
+// Núcleos vivem em entidade_nucleos (nucleosCache.entidade), NÃO em world_nodes.
+// Um node sabe seu núcleo por world_nodes.nucleo_id (vem no boardNodesCache).
+const CELULA_HEADER_H = 40, CELULA_PAD = 16, MEMBRO_W = 180, MEMBRO_H = 64, MEMBRO_GAP = 12;
+
+window.abrirSeletorNucleoBoard = async function() {
+    if (!boardAtualId) return mostrarToast('Abra ou crie um tabuleiro primeiro.', 'aviso');
+    if (nucleosCache.entidade.length === 0) await carregarNucleos('entidade');
+    fecharSeletorNucleoBoard();
+    const jaNoBoard = new Set((boardState.celulas || []).map(c => String(c.nucleo_id)));
+    const disp = nucleosCache.entidade.filter(n => !jaNoBoard.has(String(n.id)));
+    const modal = document.createElement('div');
+    modal.className = 'modal show';
+    modal.id = 'modal-board-nucleo';
+    modal.innerHTML = `
+        <div class="modal-box board-entidade-box">
+            <div class="modal-head">
+                <h3 class="texto-roxo modal-titulo"><i data-lucide="users"></i> Importar Núcleo</h3>
+                <button class="btn btn-ghost btn-sm" onclick="fecharSeletorNucleoBoard()" title="Fechar"><i data-lucide="x"></i></button>
+            </div>
+            <div class="board-entidade-lista">
+                ${disp.length ? disp.map(n => `<button type="button" class="btn btn-outline btn-sm btn-entidade-board" data-id="${escapeHTML(String(n.id))}" onclick="importarCelulaBoard(this.dataset.id)"><i data-lucide="users"></i> ${escapeHTML(n.nome)}</button>`).join('')
+                    : '<div class="info-block-vazio">Nenhum núcleo disponível (todos já estão no tabuleiro, ou não há núcleos de entidade).</div>'}
+            </div>
+        </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) fecharSeletorNucleoBoard(); });
+    lucide.createIcons();
+};
+window.fecharSeletorNucleoBoard = function() {
+    const m = document.getElementById('modal-board-nucleo'); if (m) m.remove();
+};
+
+window.importarCelulaBoard = function(nucleoId) {
+    if (!boardState.celulas) boardState.celulas = [];                 // defensivo (boards antigos)
+    if (boardState.celulas.some(c => String(c.nucleo_id) === String(nucleoId))) { fecharSeletorNucleoBoard(); return; }
+    const centro = centroMundo();
+    const W = 400, H = 300;
+    const celula = {
+        id: novoIdLocal('cel'), nucleo_id: nucleoId,
+        x: Math.round(centro.x - W / 2), y: Math.round(centro.y - H / 2),
+        w: W, h: H, minimizada: false, cor: 'roxo'
+    };
+    boardState.celulas.push(celula);
+    // Auto-importa os membros do núcleo que ainda não estão no tabuleiro.
+    const noBoard = new Set(boardState.nodes.map(n => String(n.id)));
+    boardNodesCache
+        .filter(n => String(n.nucleo_id) === String(nucleoId))
+        .forEach(m => { if (!noBoard.has(String(m.id))) boardState.nodes.push({ id: m.id, x: celula.x, y: celula.y }); });
+    organizarMembrosNaCelula(celula);   // arruma TODOS os membros numa grade dentro da célula
+    fecharSeletorNucleoBoard();
+    renderBoard();
+    atualizarLinksBoard();
+};
+
+// Membros de um núcleo presentes no tabuleiro (board node + info do cache).
+function membrosDaCelula(nucleoId) {
+    return boardState.nodes.filter(n => {
+        const info = boardNodeInfo(n.id);
+        return info && String(info.nucleo_id) === String(nucleoId);
+    });
+}
+
+// Grade simples dos membros DENTRO da célula (abaixo do cabeçalho). Cresce a altura
+// para caber todas as linhas; nunca encolhe abaixo do tamanho pedido.
+function organizarMembrosNaCelula(c) {
+    const membros = membrosDaCelula(c.nucleo_id);
+    if (!membros.length) return;
+    const cols = Math.max(1, Math.floor((c.w - CELULA_PAD * 2 + MEMBRO_GAP) / (MEMBRO_W + MEMBRO_GAP)));
+    membros.forEach((n, i) => {
+        n.x = Math.round(c.x + CELULA_PAD + (i % cols) * (MEMBRO_W + MEMBRO_GAP));
+        n.y = Math.round(c.y + CELULA_HEADER_H + CELULA_PAD + Math.floor(i / cols) * (MEMBRO_H + MEMBRO_GAP));
+    });
+    const linhas = Math.ceil(membros.length / cols);
+    c.h = Math.max(c.h, CELULA_HEADER_H + CELULA_PAD * 2 + linhas * MEMBRO_H + (linhas - 1) * MEMBRO_GAP);
+}
+
+function celulaHTML(c) {
+    const cor = CORES_BOARD.includes(c.cor) ? c.cor : 'roxo';   // SEMPRE board-cor-* (evita prender o --board-accent)
+    const nucleo = nucleosCache.entidade.find(n => String(n.id) === String(c.nucleo_id));
+    const nome = nucleo ? nucleo.nome : 'Núcleo';
+    const cid = escapeHTML(String(c.id));
+    // height inline só quando expandida; minimizada → a CSS (.is-minimizada) assume a altura.
+    const dims = `left: ${Math.round(c.x)}px; top: ${Math.round(c.y)}px; width: ${Math.round(c.w)}px;`
+               + (c.minimizada ? '' : ` height: ${Math.round(c.h)}px;`);
+    return `<div class="board-celula board-cor-${cor}${c.minimizada ? ' is-minimizada' : ''}" data-celula="${cid}" style="${dims}">
+        <div class="board-celula-header">
+            <i data-lucide="users" class="board-celula-icone"></i>
+            <span class="board-celula-nome" title="${escapeHTML(nome)}">${escapeHTML(nome)}</span>
+            <button type="button" class="board-celula-btn" title="${c.minimizada ? 'Expandir' : 'Minimizar'}" onclick="toggleMinimizarCelula('${cid}')"><i data-lucide="${c.minimizada ? 'plus' : 'minus'}"></i></button>
+            <button type="button" class="board-celula-btn" title="Opções do núcleo" onclick="abrirEditorCelula('${cid}', event)"><i data-lucide="settings"></i></button>
+        </div>
+    </div>`;
+}
+
+window.toggleMinimizarCelula = function(id) {
+    const c = (boardState.celulas || []).find(x => String(x.id) === String(id));
+    if (!c) return;
+    c.minimizada = !c.minimizada;
+    renderBoard();
+};
+
+// Popover de opções da célula: cor da facção (token), reorganizar em grade,
+// desimportar (remove só a moldura, mantém os cards) e remover (moldura + cards).
+window.abrirEditorCelula = function(id, e) {
+    fecharPopover();
+    const c = (boardState.celulas || []).find(x => String(x.id) === String(id)); if (!c) return;
+    const cid = escapeHTML(String(id));
+    const nucleo = nucleosCache.entidade.find(n => String(n.id) === String(c.nucleo_id));
+    const nome = nucleo ? nucleo.nome : 'Núcleo';
+    const total = membrosDaCelula(c.nucleo_id).length;
+    const swatch = k => `<button type="button" class="board-cor-swatch board-cor-${k}${c.cor === k ? ' sel' : ''}" data-c="${k}" title="${k}" onclick="setCelulaCor('${cid}', this)"></button>`;
+    const pop = montarPopover(`
+        <div class="board-popover-info"><i data-lucide="users"></i> ${escapeHTML(nome)} <span class="badge">${total} no tabuleiro</span></div>
+        <label>Cor da facção</label>
+        <div class="board-cor-grid">${CORES_BOARD.map(swatch).join('')}</div>
+        <div class="board-popover-acoes board-popover-acoes--coluna">
+            <button class="btn btn-outline btn-sm" onclick="reorganizarCelula('${cid}')"><i data-lucide="layout-grid"></i> Reorganizar em grade</button>
+            <button class="btn btn-outline btn-sm" onclick="desimportarCelula('${cid}')"><i data-lucide="package-open"></i> Desimportar (mantém os cards)</button>
+            <button class="btn btn-ghost btn-sm" onclick="removerCelulaBoard('${cid}')"><i data-lucide="trash-2"></i> Remover célula e cards</button>
+        </div>`);
+    elBoardCanvas().appendChild(pop);
+    lucide.createIcons();
+    posicionarPopover(pop, e, document.querySelector(`.board-celula[data-celula="${cssEscape(id)}"]`));
+};
+window.setCelulaCor = function(id, btn) {
+    const c = (boardState.celulas || []).find(x => String(x.id) === String(id)); if (!c) return;
+    if (!CORES_BOARD.includes(btn.dataset.c)) return;
+    c.cor = btn.dataset.c;
+    btn.parentElement.querySelectorAll('.board-cor-swatch').forEach(b => b.classList.remove('sel'));
+    btn.classList.add('sel');
+    const el = document.querySelector(`.board-celula[data-celula="${cssEscape(id)}"]`);
+    if (el) { CORES_BOARD.forEach(k => el.classList.remove('board-cor-' + k)); el.classList.add('board-cor-' + c.cor); }
+};
+window.reorganizarCelula = function(id) {
+    const c = (boardState.celulas || []).find(x => String(x.id) === String(id)); if (!c) return;
+    organizarMembrosNaCelula(c);
+    fecharPopover();
+    renderBoard();
+};
+// Desimporta: tira a moldura, mas os cards-membros permanecem onde estão.
+window.desimportarCelula = function(id) {
+    fecharPopover();
+    boardState.celulas = (boardState.celulas || []).filter(c => String(c.id) !== String(id));
+    renderBoard();
+};
+// Remove a célula E os cards dos seus membros do tabuleiro (reversível por re-importar;
+// nada persiste até Salvar — Regra 2.7).
+window.removerCelulaBoard = function(id) {
+    fecharPopover();
+    const c = (boardState.celulas || []).find(x => String(x.id) === String(id)); if (!c) return;
+    const nucleoId = String(c.nucleo_id);
+    boardState.nodes = boardState.nodes.filter(n => {
+        const info = boardNodeInfo(n.id);
+        return !(info && String(info.nucleo_id) === nucleoId);
+    });
+    boardState.celulas = boardState.celulas.filter(x => String(x.id) !== String(id));
+    renderBoard();
+    atualizarLinksBoard(); // recalcula linhas (cards removidos)
+};
+
+// Arrasto em bando: arrastar a célula move a célula + todos os cards do seu núcleo.
+function ativarArrastoCelulas() {
+    const world = elBoardWorld();
+    if (!world) return;
+    // Mapa data-node → elemento (sem querySelector por id especial; barato — só no render).
+    const cardEls = {};
+    world.querySelectorAll('.board-card').forEach(cd => { cardEls[cd.dataset.node] = cd; });
+
+    world.querySelectorAll('.board-celula').forEach(el => {
+        const c = (boardState.celulas || []).find(x => String(x.id) === String(el.dataset.celula));
+        if (!c) return;
+        el.onpointerdown = (e) => {
+            if (e.button !== 0) return;
+            if (e.target.closest('.board-celula-btn')) return;   // botões não arrastam (deixa o onclick passar)
+            e.stopPropagation();                                  // não inicia o Pan do canvas
+            const z = boardState.camera.zoom || 1;
+            const sx = e.clientX, sy = e.clientY, ox = c.x, oy = c.y;
+            // Snapshot dos membros 1x no pointerdown (move só faz aritmética + writes → leve).
+            const membros = membrosDaCelula(c.nucleo_id).map(n => ({ node: n, el: cardEls[String(n.id)], ox: n.x, oy: n.y }));
+            el.setPointerCapture(e.pointerId);
+            el.classList.add('arrastando-grupo');
+            membros.forEach(m => m.el && m.el.classList.add('arrastando-grupo'));
+            const mv = (ev) => {
+                const dx = (ev.clientX - sx) / z, dy = (ev.clientY - sy) / z;
+                c.x = Math.round(ox + dx); c.y = Math.round(oy + dy);
+                el.style.left = c.x + 'px'; el.style.top = c.y + 'px';
+                for (const m of membros) {
+                    m.node.x = Math.round(m.ox + dx); m.node.y = Math.round(m.oy + dy);
+                    if (m.el) { m.el.style.left = m.node.x + 'px'; m.el.style.top = m.node.y + 'px'; }
+                }
+                desenharLinhasBoard();   // linhas seguem os membros (paridade c/ o arrasto de card)
+            };
+            const up = () => {
+                el.classList.remove('arrastando-grupo');
+                membros.forEach(m => m.el && m.el.classList.remove('arrastando-grupo'));
+                el.removeEventListener('pointermove', mv);
+                el.removeEventListener('pointerup', up);
+            };
+            el.addEventListener('pointermove', mv);
+            el.addEventListener('pointerup', up);
+        };
+    });
+}
 
 // ── ZONAS / SHAPES (FASE 13 — fatia 3) ──────────────────────
 // Retângulos de agrupamento com rótulo na borda (legend). id é local do board

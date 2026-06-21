@@ -171,6 +171,19 @@ const dadosBoardSchema = z.object({
         forma: z.enum(['retangulo', 'circulo', 'triangulo']).optional(),
         stroke: z.enum(['solid', 'dashed']).optional()
     })).max(200).default([]),
+    // Células de Núcleo (Fase 14 — Smart Containers): contêiner que importa e arrasta
+    // em bando os membros de um núcleo. `id` é local do board (não-UUID, como shapes);
+    // `nucleo_id` referencia entidade_nucleos.
+    celulas: z.array(z.object({
+        id: z.string().min(1).max(64),
+        nucleo_id: z.string().uuid(),
+        x: z.number().finite(),
+        y: z.number().finite(),
+        w: z.number().finite().min(0),
+        h: z.number().finite().min(0),
+        minimizada: z.boolean().optional(),
+        cor: z.enum(CORES_BOARD).optional()
+    })).max(100).default([]),
     // Textos flutuantes (sem card): texto puro arrastável. tamanho em px.
     texts: z.array(z.object({
         id: z.string().min(1).max(64),
