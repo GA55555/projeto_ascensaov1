@@ -3064,16 +3064,18 @@ window.abrirEditorCelula = function(id, e) {
     const total = membrosDaCelula(c.nucleo_id).length;
     const swatch = k => `<button type="button" class="board-cor-swatch board-cor-${k}${c.cor === k ? ' sel' : ''}" data-c="${k}" title="${k}" onclick="setCelulaCor('${cid}', this)"></button>`;
     const pop = montarPopover(`
-        <div class="board-popover-info"><i data-lucide="users"></i> ${escapeHTML(nome)} <span class="badge">${total} no tabuleiro</span></div>
+        <div class="board-popover-info"><i data-lucide="users"></i> ${escapeHTML(nome)} <span class="badge">${total}</span></div>
         <label>Cor da facção</label>
         <div class="board-cor-grid">${CORES_BOARD.map(swatch).join('')}</div>
         <label>Largura (<span id="board-celula-larg">${Math.round(c.w)}</span>px)</label>
         <input type="range" class="board-popover-range" min="${CELULA_MIN_W}" max="1200" step="20" value="${Math.round(c.w)}" oninput="setCelulaLargura('${cid}', this.value)">
+        <label>Altura (<span id="board-celula-alt">${Math.round(c.h)}</span>px)</label>
+        <input type="range" class="board-popover-range" min="${CELULA_MIN_H}" max="900" step="20" value="${Math.round(c.h)}" oninput="setCelulaAltura('${cid}', this.value)">
         <div class="board-popover-acoes board-popover-acoes--coluna">
             <button class="btn btn-outline btn-sm" onclick="ressincronizarCelula('${cid}')"><i data-lucide="refresh-cw"></i> Sincronizar membros</button>
             <button class="btn btn-outline btn-sm" onclick="reorganizarCelula('${cid}')"><i data-lucide="layout-grid"></i> Reorganizar em grade</button>
-            <button class="btn btn-outline btn-sm" onclick="desimportarCelula('${cid}')"><i data-lucide="package-open"></i> Desimportar (mantém os cards)</button>
-            <button class="btn btn-ghost btn-sm" onclick="removerCelulaBoard('${cid}')"><i data-lucide="trash-2"></i> Remover célula e cards</button>
+            <button class="btn btn-outline btn-sm" onclick="desimportarCelula('${cid}')"><i data-lucide="package-open"></i> Remover célula</button>
+            <button class="btn btn-danger btn-sm" onclick="removerCelulaBoard('${cid}')"><i data-lucide="trash-2"></i> Remover célula e cards</button>
         </div>`);
     elBoardCanvas().appendChild(pop);
     lucide.createIcons();
@@ -3093,14 +3095,25 @@ window.setCelulaLargura = function(id, v) {
     const c = (boardState.celulas || []).find(x => String(x.id) === String(id)); if (!c) return;
     c.w = Math.max(CELULA_MIN_W, Math.min(1200, parseInt(v, 10) || CELULA_MIN_W));
     const membros = reflowMembrosCelula(c);
-    c.h = alturaConteudoCelula(c);
+    c.h = Math.max(c.h, alturaConteudoCelula(c)); // respeita a altura manual; só cresce p/ caber
     const el = document.querySelector(`.board-celula[data-celula="${cssEscape(id)}"]`);
     if (el) { el.style.width = c.w + 'px'; if (!c.minimizada) el.style.height = c.h + 'px'; }
     membros.forEach(n => {
         const cd = document.querySelector(`.board-card[data-node="${cssEscape(n.id)}"]`);
         if (cd) { cd.style.left = n.x + 'px'; cd.style.top = n.y + 'px'; }
     });
-    const lbl = document.getElementById('board-celula-larg'); if (lbl) lbl.textContent = c.w;
+    const lblW = document.getElementById('board-celula-larg'); if (lblW) lblW.textContent = c.w;
+    const lblH = document.getElementById('board-celula-alt'); if (lblH) lblH.textContent = c.h;
+    desenharLinhasBoard();
+};
+// Altura via slider (manual). A grade é ancorada no topo, então não re-flui; a linha de
+// diplomacia/entidade ancora no centro da célula → segue a nova altura (desenharLinhasBoard).
+window.setCelulaAltura = function(id, v) {
+    const c = (boardState.celulas || []).find(x => String(x.id) === String(id)); if (!c) return;
+    c.h = Math.max(CELULA_MIN_H, Math.min(900, parseInt(v, 10) || CELULA_MIN_H));
+    const el = document.querySelector(`.board-celula[data-celula="${cssEscape(id)}"]`);
+    if (el && !c.minimizada) el.style.height = c.h + 'px';
+    const lbl = document.getElementById('board-celula-alt'); if (lbl) lbl.textContent = c.h;
     desenharLinhasBoard();
 };
 window.reorganizarCelula = function(id) {
@@ -3759,16 +3772,18 @@ function caminhoCardeal(elA, elB) {
              mx: (p1.x + p2.x) / 2, my: (p1.y + p2.y) / 2 };
 }
 
-// Rótulo da linha de diplomacia como ÍCONE de alto desempenho. Ícones do catálogo
-// ICONES_RPG (já em /public/icons/rpg/). Renderizado como <foreignObject> + máscara CSS
-// (mesma técnica do propHTML), pintado pela cor do status. NÃO usa lucide.createIcons():
-// é só string concatenada no SVG, então redesenha a 60fps no arrasto sem varrer o DOM.
-const ICONE_DIPLOMACIA = { aliado: 'shield', inimigo: 'crossed-swords', neutro: 'all-seeing-eye' };
-function rotuloIconeDiplomacia(mx, my, status, cor) {
+// Rótulo da linha de diplomacia como ÍCONE de alto desempenho. SVGs de /public/icons/rpg/
+// (aliado usa handshake.svg, extraído do Lucide). Renderizado como <foreignObject> + máscara
+// CSS (técnica do propHTML); cor "natural" (clara) e tamanho vêm da classe — não tinge por
+// status (a LINHA já carrega a cor). NÃO usa lucide.createIcons(): é só string no SVG, então
+// redesenha a 60fps no arrasto sem varrer o DOM.
+const ICONE_DIPLOMACIA = { aliado: 'handshake', inimigo: 'crossed-swords', neutro: 'all-seeing-eye' };
+function rotuloIconeDiplomacia(mx, my, status) {
     const nome = ICONE_DIPLOMACIA[status] || ICONE_DIPLOMACIA.neutro;
     const url = `/icons/rpg/${encodeURIComponent(nome)}.svg`;
-    return `<foreignObject x="${Math.round(mx) - 12}" y="${Math.round(my) - 12}" width="24" height="24">
-        <div xmlns="http://www.w3.org/1999/xhtml" class="board-line-diplo-icone" style="background-color: ${cor}; -webkit-mask-image: url('${url}'); mask-image: url('${url}');"></div>
+    const L = 32, h = L / 2; // maior (32px), centrado no ponto médio
+    return `<foreignObject x="${Math.round(mx) - h}" y="${Math.round(my) - h}" width="${L}" height="${L}">
+        <div xmlns="http://www.w3.org/1999/xhtml" class="board-line-diplo-icone" style="-webkit-mask-image: url('${url}'); mask-image: url('${url}');"></div>
     </foreignObject>`;
 }
 
@@ -3827,7 +3842,7 @@ function desenharLinhasBoard() {
         const { d, mx, my } = caminhoCardeal(ea, eb);
         const cor = corDip[rel.status] || 'var(--texto-mutado)';
         paths += `<path class="board-line board-line-diplomacia" d="${d}" style="stroke: ${cor}; color: ${cor};"></path>`;
-        paths += rotuloIconeDiplomacia(mx, my, rel.status, cor); // ícone (alto desempenho) no lugar do texto
+        paths += rotuloIconeDiplomacia(mx, my, rel.status); // ícone neutro (alto desempenho); a linha carrega a cor
     });
 
     svg.innerHTML = paths;
