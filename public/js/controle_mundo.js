@@ -2895,13 +2895,19 @@ function textHTML(t) {
 
 // Prop (ícone RPG): SVG recolorido via CSS mask + cor por token (--board-accent).
 // scale/rotacao aplicados por transform (layout dinâmico permitido pela Regra 2.5).
+// Lado base do símbolo (px) no zoom 1, escala 1. A escala multiplica este lado (ver propHTML).
+const PROP_LADO_BASE = 48;
 function propHTML(p) {
     const corClasse = CORES_BOARD.includes(p.cor) ? ` board-cor-${p.cor}` : '';
     const nome = ICONES_RPG.includes(p.icone) ? p.icone : 'shield'; // defensivo (Regra 4.2)
     const url = `/icons/rpg/${encodeURIComponent(nome)}.svg`;
     const scale = Math.min(5, Math.max(0.2, p.scale || 1));
     const rot = Math.min(360, Math.max(0, p.rotacao || 0));
-    return `<div class="board-prop${corClasse}" data-prop="${escapeHTML(String(p.id))}" style="left: ${Math.round(p.x)}px; top: ${Math.round(p.y)}px; transform: scale(${scale}) rotate(${rot}deg);">
+    // Escala pelo TAMANHO do box (não transform:scale): a caixa de layout passa a coincidir com
+    // o ícone, então o clique cai sempre sobre o símbolo (fim do "pular para o lado") e a linha
+    // (que lê offsetWidth, alheio a transforms) ancora no centro real. Transform carrega só a rotação.
+    const lado = Math.round(PROP_LADO_BASE * scale);
+    return `<div class="board-prop${corClasse}" data-prop="${escapeHTML(String(p.id))}" style="left: ${Math.round(p.x)}px; top: ${Math.round(p.y)}px; width: ${lado}px; height: ${lado}px; transform: rotate(${rot}deg);">
         <span class="board-prop-icone" style="-webkit-mask-image: url('${url}'); mask-image: url('${url}');"></span>
     </div>`;
 }
@@ -3182,8 +3188,12 @@ window.removerPropBoard = function(id) {
     fecharPopover(); // evita popover órfão quando a exclusão vem do editor
     renderBoard();
 };
+// Atualização ao vivo (slider de tamanho/rotação): escala via width/height, rotação via transform.
 function aplicarTransformProp(el, p) {
-    el.style.transform = `scale(${Math.min(5, Math.max(0.2, p.scale || 1))}) rotate(${Math.min(360, Math.max(0, p.rotacao || 0))}deg)`;
+    const lado = Math.round(PROP_LADO_BASE * Math.min(5, Math.max(0.2, p.scale || 1)));
+    el.style.width = lado + 'px';
+    el.style.height = lado + 'px';
+    el.style.transform = `rotate(${Math.min(360, Math.max(0, p.rotacao || 0))}deg)`;
 }
 function ativarInteracoesProps() {
     const world = elBoardWorld(); if (!world) return;

@@ -2506,7 +2506,12 @@ input[type="radio"] {
     line-height: 1.1;
     padding: 2px 4px;
     white-space: pre-wrap;
+    /* Abraça o conteúdo (não estica até 360 à toa) e quebra palavras gigantes sem espaço,
+       impedindo o vazamento da caixa. Sem altura fixa: a altura segue o texto. */
+    width: fit-content;
     max-width: 360px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 .board-world { --board-accent: var(--texto-claro); } /* fallback p/ shapes/texts/props sem token */
 .board-text:hover { outline: 1px dashed var(--borda); }
@@ -2522,14 +2527,20 @@ input[type="radio"] {
     z-index: 1;
     cursor: grab;
     user-select: none;
+    /* Escala vem do TAMANHO do box (width/height inline = 48px × scale), não de transform:scale
+       — assim a caixa de layout = ícone visível (hit-box e âncora de linha corretas em qualquer
+       escala). O transform carrega só a rotação; origin central p/ girar no centro do símbolo.
+       Base 48×48 defensiva (Regra 4.2) caso o inline falte. */
+    width: 48px;
+    height: 48px;
     transform-origin: center;
     /* NÃO redeclarar --board-accent aqui (viria depois de .board-cor-* → prenderia a cor;
        mesma cura de .board-shape/.board-text). Cor via token; fallback em .board-world. */
 }
 .board-prop-icone {
     display: block;
-    width: 48px;
-    height: 48px;
+    width: 100%;
+    height: 100%;
     background-color: var(--board-accent);
     -webkit-mask-repeat: no-repeat;
     mask-repeat: no-repeat;
