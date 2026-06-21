@@ -2608,6 +2608,7 @@ let boardNodesCache = []; // todos os world_nodes (id → nome/tipo para render)
 // Modo Constelação (Fase 14): lente force-directed transitória dos núcleos (read-only).
 let modoConstelacao = false;
 let constelacaoSnapshot = [];   // layout original das células p/ restaurar ao sair
+let constelacaoSnapshotNodes = null; // clone dos nodes (membros) p/ restaurar — anti-espalhamento
 let constelacaoRAF = null;      // id do requestAnimationFrame do loop de física
 let constelacaoFisica = null;   // velocidades {id:{vx,vy}} — vivem só durante o modo (não tocam boardState)
 let celulaArrastandoId = null;  // célula em arrasto ativo → "massa infinita" na física
@@ -3173,23 +3174,25 @@ window.removerCelulaBoard = function(id) {
 // TRANSITÓRIA; o layout salvo é preservado via snapshot). Física hand-rolled (Regra 1 — sem
 // libs). Read-only: nada persiste; sair restaura o snapshot.
 // ============================================
-const FIS_DIST_IDEAL  = 280;   // distância-alvo das molas de diplomacia
-const FIS_REP_DIST    = 320;   // raio de repulsão (Coulomb)
-const FIS_REP_FORCA   = 90000; // intensidade da repulsão
+const FIS_DIST_IDEAL  = 350;   // distância-alvo das molas de diplomacia
+const FIS_REP_DIST    = 600;   // raio de repulsão (magnético, longo alcance)
+const FIS_REP_FORCA   = 4000;  // intensidade da repulsão (inverse-linear: forca/max(dist,10))
 const FIS_MOLA        = 0.015; // rigidez da mola (neutro/inimigo)
 const FIS_MOLA_ALIADO = 0.03;  // aliados puxam mais (distância menor)
 const FIS_GRAV        = 0.01;  // gravidade ao centro (anti-fuga)
-const FIS_ATRITO      = 0.85;  // amortecimento
+const FIS_ATRITO      = 0.90;  // amortecimento menor → mais fluido (desliza mais)
 const FIS_VMAX        = 30;    // teto de velocidade (estabilidade)
 const FIS_PARADA      = 0.4;   // energia média/célula p/ assentar e parar o rAF
 
 window.toggleConstelacao = function() {
     if (!boardAtualId) return mostrarToast('Abra um tabuleiro primeiro.', 'aviso');
     modoConstelacao = !modoConstelacao;
+    elBoardWorld()?.classList.toggle('modo-constelacao', modoConstelacao); // orbes via CSS
     const btn = document.getElementById('btn-constelacao');
     if (modoConstelacao) {
-        // Snapshot do layout original (read-only) e minimiza tudo → grafo de "orbes".
+        // Snapshot do layout original (read-only): células E nodes (membros) p/ restaurar 100%.
         constelacaoSnapshot = (boardState.celulas || []).map(c => ({ id: c.id, x: c.x, y: c.y, w: c.w, h: c.h, minimizada: !!c.minimizada }));
+        constelacaoSnapshotNodes = JSON.parse(JSON.stringify(boardState.nodes)); // clone profundo
         (boardState.celulas || []).forEach(c => { c.minimizada = true; });
         btn && btn.classList.add('ativo');
         renderBoard();                // re-render minimizado (membros somem)
@@ -3199,9 +3202,10 @@ window.toggleConstelacao = function() {
         const snap = {}; constelacaoSnapshot.forEach(s => { snap[String(s.id)] = s; });
         (boardState.celulas || []).forEach(c => {
             const s = snap[String(c.id)]; if (!s) return;
-            c.x = s.x; c.y = s.y; c.w = s.w; c.h = s.h; c.minimizada = s.minimizada; // restaura
+            c.x = s.x; c.y = s.y; c.w = s.w; c.h = s.h; c.minimizada = s.minimizada; // restaura célula
         });
-        constelacaoSnapshot = [];
+        if (constelacaoSnapshotNodes) boardState.nodes = constelacaoSnapshotNodes; // restaura membros
+        constelacaoSnapshot = []; constelacaoSnapshotNodes = null;
         btn && btn.classList.remove('ativo');
         renderBoard();
     }
@@ -3250,7 +3254,7 @@ function tickFisica() {
             const dx = b.x - a.x, dy = b.y - a.y;
             const dist = Math.max(1, Math.hypot(dx, dy));
             if (dist >= FIS_REP_DIST) continue;
-            const f = FIS_REP_FORCA / (dist * dist);
+            const f = FIS_REP_FORCA / Math.max(dist, 10); // inverse-linear → repulsão forte e de longo alcance
             const ux = dx / dist, uy = dy / dist;
             F[a.id].x -= ux * f; F[a.id].y -= uy * f;
             F[b.id].x += ux * f; F[b.id].y += uy * f;
@@ -3309,11 +3313,13 @@ function ativarArrastoCelulas() {
                 const dx = (ev.clientX - sx) / z, dy = (ev.clientY - sy) / z;
                 c.x = Math.round(ox + dx); c.y = Math.round(oy + dy);
                 el.style.left = c.x + 'px'; el.style.top = c.y + 'px';
-                for (const m of membros) {
-                    m.node.x = Math.round(m.ox + dx); m.node.y = Math.round(m.oy + dy);
-                    if (m.el) { m.el.style.left = m.node.x + 'px'; m.el.style.top = m.node.y + 'px'; }
+                if (!modoConstelacao) { // na Constelação arrasta SÓ a célula (membros ficam no lugar p/ o snapshot)
+                    for (const m of membros) {
+                        m.node.x = Math.round(m.ox + dx); m.node.y = Math.round(m.oy + dy);
+                        if (m.el) { m.el.style.left = m.node.x + 'px'; m.el.style.top = m.node.y + 'px'; }
+                    }
                 }
-                desenharLinhasBoard();   // linhas seguem os membros (paridade c/ o arrasto de card)
+                desenharLinhasBoard();   // linhas seguem (paridade c/ o arrasto de card)
             };
             const up = () => {
                 celulaArrastandoId = null; // solta a "massa infinita"
