@@ -825,9 +825,9 @@ window.abrirModalSinapses = async function(nodeId) {
     modal.className = 'modal show';
     modal.id = 'modal-sinapses';
     modal.innerHTML = `
-        <div class="modal-box" style="width: 480px; max-width: 92%; max-height: 85vh; display: flex; flex-direction: column;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                <h3 class="texto-roxo" style="margin: 0; display: flex; align-items: center; gap: 8px;"><i data-lucide="share-2"></i> Conexões — ${escapeHTML(nomeNo)}</h3>
+        <div class="modal-box modal-sinapses-box">
+            <div class="modal-head">
+                <h3 class="texto-roxo modal-titulo"><i data-lucide="share-2"></i> Conexões — ${escapeHTML(nomeNo)}</h3>
                 <div style="display: flex; gap: 6px;">
                     <button class="btn btn-secondary btn-sm" data-id="${escapeHTML(String(nodeId))}" onclick="abrirMapaSinapses(this.dataset.id)" title="Ver Mapa de Sinapses"><i data-lucide="network"></i> Mapa</button>
                     <button class="btn btn-ghost btn-sm" onclick="fecharModalSinapses()" title="Fechar"><i data-lucide="x"></i></button>
@@ -1010,9 +1010,9 @@ window.abrirContratoRelacao = function(linkId) {
     modal.className = 'modal show';
     modal.id = 'modal-contrato';
     modal.innerHTML = `
-        <div class="modal-box" style="width: 440px; max-width: 92%;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-                <h3 class="texto-roxo" style="margin: 0; display: flex; align-items: center; gap: 8px;"><i data-lucide="flame"></i> Contrato de Relação</h3>
+        <div class="modal-box modal-contrato-box">
+            <div class="modal-head">
+                <h3 class="texto-roxo modal-titulo"><i data-lucide="flame"></i> Contrato de Relação</h3>
                 <button class="btn btn-ghost btn-sm" onclick="fecharContrato()" title="Fechar"><i data-lucide="x"></i></button>
             </div>
             <div class="contrato-partes">
@@ -1136,7 +1136,7 @@ window.abrirMapaSinapses = async function(nodeId) {
     modal.innerHTML = `
         <div class="modal-box mapa-sinapses-box">
             <div class="mapa-sinapses-header">
-                <h3 class="texto-roxo" style="margin: 0; display: flex; align-items: center; gap: 8px;"><i data-lucide="network"></i> Mapa de Sinapses</h3>
+                <h3 class="texto-roxo modal-titulo"><i data-lucide="network"></i> Mapa de Sinapses</h3>
                 <button class="btn btn-ghost btn-sm" onclick="fecharMapaSinapses()" title="Fechar"><i data-lucide="x"></i></button>
             </div>
             <div class="no-central">
@@ -2810,8 +2810,8 @@ window.abrirSeletorEntidade = function() {
     modal.id = 'modal-board-entidade';
     modal.innerHTML = `
         <div class="modal-box board-entidade-box">
-            <div class="board-modal-head">
-                <h3 class="texto-roxo board-modal-titulo"><i data-lucide="plus-circle"></i> Adicionar Entidade</h3>
+            <div class="modal-head">
+                <h3 class="texto-roxo modal-titulo"><i data-lucide="plus-circle"></i> Adicionar Entidade</h3>
                 <button class="btn btn-ghost btn-sm" onclick="fecharSeletorEntidade()" title="Fechar"><i data-lucide="x"></i></button>
             </div>
             <input type="text" id="busca-entidade-board" class="input-sm board-entidade-busca" placeholder="Buscar por nome ou tipo..." oninput="filtrarEntidadesBoard(this.value)">
@@ -3175,8 +3175,8 @@ window.abrirSeletorSimbolo = function() {
     modal.id = 'modal-board-simbolo';
     modal.innerHTML = `
         <div class="modal-box board-simbolo-box">
-            <div class="board-modal-head">
-                <h3 class="texto-roxo board-modal-titulo"><i data-lucide="shapes"></i> Adicionar Símbolo</h3>
+            <div class="modal-head">
+                <h3 class="texto-roxo modal-titulo"><i data-lucide="shapes"></i> Adicionar Símbolo</h3>
                 <button class="btn btn-ghost btn-sm" onclick="fecharSeletorSimbolo()" title="Fechar"><i data-lucide="x"></i></button>
             </div>
             <div class="board-simbolo-grid">
