@@ -2901,6 +2901,7 @@ input[type="radio"] {
     z-index: 1;
     display: flex;
     flex-direction: column;
+    user-select: none;   /* como o .board-card: evita seleção/arraste nativo que cancela o ponteiro */
     border: 1px solid var(--board-accent);
     border-radius: 8px;
     background: color-mix(in srgb, var(--board-accent) 7%, var(--bg-card-glass));

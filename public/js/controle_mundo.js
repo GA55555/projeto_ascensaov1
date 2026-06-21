@@ -2708,9 +2708,11 @@ function ativarArrastoCards() {
                 card.classList.remove('dragging');
                 card.removeEventListener('pointermove', onMove);
                 card.removeEventListener('pointerup', onUp);
+                card.removeEventListener('pointercancel', onUp);
             };
             card.addEventListener('pointermove', onMove);
             card.addEventListener('pointerup', onUp);
+            card.addEventListener('pointercancel', onUp); // ponteiro cancelado → solta mesmo assim
         };
         card.ondblclick = (e) => { e.stopPropagation(); abrirEditorNode(card, e); };
         // Dimming seletivo: ao passar o cursor, realça só as linhas ligadas a este card.
@@ -2932,13 +2934,17 @@ function reflowMembrosCelula(c) {
     });
     return membros;
 }
+// Altura exata p/ caber as linhas atuais de membros (cabeçalho + paddings + grade).
+function alturaConteudoCelula(c) {
+    const linhas = Math.max(1, Math.ceil(membrosDaCelula(c.nucleo_id).length / colsDaCelula(c)));
+    return CELULA_HEADER_H + CELULA_PAD * 2 + linhas * MEMBRO_H + (linhas - 1) * MEMBRO_GAP;
+}
 // Importação / "Reorganizar": reflow + cresce a altura p/ caber todas as linhas
 // (nunca encolhe abaixo do tamanho pedido).
 function organizarMembrosNaCelula(c) {
     const membros = reflowMembrosCelula(c);
     if (!membros.length) return;
-    const linhas = Math.ceil(membros.length / colsDaCelula(c));
-    c.h = Math.max(c.h, CELULA_HEADER_H + CELULA_PAD * 2 + linhas * MEMBRO_H + (linhas - 1) * MEMBRO_GAP);
+    c.h = Math.max(c.h, alturaConteudoCelula(c));
 }
 
 function celulaHTML(c) {
@@ -2981,6 +2987,8 @@ window.abrirEditorCelula = function(id, e) {
         <div class="board-popover-info"><i data-lucide="users"></i> ${escapeHTML(nome)} <span class="badge">${total} no tabuleiro</span></div>
         <label>Cor da facção</label>
         <div class="board-cor-grid">${CORES_BOARD.map(swatch).join('')}</div>
+        <label>Largura (<span id="board-celula-larg">${Math.round(c.w)}</span>px)</label>
+        <input type="range" class="board-popover-range" min="${CELULA_MIN_W}" max="1200" step="20" value="${Math.round(c.w)}" oninput="setCelulaLargura('${cid}', this.value)">
         <div class="board-popover-acoes board-popover-acoes--coluna">
             <button class="btn btn-outline btn-sm" onclick="reorganizarCelula('${cid}')"><i data-lucide="layout-grid"></i> Reorganizar em grade</button>
             <button class="btn btn-outline btn-sm" onclick="desimportarCelula('${cid}')"><i data-lucide="package-open"></i> Desimportar (mantém os cards)</button>
@@ -2998,6 +3006,21 @@ window.setCelulaCor = function(id, btn) {
     btn.classList.add('sel');
     const el = document.querySelector(`.board-celula[data-celula="${cssEscape(id)}"]`);
     if (el) { CORES_BOARD.forEach(k => el.classList.remove('board-cor-' + k)); el.classList.add('board-cor-' + c.cor); }
+};
+// Largura via slider do popover: re-flui a grade e ajusta a altura ao conteúdo, ao vivo.
+window.setCelulaLargura = function(id, v) {
+    const c = (boardState.celulas || []).find(x => String(x.id) === String(id)); if (!c) return;
+    c.w = Math.max(CELULA_MIN_W, Math.min(1200, parseInt(v, 10) || CELULA_MIN_W));
+    const membros = reflowMembrosCelula(c);
+    c.h = alturaConteudoCelula(c);
+    const el = document.querySelector(`.board-celula[data-celula="${cssEscape(id)}"]`);
+    if (el) { el.style.width = c.w + 'px'; if (!c.minimizada) el.style.height = c.h + 'px'; }
+    membros.forEach(n => {
+        const cd = document.querySelector(`.board-card[data-node="${cssEscape(n.id)}"]`);
+        if (cd) { cd.style.left = n.x + 'px'; cd.style.top = n.y + 'px'; }
+    });
+    const lbl = document.getElementById('board-celula-larg'); if (lbl) lbl.textContent = c.w;
+    desenharLinhasBoard();
 };
 window.reorganizarCelula = function(id) {
     const c = (boardState.celulas || []).find(x => String(x.id) === String(id)); if (!c) return;
@@ -3063,9 +3086,11 @@ function ativarArrastoCelulas() {
                 membros.forEach(m => m.el && m.el.classList.remove('arrastando-grupo'));
                 el.removeEventListener('pointermove', mv);
                 el.removeEventListener('pointerup', up);
+                el.removeEventListener('pointercancel', up);
             };
             el.addEventListener('pointermove', mv);
             el.addEventListener('pointerup', up);
+            el.addEventListener('pointercancel', up); // navegador cancela o ponteiro → solta mesmo assim
         };
         // Resize pelo canto: muda w/h e RE-FLUI a grade dos membros ao vivo conforme a
         // nova largura (só posiciona; a altura é manual aqui). Leve: aritmética + writes.
@@ -3086,9 +3111,10 @@ function ativarArrastoCelulas() {
                 });
                 desenharLinhasBoard();
             };
-            const up = () => { handle.removeEventListener('pointermove', mv); handle.removeEventListener('pointerup', up); };
+            const up = () => { handle.removeEventListener('pointermove', mv); handle.removeEventListener('pointerup', up); handle.removeEventListener('pointercancel', up); };
             handle.addEventListener('pointermove', mv);
             handle.addEventListener('pointerup', up);
+            handle.addEventListener('pointercancel', up);
         };
     });
 }
@@ -3254,9 +3280,10 @@ function ativarInteracoesShapes() {
                 shape.style.left = s.x + 'px'; shape.style.top = s.y + 'px';
                 desenharLinhasBoard(); // ligações locais seguem a zona
             };
-            const onUp = () => { shape.removeEventListener('pointermove', onMove); shape.removeEventListener('pointerup', onUp); };
+            const onUp = () => { shape.removeEventListener('pointermove', onMove); shape.removeEventListener('pointerup', onUp); shape.removeEventListener('pointercancel', onUp); };
             shape.addEventListener('pointermove', onMove);
             shape.addEventListener('pointerup', onUp);
+            shape.addEventListener('pointercancel', onUp);
         };
         const handle = shape.querySelector('.board-shape-resize');
         if (handle) handle.onpointerdown = (e) => {
@@ -3270,9 +3297,10 @@ function ativarInteracoesShapes() {
                 s.h = Math.max(60, Math.round(oh + (ev.clientY - sy) / z));
                 shape.style.width = s.w + 'px'; shape.style.height = s.h + 'px';
             };
-            const onUp = () => { handle.removeEventListener('pointermove', onMove); handle.removeEventListener('pointerup', onUp); };
+            const onUp = () => { handle.removeEventListener('pointermove', onMove); handle.removeEventListener('pointerup', onUp); handle.removeEventListener('pointercancel', onUp); };
             handle.addEventListener('pointermove', onMove);
             handle.addEventListener('pointerup', onUp);
+            handle.addEventListener('pointercancel', onUp);
         };
         const label = shape.querySelector('.board-shape-label');
         if (label) label.ondblclick = (e) => { e.stopPropagation(); renomearZona(s.id); };
@@ -3311,9 +3339,10 @@ function arrastarPorPonteiro(el, obj, onDrag, conectavel) {
             el.style.left = obj.x + 'px'; el.style.top = obj.y + 'px';
             if (onDrag) onDrag();
         };
-        const up = () => { el.removeEventListener('pointermove', mv); el.removeEventListener('pointerup', up); };
+        const up = () => { el.removeEventListener('pointermove', mv); el.removeEventListener('pointerup', up); el.removeEventListener('pointercancel', up); };
         el.addEventListener('pointermove', mv);
         el.addEventListener('pointerup', up);
+        el.addEventListener('pointercancel', up);
     };
 }
 
