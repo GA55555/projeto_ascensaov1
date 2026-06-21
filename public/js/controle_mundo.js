@@ -3458,19 +3458,24 @@ function cssEscape(v) {
 function posicionarPopover(pop, e, anchorEl) {
     const canvas = elBoardCanvas();
     if (!canvas) return;
-    const cr = canvas.getBoundingClientRect();
-    const cw = canvas.clientWidth, ch = canvas.clientHeight;
-    const pw = pop.offsetWidth || 224, ph = pop.offsetHeight || 220;
+    // :root { zoom: 1.33 } → getBoundingClientRect()/clientX devolvem px VISUAIS (já × zoom), mas
+    // style.left/top de um filho do canvas (que está no doc com zoom) é RE-escalado pelo navegador.
+    // Dividir os deltas visuais pelo zoom casa com o espaço de layout (offsetWidth/clientWidth já
+    // vêm sem zoom). Sem isto o popover "foge" proporcional à distância da origem. Ver tooltip hover.
+    const zoom = parseFloat(getComputedStyle(document.documentElement).zoom) || 1;
+    const cr = canvas.getBoundingClientRect();                 // px visuais
+    const cw = canvas.clientWidth, ch = canvas.clientHeight;   // px de layout (sem zoom)
+    const pw = pop.offsetWidth || 224, ph = pop.offsetHeight || 220; // px de layout
     let x, y;
     if (anchorEl) {
         const ar = anchorEl.getBoundingClientRect();
-        const right = ar.right - cr.left, left = ar.left - cr.left;
+        const right = (ar.right - cr.left) / zoom, left = (ar.left - cr.left) / zoom;
         x = right + 8;                            // lateral direita do elemento
         if (x + pw + 8 > cw) x = left - pw - 8;   // sem espaço à direita → à esquerda
-        y = ar.top - cr.top;
+        y = (ar.top - cr.top) / zoom;
     } else {
-        x = e ? e.clientX - cr.left : (cw - pw) / 2;
-        y = e ? e.clientY - cr.top : (ch - ph) / 2;
+        x = e ? (e.clientX - cr.left) / zoom : (cw - pw) / 2;
+        y = e ? (e.clientY - cr.top) / zoom : (ch - ph) / 2;
     }
     x = Math.max(8, Math.min(x, cw - pw - 8));
     y = Math.max(8, Math.min(y, ch - ph - 8));
