@@ -3759,6 +3759,19 @@ function caminhoCardeal(elA, elB) {
              mx: (p1.x + p2.x) / 2, my: (p1.y + p2.y) / 2 };
 }
 
+// Rótulo da linha de diplomacia como ÍCONE de alto desempenho. Ícones do catálogo
+// ICONES_RPG (já em /public/icons/rpg/). Renderizado como <foreignObject> + máscara CSS
+// (mesma técnica do propHTML), pintado pela cor do status. NÃO usa lucide.createIcons():
+// é só string concatenada no SVG, então redesenha a 60fps no arrasto sem varrer o DOM.
+const ICONE_DIPLOMACIA = { aliado: 'shield', inimigo: 'crossed-swords', neutro: 'all-seeing-eye' };
+function rotuloIconeDiplomacia(mx, my, status, cor) {
+    const nome = ICONE_DIPLOMACIA[status] || ICONE_DIPLOMACIA.neutro;
+    const url = `/icons/rpg/${encodeURIComponent(nome)}.svg`;
+    return `<foreignObject x="${Math.round(mx) - 12}" y="${Math.round(my) - 12}" width="24" height="24">
+        <div xmlns="http://www.w3.org/1999/xhtml" class="board-line-diplo-icone" style="background-color: ${cor}; -webkit-mask-image: url('${url}'); mask-image: url('${url}');"></div>
+    </foreignObject>`;
+}
+
 // Desenha world_links (entre cards) E localLinks (entre zonas/props) — ambos em Bézier
 // cardeal (Fatia 4). Caminho duplo: hit transparente largo (clicável) + linha visível.
 // Cor/dash/rótulo data-driven; rótulo (<text>) no ponto médio do caminho.
@@ -3774,7 +3787,9 @@ function desenharLinhasBoard() {
     world.querySelectorAll('.board-card').forEach(c => { cardEl[String(c.dataset.node)] = c; });
     boardLinks.forEach(lk => {
         const ca = cardEl[lk.a], cb = cardEl[lk.b];
-        if (!ca || !cb) return;
+        // offsetParent === null ⇒ card oculto (membro de núcleo minimizado, is-membro-oculto):
+        // offsets zeram e a linha voaria para (0,0). Não desenha linha para card invisível.
+        if (!ca || !cb || ca.offsetParent === null || cb.offsetParent === null) return;
         const { d, mx, my } = caminhoCardeal(ca, cb);
         const key = chaveLinha(lk.a, lk.b);
         const ov = boardState.overrides_linhas[key] || {};
@@ -3812,7 +3827,7 @@ function desenharLinhasBoard() {
         const { d, mx, my } = caminhoCardeal(ea, eb);
         const cor = corDip[rel.status] || 'var(--texto-mutado)';
         paths += `<path class="board-line board-line-diplomacia" d="${d}" style="stroke: ${cor}; color: ${cor};"></path>`;
-        paths += rotulo(mx, my, STATUS_DIP[rel.status] || rel.status);
+        paths += rotuloIconeDiplomacia(mx, my, rel.status, cor); // ícone (alto desempenho) no lugar do texto
     });
 
     svg.innerHTML = paths;
