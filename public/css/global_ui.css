@@ -2677,10 +2677,12 @@ input[type="radio"] {
 /* Diplomacia (Fase 14): macro-link entre Células. Visível por padrão (sem hover de card
    que a acenda), traço médio + halo na cor do status (color = stroke, via inline). Read-only. */
 .board-line-diplomacia { stroke-width: 3; opacity: 0.85; filter: drop-shadow(0 0 2.5px currentColor); }
-/* Ícone do status no meio da linha (foreignObject + máscara, pintado pela cor; sem lucide). */
+/* Ícone do status no meio da linha (foreignObject + máscara, sem lucide).
+   Cor "natural" (clara) e tamanho aqui — a LINHA carrega a cor do status. */
 .board-line-diplo-icone {
-    width: 24px;
-    height: 24px;
+    width: 32px;
+    height: 32px;
+    background-color: var(--texto-claro);
     pointer-events: none;
     -webkit-mask-size: contain; mask-size: contain;
     -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
