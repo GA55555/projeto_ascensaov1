@@ -151,8 +151,8 @@
     
     <!-- Forjar Entidade -->
     <div id="modal-forja" class="modal">
-        <div class="modal-box" style="width: 450px; max-height: 85vh;">
-            <h3 class="texto-destaque" style="margin-top: 0;"><i data-lucide="hammer"></i> Forjar Nova Entidade</h3>
+        <div class="modal-box modal-box-md">
+            <h3 class="texto-destaque"><i data-lucide="hammer"></i> Forjar Nova Entidade</h3>
             <label>Nome</label>
             <input type="text" id="forja-nome" placeholder="Ex: Guarda da Cidade">
             <label>Categoria</label>
@@ -167,7 +167,7 @@
             <select id="forja-nucleo">
             <option value="">Nenhum</option>
             </select>
-            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+            <div class="modal-acoes">
                 <button class="btn btn-outline" onclick="fecharModal('modal-forja')">Cancelar</button>
                 <button class="btn btn-primary" onclick="salvarForja()">Criar</button>
             </div>
@@ -176,17 +176,17 @@
 
     <!-- Forjar Evento -->
     <div id="modal-evento" class="modal">
-        <div class="modal-box" style="width: 450px; max-height: 85vh;">
-            <h3 class="texto-destaque" style="margin-top: 0;"><i data-lucide="calendar-plus"></i> Forjar Novo Evento</h3>
+        <div class="modal-box modal-box-md">
+            <h3 class="texto-destaque"><i data-lucide="calendar-plus"></i> Forjar Novo Evento</h3>
             <label>Nome do Evento</label>
             <input type="text" id="evento-nome" placeholder="Ex: A Chegada da Tempestade">
             <label>Descrição</label>
             <textarea id="evento-descricao" rows="3" placeholder="O que acontece quando a pool atingir o máximo..."></textarea>
             <label>Pool Máxima</label>
             <label>Núcleos (opcional, segure Ctrl para múltiplos)</label>
-            <select id="evento-nucleos" multiple style="height: 100px; margin-bottom: 10px;"></select>
+            <select id="evento-nucleos" multiple class="select-multi"></select>
             <input type="number" id="evento-pool" value="10" min="1">
-            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+            <div class="modal-acoes">
                 <button class="btn btn-outline" onclick="fecharModal('modal-evento')">Cancelar</button>
                 <button class="btn btn-primary" onclick="salvarEvento()">Criar</button>
             </div>
@@ -195,8 +195,8 @@
 
     <!-- Vincular Marco ao Evento -->
     <div id="modal-vinculo" class="modal">
-        <div class="modal-box" style="width: 450px; max-height: 85vh;">
-            <h3 class="texto-destaque" style="margin-top: 0;"><i data-lucide="link"></i> Vincular Causa ao Evento</h3>
+        <div class="modal-box modal-box-md">
+            <h3 class="texto-destaque"><i data-lucide="link"></i> Vincular Causa ao Evento</h3>
             <input type="hidden" id="vinculo-event-id">
             <label>Entidade (Nó)</label>
             <select id="vinculo-node-id" onchange="atualizarFlagsVinculo()"></select>
@@ -204,7 +204,7 @@
             <select id="vinculo-flag-key"><option value="">Selecione um nó primeiro...</option></select>
             <label>Peso</label>
             <input type="number" id="vinculo-peso" value="1" min="1">
-            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+            <div class="modal-acoes">
                 <button class="btn btn-outline" onclick="fecharModal('modal-vinculo')">Cancelar</button>
                 <button class="btn btn-primary" onclick="salvarVinculo()">Vincular</button>
             </div>
@@ -212,14 +212,14 @@
     </div>
     <!-- Modal Gerenciar Núcleos -->
     <div id="modal-nucleos" class="modal">
-        <div class="modal-box" style="width: 450px; max-height: 85vh;">
-            <h3 id="modal-nucleos-titulo" class="texto-destaque" style="margin-top: 0;">Gerenciar Núcleos</h3>
-            <div id="lista-nucleos" style="max-height: 300px; overflow-y: auto; margin-bottom: 15px;"></div>
-            <div style="display: flex; gap: 10px;">
-                <input type="text" id="novo-nucleo-nome" placeholder="Nome do novo núcleo" style="flex: 1;">
+        <div class="modal-box modal-box-md">
+            <h3 id="modal-nucleos-titulo" class="texto-destaque">Gerenciar Núcleos</h3>
+            <div id="lista-nucleos" class="modal-lista"></div>
+            <div class="modal-linha">
+                <input type="text" id="novo-nucleo-nome" placeholder="Nome do novo núcleo">
                 <button class="btn btn-primary btn-sm" onclick="criarNucleo()">+ Criar</button>
             </div>
-            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px;">
+            <div class="modal-acoes">
                 <button class="btn btn-outline" onclick="fecharModal('modal-nucleos')">Fechar</button>
             </div>
         </div>
@@ -227,11 +227,11 @@
     <!-- Modal Editar Núcleos do Evento -->
     
     <div id="modal-nucleos-evento" class="modal">
-    <div class="modal-box">
+    <div class="modal-box modal-box-md">
         <h3 class="texto-destaque">Editar Núcleos do Evento</h3>
-        <div id="lista-nucleos-evento" style="max-height: 300px; overflow-y: auto; margin-bottom: 15px;"></div>
+        <div id="lista-nucleos-evento" class="modal-lista"></div>
         <input type="hidden" id="nucleos-evento-id">
-        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+        <div class="modal-acoes">
             <button class="btn btn-outline" onclick="fecharModal('modal-nucleos-evento')">Cancelar</button>
             <button class="btn btn-primary" onclick="salvarNucleosEvento()">Salvar</button>
         </div>
@@ -239,11 +239,11 @@
     </div>
     <!-- Modal Mover Entidade de Núcleo -->
     <div id="modal-mover-nucleo" class="modal">
-        <div class="modal-box" style="width: 450px; max-height: 85vh;">
+        <div class="modal-box modal-box-md">
             <h3 class="texto-destaque">Mover Entidade para Núcleo</h3>
-            <div id="lista-nucleos-mover" style="max-height: 300px; overflow-y: auto; margin-bottom: 15px;"></div>
+            <div id="lista-nucleos-mover" class="modal-lista"></div>
             <input type="hidden" id="mover-node-id">
-            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+            <div class="modal-acoes">
                 <button class="btn btn-outline" onclick="fecharModal('modal-mover-nucleo')">Cancelar</button>
                 <button class="btn btn-primary" onclick="salvarMoverNucleo()">Salvar</button>
             </div>
@@ -251,14 +251,14 @@
     </div>
     <!-- Modal automação -->
      <div id="modal-automacao" class="modal">
-        <div class="modal-box" style="width: 450px; max-height: 85vh;">
-            <h3 class="texto-destaque" style="margin-top: 0;"><i data-lucide="zap"></i> Forjar Automação</h3>
+        <div class="modal-box modal-box-md">
+            <h3 class="texto-destaque"><i data-lucide="zap"></i> Forjar Automação</h3>
 
-            <label class="texto-roxo" style="font-weight: bold;">Gatilho (Quando isso acontecer...)</label>
+            <label class="texto-roxo modal-label-forte">Gatilho (Quando isso acontecer...)</label>
             <label>Selecione o Evento que vai engatilhar a ação:</label>
             <select id="auto-evento-id"></select>
 
-            <label class="texto-roxo" style="font-weight: bold; margin-top: 15px;">Ação (...faça isso automaticamente)</label>
+            <label class="texto-roxo modal-label-forte">Ação (...faça isso automaticamente)</label>
             <label>Qual tipo de ação o sistema executará?</label>
             <select id="auto-tipo" onchange="renderizarCamposAutomacao()">
             <option value="">Selecione uma ação...</option>
@@ -269,10 +269,10 @@
             <option value="criar_entidade">Criar Entidade</option>
             </select>
 
-            <div id="auto-campos-dinamicos" style="margin-top: 15px; padding: 15px; background: rgba(0,0,0,0.2); border: 1px dashed var(--borda); border-radius: 4px; display: none;">
+            <div id="auto-campos-dinamicos" class="modal-automacao-campos">
             </div>
 
-            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+            <div class="modal-acoes">
                 <button class="btn btn-outline" onclick="fecharModal('modal-automacao')">Cancelar</button>
                 <button id="btn-salvar-automacao" class="btn btn-primary" onclick="salvarAutomacao()">Salvar Automação</button>
             </div>
@@ -281,7 +281,7 @@
 
 <!-- Modal de Criação/Edição de Sessão -->
 <div id="modal-sessao" class="modal">
-    <div class="modal-box">
+    <div class="modal-box modal-box-md">
         <h3 id="modal-sessao-titulo" class="texto-roxo">Nova Sessão</h3>
         <label>Núcleo (Organização)</label>
         <select id="sessao-nucleo-id">
@@ -293,7 +293,7 @@
         <label>Data</label>
         <input type="date" id="sessao-data">
         <label>Resumo</label>
-        <textarea id="sessao-resumo" rows="3" wrap="soft" style="word-wrap: break-word; overflow-wrap: break-word;"></textarea>
+        <textarea id="sessao-resumo" rows="3" wrap="soft"></textarea>
         <label>Status</label>
         <select id="sessao-status">
             <option value="planejada">Planejada</option>
@@ -302,23 +302,23 @@
         </select>
 
         <!-- Seção de Vínculos (agora FORA do select) -->
-        <details style="margin-top: 15px;">
-            <summary style="cursor: pointer; color: var(--roxo-mago);"><i data-lucide="link"></i> Vínculos Narrativos</summary>
+        <details class="modal-detalhes">
+            <summary><i data-lucide="link"></i> Vínculos Narrativos</summary>
 
             <label>Entidades</label>
-            <div id="sessao-entidades" style="max-height: 150px; overflow-y: auto; border: 1px solid var(--borda); padding: 8px; border-radius: 4px;"></div>
+            <div id="sessao-entidades" class="modal-vinculo-lista"></div>
 
             <label>Eventos</label>
-            <div id="sessao-eventos" style="max-height: 150px; overflow-y: auto; border: 1px solid var(--borda); padding: 8px; border-radius: 4px;"></div>
+            <div id="sessao-eventos" class="modal-vinculo-lista"></div>
 
             <label>Automações</label>
-            <div id="sessao-automacoes" style="max-height: 150px; overflow-y: auto; border: 1px solid var(--borda); padding: 8px; border-radius: 4px;"></div>
+            <div id="sessao-automacoes" class="modal-vinculo-lista"></div>
 
             <label>Desfechos (um por linha)</label>
             <textarea id="sessao-desfechos" rows="3" placeholder="Digite um desfecho por linha..."></textarea>
         </details>
 
-        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+        <div class="modal-acoes">
             <button class="btn btn-outline" onclick="fecharModal('modal-sessao')">Cancelar</button>
             <button class="btn btn-primary" onclick="salvarSessao()">Salvar</button>
         </div>
