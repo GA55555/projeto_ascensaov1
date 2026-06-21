@@ -3020,6 +3020,31 @@ input[type="radio"] {
 .board-celula.arrastando-grupo,
 .board-card.arrastando-grupo { opacity: 0.6; }
 
+/* ── MODO CONSTELAÇÃO: a Célula vira um "orbe" mágico (círculo) ──────────────
+   Só o nome, borda + brilho na cor da facção (--board-accent). Esconde ícone e
+   botões do cabeçalho. !important sobrepõe a largura inline (data-driven). */
+.modo-constelacao .board-celula {
+    width: 140px !important;
+    height: 140px !important;
+    border-radius: 50% !important;
+    padding: 10px;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    border: 3px solid var(--board-accent) !important;
+    background: var(--bg-principal) !important;
+    box-shadow: 0 0 15px var(--board-accent);
+}
+.modo-constelacao .board-celula-header {
+    width: 100%;
+    height: auto;
+    padding: 0;
+    background: transparent;
+}
+.modo-constelacao .board-celula-icone,
+.modo-constelacao .board-celula-btn { display: none !important; }
+.modo-constelacao .board-celula-nome { white-space: normal; font-size: 14px; }
+
 /* Coerência 16-bit: bordas retas + numerais pixelados. */
 .tema-pixel-16bit .board-toolbar,
 .tema-pixel-16bit .board-canvas,
