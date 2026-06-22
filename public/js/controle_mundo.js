@@ -2536,10 +2536,10 @@ const ICONES_RPG = [
 window.abrirModalDiplomacia = async function() {
     if (nucleosCache.entidade.length === 0) await carregarNucleos('entidade');
     diplomaciaCache = await MundoApi.getDiplomacia(cronicaId); // tolerante a backend ausente (→ [])
-    const opts = nucleosCache.entidade.map(n => `<option value="${escapeHTML(String(n.id))}">${escapeHTML(n.nome)}</option>`).join('');
-    const selA = document.getElementById('dip-nucleo-a'), selB = document.getElementById('dip-nucleo-b');
-    if (selA) selA.innerHTML = opts;
-    if (selB) selB.innerHTML = opts;
+    // Popula só o select de Foco; o resto (lista + formulário) é por facção em foco.
+    const foco = document.getElementById('dip-foco');
+    if (foco) foco.innerHTML = '<option value="">— Selecione uma facção —</option>'
+        + nucleosCache.entidade.map(n => `<option value="${escapeHTML(String(n.id))}">${escapeHTML(n.nome)}</option>`).join('');
     renderizarListaDiplomacia();
     abrirModal('modal-diplomacia');
 };
@@ -2549,29 +2549,56 @@ function nomeNucleoDip(id) {
     return n ? n.nome : '—';
 }
 
+// Visão Centrada: mostra só as relações da facção em foco + monta o formulário em andares
+// (A = foco herdado). Sem foco → lista vazia e formulário oculto (.diplomacia-andares:empty).
 function renderizarListaDiplomacia() {
-    const div = document.getElementById('lista-diplomacia');
-    if (!div) return;
-    const grupos = ['aliado', 'inimigo', 'neutro'].map(st => {
-        const rels = diplomaciaCache.filter(r => r.status === st);
-        if (!rels.length) return '';
-        return `<div class="diplomacia-grupo diplomacia-grupo--${st}">
-            <div class="diplomacia-grupo-titulo">${STATUS_DIP[st]}</div>
-            ${rels.map(r => `<div class="diplomacia-linha">
-                <span class="diplomacia-par">${escapeHTML(nomeNucleoDip(r.nucleoA))} <i data-lucide="arrow-left-right"></i> ${escapeHTML(nomeNucleoDip(r.nucleoB))}</span>
+    const focoId = document.getElementById('dip-foco')?.value || '';
+    const lista = document.getElementById('lista-diplomacia');
+    const form = document.getElementById('form-diplomacia-andares');
+    if (!lista || !form) return;
+    if (!focoId) {
+        lista.innerHTML = '<div class="info-block-vazio">Selecione uma facção para ver e definir as suas relações.</div>';
+        form.innerHTML = '';
+        return;
+    }
+    const rels = diplomaciaCache.filter(r => String(r.nucleoA) === focoId || String(r.nucleoB) === focoId);
+    lista.innerHTML = rels.length
+        ? rels.map(r => {
+            const outroId = String(r.nucleoA) === focoId ? r.nucleoB : r.nucleoA;
+            return `<div class="diplomacia-linha diplomacia-grupo--${r.status}">
+                <span class="diplomacia-par"><i data-lucide="arrow-left-right"></i> ${escapeHTML(nomeNucleoDip(outroId))}</span>
+                <span class="badge">${STATUS_DIP[r.status] || r.status}</span>
                 <button class="btn btn-ghost btn-sm diplomacia-remover" title="Remover" onclick="removerDiplomacia('${escapeHTML(String(r.id))}')"><i data-lucide="x"></i></button>
-            </div>`).join('')}
-        </div>`;
-    }).join('');
-    div.innerHTML = grupos || '<div class="info-block-vazio">Nenhuma relação definida.</div>';
+            </div>`;
+        }).join('')
+        : '<div class="info-block-vazio">Esta facção ainda não tem relações.</div>';
+    // Formulário em andares: Status + Outra facção (B) + Adicionar. A vem do Foco.
+    const outras = nucleosCache.entidade.filter(n => String(n.id) !== focoId);
+    form.innerHTML = `
+        <div class="diplomacia-andar">
+            <label>Status</label>
+            <select id="dip-status" class="input-full">
+                <option value="aliado">Aliados</option>
+                <option value="inimigo">Inimigos</option>
+                <option value="neutro">Neutros</option>
+            </select>
+        </div>
+        <div class="diplomacia-andar">
+            <label>Com a facção</label>
+            <select id="dip-nucleo-b" class="input-full">
+                ${outras.map(n => `<option value="${escapeHTML(String(n.id))}">${escapeHTML(n.nome)}</option>`).join('')}
+            </select>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="adicionarDiplomacia()"><i data-lucide="plus"></i> Adicionar relação</button>`;
     lucide.createIcons();
 }
 
 window.adicionarDiplomacia = async function() {
-    const a = document.getElementById('dip-nucleo-a')?.value;
+    const a = document.getElementById('dip-foco')?.value;        // facção em foco (herdada)
     const b = document.getElementById('dip-nucleo-b')?.value;
     const status = document.getElementById('dip-status')?.value;
-    if (!a || !b) return mostrarToast('Selecione os dois núcleos.', 'aviso');
+    if (!a) return mostrarToast('Selecione a facção em foco.', 'aviso');
+    if (!b) return mostrarToast('Selecione a outra facção.', 'aviso');
     if (a === b) return mostrarToast('Um núcleo não pode ter relação consigo mesmo.', 'aviso');
     // Par já existe (em qualquer ordem)? então só troca o status; senão, cria.
     const existente = diplomaciaCache.find(r =>
