@@ -2746,6 +2746,40 @@ input[type="radio"] {
 }
 .board-linhas-ocultas .board-svg { display: none; }
 
+/* ── QUADRO DE DETETIVE (FASE 15 F3) — Nó de Evento ("documento pregado") ────
+   Forma RETANGULAR com sombra 3D (offset + difusa), distinta dos cards (glass arredondado) e
+   das células (orbe). Faixa lateral âmbar + título serifado reforçam o "acontecimento/papel".
+   Derivado/read-only do cache de eventos; posições auto (centroide dos gatilhos). z-index 2
+   (sob os cards de pessoas, sobre zonas/células). */
+.board-evento {
+    position: absolute;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 168px;
+    padding: 8px 10px;
+    --board-accent: var(--aviso);
+    background: var(--bg-card);
+    border: 1px solid var(--board-accent);
+    border-left: 4px solid var(--board-accent);
+    border-radius: 3px;
+    box-shadow: 3px 3px 0 var(--sombra), 0 8px 20px var(--sombra-profunda); /* 3D "papel pregado" */
+    user-select: none;
+    cursor: default;
+}
+.board-evento-icone { width: 22px; height: 22px; color: var(--board-accent); flex-shrink: 0; }
+.board-evento-nome {
+    font-family: 'Cormorant Garamond', serif; /* título = serifada (Regra 2.5) — distingue dos cards (Manrope) */
+    font-weight: 600;
+    font-size: 15px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+/* Fio evento→nó-gatilho: tracejado âmbar, distinto dos world_links (sólido) e da diplomacia. */
+.board-line-evento { stroke: var(--aviso); stroke-dasharray: 4 5; opacity: 0.6; }
+
 /* Popover de edição (linha ou nó) — ancorado ao canvas (fora do transform). */
 .board-popover {
     position: absolute;

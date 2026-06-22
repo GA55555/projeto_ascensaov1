@@ -2782,7 +2782,8 @@ function renderBoard() {
     const shapes = boardState.shapes.map(shapeHTML).join(''); // zonas (z-index 1, sob os cards)
     const props = boardState.props.map(propHTML).join('');     // ícones RPG (z-index 1)
     const texts = boardState.texts.map(textHTML).join('');     // textos flutuantes (z-index 3)
-    const corpo = celulas + shapes + props + texts + cards;
+    const eventos = eventosBoardOverlayHTML();                 // Quadro de Detetive (F3): documentos (z-index 2, derivado/read-only)
+    const corpo = celulas + shapes + props + eventos + texts + cards;
     world.innerHTML = '<svg class="board-svg"></svg>' + (corpo || '<div class="board-vazio info-block-vazio">Tabuleiro vazio. Use “+ Entidade” ou “+ Zona” para começar.</div>');
     aplicarCamera();
     lucide.createIcons();
@@ -2880,7 +2881,7 @@ window.aplicarFocoBoard = function(termo) {
     focoTermo = String(termo || '').trim().toLowerCase();
     const world = elBoardWorld();
     if (!world) return;
-    if (focoTermo) desligarMapaCalor(); // lentes exclusivas na v1
+    if (focoTermo) { desligarMapaCalor(); desligarQuadroDetetive(); } // lentes exclusivas na v1
     if (!focoTermo) {
         focoSet = null;
         world.classList.remove('modo-foco');
@@ -3025,6 +3026,7 @@ window.toggleMapaCalor = function() {
         // Lentes não se sobrepõem na v1: sai da Lente de Destaque e da Constelação.
         const bf = document.getElementById('board-busca-foco'); if (bf) bf.value = '';
         focoTermo = ''; focoSet = null; world.classList.remove('modo-foco');
+        desligarQuadroDetetive();
         if (modoConstelacao) toggleConstelacao(); // restaura layout + desliga a Constelação
         world.classList.add('modo-calor');
         document.getElementById('btn-mapa-calor')?.classList.add('ativo');
@@ -3035,6 +3037,78 @@ window.toggleMapaCalor = function() {
         document.getElementById('btn-mapa-calor')?.classList.remove('ativo');
         limparCalorBoard();
         desenharLinhasBoard(); // re-ancora nas dimensões originais
+    }
+};
+
+// ── QUADRO DE DETETIVE (FASE 15 F3) — Nós de Evento ─────────────────────────
+// Lente que sobrepõe os EVENTOS como "documentos" pregados no tabuleiro e puxa os fios até
+// os nós-gatilho (gatilho.node_id). DERIVADA/READ-ONLY do cache de eventos (Mundo é a fonte
+// da verdade) — NÃO persiste em boardState. Posições AUTO = centroide dos gatilhos presentes
+// no board. Sair restaura o board (Regra 7). Espelha o auto-draw da diplomacia.
+let quadroDetetive = false;
+let eventosBoardCache = []; // [{id, nome, gatilhos:[{node_id,...}], ...}] — carregado lazy na lente
+const EVENTO_OFFSET_Y = 90, EVENTO_SPREAD = 18; // documento acima do cluster; leque anti-stack
+
+// Posição auto = centroide dos centros dos nós-gatilho no board, elevado e com leve leque por
+// índice (evita stack de eventos co-gatilho). null = nenhum gatilho no board → não desenha.
+function posicaoEventoBoard(ev, idx) {
+    const ids = new Set((ev.gatilhos || []).map(g => String(g.node_id)));
+    const alvos = boardState.nodes.filter(n => ids.has(String(n.id)));
+    if (!alvos.length) return null;
+    let sx = 0, sy = 0;
+    alvos.forEach(n => { sx += n.x; sy += n.y; });
+    return { x: Math.round(sx / alvos.length + idx * EVENTO_SPREAD),
+             y: Math.round(sy / alvos.length - EVENTO_OFFSET_Y + idx * EVENTO_SPREAD) };
+}
+
+function eventoBoardHTML(ev, pos) {
+    return `<div class="board-evento" data-evento="${escapeHTML(String(ev.id))}" style="left: ${pos.x}px; top: ${pos.y}px;">
+        <i data-lucide="scroll-text" class="board-evento-icone"></i>
+        <span class="board-evento-nome" title="${escapeHTML(ev.nome || 'Evento')}">${escapeHTML(ev.nome || 'Evento')}</span>
+    </div>`;
+}
+
+// Overlay derivado: só eventos com ≥1 gatilho no board (do contrário não há fio a investigar).
+function eventosBoardOverlayHTML() {
+    if (!quadroDetetive) return '';
+    return eventosBoardCache.map((ev, i) => {
+        const pos = posicaoEventoBoard(ev, i);
+        return pos ? eventoBoardHTML(ev, pos) : '';
+    }).join('');
+}
+
+function desligarQuadroDetetive() {
+    if (!quadroDetetive) return;
+    quadroDetetive = false;
+    document.getElementById('btn-quadro-detetive')?.classList.remove('ativo');
+    eventosBoardCache = [];
+    renderBoard();
+}
+
+window.toggleQuadroDetetive = async function() {
+    if (!boardAtualId) return mostrarToast('Abra um tabuleiro primeiro.', 'aviso');
+    const world = elBoardWorld();
+    if (!world) return;
+    quadroDetetive = !quadroDetetive;
+    const btn = document.getElementById('btn-quadro-detetive');
+    if (quadroDetetive) {
+        // Lentes exclusivas na v1: sai de Foco, Calor e Constelação.
+        const bf = document.getElementById('board-busca-foco'); if (bf) bf.value = '';
+        focoTermo = ''; focoSet = null; world.classList.remove('modo-foco');
+        desligarMapaCalor();
+        if (modoConstelacao) toggleConstelacao();
+        try { eventosBoardCache = await EventosApi.getEventos(cronicaId); } // lazy (Regra 2.3)
+        catch (e) { eventosBoardCache = []; mostrarToast('Erro ao carregar eventos.', 'erro'); }
+        eventosBoardCache.forEach(ev => { // gatilhos defensivo (podem vir como string)
+            if (typeof ev.gatilhos === 'string') { try { ev.gatilhos = JSON.parse(ev.gatilhos); } catch (_) { ev.gatilhos = []; } }
+            if (!Array.isArray(ev.gatilhos)) ev.gatilhos = [];
+        });
+        btn && btn.classList.add('ativo');
+        renderBoard(); // injeta o overlay de eventos + fios (gated por quadroDetetive)
+    } else {
+        btn && btn.classList.remove('ativo');
+        eventosBoardCache = [];
+        renderBoard();
     }
 };
 
@@ -3073,7 +3147,7 @@ function ativarPanZoom() {
     }, true);
     canvas.addEventListener('pointerdown', (e) => {
         if (!boardAtualId || e.button !== 0) return;
-        if (e.target.closest('.board-card, .board-celula, .board-shape, .board-prop, .board-text, .board-line-hit, .board-popover')) return; // não panja sobre elementos
+        if (e.target.closest('.board-card, .board-celula, .board-shape, .board-prop, .board-text, .board-evento, .board-line-hit, .board-popover')) return; // não panja sobre elementos
         // clique no fundo: cancela o modo de conexão pendente.
         if (conectandoDe) { conectandoDe = null; canvas.classList.remove('conectando'); }
         boardPan = { sx: e.clientX, sy: e.clientY, ox: boardState.camera.x, oy: boardState.camera.y };
@@ -3411,6 +3485,7 @@ window.toggleConstelacao = function() {
         const bf = document.getElementById('board-busca-foco'); if (bf) bf.value = '';
         focoTermo = ''; focoSet = null; elBoardWorld()?.classList.remove('modo-foco');
         desligarMapaCalor();
+        desligarQuadroDetetive();
         // Snapshot do layout original (read-only): células E nodes (membros) p/ restaurar 100%.
         constelacaoSnapshot = (boardState.celulas || []).map(c => ({ id: c.id, x: c.x, y: c.y, w: c.w, h: c.h, minimizada: !!c.minimizada }));
         constelacaoSnapshotNodes = JSON.parse(JSON.stringify(boardState.nodes)); // clone profundo
@@ -4194,6 +4269,23 @@ function desenharLinhasBoard() {
         paths += `<path class="board-line board-line-diplomacia" d="${d}" style="stroke: ${cor}; color: ${cor};"></path>`;
         paths += rotuloIconeDiplomacia(mx, my, rel.status); // ícone neutro (alto desempenho); a linha carrega a cor
     });
+
+    // Fios do Quadro de Detetive (Fase 15 F3): evento → nós-gatilho. Derivado do
+    // eventosBoardCache (read-only, sem hit clicável). Reusa cardEl (nós já mapeados acima).
+    if (quadroDetetive) {
+        const eventoEl = {};
+        world.querySelectorAll('.board-evento').forEach(el => { eventoEl[String(el.dataset.evento)] = el; });
+        eventosBoardCache.forEach(ev => {
+            const eEv = eventoEl[String(ev.id)];
+            if (!eEv) return; // evento sem gatilho no board não foi renderizado
+            (ev.gatilhos || []).forEach(g => {
+                const eNo = cardEl[String(g.node_id)];
+                if (!eNo || eNo.offsetParent === null) return; // nó ausente/oculto → sem fio
+                const { d } = caminhoCardeal(eEv, eNo);
+                paths += `<path class="board-line board-line-evento" d="${d}"></path>`;
+            });
+        });
+    }
 
     svg.innerHTML = paths;
     // Persiste o destaque do card sob o cursor após qualquer redraw (Ressalva 2 da Fatia 2).
