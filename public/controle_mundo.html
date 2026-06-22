@@ -142,7 +142,6 @@
             <button class="btn btn-secondary btn-sm" onclick="abrirSeletorNucleoBoard()"><i data-lucide="users"></i> Importar Núcleo</button>
             <button class="btn btn-secondary btn-sm" id="btn-constelacao" onclick="toggleConstelacao()" title="Modo Constelação (vista force-directed dos núcleos)"><i data-lucide="network"></i> Constelação</button>
             <button class="btn btn-secondary btn-sm" id="btn-mapa-calor" onclick="toggleMapaCalor()" title="Mapa de Calor: dimensiona cada entidade pela sua influência (conexões + diplomacia)"><i data-lucide="flame"></i> Calor</button>
-            <button class="btn btn-secondary btn-sm" id="btn-quadro-detetive" onclick="toggleQuadroDetetive()" title="Quadro de Detetive: sobrepõe os eventos como documentos e puxa os fios até os nós-gatilho"><i data-lucide="scroll-text"></i> Eventos</button>
             <input type="text" id="board-busca-foco" class="input-busca" placeholder="Farol: focar por nome…" oninput="aplicarFocoBoard(this.value)" title="Lente de Destaque: escurece o resto e realça quem casa o nome + suas conexões">
             <select id="board-fundo-select" class="btn btn-secondary btn-sm" onchange="mudarFundoBoard(this.value)" title="Plano de Fundo da Mesa"><option value="dots">Pontilhado</option><option value="grid">Grade</option><option value="none">Liso</option></select>
             <button class="btn btn-secondary btn-sm" id="board-toggle-linhas" onclick="toggleLinhasBoard(this)" title="Ocultar conexões"><i data-lucide="eye"></i></button>
