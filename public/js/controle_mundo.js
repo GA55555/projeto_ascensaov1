@@ -2791,6 +2791,7 @@ function renderBoard() {
     ativarInteracoesShapes();
     ativarInteracoesProps();
     ativarInteracoesTexts();
+    if (mapaCalor) pintarCalorBoard(); // escala os boxes ANTES das linhas (re-ancoram no tamanho novo)
     desenharLinhasBoard(); // linhas a partir do cache boardLinks + localLinks
 }
 
@@ -2879,6 +2880,7 @@ window.aplicarFocoBoard = function(termo) {
     focoTermo = String(termo || '').trim().toLowerCase();
     const world = elBoardWorld();
     if (!world) return;
+    if (focoTermo) desligarMapaCalor(); // lentes exclusivas na v1
     if (!focoTermo) {
         focoSet = null;
         world.classList.remove('modo-foco');
@@ -2916,6 +2918,101 @@ function pintarFocoBoard() {
         p.classList.toggle('linha-destaque', focoSet.has(p.dataset.a) && focoSet.has(p.dataset.b));
     });
 }
+
+// ── MAPA DE CALOR (FASE 15 F2) — influência por tamanho do box ──────────────
+// Mede a "influência" de cada nó (world_links diretos + diplomacia da sua facção)
+// e a traduz numa ESCALA VISUAL: cards mais conectados ficam maiores E mais brilhantes
+// (teto 1.5×, normalizado contra o pico do board). Células de núcleo idem (diplomacia
+// + grau somado dos membros) → ver de relance qual facção domina. Lente read-only/
+// transitória: NÃO toca boardState; a escala vai numa CSS var inline (--heat, data-driven,
+// como os props), escalando o BOX (width/font/ícone) — nunca `transform: scale`, que
+// distorce hit-box e desancora as linhas (caminhoCardeal lê offsetWidth/Height).
+let mapaCalor = false;
+const CALOR_ESC_MAX = 1.5; // teto da escala de influência
+
+function desligarMapaCalor() {
+    if (!mapaCalor) return;
+    mapaCalor = false;
+    elBoardWorld()?.classList.remove('modo-calor');
+    document.getElementById('btn-mapa-calor')?.classList.remove('ativo');
+    limparCalorBoard();
+    desenharLinhasBoard(); // re-ancora nas dimensões originais ao trocar de lente
+}
+
+// Pico-relativo: o nó/célula mais influente do board atinge 1.5×; o resto interpola
+// linearmente de 1.0 (sem conexão) até lá. Escala via --heat inline (a CSS .modo-calor faz o calc).
+function pintarCalorBoard() {
+    const world = elBoardWorld();
+    if (!world || !mapaCalor) return;
+    // grau de world_links por nó (cada link conta nas duas pontas)
+    const grauNo = new Map();
+    boardLinks.forEach(lk => {
+        grauNo.set(String(lk.a), (grauNo.get(String(lk.a)) || 0) + 1);
+        grauNo.set(String(lk.b), (grauNo.get(String(lk.b)) || 0) + 1);
+    });
+    // grau de diplomacia por núcleo (Mundo é a fonte da verdade — read-only)
+    const grauNucleo = new Map();
+    (diplomaciaCache || []).forEach(r => {
+        grauNucleo.set(String(r.nucleoA), (grauNucleo.get(String(r.nucleoA)) || 0) + 1);
+        grauNucleo.set(String(r.nucleoB), (grauNucleo.get(String(r.nucleoB)) || 0) + 1);
+    });
+    // peso de um nó = links diretos + diplomacia herdada da sua facção
+    const pesoNo = (id) => {
+        const info = boardNodeInfo(id);
+        const dipl = info && info.nucleo_id != null ? (grauNucleo.get(String(info.nucleo_id)) || 0) : 0;
+        return (grauNo.get(String(id)) || 0) + dipl;
+    };
+    let maxNo = 0;
+    boardState.nodes.forEach(n => { maxNo = Math.max(maxNo, pesoNo(n.id)); });
+    const escalaNo = (p) => maxNo <= 0 ? 1 : 1 + (CALOR_ESC_MAX - 1) * (p / maxNo);
+    world.querySelectorAll('.board-card').forEach(card => {
+        card.style.setProperty('--heat', escalaNo(pesoNo(card.dataset.node)).toFixed(3));
+    });
+    // peso de uma célula (facção) = diplomacia do núcleo + grau somado dos seus membros no board
+    const pesoCelula = (nucleoId) => {
+        let soma = grauNucleo.get(String(nucleoId)) || 0;
+        boardState.nodes.forEach(n => {
+            const i = boardNodeInfo(n.id);
+            if (i && String(i.nucleo_id) === String(nucleoId)) soma += (grauNo.get(String(n.id)) || 0);
+        });
+        return soma;
+    };
+    let maxCel = 0;
+    (boardState.celulas || []).forEach(c => { maxCel = Math.max(maxCel, pesoCelula(c.nucleo_id)); });
+    const escalaCel = (p) => maxCel <= 0 ? 1 : 1 + (CALOR_ESC_MAX - 1) * (p / maxCel);
+    world.querySelectorAll('.board-celula').forEach(el => {
+        el.style.setProperty('--heat', escalaCel(pesoCelula(el.dataset.nucleo)).toFixed(3));
+    });
+}
+
+// Remove a escala inline (a classe .modo-calor já foi tirada; isto é só higiene anti-resíduo).
+function limparCalorBoard() {
+    const world = elBoardWorld();
+    if (!world) return;
+    world.querySelectorAll('.board-card, .board-celula').forEach(el => el.style.removeProperty('--heat'));
+}
+
+window.toggleMapaCalor = function() {
+    if (!boardAtualId) return mostrarToast('Abra um tabuleiro primeiro.', 'aviso');
+    const world = elBoardWorld();
+    if (!world) return;
+    mapaCalor = !mapaCalor;
+    if (mapaCalor) {
+        // Lentes não se sobrepõem na v1: sai da Lente de Destaque e da Constelação.
+        const bf = document.getElementById('board-busca-foco'); if (bf) bf.value = '';
+        focoTermo = ''; focoSet = null; world.classList.remove('modo-foco');
+        if (modoConstelacao) toggleConstelacao(); // restaura layout + desliga a Constelação
+        world.classList.add('modo-calor');
+        document.getElementById('btn-mapa-calor')?.classList.add('ativo');
+        pintarCalorBoard();
+        desenharLinhasBoard(); // re-ancora as linhas nos boxes já escalados
+    } else {
+        world.classList.remove('modo-calor');
+        document.getElementById('btn-mapa-calor')?.classList.remove('ativo');
+        limparCalorBoard();
+        desenharLinhasBoard(); // re-ancora nas dimensões originais
+    }
+};
 
 // Visibilidade das conexões (view-only; não persiste em boardState). A classe vive no
 // board-canvas, que sobrevive aos re-renders do board-world.
@@ -3286,9 +3383,10 @@ window.toggleConstelacao = function() {
     elBoardWorld()?.classList.toggle('modo-constelacao', modoConstelacao); // orbes via CSS
     const btn = document.getElementById('btn-constelacao');
     if (modoConstelacao) {
-        // Lentes não se sobrepõem na v1: sai da Lente de Destaque ao entrar na Constelação.
+        // Lentes não se sobrepõem na v1: sai da Lente de Destaque e do Mapa de Calor.
         const bf = document.getElementById('board-busca-foco'); if (bf) bf.value = '';
         focoTermo = ''; focoSet = null; elBoardWorld()?.classList.remove('modo-foco');
+        desligarMapaCalor();
         // Snapshot do layout original (read-only): células E nodes (membros) p/ restaurar 100%.
         constelacaoSnapshot = (boardState.celulas || []).map(c => ({ id: c.id, x: c.x, y: c.y, w: c.w, h: c.h, minimizada: !!c.minimizada }));
         constelacaoSnapshotNodes = JSON.parse(JSON.stringify(boardState.nodes)); // clone profundo
