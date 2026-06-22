@@ -1158,6 +1158,8 @@ label {
     box-shadow: 0 4px 6px var(--sombra-borda), 0 20px 40px var(--sombra-profunda);
     padding: 25px;
     max-width: 90%;
+    min-height: 0; /* flex item (.modal.show=flex): respeita o max-height e ativa o overflow;
+                      sem isto o min-height:auto padrão estoura modais altos (sem rolagem). */
     overflow-y: auto;
 }
 
