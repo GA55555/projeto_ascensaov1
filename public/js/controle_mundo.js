@@ -2869,6 +2869,54 @@ function destacarLinhasDe(nodeId, on) {
     });
 }
 
+// ── LENTE DE DESTAQUE (FASE 15 F1) — "farol no escuro" ──────────────────────
+// Busca por nome: escurece o board e realça só os nós casados + vizinhos diretos
+// (e as linhas entre eles). Lente read-only/transitória — NÃO toca boardState.
+let focoTermo = '';
+let focoSet = null; // Set<string> de ids em foco (casados + vizinhos); null = inativo
+
+window.aplicarFocoBoard = function(termo) {
+    focoTermo = String(termo || '').trim().toLowerCase();
+    const world = elBoardWorld();
+    if (!world) return;
+    if (!focoTermo) {
+        focoSet = null;
+        world.classList.remove('modo-foco');
+        world.querySelectorAll('.em-foco').forEach(el => el.classList.remove('em-foco'));
+        desenharLinhasBoard(); // limpa o destaque das linhas
+        return;
+    }
+    // Nós cujo NOME casa o termo (via boardNodeInfo) + seus vizinhos diretos (boardLinks).
+    const casados = new Set();
+    boardState.nodes.forEach(n => {
+        const info = boardNodeInfo(n.id);
+        if (info && (info.nome || '').toLowerCase().includes(focoTermo)) casados.add(String(n.id));
+    });
+    focoSet = new Set(casados);
+    boardLinks.forEach(lk => {
+        if (casados.has(String(lk.a))) focoSet.add(String(lk.b));
+        if (casados.has(String(lk.b))) focoSet.add(String(lk.a));
+    });
+    world.classList.add('modo-foco');
+    pintarFocoBoard();
+};
+
+// Aplica .em-foco aos cards do focoSet e .linha-destaque às linhas entre eles. Idempotente
+// e barato — re-chamado no fim do desenharLinhasBoard (re-render/arrasto) p/ persistir o foco.
+function pintarFocoBoard() {
+    const world = elBoardWorld();
+    if (!world || !focoSet) return;
+    world.querySelectorAll('.board-card.em-foco').forEach(el => el.classList.remove('em-foco'));
+    focoSet.forEach(id => {
+        const card = world.querySelector(`.board-card[data-node="${cssEscape(id)}"]`);
+        if (card) card.classList.add('em-foco');
+    });
+    const svg = world.querySelector('.board-svg');
+    if (svg) svg.querySelectorAll('.board-line[data-a]').forEach(p => {
+        p.classList.toggle('linha-destaque', focoSet.has(p.dataset.a) && focoSet.has(p.dataset.b));
+    });
+}
+
 // Visibilidade das conexões (view-only; não persiste em boardState). A classe vive no
 // board-canvas, que sobrevive aos re-renders do board-world.
 window.toggleLinhasBoard = function(btn) {
@@ -3238,6 +3286,9 @@ window.toggleConstelacao = function() {
     elBoardWorld()?.classList.toggle('modo-constelacao', modoConstelacao); // orbes via CSS
     const btn = document.getElementById('btn-constelacao');
     if (modoConstelacao) {
+        // Lentes não se sobrepõem na v1: sai da Lente de Destaque ao entrar na Constelação.
+        const bf = document.getElementById('board-busca-foco'); if (bf) bf.value = '';
+        focoTermo = ''; focoSet = null; elBoardWorld()?.classList.remove('modo-foco');
         // Snapshot do layout original (read-only): células E nodes (membros) p/ restaurar 100%.
         constelacaoSnapshot = (boardState.celulas || []).map(c => ({ id: c.id, x: c.x, y: c.y, w: c.w, h: c.h, minimizada: !!c.minimizada }));
         constelacaoSnapshotNodes = JSON.parse(JSON.stringify(boardState.nodes)); // clone profundo
@@ -4025,6 +4076,7 @@ function desenharLinhasBoard() {
     svg.innerHTML = paths;
     // Persiste o destaque do card sob o cursor após qualquer redraw (Ressalva 2 da Fatia 2).
     if (hoveredNodeId) destacarLinhasDe(hoveredNodeId, true);
+    if (focoSet) pintarFocoBoard(); // re-aplica a Lente de Destaque após o redraw das linhas
 }
 
 // Cria o popover já com botão de fechar no canto (R5 + UX). Conteúdo via template.

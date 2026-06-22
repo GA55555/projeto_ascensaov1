@@ -2695,6 +2695,18 @@ input[type="radio"] {
    as suas (.linha-destaque, via JS). Toggle .board-linhas-ocultas no canvas some com tudo. */
 .board-line { fill: none; stroke-width: 2.5; pointer-events: none; opacity: 0.25; transition: opacity 0.2s ease, stroke-width 0.2s ease; }
 .board-line.linha-destaque { opacity: 1; stroke-width: 3.5; }
+
+/* ── LENTE DE DESTAQUE (FASE 15 F1) — "farol no escuro" ─────────────────────
+   Classe no #board-world (busca por nome): escurece tudo; só .em-foco e as linhas
+   .linha-destaque brilham. Transitório/read-only (não toca boardState). */
+.modo-foco .board-card,
+.modo-foco .board-celula,
+.modo-foco .board-shape,
+.modo-foco .board-prop,
+.modo-foco .board-text { opacity: 0.16; transition: opacity 0.2s ease; }
+.modo-foco .board-card.em-foco { opacity: 1; box-shadow: 0 0 16px var(--board-accent); } /* brilho do farol */
+.modo-foco .board-line { opacity: 0.05; }
+.modo-foco .board-line.linha-destaque { opacity: 1; }
 .board-line-hit { fill: none; stroke: transparent; stroke-width: 14; pointer-events: stroke; cursor: pointer; }
 /* Diplomacia (Fase 14): macro-link entre Células. Visível por padrão (sem hover de card
    que a acenda), traço médio + halo na cor do status (color = stroke, via inline). Read-only. */
