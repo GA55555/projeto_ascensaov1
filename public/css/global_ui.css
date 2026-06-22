@@ -2746,39 +2746,87 @@ input[type="radio"] {
 }
 .board-linhas-ocultas .board-svg { display: none; }
 
-/* ── QUADRO DE DETETIVE (FASE 15 F3) — Nó de Evento ("documento pregado") ────
-   Forma RETANGULAR com sombra 3D (offset + difusa), distinta dos cards (glass arredondado) e
-   das células (orbe). Faixa lateral âmbar + título serifado reforçam o "acontecimento/papel".
-   Derivado/read-only do cache de eventos; posições auto (centroide dos gatilhos). z-index 2
-   (sob os cards de pessoas, sobre zonas/células). */
-.board-evento {
+/* ── EVENTOS NO TABULEIRO (FASE 15) — Revelação Sob Demanda (padrão Obsidian) ──
+   Eventos não poluem o board por padrão. Card de NPC envolvido ganha um CRACHÁ; clicar invoca
+   o evento como painel flutuante EFÊMERO (read-only, fora do boardState) + fios até os gatilhos.
+   Tema roxo (--roxo-mago); zero hex/inline; geometria sóbria (Regra 2.5/2.6). */
+.card-badge-evento {
     position: absolute;
-    z-index: 2;
+    top: -8px;
+    right: -8px;
+    width: 20px;
+    height: 20px;
+    background: var(--roxo-mago);
+    color: var(--texto-claro);
+    border-radius: 4px;                 /* quadrado suave — não circular (Geometria Sóbria) */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 6px var(--sombra);
+    z-index: 5;
+    transition: var(--transicao-suave);
+}
+.card-badge-evento:hover { background: color-mix(in srgb, var(--roxo-mago) 75%, var(--texto-claro)); }
+.card-badge-evento i { width: 13px; height: 13px; stroke: currentColor; } /* herda color (Regra 2.6) */
+.modo-constelacao .card-badge-evento { display: none; } /* na Constelação os cards somem → sem crachá */
+
+/* Painel flutuante do evento invocado (efêmero). Glass + sombra em camadas (Regra 2.5), acento
+   roxo, radius ≤8px. z-index acima dos cards (3), abaixo do popover (10). */
+.board-evento-node {
+    position: absolute;
+    z-index: 6;
+    width: 200px;
+    background: var(--bg-card-glass);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--roxo-mago);
+    border-left: 4px solid var(--roxo-mago);
+    border-radius: 6px;
+    box-shadow: 0 8px 22px var(--sombra-profunda);
+    overflow: hidden;
+    user-select: none;
+}
+.evento-node-header {
     display: flex;
     align-items: center;
     gap: 8px;
-    width: 168px;
     padding: 8px 10px;
-    --board-accent: var(--aviso);
-    background: var(--bg-card);
-    border: 1px solid var(--board-accent);
-    border-left: 4px solid var(--board-accent);
-    border-radius: 3px;
-    box-shadow: 3px 3px 0 var(--sombra), 0 8px 20px var(--sombra-profunda); /* 3D "papel pregado" */
-    user-select: none;
-    cursor: default;
+    background: color-mix(in srgb, var(--roxo-mago) 18%, transparent);
 }
-.board-evento-icone { width: 22px; height: 22px; color: var(--board-accent); flex-shrink: 0; }
-.board-evento-nome {
-    font-family: 'Cormorant Garamond', serif; /* título = serifada (Regra 2.5) — distingue dos cards (Manrope) */
+.evento-node-icone { width: 18px; height: 18px; color: var(--roxo-mago); flex-shrink: 0; }
+.evento-node-titulo {
+    font-family: 'Cormorant Garamond', serif; /* título serifado (Regra 2.5) */
     font-weight: 600;
-    font-size: 15px;
+    font-size: 16px;
+    flex: 1;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-/* Fio evento→nó-gatilho: tracejado âmbar, distinto dos world_links (sólido) e da diplomacia. */
-.board-line-evento { stroke: var(--aviso); stroke-dasharray: 4 5; opacity: 0.6; }
+.evento-node-fechar {
+    background: transparent;
+    border: none;
+    color: var(--texto-mutado);
+    cursor: pointer;
+    display: flex;
+    padding: 2px;
+    border-radius: 4px;
+    transition: var(--transicao-suave);
+}
+.evento-node-fechar:hover { background: var(--bg-afundado); color: var(--texto-claro); } /* contraste invertido (Regra 2.6) */
+.evento-node-fechar i { width: 15px; height: 15px; stroke: currentColor; }
+.evento-node-body {
+    padding: 8px 10px;
+    font-size: 12px;
+    color: var(--texto-mutado);
+    max-height: 80px;
+    overflow-y: auto;
+    overflow-wrap: break-word;
+}
+/* Fio de investigação: tracejado roxo animado (fluxo de dados). Read-only, sem hit. */
+.board-line-evento { stroke: var(--roxo-mago); stroke-dasharray: 6 6; opacity: 0.8; animation: fluxo-evento 1s linear infinite; }
+@keyframes fluxo-evento { to { stroke-dashoffset: -12; } }
 
 /* Popover de edição (linha ou nó) — ancorado ao canvas (fora do transform). */
 .board-popover {

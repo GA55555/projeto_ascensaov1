@@ -14,6 +14,10 @@ let nucleoAtivoTipo = 'entidade'; // 'entidade' | 'evento' | 'sessao'
 // Diplomacia (Fase 14): relações núcleo↔núcleo. Fonte da verdade no Mundo; o Tabuleiro
 // só reflete (auto-draw em desenharLinhasBoard). [{ id, nucleoA, nucleoB, status }]
 let diplomaciaCache = [];
+// Eventos no tabuleiro (Fase 15 — Revelação Sob Demanda): cache (carregado em carregarMesaGuerra)
+// e invocações ativas via crachá. Ambos EFÊMEROS/read-only (fora do boardState).
+let boardEventosCache = [];   // [{ id, nome, descricao, gatilhos:[{node_id,...}], ... }]
+let eventosInvocados = {};    // { eventoId: {x, y} } — painéis flutuantes abertos no momento
 const STATUS_DIP = { aliado: 'Aliados', inimigo: 'Inimigos', neutro: 'Neutros' };
 const DIP_LIMITE = 5;             // "Ver mais": relações visíveis antes de expandir (evita a lista crescer demais)
 let diplomaciaVerTudo = false;
@@ -2672,6 +2676,13 @@ async function carregarMesaGuerra() {
     try { boardNodesCache = await MundoApi.getNodes(cronicaId); }
     catch (e) { mostrarToast('Erro ao carregar entidades.', 'erro'); }
     diplomaciaCache = await MundoApi.getDiplomacia(cronicaId); // board reflete a diplomacia do Mundo (tolerante → [])
+    // Eventos (p/ crachás na render): fetch eager + gatilhos defensivo. Tolerante a falha (→ []).
+    try { boardEventosCache = await EventosApi.getEventos(cronicaId); }
+    catch (e) { boardEventosCache = []; }
+    boardEventosCache.forEach(ev => {
+        if (typeof ev.gatilhos === 'string') { try { ev.gatilhos = JSON.parse(ev.gatilhos); } catch (_) { ev.gatilhos = []; } }
+        if (!Array.isArray(ev.gatilhos)) ev.gatilhos = [];
+    });
     await recarregarListaBoards();
     ativarPanZoom();
     // Re-render ao (re)entrar na aba com o cache fresco: o agrupamento das células e a
@@ -2705,6 +2716,7 @@ window.novoBoard = async function() {
 
 window.abrirBoard = async function(boardId) {
     boardAtualId = boardId || null;
+    eventosInvocados = {}; // invocações são por-tabuleiro: troca de board zera os painéis efêmeros
     if (!boardId) { boardState = boardVazio(); boardNomeAtual = ''; renderBoard(); return; }
     let resp;
     try { resp = await MundoApi.buscarBoard(cronicaId, boardId); }
@@ -2764,25 +2776,31 @@ function renderBoard() {
     }
     // Núcleos minimizados → esconder os cards-membros (cruza via boardNodeInfo).
     const nucleosMin = new Set((boardState.celulas || []).filter(c => c.minimizada).map(c => String(c.nucleo_id)));
+    const comEvento = nodesComEvento(); // ids que disparam ≥1 evento → recebem crachá
     const cards = boardState.nodes.map(node => {
         const info = boardNodeInfo(node.id);
         if (!info) return ''; // defensivo: o sync já deveria ter removido órfãos
         const corClasse = CORES_BOARD.includes(node.cor) ? ` board-cor-${node.cor}` : '';
         const oculto = info.nucleo_id != null && nucleosMin.has(String(info.nucleo_id)) ? ' is-membro-oculto' : '';
         const icone = node.icone || iconeEntidade(info.tipo);
+        // Crachá de evento (Revelação Sob Demanda): só se o nó é gatilho de algum evento.
+        // onpointerdown.stopPropagation evita iniciar o arrasto do card ao clicar no crachá.
+        const badge = comEvento.has(String(node.id))
+            ? `<div class="card-badge-evento" title="Ver eventos" onpointerdown="event.stopPropagation()" onclick="event.stopPropagation(); invocarEventosDoNode('${escapeHTML(String(node.id))}', ${Math.round(node.x + 100)}, ${Math.round(node.y - 50)})"><i data-lucide="scroll-text"></i></div>`
+            : '';
         return `<div class="board-card${corClasse}${oculto}" data-node="${escapeHTML(String(node.id))}" style="left: ${Math.round(node.x)}px; top: ${Math.round(node.y)}px;">
             <i data-lucide="${escapeHTML(icone)}" class="board-card-icone"></i>
             <span class="board-card-info">
                 <span class="board-card-nome">${escapeHTML(info.nome)}</span>
                 <span class="board-card-tipo">${escapeHTML(info.tipo)}</span>
-            </span>
+            </span>${badge}
         </div>`;
     }).join('');
     const celulas = (boardState.celulas || []).map(celulaHTML).join(''); // células de núcleo (z-index 1, sob os cards)
     const shapes = boardState.shapes.map(shapeHTML).join(''); // zonas (z-index 1, sob os cards)
     const props = boardState.props.map(propHTML).join('');     // ícones RPG (z-index 1)
     const texts = boardState.texts.map(textHTML).join('');     // textos flutuantes (z-index 3)
-    const eventos = eventosBoardOverlayHTML();                 // Quadro de Detetive (F3): documentos (z-index 2, derivado/read-only)
+    const eventos = eventosInvocadosHTML();                    // painéis de evento invocados via crachá (efêmero/read-only)
     const corpo = celulas + shapes + props + eventos + texts + cards;
     world.innerHTML = '<svg class="board-svg"></svg>' + (corpo || '<div class="board-vazio info-block-vazio">Tabuleiro vazio. Use “+ Entidade” ou “+ Zona” para começar.</div>');
     aplicarCamera();
@@ -2881,7 +2899,7 @@ window.aplicarFocoBoard = function(termo) {
     focoTermo = String(termo || '').trim().toLowerCase();
     const world = elBoardWorld();
     if (!world) return;
-    if (focoTermo) { desligarMapaCalor(); desligarQuadroDetetive(); } // lentes exclusivas na v1
+    if (focoTermo) desligarMapaCalor(); // lentes exclusivas na v1 (eventos invocados convivem)
     if (!focoTermo) {
         focoSet = null;
         world.classList.remove('modo-foco');
@@ -3026,7 +3044,6 @@ window.toggleMapaCalor = function() {
         // Lentes não se sobrepõem na v1: sai da Lente de Destaque e da Constelação.
         const bf = document.getElementById('board-busca-foco'); if (bf) bf.value = '';
         focoTermo = ''; focoSet = null; world.classList.remove('modo-foco');
-        desligarQuadroDetetive();
         if (modoConstelacao) toggleConstelacao(); // restaura layout + desliga a Constelação
         world.classList.add('modo-calor');
         document.getElementById('btn-mapa-calor')?.classList.add('ativo');
@@ -3040,76 +3057,58 @@ window.toggleMapaCalor = function() {
     }
 };
 
-// ── QUADRO DE DETETIVE (FASE 15 F3) — Nós de Evento ─────────────────────────
-// Lente que sobrepõe os EVENTOS como "documentos" pregados no tabuleiro e puxa os fios até
-// os nós-gatilho (gatilho.node_id). DERIVADA/READ-ONLY do cache de eventos (Mundo é a fonte
-// da verdade) — NÃO persiste em boardState. Posições AUTO = centroide dos gatilhos presentes
-// no board. Sair restaura o board (Regra 7). Espelha o auto-draw da diplomacia.
-let quadroDetetive = false;
-let eventosBoardCache = []; // [{id, nome, gatilhos:[{node_id,...}], ...}] — carregado lazy na lente
-const EVENTO_OFFSET_Y = 90, EVENTO_SPREAD = 18; // documento acima do cluster; leque anti-stack
+// ── EVENTOS NO TABULEIRO (FASE 15) — Revelação Sob Demanda (padrão Obsidian) ──
+// Os eventos NÃO poluem o board por padrão. Card de NPC envolvido em algum evento ganha um
+// CRACHÁ; clicar invoca o(s) evento(s) como painel(éis) flutuante(s) EFÊMERO(S) perto do nó
+// + fios até todos os gatilhos. Estado fora do boardState (read-only): boardEventosCache é o
+// cache (carregado em carregarMesaGuerra) e eventosInvocados são as invocações ativas
+// (`{ eventoId: {x,y} }`). Vínculo evento→nó = gatilho.node_id (de event_flag_weights).
+// boardEventosCache / eventosInvocados declarados no topo do arquivo (globais).
 
-// Posição auto = centroide dos centros dos nós-gatilho no board, elevado e com leve leque por
-// índice (evita stack de eventos co-gatilho). null = nenhum gatilho no board → não desenha.
-function posicaoEventoBoard(ev, idx) {
-    const ids = new Set((ev.gatilhos || []).map(g => String(g.node_id)));
-    const alvos = boardState.nodes.filter(n => ids.has(String(n.id)));
-    if (!alvos.length) return null;
-    let sx = 0, sy = 0;
-    alvos.forEach(n => { sx += n.x; sy += n.y; });
-    return { x: Math.round(sx / alvos.length + idx * EVENTO_SPREAD),
-             y: Math.round(sy / alvos.length - EVENTO_OFFSET_Y + idx * EVENTO_SPREAD) };
+// Set dos node ids que disparam ≥1 evento → decide quais cards recebem crachá (memo por render).
+function nodesComEvento() {
+    const set = new Set();
+    boardEventosCache.forEach(ev => (ev.gatilhos || []).forEach(g => set.add(String(g.node_id))));
+    return set;
 }
 
-function eventoBoardHTML(ev, pos) {
-    return `<div class="board-evento" data-evento="${escapeHTML(String(ev.id))}" style="left: ${pos.x}px; top: ${pos.y}px;">
-        <i data-lucide="scroll-text" class="board-evento-icone"></i>
-        <span class="board-evento-nome" title="${escapeHTML(ev.nome || 'Evento')}">${escapeHTML(ev.nome || 'Evento')}</span>
+// Painel flutuante do evento invocado (efêmero; não vai ao boardState). co = {x,y} da invocação.
+function eventoNodeHTML(ev, co) {
+    const desc = (ev.descricao || '').trim();
+    const eid = escapeHTML(String(ev.id));
+    return `<div class="board-evento-node" data-evento="${eid}" style="left: ${Math.round(co.x)}px; top: ${Math.round(co.y)}px;">
+        <div class="evento-node-header">
+            <i data-lucide="scroll-text" class="evento-node-icone"></i>
+            <span class="evento-node-titulo" title="${escapeHTML(ev.nome || 'Evento')}">${escapeHTML(ev.nome || 'Evento')}</span>
+            <button type="button" class="evento-node-fechar" title="Fechar" onclick="fecharEventoInvocado('${eid}')"><i data-lucide="x"></i></button>
+        </div>
+        <div class="evento-node-body">${desc ? escapeHTML(desc) : 'Evento sem descrição.'}</div>
     </div>`;
 }
 
-// Overlay derivado: só eventos com ≥1 gatilho no board (do contrário não há fio a investigar).
-function eventosBoardOverlayHTML() {
-    if (!quadroDetetive) return '';
-    return eventosBoardCache.map((ev, i) => {
-        const pos = posicaoEventoBoard(ev, i);
-        return pos ? eventoBoardHTML(ev, pos) : '';
+// HTML dos painéis invocados (lidos de eventosInvocados; ignora ids que sumiram do cache).
+function eventosInvocadosHTML() {
+    return Object.keys(eventosInvocados).map(evId => {
+        const ev = boardEventosCache.find(e => String(e.id) === String(evId));
+        return ev ? eventoNodeHTML(ev, eventosInvocados[evId]) : '';
     }).join('');
 }
 
-function desligarQuadroDetetive() {
-    if (!quadroDetetive) return;
-    quadroDetetive = false;
-    document.getElementById('btn-quadro-detetive')?.classList.remove('ativo');
-    eventosBoardCache = [];
+// Crachá → invoca/dispensa TODOS os eventos em que o nó é gatilho (toggle por evento).
+window.invocarEventosDoNode = function(nodeId, x, y) {
+    const envolvidos = boardEventosCache.filter(ev => (ev.gatilhos || []).some(g => String(g.node_id) === String(nodeId)));
+    if (!envolvidos.length) return;
+    envolvidos.forEach((ev, i) => {
+        const id = String(ev.id);
+        if (eventosInvocados[id]) delete eventosInvocados[id];                 // já aberto → fecha
+        else eventosInvocados[id] = { x: Math.round(x + i * 16), y: Math.round(y + i * 16) }; // leque anti-stack
+    });
     renderBoard();
-}
+};
 
-window.toggleQuadroDetetive = async function() {
-    if (!boardAtualId) return mostrarToast('Abra um tabuleiro primeiro.', 'aviso');
-    const world = elBoardWorld();
-    if (!world) return;
-    quadroDetetive = !quadroDetetive;
-    const btn = document.getElementById('btn-quadro-detetive');
-    if (quadroDetetive) {
-        // Lentes exclusivas na v1: sai de Foco, Calor e Constelação.
-        const bf = document.getElementById('board-busca-foco'); if (bf) bf.value = '';
-        focoTermo = ''; focoSet = null; world.classList.remove('modo-foco');
-        desligarMapaCalor();
-        if (modoConstelacao) toggleConstelacao();
-        try { eventosBoardCache = await EventosApi.getEventos(cronicaId); } // lazy (Regra 2.3)
-        catch (e) { eventosBoardCache = []; mostrarToast('Erro ao carregar eventos.', 'erro'); }
-        eventosBoardCache.forEach(ev => { // gatilhos defensivo (podem vir como string)
-            if (typeof ev.gatilhos === 'string') { try { ev.gatilhos = JSON.parse(ev.gatilhos); } catch (_) { ev.gatilhos = []; } }
-            if (!Array.isArray(ev.gatilhos)) ev.gatilhos = [];
-        });
-        btn && btn.classList.add('ativo');
-        renderBoard(); // injeta o overlay de eventos + fios (gated por quadroDetetive)
-    } else {
-        btn && btn.classList.remove('ativo');
-        eventosBoardCache = [];
-        renderBoard();
-    }
+window.fecharEventoInvocado = function(eventoId) {
+    delete eventosInvocados[String(eventoId)];
+    renderBoard();
 };
 
 // Visibilidade das conexões (view-only; não persiste em boardState). A classe vive no
@@ -3147,7 +3146,7 @@ function ativarPanZoom() {
     }, true);
     canvas.addEventListener('pointerdown', (e) => {
         if (!boardAtualId || e.button !== 0) return;
-        if (e.target.closest('.board-card, .board-celula, .board-shape, .board-prop, .board-text, .board-evento, .board-line-hit, .board-popover')) return; // não panja sobre elementos
+        if (e.target.closest('.board-card, .board-celula, .board-shape, .board-prop, .board-text, .board-evento-node, .board-line-hit, .board-popover')) return; // não panja sobre elementos
         // clique no fundo: cancela o modo de conexão pendente.
         if (conectandoDe) { conectandoDe = null; canvas.classList.remove('conectando'); }
         boardPan = { sx: e.clientX, sy: e.clientY, ox: boardState.camera.x, oy: boardState.camera.y };
@@ -3485,7 +3484,7 @@ window.toggleConstelacao = function() {
         const bf = document.getElementById('board-busca-foco'); if (bf) bf.value = '';
         focoTermo = ''; focoSet = null; elBoardWorld()?.classList.remove('modo-foco');
         desligarMapaCalor();
-        desligarQuadroDetetive();
+        eventosInvocados = {}; // a Constelação esconde os cards: dispensa os painéis de evento (anti-órfão)
         // Snapshot do layout original (read-only): células E nodes (membros) p/ restaurar 100%.
         constelacaoSnapshot = (boardState.celulas || []).map(c => ({ id: c.id, x: c.x, y: c.y, w: c.w, h: c.h, minimizada: !!c.minimizada }));
         constelacaoSnapshotNodes = JSON.parse(JSON.stringify(boardState.nodes)); // clone profundo
@@ -4270,22 +4269,20 @@ function desenharLinhasBoard() {
         paths += rotuloIconeDiplomacia(mx, my, rel.status); // ícone neutro (alto desempenho); a linha carrega a cor
     });
 
-    // Fios do Quadro de Detetive (Fase 15 F3): evento → nós-gatilho. Derivado do
-    // eventosBoardCache (read-only, sem hit clicável). Reusa cardEl (nós já mapeados acima).
-    if (quadroDetetive) {
-        const eventoEl = {};
-        world.querySelectorAll('.board-evento').forEach(el => { eventoEl[String(el.dataset.evento)] = el; });
-        eventosBoardCache.forEach(ev => {
-            const eEv = eventoEl[String(ev.id)];
-            if (!eEv) return; // evento sem gatilho no board não foi renderizado
-            (ev.gatilhos || []).forEach(g => {
-                const eNo = cardEl[String(g.node_id)];
-                if (!eNo || eNo.offsetParent === null) return; // nó ausente/oculto → sem fio
-                const { d } = caminhoCardeal(eEv, eNo);
-                paths += `<path class="board-line board-line-evento" d="${d}"></path>`;
-            });
+    // Fios de Investigação (Fase 15): evento INVOCADO (via crachá) → seus nós-gatilho.
+    // Efêmero/read-only (lê eventosInvocados, fora do boardState). Reusa cardEl (nós já mapeados).
+    Object.keys(eventosInvocados).forEach(evId => {
+        const elEv = world.querySelector(`.board-evento-node[data-evento="${cssEscape(evId)}"]`);
+        if (!elEv) return;
+        const ev = boardEventosCache.find(e => String(e.id) === String(evId));
+        if (!ev) return;
+        (ev.gatilhos || []).forEach(g => {
+            const elNode = cardEl[String(g.node_id)];
+            if (!elNode || elNode.offsetParent === null) return; // nó ausente/oculto → sem fio
+            const { d } = caminhoCardeal(elEv, elNode);
+            paths += `<path class="board-line board-line-evento" d="${d}"></path>`;
         });
-    }
+    });
 
     svg.innerHTML = paths;
     // Persiste o destaque do card sob o cursor após qualquer redraw (Ressalva 2 da Fatia 2).
