@@ -1176,22 +1176,18 @@ label {
 .modal-linha { display: flex; gap: 10px; }
 .modal-linha input[type="text"] { flex: 1; }
 
-/* ── DIPLOMACIA (FASE 14): modal agrupado por status ── */
-.modal-diplomacia-form select { flex: 1; min-width: 0; }
-.diplomacia-grupo { margin-bottom: 12px; }
+/* ── DIPLOMACIA (FASE 14): modal "Visão Centrada" (foco em UMA facção) ── */
+.diplomacia-foco {
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--borda);
+}
+.diplomacia-foco label { display: block; margin-bottom: 5px; font-weight: bold; }
+.diplomacia-lista { min-height: 150px; }
+/* Modificadores de cor por status — reusados na própria linha (via --cor-status). */
 .diplomacia-grupo--aliado  { --cor-status: var(--link-aliado); }
 .diplomacia-grupo--inimigo { --cor-status: var(--link-inimigo); }
 .diplomacia-grupo--neutro  { --cor-status: var(--texto-mutado); }
-.diplomacia-grupo-titulo {
-    font-size: 11px;
-    font-weight: bold;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--cor-status, var(--texto-mutado));
-    border-left: 3px solid var(--cor-status, var(--texto-mutado));
-    padding-left: 8px;
-    margin-bottom: 6px;
-}
 .diplomacia-linha {
     display: flex;
     align-items: center;
@@ -1202,10 +1198,28 @@ label {
     background: var(--bg-afundado);
     border-radius: 4px;
 }
-.diplomacia-par { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 13px; color: var(--texto-claro); }
+.diplomacia-par { flex: 1; display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 13px; color: var(--texto-claro); }
 .diplomacia-par i { width: 14px; height: 14px; flex-shrink: 0; color: var(--cor-status, var(--texto-mutado)); }
+.diplomacia-linha .badge {
+    flex-shrink: 0;
+    background: color-mix(in srgb, var(--cor-status, var(--roxo-mago)) 20%, transparent);
+    color: var(--cor-status, var(--texto-claro));
+}
 .diplomacia-remover { flex-shrink: 0; }
 .diplomacia-remover:hover { color: var(--erro); }
+/* Formulário em andares (empilhado, painel afundado — coerente com .auto-params). */
+.diplomacia-andares {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 15px;
+    padding: 15px;
+    background: var(--bg-afundado);
+    border-radius: 6px;
+}
+.diplomacia-andares:empty { display: none; } /* sem facção em foco → some */
+.diplomacia-andar { display: flex; flex-direction: column; gap: 4px; }
+.diplomacia-andar label { font-size: 12px; font-weight: bold; color: var(--texto-mutado); }
 .select-multi { height: 100px; margin-bottom: 10px; }
 .modal-detalhes { margin-top: 15px; }
 .modal-detalhes > summary { cursor: pointer; color: var(--roxo-mago); }

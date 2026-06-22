@@ -232,17 +232,14 @@
     <div id="modal-diplomacia" class="modal">
         <div class="modal-box modal-box-md">
             <h3 class="texto-destaque"><i data-lucide="handshake"></i> Diplomacia entre Núcleos</h3>
-            <div id="lista-diplomacia" class="modal-lista"></div>
-            <div class="modal-linha modal-diplomacia-form">
-                <select id="dip-nucleo-a" title="Núcleo A"></select>
-                <select id="dip-status" title="Status">
-                    <option value="aliado">Aliados</option>
-                    <option value="inimigo">Inimigos</option>
-                    <option value="neutro">Neutros</option>
+            <div class="diplomacia-foco">
+                <label>Facção em Foco</label>
+                <select id="dip-foco" class="input-full" onchange="renderizarListaDiplomacia()">
+                    <option value="">— Selecione uma facção —</option>
                 </select>
-                <select id="dip-nucleo-b" title="Núcleo B"></select>
-                <button class="btn btn-primary btn-sm" onclick="adicionarDiplomacia()"><i data-lucide="plus"></i> Adicionar</button>
             </div>
+            <div id="lista-diplomacia" class="modal-lista diplomacia-lista"></div>
+            <div id="form-diplomacia-andares" class="diplomacia-andares"></div>
             <div class="modal-acoes">
                 <button class="btn btn-outline" onclick="fecharModal('modal-diplomacia')">Fechar</button>
             </div>
