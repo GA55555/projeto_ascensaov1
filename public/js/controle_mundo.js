@@ -2810,6 +2810,7 @@ function renderBoard() {
     ativarInteracoesShapes();
     ativarInteracoesProps();
     ativarInteracoesTexts();
+    ativarArrastoEventos();
     if (mapaCalor) pintarCalorBoard(); // escala os boxes ANTES das linhas (re-ancoram no tamanho novo)
     desenharLinhasBoard(); // linhas a partir do cache boardLinks + localLinks
 }
@@ -3094,15 +3095,19 @@ function eventosInvocadosHTML() {
     }).join('');
 }
 
-// Crachá → invoca/dispensa TODOS os eventos em que o nó é gatilho (toggle por evento).
+// Crachá = "Toggle Group": se ALGUM evento do nó está aberto → fecha todos; senão → abre todos
+// (em cascata espaçada p/ não sobrepor; depois arrastáveis pelo header). Read-only (efêmero).
 window.invocarEventosDoNode = function(nodeId, x, y) {
     const envolvidos = boardEventosCache.filter(ev => (ev.gatilhos || []).some(g => String(g.node_id) === String(nodeId)));
     if (!envolvidos.length) return;
-    envolvidos.forEach((ev, i) => {
-        const id = String(ev.id);
-        if (eventosInvocados[id]) delete eventosInvocados[id];                 // já aberto → fecha
-        else eventosInvocados[id] = { x: Math.round(x + i * 16), y: Math.round(y + i * 16) }; // leque anti-stack
-    });
+    const algumAberto = envolvidos.some(ev => eventosInvocados[String(ev.id)]);
+    if (algumAberto) {
+        envolvidos.forEach(ev => { delete eventosInvocados[String(ev.id)]; });   // fecha o grupo inteiro
+    } else {
+        envolvidos.forEach((ev, i) => {                                          // abre em cascata (anti-stack)
+            eventosInvocados[String(ev.id)] = { x: Math.round(x + i * 40), y: Math.round(y - 80 + i * 120) };
+        });
+    }
     renderBoard();
 };
 
@@ -3110,6 +3115,45 @@ window.fecharEventoInvocado = function(eventoId) {
     delete eventosInvocados[String(eventoId)];
     renderBoard();
 };
+
+// Arrasto do painel pelo header (resolve o empilhamento). Coords de mundo = delta de tela / zoom;
+// escreve direto no DOM + cache (eventosInvocados) e redesenha só as linhas a 60fps (sem renderBoard).
+// Registra pointerup E pointercancel (lição Fase 14: todo drag novo trata o cancel do ponteiro).
+function ativarArrastoEventos() {
+    const world = elBoardWorld();
+    if (!world) return;
+    world.querySelectorAll('.board-evento-node').forEach(el => {
+        const id = String(el.dataset.evento);
+        const header = el.querySelector('.evento-node-header');
+        if (!header) return;
+        header.onpointerdown = (e) => {
+            if (e.button !== 0) return;
+            if (e.target.closest('.evento-node-fechar')) return; // botão fechar não arrasta
+            const co = eventosInvocados[id];
+            if (!co) return;
+            e.stopPropagation();                                 // não inicia o Pan do canvas
+            const z = boardState.camera.zoom || 1;
+            const sx = e.clientX, sy = e.clientY, ox = co.x, oy = co.y;
+            header.setPointerCapture(e.pointerId);
+            el.classList.add('arrastando');
+            const mv = (ev) => {
+                co.x = Math.round(ox + (ev.clientX - sx) / z);
+                co.y = Math.round(oy + (ev.clientY - sy) / z);
+                el.style.left = co.x + 'px'; el.style.top = co.y + 'px';
+                desenharLinhasBoard();                           // fios acompanham (sem re-render)
+            };
+            const up = () => {
+                el.classList.remove('arrastando');
+                header.removeEventListener('pointermove', mv);
+                header.removeEventListener('pointerup', up);
+                header.removeEventListener('pointercancel', up);
+            };
+            header.addEventListener('pointermove', mv);
+            header.addEventListener('pointerup', up);
+            header.addEventListener('pointercancel', up);
+        };
+    });
+}
 
 // Visibilidade das conexões (view-only; não persiste em boardState). A classe vive no
 // board-canvas, que sobrevive aos re-renders do board-world.
