@@ -1185,7 +1185,10 @@ label {
     border-bottom: 1px solid var(--borda);
 }
 .diplomacia-foco label { display: block; margin-bottom: 5px; font-weight: bold; }
-.diplomacia-lista { min-height: 150px; padding-right: 8px; } /* scroll (max-h/overflow) vem do .modal-lista; aqui só a folga p/ a barra não cobrir os "×" */
+/* Sem max-height/scroll: a paginação "Ver mais" limita a altura (mostra DIP_LIMITE por vez),
+   então o botão de expandir nunca fica cortado. min-height só dá presença ao estado vazio. */
+.diplomacia-lista { min-height: 150px; margin-bottom: 15px; }
+.diplomacia-vermais { width: 100%; justify-content: center; margin-top: 4px; }
 /* Modificadores de cor por status — reusados na própria linha (via --cor-status). */
 .diplomacia-grupo--aliado  { --cor-status: var(--link-aliado); }
 .diplomacia-grupo--inimigo { --cor-status: var(--link-inimigo); }

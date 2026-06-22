@@ -15,6 +15,9 @@ let nucleoAtivoTipo = 'entidade'; // 'entidade' | 'evento' | 'sessao'
 // só reflete (auto-draw em desenharLinhasBoard). [{ id, nucleoA, nucleoB, status }]
 let diplomaciaCache = [];
 const STATUS_DIP = { aliado: 'Aliados', inimigo: 'Inimigos', neutro: 'Neutros' };
+const DIP_LIMITE = 5;             // "Ver mais": relações visíveis antes de expandir (evita a lista crescer demais)
+let diplomaciaVerTudo = false;
+let diplomaciaUltimoFoco = null;  // detecta troca de facção p/ recolher a lista de volta
 
 // Visualização atual da aba Mundo + cache da lista já filtrada (Toggle re-renderiza
 // sem refetch — troca é só de apresentação). Fase 17: 'kanban' deu lugar a 'cena'.
@@ -2537,6 +2540,7 @@ window.abrirModalDiplomacia = async function() {
     if (nucleosCache.entidade.length === 0) await carregarNucleos('entidade');
     diplomaciaCache = await MundoApi.getDiplomacia(cronicaId); // tolerante a backend ausente (→ [])
     // Popula só o select de Foco; o resto (lista + formulário) é por facção em foco.
+    diplomaciaVerTudo = false; diplomaciaUltimoFoco = null; // cada abertura começa recolhida
     const foco = document.getElementById('dip-foco');
     if (foco) foco.innerHTML = '<option value="">— Selecione uma facção —</option>'
         + nucleosCache.entidade.map(n => `<option value="${escapeHTML(String(n.id))}">${escapeHTML(n.nome)}</option>`).join('');
@@ -2553,6 +2557,7 @@ function nomeNucleoDip(id) {
 // (A = foco herdado). Sem foco → lista vazia e formulário oculto (.diplomacia-andares:empty).
 function renderizarListaDiplomacia() {
     const focoId = document.getElementById('dip-foco')?.value || '';
+    if (focoId !== diplomaciaUltimoFoco) { diplomaciaVerTudo = false; diplomaciaUltimoFoco = focoId; } // nova facção começa recolhida
     const lista = document.getElementById('lista-diplomacia');
     const form = document.getElementById('form-diplomacia-andares');
     if (!lista || !form) return;
@@ -2562,16 +2567,26 @@ function renderizarListaDiplomacia() {
         return;
     }
     const rels = diplomaciaCache.filter(r => String(r.nucleoA) === focoId || String(r.nucleoB) === focoId);
-    lista.innerHTML = rels.length
-        ? rels.map(r => {
+    if (!rels.length) {
+        lista.innerHTML = '<div class="info-block-vazio">Esta facção ainda não tem relações.</div>';
+    } else {
+        const mostrar = diplomaciaVerTudo ? rels : rels.slice(0, DIP_LIMITE);
+        const linhas = mostrar.map(r => {
             const outroId = String(r.nucleoA) === focoId ? r.nucleoB : r.nucleoA;
             return `<div class="diplomacia-linha diplomacia-grupo--${r.status}">
                 <span class="diplomacia-par"><i data-lucide="arrow-left-right"></i> ${escapeHTML(nomeNucleoDip(outroId))}</span>
                 <span class="badge">${STATUS_DIP[r.status] || r.status}</span>
                 <button class="btn btn-ghost btn-sm diplomacia-remover" title="Remover" onclick="removerDiplomacia('${escapeHTML(String(r.id))}')"><i data-lucide="x"></i></button>
             </div>`;
-        }).join('')
-        : '<div class="info-block-vazio">Esta facção ainda não tem relações.</div>';
+        }).join('');
+        // "Ver mais (+N)" / "Ver menos" só quando passa do limite (paginação leve, sem depender de scroll).
+        const toggle = rels.length > DIP_LIMITE
+            ? (diplomaciaVerTudo
+                ? `<button class="btn btn-ghost btn-sm diplomacia-vermais" onclick="alternarVerTudoDiplomacia()"><i data-lucide="chevron-up"></i> Ver menos</button>`
+                : `<button class="btn btn-ghost btn-sm diplomacia-vermais" onclick="alternarVerTudoDiplomacia()"><i data-lucide="chevron-down"></i> Ver mais (+${rels.length - DIP_LIMITE})</button>`)
+            : '';
+        lista.innerHTML = linhas + toggle;
+    }
     // Formulário em andares: Status + Outra facção (B) + Adicionar. A vem do Foco.
     const outras = nucleosCache.entidade.filter(n => String(n.id) !== focoId);
     form.innerHTML = `
@@ -2613,6 +2628,12 @@ window.adicionarDiplomacia = async function() {
 window.removerDiplomacia = async function(id) {
     diplomaciaCache = diplomaciaCache.filter(r => String(r.id) !== String(id));
     await persistirDiplomacia();
+    renderizarListaDiplomacia();
+};
+
+// Alterna a paginação "Ver mais / Ver menos" da lista da facção em foco.
+window.alternarVerTudoDiplomacia = function() {
+    diplomaciaVerTudo = !diplomaciaVerTudo;
     renderizarListaDiplomacia();
 };
 
