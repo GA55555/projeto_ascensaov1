@@ -2919,14 +2919,14 @@ function pintarFocoBoard() {
     });
 }
 
-// ── MAPA DE CALOR (FASE 15 F2) — influência por tamanho do box ──────────────
-// Mede a "influência" de cada nó (world_links diretos + diplomacia da sua facção)
-// e a traduz numa ESCALA VISUAL: cards mais conectados ficam maiores E mais brilhantes
-// (teto 1.5×, normalizado contra o pico do board). Células de núcleo idem (diplomacia
-// + grau somado dos membros) → ver de relance qual facção domina. Lente read-only/
-// transitória: NÃO toca boardState; a escala vai numa CSS var inline (--heat, data-driven,
-// como os props), escalando o BOX (width/font/ícone) — nunca `transform: scale`, que
-// distorce hit-box e desancora as linhas (caminhoCardeal lê offsetWidth/Height).
+// ── MAPA DE CALOR (FASE 15 F2) — influência em DOIS canais ──────────────────
+// Canal 1 (TAMANHO + BRILHO) = quantidade de conexões (world_links diretos + diplomacia
+// da facção), normalizado pico-relativo, teto 1.5×. Canal 2 (COR de borda+glow) = balanço
+// POLÍTICO: mais aliados → verde, mais inimigos → vermelho, equilíbrio/sem alinhamento →
+// neutro. Células de núcleo idem (diplomacia + somatório dos membros) → ver de relance qual
+// facção domina e de que lado pende. Lente read-only/transitória: NÃO toca boardState; ambos
+// os canais vão em CSS vars inline (--heat escala o BOX width/font/ícone — nunca `transform:
+// scale`, que distorce hit-box e desancora linhas; --heat-cor tinge borda+glow via tokens).
 let mapaCalor = false;
 const CALOR_ESC_MAX = 1.5; // teto da escala de influência
 
@@ -2939,49 +2939,71 @@ function desligarMapaCalor() {
     desenharLinhasBoard(); // re-ancora nas dimensões originais ao trocar de lente
 }
 
-// Pico-relativo: o nó/célula mais influente do board atinge 1.5×; o resto interpola
-// linearmente de 1.0 (sem conexão) até lá. Escala via --heat inline (a CSS .modo-calor faz o calc).
+// Cor POLÍTICA divergente (verde aliado ↔ cinza neutro ↔ vermelho inimigo) a partir do
+// balanço de conexões. r = (aliados - inimigos)/total ∈ [-1,+1]; pct = |r|*100 satura a cor.
+// Só tokens (Regra 2.5) — mesmo precedente da linha de diplomacia (style="stroke: var(--link-*)").
+function corPoliticaHeat(aliados, inimigos) {
+    const soma = aliados + inimigos;
+    if (soma <= 0) return 'var(--texto-mutado)';            // sem alinhamento → neutro
+    const pct = Math.round(Math.abs((aliados - inimigos) / soma) * 100);
+    if (pct === 0) return 'var(--texto-mutado)';            // equilíbrio perfeito → neutro
+    const token = aliados >= inimigos ? 'var(--link-aliado)' : 'var(--link-inimigo)';
+    return `color-mix(in srgb, ${token} ${pct}%, var(--texto-mutado))`;
+}
+
+// Dois canais: TAMANHO/BRILHO = quantidade de conexões (pico-relativo, teto 1.5×);
+// COR (borda+glow) = balanço político (aliado→verde / inimigo→vermelho). Ambos via CSS vars
+// inline (--heat, --heat-cor) que a .modo-calor consome. Read-only/transitório (não toca boardState).
 function pintarCalorBoard() {
     const world = elBoardWorld();
     if (!world || !mapaCalor) return;
-    // grau de world_links por nó (cada link conta nas duas pontas)
-    const grauNo = new Map();
+    const bump = (m, k) => m.set(String(k), (m.get(String(k)) || 0) + 1);
+    const g = (m, k) => m.get(String(k)) || 0;
+    const overrides = boardState.overrides_linhas || {};
+
+    // Grau total + por tipo político de cada nó. O tipo "visível" honra o override de cor
+    // (ov.cor || lk.tipo) — a temperatura do nó casa exatamente com a cor das linhas desenhadas.
+    const grauNo = new Map(), alNo = new Map(), inNo = new Map();
     boardLinks.forEach(lk => {
-        grauNo.set(String(lk.a), (grauNo.get(String(lk.a)) || 0) + 1);
-        grauNo.set(String(lk.b), (grauNo.get(String(lk.b)) || 0) + 1);
+        bump(grauNo, lk.a); bump(grauNo, lk.b);
+        const ov = overrides[chaveLinha(lk.a, lk.b)] || {};
+        const t = String(ov.cor || lk.tipo || '').toLowerCase();
+        if (t === 'aliado') { bump(alNo, lk.a); bump(alNo, lk.b); }
+        else if (t === 'inimigo') { bump(inNo, lk.a); bump(inNo, lk.b); }
     });
-    // grau de diplomacia por núcleo (Mundo é a fonte da verdade — read-only)
-    const grauNucleo = new Map();
+    // Diplomacia por núcleo (Mundo é a fonte da verdade — read-only): total + aliado/inimigo.
+    const grauNuc = new Map(), alNuc = new Map(), inNuc = new Map();
     (diplomaciaCache || []).forEach(r => {
-        grauNucleo.set(String(r.nucleoA), (grauNucleo.get(String(r.nucleoA)) || 0) + 1);
-        grauNucleo.set(String(r.nucleoB), (grauNucleo.get(String(r.nucleoB)) || 0) + 1);
+        bump(grauNuc, r.nucleoA); bump(grauNuc, r.nucleoB);
+        const s = String(r.status || '').toLowerCase();
+        if (s === 'aliado') { bump(alNuc, r.nucleoA); bump(alNuc, r.nucleoB); }
+        else if (s === 'inimigo') { bump(inNuc, r.nucleoA); bump(inNuc, r.nucleoB); }
     });
-    // peso de um nó = links diretos + diplomacia herdada da sua facção
-    const pesoNo = (id) => {
-        const info = boardNodeInfo(id);
-        const dipl = info && info.nucleo_id != null ? (grauNucleo.get(String(info.nucleo_id)) || 0) : 0;
-        return (grauNo.get(String(id)) || 0) + dipl;
-    };
+
+    // ── Nós (cards): peso/balanço = links diretos + diplomacia herdada da facção.
+    const nucOf = (id) => { const i = boardNodeInfo(id); return i ? i.nucleo_id : null; };
+    const diplDe = (m, id) => { const nuc = nucOf(id); return nuc != null ? g(m, nuc) : 0; };
+    const pesoNo = (id) => g(grauNo, id) + diplDe(grauNuc, id);
     let maxNo = 0;
     boardState.nodes.forEach(n => { maxNo = Math.max(maxNo, pesoNo(n.id)); });
     const escalaNo = (p) => maxNo <= 0 ? 1 : 1 + (CALOR_ESC_MAX - 1) * (p / maxNo);
     world.querySelectorAll('.board-card').forEach(card => {
-        card.style.setProperty('--heat', escalaNo(pesoNo(card.dataset.node)).toFixed(3));
+        const id = card.dataset.node;
+        card.style.setProperty('--heat', escalaNo(pesoNo(id)).toFixed(3));
+        card.style.setProperty('--heat-cor', corPoliticaHeat(g(alNo, id) + diplDe(alNuc, id), g(inNo, id) + diplDe(inNuc, id)));
     });
-    // peso de uma célula (facção) = diplomacia do núcleo + grau somado dos seus membros no board
-    const pesoCelula = (nucleoId) => {
-        let soma = grauNucleo.get(String(nucleoId)) || 0;
-        boardState.nodes.forEach(n => {
-            const i = boardNodeInfo(n.id);
-            if (i && String(i.nucleo_id) === String(nucleoId)) soma += (grauNo.get(String(n.id)) || 0);
-        });
-        return soma;
-    };
+
+    // ── Células (facções): peso/balanço = diplomacia do núcleo + somatório dos membros no board.
+    const membros = (nuc) => boardState.nodes.filter(n => { const i = boardNodeInfo(n.id); return i && String(i.nucleo_id) === String(nuc); });
+    const somaMembros = (m, nuc) => membros(nuc).reduce((s, n) => s + g(m, n.id), 0);
+    const pesoCel = (nuc) => g(grauNuc, nuc) + somaMembros(grauNo, nuc);
     let maxCel = 0;
-    (boardState.celulas || []).forEach(c => { maxCel = Math.max(maxCel, pesoCelula(c.nucleo_id)); });
+    (boardState.celulas || []).forEach(c => { maxCel = Math.max(maxCel, pesoCel(c.nucleo_id)); });
     const escalaCel = (p) => maxCel <= 0 ? 1 : 1 + (CALOR_ESC_MAX - 1) * (p / maxCel);
     world.querySelectorAll('.board-celula').forEach(el => {
-        el.style.setProperty('--heat', escalaCel(pesoCelula(el.dataset.nucleo)).toFixed(3));
+        const nuc = el.dataset.nucleo;
+        el.style.setProperty('--heat', escalaCel(pesoCel(nuc)).toFixed(3));
+        el.style.setProperty('--heat-cor', corPoliticaHeat(g(alNuc, nuc) + somaMembros(alNo, nuc), g(inNuc, nuc) + somaMembros(inNo, nuc)));
     });
 }
 
@@ -2989,7 +3011,9 @@ function pintarCalorBoard() {
 function limparCalorBoard() {
     const world = elBoardWorld();
     if (!world) return;
-    world.querySelectorAll('.board-card, .board-celula').forEach(el => el.style.removeProperty('--heat'));
+    world.querySelectorAll('.board-card, .board-celula').forEach(el => {
+        el.style.removeProperty('--heat'); el.style.removeProperty('--heat-cor');
+    });
 }
 
 window.toggleMapaCalor = function() {
