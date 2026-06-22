@@ -30,6 +30,7 @@
     --pressao-baixa:   #f0a020;
     --pressao-alta:    #7a1420;
     --rosa:            #ec4899;
+    --dourado:         #eab308;  /* acento de Eventos no tabuleiro (Fase 15) */
     --link-aliado:      #22c55e;
     --link-inimigo:     #ef4444;
     --link-associado:   #eab308;
@@ -2748,16 +2749,16 @@ input[type="radio"] {
 
 /* ── EVENTOS NO TABULEIRO (FASE 15) — Revelação Sob Demanda (padrão Obsidian) ──
    Eventos não poluem o board por padrão. Card de NPC envolvido ganha um CRACHÁ; clicar invoca
-   o evento como painel flutuante EFÊMERO (read-only, fora do boardState) + fios até os gatilhos.
-   Tema roxo (--roxo-mago); zero hex/inline; geometria sóbria (Regra 2.5/2.6). */
+   o evento como painel flutuante EFÊMERO (read-only, fora do boardState), ARRASTÁVEL pelo header,
+   + fios até os gatilhos. Tema dourado (--dourado); zero hex/inline; geometria sóbria (Regra 2.5/2.6). */
 .card-badge-evento {
     position: absolute;
     top: -8px;
     right: -8px;
     width: 20px;
     height: 20px;
-    background: var(--roxo-mago);
-    color: var(--texto-claro);
+    background: var(--dourado);
+    color: var(--bg-principal);         /* texto/ícone escuro sobre dourado (contraste — Regra 2.6) */
     border-radius: 4px;                 /* quadrado suave — não circular (Geometria Sóbria) */
     display: flex;
     align-items: center;
@@ -2767,33 +2768,37 @@ input[type="radio"] {
     z-index: 5;
     transition: var(--transicao-suave);
 }
-.card-badge-evento:hover { background: color-mix(in srgb, var(--roxo-mago) 75%, var(--texto-claro)); }
-.card-badge-evento i { width: 13px; height: 13px; stroke: currentColor; } /* herda color (Regra 2.6) */
+.card-badge-evento:hover { background: color-mix(in srgb, var(--dourado) 78%, var(--texto-claro)); }
+.card-badge-evento i { width: 13px; height: 13px; stroke: currentColor; } /* herda color escura (Regra 2.6) */
 .modo-constelacao .card-badge-evento { display: none; } /* na Constelação os cards somem → sem crachá */
 
 /* Painel flutuante do evento invocado (efêmero). Glass + sombra em camadas (Regra 2.5), acento
-   roxo, radius ≤8px. z-index acima dos cards (3), abaixo do popover (10). */
+   dourado, radius ≤8px. z-index acima dos cards (3), abaixo do popover (10). */
 .board-evento-node {
     position: absolute;
     z-index: 6;
     width: 200px;
     background: var(--bg-card-glass);
     backdrop-filter: blur(8px);
-    border: 1px solid var(--roxo-mago);
-    border-left: 4px solid var(--roxo-mago);
+    border: 1px solid var(--dourado);
+    border-left: 4px solid var(--dourado);
     border-radius: 6px;
     box-shadow: 0 8px 22px var(--sombra-profunda);
     overflow: hidden;
     user-select: none;
 }
+.board-evento-node.arrastando { box-shadow: 0 12px 30px var(--sombra-profunda); } /* feedback de elevação no arrasto */
 .evento-node-header {
     display: flex;
     align-items: center;
     gap: 8px;
     padding: 8px 10px;
-    background: color-mix(in srgb, var(--roxo-mago) 18%, transparent);
+    background: color-mix(in srgb, var(--dourado) 18%, transparent);
+    cursor: grab;                       /* afordância de arrasto */
 }
-.evento-node-icone { width: 18px; height: 18px; color: var(--roxo-mago); flex-shrink: 0; }
+.evento-node-header:active,
+.board-evento-node.arrastando .evento-node-header { cursor: grabbing; }
+.evento-node-icone { width: 18px; height: 18px; color: var(--dourado); flex-shrink: 0; }
 .evento-node-titulo {
     font-family: 'Cormorant Garamond', serif; /* título serifado (Regra 2.5) */
     font-weight: 600;
@@ -2824,8 +2829,8 @@ input[type="radio"] {
     overflow-y: auto;
     overflow-wrap: break-word;
 }
-/* Fio de investigação: tracejado roxo animado (fluxo de dados). Read-only, sem hit. */
-.board-line-evento { stroke: var(--roxo-mago); stroke-dasharray: 6 6; opacity: 0.8; animation: fluxo-evento 1s linear infinite; }
+/* Fio de investigação: tracejado dourado animado (fluxo de dados). Read-only, sem hit. */
+.board-line-evento { stroke: var(--dourado); stroke-dasharray: 6 6; opacity: 0.8; animation: fluxo-evento 1s linear infinite; }
 @keyframes fluxo-evento { to { stroke-dashoffset: -12; } }
 
 /* Popover de edição (linha ou nó) — ancorado ao canvas (fora do transform). */
