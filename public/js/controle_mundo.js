@@ -2785,8 +2785,10 @@ function renderBoard() {
         const icone = node.icone || iconeEntidade(info.tipo);
         // Crachá de evento (Revelação Sob Demanda): só se o nó é gatilho de algum evento.
         // onpointerdown.stopPropagation evita iniciar o arrasto do card ao clicar no crachá.
+        // Origem da invocação: à direita do card (largura 180px) + folga, p/ o painel nascer
+        // afastado da entidade em vez de sobrepô-la (cascata aplica o resto em invocarEventosDoNode).
         const badge = comEvento.has(String(node.id))
-            ? `<div class="card-badge-evento" title="Ver eventos" onpointerdown="event.stopPropagation()" onclick="event.stopPropagation(); invocarEventosDoNode('${escapeHTML(String(node.id))}', ${Math.round(node.x + 100)}, ${Math.round(node.y - 50)})"><i data-lucide="scroll-text"></i></div>`
+            ? `<div class="card-badge-evento" title="Ver eventos" onpointerdown="event.stopPropagation()" onclick="event.stopPropagation(); invocarEventosDoNode('${escapeHTML(String(node.id))}', ${Math.round(node.x + 200)}, ${Math.round(node.y - 50)})"><i data-lucide="scroll-text"></i></div>`
             : '';
         return `<div class="board-card${corClasse}${oculto}" data-node="${escapeHTML(String(node.id))}" style="left: ${Math.round(node.x)}px; top: ${Math.round(node.y)}px;">
             <i data-lucide="${escapeHTML(icone)}" class="board-card-icone"></i>
