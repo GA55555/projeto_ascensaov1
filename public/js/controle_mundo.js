@@ -4467,6 +4467,12 @@ function caminhoCardeal(elA, elB) {
     const a = { x: elA.offsetLeft + elA.offsetWidth / 2, y: elA.offsetTop + elA.offsetHeight / 2 };
     const b = { x: elB.offsetLeft + elB.offsetWidth / 2, y: elB.offsetTop + elB.offsetHeight / 2 };
     const dx = b.x - a.x, dy = b.y - a.y;
+    // Tema Investigação: barbante ESTICADO (reta pino-a-pino, centro→centro). O SVG fica atrás
+    // dos cards (z-index 2 < 3) → o fio "entra" sob a foto e só aparece no vão. Sai cedo da
+    // curva cardeal. Afeta todas as linhas (world_links, localLinks, diplomacia, eventos).
+    if (boardState.tema === 'investigacao') {
+        return { d: `M ${a.x} ${a.y} L ${b.x} ${b.y}`, mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 };
+    }
     let p1, p2, c1, c2;
     if (Math.abs(dx) > Math.abs(dy)) {
         const s = dx >= 0 ? 1 : -1;
