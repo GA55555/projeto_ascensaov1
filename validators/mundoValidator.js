@@ -148,7 +148,7 @@ const dadosBoardSchema = z.object({
     camera: z.object({
         x: z.number().finite().default(0),
         y: z.number().finite().default(0),
-        zoom: z.number().finite().min(0.2).max(4).default(1)
+        zoom: z.number().finite().min(0.05).max(4).default(1) // min espelha o clamp do wheel (controle_mundo.js); só amplia o range → saves antigos seguem válidos
     }).default({ x: 0, y: 0, zoom: 1 }),
     // Plano de fundo da mesa (anti-Moiré aplicado no cliente). Opcional p/ migração
     // graciosa de boards antigos sem a chave (o cliente assume 'dots' por defeito).

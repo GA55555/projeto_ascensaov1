@@ -3215,7 +3215,9 @@ function ativarPanZoom() {
         const mx = e.clientX - rect.left, my = e.clientY - rect.top;
         const cam = boardState.camera;
         const fator = e.deltaY < 0 ? 1.1 : 1 / 1.1;
-        const novo = Math.min(4, Math.max(0.2, cam.zoom * fator));
+        // Range do zoom: [0.05, 4]. O MÍNIMO (mais zoom-out) tem de espelhar o validador Zod
+        // do save (mundoValidator dadosBoardSchema.camera.zoom.min) — senão salvar dá 400.
+        const novo = Math.min(4, Math.max(0.05, cam.zoom * fator));
         cam.x = mx - ((mx - cam.x) / cam.zoom) * novo; // zoom em direção ao cursor
         cam.y = my - ((my - cam.y) / cam.zoom) * novo;
         cam.zoom = novo;
