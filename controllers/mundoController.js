@@ -4,15 +4,18 @@ const automacaoService = require('../services/automacaoService');
 const fs = require('fs/promises');
 const path = require('path');
 
-// Higiene de ficheiros de fundo (Regra 6.6): apaga o /uploads/fundos/* órfão quando um board
-// troca/remove a imagem ou é excluído. RESTRITO à pasta 'fundos' (nunca toca avatares/capas
-// de outrem, mesmo que a url aponte p/ lá) + anti-traversal (o caminho resolvido tem de ficar
-// dentro de public/uploads/fundos). Falha silenciosa em ficheiro ausente (Regra 4.2).
-const DIR_FUNDOS = path.resolve(__dirname, '..', 'public', 'uploads', 'fundos');
-async function apagarFundoOrfao(url) {
-    if (typeof url !== 'string' || !/^\/uploads\/fundos\/[\w-]+\.(webp|png|jpe?g)$/i.test(url)) return;
+// Higiene de ficheiros órfãos (Regra 6.6): apaga um /uploads/<pasta>/* quando o recurso que o
+// referenciava troca/remove a imagem ou é excluído. RESTRITO às pastas em `pastasOk` (DEDICADAS
+// ao board: 'fundos'/'entidades'/'nucleos' — NUNCA 'avatares' de perfil nem 'capas' alheias,
+// mesmo que a url aponte p/ lá) + anti-traversal (caminho resolvido dentro de public/uploads).
+// Falha silenciosa em ficheiro ausente (Regra 4.2).
+const DIR_UPLOADS = path.resolve(__dirname, '..', 'public', 'uploads');
+async function apagarUploadOrfao(url, pastasOk) {
+    if (typeof url !== 'string') return;
+    const m = url.match(/^\/uploads\/([a-z]+)\/[\w-]+\.(?:webp|png|jpe?g)$/i);
+    if (!m || !pastasOk.includes(m[1].toLowerCase())) return;
     const abs = path.resolve(__dirname, '..', 'public', url.replace(/^\/+/, ''));
-    if (!abs.startsWith(DIR_FUNDOS + path.sep)) return; // defesa em profundidade
+    if (!abs.startsWith(DIR_UPLOADS + path.sep)) return; // defesa em profundidade
     try { await fs.unlink(abs); } catch (e) { /* ENOENT/etc: ignora */ }
 }
 
@@ -93,8 +96,15 @@ exports.editarNode = async (req, res) => {
     const { nome, avatar_url } = req.body;
     try {
         // IDOR: amarra o node à crônica da rota — impede editar nós de outra crônica.
+        const temAvatar = Object.prototype.hasOwnProperty.call(req.body, 'avatar_url');
+        // Regra 6.6: lê o avatar atual ANTES do update p/ apagar o órfão se mudar (escopo cronica_id).
+        let urlAntigaAvatar = null;
+        if (temAvatar) {
+            const prev = await pool.query("SELECT dados->>'avatar_url' AS a FROM world_nodes WHERE id = $1 AND cronica_id = $2", [nodeId, cronicaId]);
+            urlAntigaAvatar = prev.rows[0]?.a || null;
+        }
         let result;
-        if (Object.prototype.hasOwnProperty.call(req.body, 'avatar_url')) {
+        if (temAvatar) {
             // Fatia 2: faz MERGE de avatar_url no jsonb 'dados' (não clobbera outras chaves);
             // null limpa a chave. $2 NULL via CASE para preservar o tipo da operação.
             result = await pool.query(
@@ -111,6 +121,10 @@ exports.editarNode = async (req, res) => {
             result = await pool.query('UPDATE world_nodes SET nome = $1 WHERE id = $2 AND cronica_id = $3 RETURNING *', [nome, nodeId, cronicaId]);
         }
         if (result.rows.length === 0) return res.status(404).json({ erro: 'Entidade não encontrada.' });
+        if (temAvatar) {
+            const urlNova = result.rows[0]?.dados?.avatar_url || null;
+            if (urlAntigaAvatar && urlAntigaAvatar !== urlNova) await apagarUploadOrfao(urlAntigaAvatar, ['entidades']);
+        }
         res.json({ mensagem: 'Entidade atualizada!', node: result.rows[0] });
     } catch (err) {
         console.error('Erro ao editar entidade:', err);
@@ -122,8 +136,9 @@ exports.deletarNode = async (req, res) => {
     const { cronicaId, nodeId } = req.params;
     try {
         // IDOR: só apaga se o node pertencer à crônica da rota.
-        const result = await pool.query('DELETE FROM world_nodes WHERE id = $1 AND cronica_id = $2 RETURNING id', [nodeId, cronicaId]);
+        const result = await pool.query("DELETE FROM world_nodes WHERE id = $1 AND cronica_id = $2 RETURNING id, dados->>'avatar_url' AS avatar_url", [nodeId, cronicaId]);
         if (result.rows.length === 0) return res.status(404).json({ erro: 'Entidade não encontrada.' });
+        await apagarUploadOrfao(result.rows[0]?.avatar_url || null, ['entidades']); // Regra 6.6
         res.json({ mensagem: 'Entidade e vínculos apagados.' });
     } catch (err) {
         console.error('Erro ao deletar entidade:', err);
@@ -322,13 +337,20 @@ exports.renomearNucleoEntidade = async (req, res) => {
     const { nome, avatar_url } = req.body;
     try {
         // Fatia 2: define também o brasão (avatar_url) quando enviado; null limpa.
+        const temAvatar = Object.prototype.hasOwnProperty.call(req.body, 'avatar_url');
+        let urlAntiga = null;
+        if (temAvatar) { // Regra 6.6: brasão atual ANTES do update (escopo cronica_id)
+            const prev = await pool.query('SELECT avatar_url FROM entidade_nucleos WHERE id = $1 AND cronica_id = $2', [nucleoId, cronicaId]);
+            urlAntiga = prev.rows[0]?.avatar_url || null;
+        }
         let result;
-        if (Object.prototype.hasOwnProperty.call(req.body, 'avatar_url')) {
+        if (temAvatar) {
             result = await pool.query('UPDATE entidade_nucleos SET nome = $1, avatar_url = $2 WHERE id = $3 AND cronica_id = $4 RETURNING *', [nome.trim(), avatar_url ?? null, nucleoId, cronicaId]);
         } else {
             result = await pool.query('UPDATE entidade_nucleos SET nome = $1 WHERE id = $2 AND cronica_id = $3 RETURNING *', [nome.trim(), nucleoId, cronicaId]);
         }
         if (result.rows.length === 0) return res.status(404).json({ erro: 'Núcleo não encontrado.' });
+        if (temAvatar && urlAntiga && urlAntiga !== (result.rows[0]?.avatar_url || null)) await apagarUploadOrfao(urlAntiga, ['nucleos']);
         res.json(result.rows[0]);
     } catch (err) { res.status(500).json({ erro: 'Erro ao renomear núcleo.' }); }
 };
@@ -336,8 +358,9 @@ exports.renomearNucleoEntidade = async (req, res) => {
 exports.excluirNucleoEntidade = async (req, res) => {
     const { cronicaId, nucleoId } = req.params;
     try {
-        const result = await pool.query('DELETE FROM entidade_nucleos WHERE id = $1 AND cronica_id = $2 RETURNING id', [nucleoId, cronicaId]);
+        const result = await pool.query('DELETE FROM entidade_nucleos WHERE id = $1 AND cronica_id = $2 RETURNING id, avatar_url', [nucleoId, cronicaId]);
         if (result.rows.length === 0) return res.status(404).json({ erro: 'Núcleo não encontrado.' });
+        await apagarUploadOrfao(result.rows[0]?.avatar_url || null, ['nucleos']); // Regra 6.6
         res.json({ mensagem: 'Núcleo excluído.' });
     } catch (err) {
         // Caso a FK world_nodes.nucleo_id não seja ON DELETE SET NULL: falha graciosamente (não 500 opaco).
@@ -818,7 +841,7 @@ exports.atualizarBoard = async (req, res) => {
         );
         if (r.rows.length === 0) return res.status(404).json({ erro: 'Tabuleiro não encontrado.' });
         const urlNova = r.rows[0]?.dados?.fundoImagem?.url || null;
-        if (urlAntiga && urlAntiga !== urlNova) await apagarFundoOrfao(urlAntiga);
+        if (urlAntiga && urlAntiga !== urlNova) await apagarUploadOrfao(urlAntiga, ['fundos']);
         res.json(r.rows[0]);
     } catch (err) {
         console.error('Erro ao atualizar tabuleiro:', err);
@@ -834,7 +857,7 @@ exports.deletarBoard = async (req, res) => {
             [boardId, cronicaId]
         );
         if (r.rows.length === 0) return res.status(404).json({ erro: 'Tabuleiro não encontrado.' });
-        await apagarFundoOrfao(r.rows[0]?.dados?.fundoImagem?.url || null); // Regra 6.6
+        await apagarUploadOrfao(r.rows[0]?.dados?.fundoImagem?.url || null, ['fundos']); // Regra 6.6
         res.json({ mensagem: 'Tabuleiro removido.' });
     } catch (err) {
         console.error('Erro ao deletar tabuleiro:', err);
