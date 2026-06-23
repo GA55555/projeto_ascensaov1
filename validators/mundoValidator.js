@@ -148,7 +148,7 @@ const dadosBoardSchema = z.object({
     camera: z.object({
         x: z.number().finite().default(0),
         y: z.number().finite().default(0),
-        zoom: z.number().finite().min(0.2).max(4).default(1)
+        zoom: z.number().finite().min(0.05).max(4).default(1) // min espelha o clamp do wheel (controle_mundo.js); só amplia o range → saves antigos seguem válidos
     }).default({ x: 0, y: 0, zoom: 1 }),
     // Plano de fundo da mesa (anti-Moiré aplicado no cliente). Opcional p/ migração
     // graciosa de boards antigos sem a chave (o cliente assume 'dots' por defeito).
@@ -169,7 +169,8 @@ const dadosBoardSchema = z.object({
         label: z.string().trim().max(120).optional(),
         cor: z.enum(CORES_BOARD).optional(),
         forma: z.enum(['retangulo', 'circulo', 'triangulo']).optional(),
-        stroke: z.enum(['solid', 'dashed']).optional()
+        stroke: z.enum(['solid', 'dashed']).optional(),
+        travada: z.boolean().optional() // zona fixa: não move nem redimensiona (cadeado no menu, controle_mundo)
     })).max(200).default([]),
     // Células de Núcleo (Fase 14 — Smart Containers): contêiner que importa e arrasta
     // em bando os membros de um núcleo. `id` é local do board (não-UUID, como shapes);
