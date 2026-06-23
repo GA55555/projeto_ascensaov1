@@ -2973,7 +2973,7 @@ function ativarArrastoCards() {
                 node.y = Math.round(oy + (ev.clientY - sy) / z);
                 card.style.left = node.x + 'px';
                 card.style.top = node.y + 'px';
-                desenharLinhasBoard(); // linhas seguem o card em tempo real
+                agendarRedesenhoLinhas(); // coalesce 1 redesenho/frame (rAF) → card sem lag
             };
             const onUp = () => {
                 card.classList.remove('dragging');
@@ -4511,6 +4511,13 @@ function rotuloIconeDiplomacia(mx, my, status) {
 // Desenha world_links (entre cards) E localLinks (entre zonas/props) — ambos em Bézier
 // cardeal (Fatia 4). Caminho duplo: hit transparente largo (clicável) + linha visível.
 // Cor/dash/rótulo data-driven; rótulo (<text>) no ponto médio do caminho.
+// Coalesce o redesenho das linhas no arrasto: vários pointermove por frame → 1 redesenho por
+// frame (rAF). O card move sincronamente (sem lag próprio); as linhas acompanham em ≤1 frame.
+let _rafLinhas = 0;
+function agendarRedesenhoLinhas() {
+    if (_rafLinhas) return;
+    _rafLinhas = requestAnimationFrame(() => { _rafLinhas = 0; desenharLinhasBoard(); });
+}
 function desenharLinhasBoard() {
     const world = elBoardWorld();
     const svg = world?.querySelector('.board-svg');
