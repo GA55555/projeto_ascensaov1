@@ -629,6 +629,26 @@ exports.deletarVinculo = async (req, res) => {
 // nos dois sentidos (ver listarLinks). Posse validada por nodePertenceACronica
 // + cronica_id (Regra 3.3.1).
 // =======================================================
+// Todos os vínculos da crônica numa só query — otimização do Tabuleiro: elimina o N+1 de
+// `listarLinks` por nó (antes 1 request HTTP por card no board). Escopo por cronica_id isola
+// tenants (Regra 3.3.1). Devolve as duas pontas cruas; o cliente filtra/dedupe para os nós do
+// board. Payload mínimo (sem `dados`/joins) — só o necessário p/ desenhar as linhas.
+exports.listarLinksCronica = async (req, res) => {
+    const { cronicaId } = req.params;
+    try {
+        const result = await pool.query(
+            `SELECT id, origem_node_id, destino_node_id, tipo_vinculo
+               FROM world_links
+              WHERE cronica_id = $1`,
+            [cronicaId]
+        );
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Erro ao listar sinapses da crônica:', err);
+        res.status(500).json({ erro: 'Erro ao buscar vínculos da crônica.' });
+    }
+};
+
 exports.listarLinks = async (req, res) => {
     const { cronicaId, nodeId } = req.params;
     try {

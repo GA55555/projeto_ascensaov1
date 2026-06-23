@@ -54,6 +54,8 @@ router.delete('/nodes/:nodeId', verificarToken, checarAcessoCronica, apenasNarra
 router.put('/nodes/:nodeId/nucleo', verificarToken, checarAcessoCronica, apenasNarrador, validate(atualizarNucleoNodeSchema), MundoController.atualizarNucleoNode);
 
 // Sinapses (links bidirecionais entre entidades) — world_links. Params validados (Regra 4.3).
+// Cronica-level: todos os links da crônica numa só query (otimização do Tabuleiro — evita N+1).
+router.get('/links', verificarToken, checarAcessoCronica, MundoController.listarLinksCronica);
 router.get('/nodes/:nodeId/links', verificarToken, checarAcessoCronica, validate(listarLinksSchema), MundoController.listarLinks);
 router.post('/nodes/:nodeId/links', verificarToken, checarAcessoCronica, apenasNarrador, validate(criarLinkSchema), MundoController.criarLink);
 router.delete('/nodes/:nodeId/links/:linkId', verificarToken, checarAcessoCronica, apenasNarrador, validate(deletarLinkSchema), MundoController.deletarLink);
