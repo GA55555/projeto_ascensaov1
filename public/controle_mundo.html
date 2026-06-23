@@ -144,6 +144,9 @@
             <button class="btn btn-secondary btn-sm" id="btn-mapa-calor" onclick="toggleMapaCalor()" title="Mapa de Calor: dimensiona cada entidade pela sua influência (conexões + diplomacia)"><i data-lucide="flame"></i> Calor</button>
             <input type="text" id="board-busca-foco" class="input-busca" placeholder="Farol: focar por nome…" oninput="aplicarFocoBoard(this.value)" title="Lente de Destaque: escurece o resto e realça quem casa o nome + suas conexões">
             <select id="board-fundo-select" class="btn btn-secondary btn-sm" onchange="mudarFundoBoard(this.value)" title="Plano de Fundo da Mesa"><option value="dots">Pontilhado</option><option value="grid">Grade</option><option value="none">Liso</option></select>
+            <input type="file" id="board-fundo-file" accept="image/png,image/jpeg,image/webp" onchange="onFundoSelecionado(this)" hidden>
+            <button class="btn btn-secondary btn-sm" onclick="document.getElementById('board-fundo-file').click()" title="Imagem de fundo (mapa/textura)"><i data-lucide="image"></i></button>
+            <button class="btn btn-secondary btn-sm" onclick="removerFundoBoard()" title="Remover imagem de fundo"><i data-lucide="image-off"></i></button>
             <button class="btn btn-secondary btn-sm" id="board-toggle-linhas" onclick="toggleLinhasBoard(this)" title="Ocultar conexões"><i data-lucide="eye"></i></button>
             <button class="btn btn-danger btn-sm" onclick="deletarBoardAtual()" title="Excluir tabuleiro"><i data-lucide="trash-2"></i></button>
         </div>

@@ -2651,7 +2651,7 @@ async function persistirDiplomacia() {
     }
 }
 
-const boardVazio = () => ({ camera: { x: 0, y: 0, zoom: 1 }, fundo: 'dots', nodes: [], shapes: [], celulas: [], texts: [], props: [], localLinks: [], overrides_linhas: {} });
+const boardVazio = () => ({ camera: { x: 0, y: 0, zoom: 1 }, fundo: 'dots', fundoImagem: null, nodes: [], shapes: [], celulas: [], texts: [], props: [], localLinks: [], overrides_linhas: {} });
 let boardAtualId = null;
 let boardNomeAtual = '';
 let boardState = boardVazio();
@@ -2726,6 +2726,7 @@ window.abrirBoard = async function(boardId) {
     boardState = {
         camera: d.camera || { x: 0, y: 0, zoom: 1 },
         fundo: d.fundo || 'dots',
+        fundoImagem: (d.fundoImagem && typeof d.fundoImagem.url === 'string') ? d.fundoImagem : null, // defensivo (Regra 4.2)
         nodes: Array.isArray(d.nodes) ? d.nodes : [],
         shapes: Array.isArray(d.shapes) ? d.shapes : [],
         celulas: Array.isArray(d.celulas) ? d.celulas : [],
@@ -2804,7 +2805,13 @@ function renderBoard() {
     const texts = boardState.texts.map(textHTML).join('');     // textos flutuantes (z-index 3)
     const eventos = eventosInvocadosHTML();                    // painéis de evento invocados via crachá (efêmero/read-only)
     const corpo = celulas + shapes + props + eventos + texts + cards;
-    world.innerHTML = '<svg class="board-svg"></svg>' + (corpo || '<div class="board-vazio info-block-vazio">Tabuleiro vazio. Use “+ Entidade” ou “+ Zona” para começar.</div>');
+    // Fatia 1a: camada de imagem de fundo (mapa/textura) dentro do #board-world → move/zooma com
+    // os cards; z-index -1 via CSS (sob as zonas). pointer-events:none (posicionar virá na 1b).
+    const fi = boardState.fundoImagem;
+    const fundoImg = fi
+        ? `<img class="board-imagem-fundo" src="${escapeHTML(fi.url)}" alt="" draggable="false" style="left: ${Math.round(fi.x)}px; top: ${Math.round(fi.y)}px; width: ${Math.round(fi.w)}px; height: ${Math.round(fi.h)}px;">`
+        : '';
+    world.innerHTML = '<svg class="board-svg"></svg>' + fundoImg + (corpo || (fundoImg ? '' : '<div class="board-vazio info-block-vazio">Tabuleiro vazio. Use “+ Entidade” ou “+ Zona” para começar.</div>'));
     aplicarCamera();
     lucide.createIcons();
     ativarArrastoCards();
@@ -3171,6 +3178,42 @@ window.toggleLinhasBoard = function(btn) {
 // Plano de fundo da mesa (pontilhado/grade/liso). Muta boardState.fundo e repinta o
 // canvas via aplicarCamera (que aplica o passo anti-Moiré). Persiste só no Salvar (Regra 2.7).
 window.mudarFundoBoard = function(v) { boardState.fundo = v; aplicarCamera(); };
+
+// ── IMAGEM DE FUNDO (Fase 15 — Atualização Imersiva, Fatia 1a) ──────────────
+// Upload reusa o pipeline /midia/upload/fundos (Sharp→WebP, nomes hash; Regras 6.3/6.5).
+// Define o rect centrado no mundo com o tamanho natural (Sharp já limita a 1920×1080).
+// Efêmero até Salvar (Regra 2.7). Sem URL externa (decisão 7.0.1) → sem superfície de XSS.
+window.onFundoSelecionado = async function(input) {
+    const arquivo = input.files && input.files[0];
+    input.value = ''; // permite re-selecionar o mesmo arquivo depois
+    if (!arquivo) return;
+    if (!boardAtualId) return mostrarToast('Abra um tabuleiro primeiro.', 'aviso');
+    const fd = new FormData();
+    fd.append('imagens', arquivo);
+    let url;
+    try {
+        const res = await API.fetch('/midia/upload/fundos', { method: 'POST', body: fd });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.urls || !data.urls[0]) throw new Error(data.erro || 'Falha no upload.');
+        url = data.urls[0];
+    } catch (e) { return mostrarToast(e.message || 'Erro ao enviar imagem.', 'erro'); }
+    const img = new Image();
+    img.onload = () => {
+        const c = centroMundo();
+        const w = img.naturalWidth || 800, h = img.naturalHeight || 600;
+        boardState.fundoImagem = { url, x: Math.round(c.x - w / 2), y: Math.round(c.y - h / 2), w, h };
+        renderBoard();
+        mostrarToast('Imagem de fundo aplicada. Use Salvar para persistir.', 'sucesso');
+    };
+    img.onerror = () => mostrarToast('Imagem inválida.', 'erro');
+    img.src = url;
+};
+window.removerFundoBoard = function() {
+    if (!boardState.fundoImagem) return mostrarToast('Não há imagem de fundo.', 'aviso');
+    boardState.fundoImagem = null;
+    renderBoard();
+    mostrarToast('Imagem de fundo removida. Use Salvar para persistir.', 'aviso');
+};
 
 window.removerNodeBoard = function(nodeId) {
     fecharPopover(); // evita popover órfão quando a exclusão vem do editor
