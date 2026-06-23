@@ -2870,7 +2870,10 @@ function renderBoard() {
             ? `<div class="card-badge-evento" title="Ver eventos" onpointerdown="event.stopPropagation()" onclick="event.stopPropagation(); invocarEventosDoNode('${escapeHTML(String(node.id))}', ${Math.round(node.x + 200)}, ${Math.round(node.y - 50)})"><i data-lucide="scroll-text"></i></div>`
             : '';
         return `<div class="board-card${corClasse}${oculto}" data-node="${escapeHTML(String(node.id))}" style="left: ${Math.round(node.x)}px; top: ${Math.round(node.y)}px;">
-            <i data-lucide="${escapeHTML(icone)}" class="board-card-icone"></i>
+            <span class="board-card-thumb">
+                <i data-lucide="${escapeHTML(icone)}" class="board-card-icone"></i>
+                ${info.avatar_url ? `<img class="board-card-avatar" src="${escapeHTML(info.avatar_url)}" alt="" onerror="this.remove()">` : ''}
+            </span>
             <span class="board-card-info">
                 <span class="board-card-nome">${escapeHTML(info.nome)}</span>
                 <span class="board-card-tipo">${escapeHTML(info.tipo)}</span>
@@ -3585,7 +3588,10 @@ function celulaHTML(c) {
                + (c.minimizada ? '' : ` height: ${Math.round(c.h)}px;`);
     return `<div class="board-celula board-cor-${cor}${c.minimizada ? ' is-minimizada' : ''}" data-celula="${cid}" data-nucleo="${escapeHTML(String(c.nucleo_id))}" style="${dims}">
         <div class="board-celula-header">
-            <i data-lucide="users" class="board-celula-icone"></i>
+            <span class="board-celula-thumb">
+                <i data-lucide="users" class="board-celula-icone"></i>
+                ${nucleo?.avatar_url ? `<img class="board-celula-avatar" src="${escapeHTML(nucleo.avatar_url)}" alt="" onerror="this.remove()">` : ''}
+            </span>
             <span class="board-celula-nome" title="${escapeHTML(nome)}">${escapeHTML(nome)}</span>
             <button type="button" class="board-celula-btn" title="${c.minimizada ? 'Expandir' : 'Minimizar'}" onclick="toggleMinimizarCelula('${cid}')"><i data-lucide="${c.minimizada ? 'plus' : 'minus'}"></i></button>
             <button type="button" class="board-celula-btn" title="Opções do núcleo" onclick="abrirEditorCelula('${cid}', event)"><i data-lucide="settings"></i></button>
