@@ -2704,8 +2704,8 @@ input[type="radio"] {
 .modo-foco .board-celula,
 .modo-foco .board-shape,
 .modo-foco .board-prop,
-.modo-foco .board-text { opacity: 0.16; transition: opacity 0.2s ease; }
-.modo-foco .board-card.em-foco { opacity: 1; box-shadow: 0 0 16px var(--board-accent); } /* brilho do farol */
+.modo-foco .board-text { opacity: 0.16; filter: grayscale(100%); transition: opacity 0.2s ease, filter 0.2s ease; } /* "nas sombras": apaga + dessatura (perde o brilho) */
+.modo-foco .board-card.em-foco { opacity: 1; filter: none; box-shadow: 0 0 16px var(--board-accent); } /* brilho do farol: cor cheia + glow */
 .modo-foco .board-line { opacity: 0.05; }
 .modo-foco .board-line.linha-destaque { opacity: 1; }
 
