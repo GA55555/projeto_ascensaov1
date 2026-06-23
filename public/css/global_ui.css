@@ -2653,7 +2653,7 @@ input[type="radio"] {
 /* Zonas (shapes): retângulos de agrupamento, rótulo recortado na borda (legend). */
 .board-shape {
     position: absolute;
-    z-index: 1; /* sob os cards (z-2) — agrupa sem cobrir */
+    z-index: 0; /* camada de FUNDO: abaixo de células/props (z1), linhas (z2), cards/textos (z3) e eventos — agrupa sem bloquear o que cobre */
     /* O acento vem SEMPRE da classe .board-cor-* (shapeHTML garante uma; default roxo).
        Não redeclarar --board-accent aqui: como esta regra vem depois de .board-cor-*,
        ela venceria a cascata e prenderia toda zona no roxo (bug da cor). */
