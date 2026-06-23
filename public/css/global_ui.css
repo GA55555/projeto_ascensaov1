@@ -2609,10 +2609,15 @@ input[type="radio"] {
 .board-canvas.panning { cursor: grabbing; }
 .board-world { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform-origin: 0 0; }
 .board-vazio { position: absolute; left: 50%; top: 40%; transform: translateX(-50%); z-index: 1; }
-/* Imagem de fundo (Fase 15 — Atualização Imersiva, Fatia 1a): camada zero do #board-world,
+/* Imagem de fundo (Fase 15 — Atualização Imersiva, Fatias 1a/1b): camada zero do #board-world,
    sob as zonas (z0) e tudo; pinta acima da grade do canvas (pai). Move/zooma com o mundo.
-   pointer-events:none p/ não roubar clique/pan (posicionar virá na Fatia 1b). */
-.board-imagem-fundo { position: absolute; z-index: -1; object-fit: contain; pointer-events: none; user-select: none; }
+   Fora do modo de ajuste: pointer-events:none → pan livre por cima do mapa. */
+.board-imagem-fundo { position: absolute; z-index: -1; pointer-events: none; user-select: none; }
+.board-imagem-fundo img { width: 100%; height: 100%; object-fit: contain; display: block; }
+/* Modo de ajuste (1b): sobe acima dos cards, vira interativo, moldura tracejada + handle. */
+.board-imagem-fundo.is-editando { z-index: 4; pointer-events: auto; cursor: grab; outline: 2px dashed var(--board-accent); outline-offset: 2px; }
+.board-imagem-fundo.is-editando.arrastando { cursor: grabbing; }
+.board-fundo-resize { position: absolute; right: -2px; bottom: -2px; width: 16px; height: 16px; cursor: nwse-resize; border-right: 3px solid var(--board-accent); border-bottom: 3px solid var(--board-accent); }
 
 /* Card de entidade (glass dark-fantasy). Cor-acento via token (.board-cor-*). */
 .board-card {

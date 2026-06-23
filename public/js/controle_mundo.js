@@ -2717,6 +2717,8 @@ window.novoBoard = async function() {
 window.abrirBoard = async function(boardId) {
     boardAtualId = boardId || null;
     eventosInvocados = {}; // invocações são por-tabuleiro: troca de board zera os painéis efêmeros
+    ajustandoFundo = false; // sai do modo de ajuste de fundo ao trocar de tabuleiro
+    document.getElementById('btn-ajustar-fundo')?.classList.remove('ativo');
     if (!boardId) { boardState = boardVazio(); boardNomeAtual = ''; renderBoard(); return; }
     let resp;
     try { resp = await MundoApi.buscarBoard(cronicaId, boardId); }
@@ -2809,7 +2811,7 @@ function renderBoard() {
     // os cards; z-index -1 via CSS (sob as zonas). pointer-events:none (posicionar virá na 1b).
     const fi = boardState.fundoImagem;
     const fundoImg = fi
-        ? `<img class="board-imagem-fundo" src="${escapeHTML(fi.url)}" alt="" draggable="false" style="left: ${Math.round(fi.x)}px; top: ${Math.round(fi.y)}px; width: ${Math.round(fi.w)}px; height: ${Math.round(fi.h)}px;">`
+        ? `<div class="board-imagem-fundo${ajustandoFundo ? ' is-editando' : ''}" style="left: ${Math.round(fi.x)}px; top: ${Math.round(fi.y)}px; width: ${Math.round(fi.w)}px; height: ${Math.round(fi.h)}px;"><img src="${escapeHTML(fi.url)}" alt="" draggable="false" onerror="this.closest('.board-imagem-fundo')?.remove()">${ajustandoFundo ? '<span class="board-fundo-resize" title="Redimensionar"></span>' : ''}</div>`
         : '';
     world.innerHTML = '<svg class="board-svg"></svg>' + fundoImg + (corpo || (fundoImg ? '' : '<div class="board-vazio info-block-vazio">Tabuleiro vazio. Use “+ Entidade” ou “+ Zona” para começar.</div>'));
     aplicarCamera();
@@ -2820,6 +2822,7 @@ function renderBoard() {
     ativarInteracoesProps();
     ativarInteracoesTexts();
     ativarArrastoEventos();
+    ativarInteracoesFundo();
     if (mapaCalor) pintarCalorBoard(); // escala os boxes ANTES das linhas (re-ancoram no tamanho novo)
     desenharLinhasBoard(); // linhas a partir do cache boardLinks + localLinks
 }
@@ -3179,10 +3182,13 @@ window.toggleLinhasBoard = function(btn) {
 // canvas via aplicarCamera (que aplica o passo anti-Moiré). Persiste só no Salvar (Regra 2.7).
 window.mudarFundoBoard = function(v) { boardState.fundo = v; aplicarCamera(); };
 
-// ── IMAGEM DE FUNDO (Fase 15 — Atualização Imersiva, Fatia 1a) ──────────────
+// ── IMAGEM DE FUNDO (Fase 15 — Atualização Imersiva, Fatias 1a/1b) ──────────
 // Upload reusa o pipeline /midia/upload/fundos (Sharp→WebP, nomes hash; Regras 6.3/6.5).
 // Define o rect centrado no mundo com o tamanho natural (Sharp já limita a 1920×1080).
 // Efêmero até Salvar (Regra 2.7). Sem URL externa (decisão 7.0.1) → sem superfície de XSS.
+// ajustandoFundo (transitório, fora do boardState): no modo de ajuste o fundo sobe e fica
+// arrastável/redimensionável; fora dele é pointer-events:none (pan livre por cima do mapa).
+let ajustandoFundo = false;
 window.onFundoSelecionado = async function(input) {
     const arquivo = input.files && input.files[0];
     input.value = ''; // permite re-selecionar o mesmo arquivo depois
@@ -3211,9 +3217,54 @@ window.onFundoSelecionado = async function(input) {
 window.removerFundoBoard = function() {
     if (!boardState.fundoImagem) return mostrarToast('Não há imagem de fundo.', 'aviso');
     boardState.fundoImagem = null;
+    ajustandoFundo = false; // sai do modo de ajuste (não há mais o que ajustar)
+    document.getElementById('btn-ajustar-fundo')?.classList.remove('ativo');
     renderBoard();
     mostrarToast('Imagem de fundo removida. Use Salvar para persistir.', 'aviso');
 };
+
+// Modo de ajuste (Fatia 1b): liga/desliga o posicionamento do fundo. No modo, o fundo sobe
+// (z-index), ganha moldura + handle e fica arrastável; fora, volta a ser fundo pannável.
+window.toggleAjusteFundo = function() {
+    if (!boardState.fundoImagem) return mostrarToast('Não há imagem de fundo para ajustar.', 'aviso');
+    ajustandoFundo = !ajustandoFundo;
+    document.getElementById('btn-ajustar-fundo')?.classList.toggle('ativo', ajustandoFundo);
+    renderBoard();
+    if (ajustandoFundo) mostrarToast('Arraste para mover; o canto redimensiona. Clique de novo p/ concluir.', 'sucesso');
+};
+
+// Mover (corpo) + redimensionar (canto) o fundo, só no modo de ajuste. Coords de mundo =
+// delta/zoom; escreve no DOM + boardState.fundoImagem (persiste no Salvar). pointerup+pointercancel.
+function ativarInteracoesFundo() {
+    if (!ajustandoFundo) return;
+    const world = elBoardWorld();
+    const el = world && world.querySelector('.board-imagem-fundo');
+    const fi = boardState.fundoImagem;
+    if (!el || !fi) return;
+    el.onpointerdown = (e) => {
+        if (e.button !== 0) return;
+        if (e.target.closest('.board-fundo-resize')) return; // handle trata o resize
+        e.stopPropagation();
+        const z = boardState.camera.zoom || 1;
+        const sx = e.clientX, sy = e.clientY, ox = fi.x, oy = fi.y;
+        el.setPointerCapture(e.pointerId);
+        el.classList.add('arrastando');
+        const mv = (ev) => { fi.x = Math.round(ox + (ev.clientX - sx) / z); fi.y = Math.round(oy + (ev.clientY - sy) / z); el.style.left = fi.x + 'px'; el.style.top = fi.y + 'px'; };
+        const up = () => { el.classList.remove('arrastando'); el.removeEventListener('pointermove', mv); el.removeEventListener('pointerup', up); el.removeEventListener('pointercancel', up); };
+        el.addEventListener('pointermove', mv); el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
+    };
+    const handle = el.querySelector('.board-fundo-resize');
+    if (handle) handle.onpointerdown = (e) => {
+        if (e.button !== 0) return;
+        e.stopPropagation();
+        const z = boardState.camera.zoom || 1;
+        const sx = e.clientX, sy = e.clientY, ow = fi.w, oh = fi.h;
+        handle.setPointerCapture(e.pointerId);
+        const mv = (ev) => { fi.w = Math.max(40, Math.round(ow + (ev.clientX - sx) / z)); fi.h = Math.max(40, Math.round(oh + (ev.clientY - sy) / z)); el.style.width = fi.w + 'px'; el.style.height = fi.h + 'px'; };
+        const up = () => { handle.removeEventListener('pointermove', mv); handle.removeEventListener('pointerup', up); handle.removeEventListener('pointercancel', up); };
+        handle.addEventListener('pointermove', mv); handle.addEventListener('pointerup', up); handle.addEventListener('pointercancel', up);
+    };
+}
 
 window.removerNodeBoard = function(nodeId) {
     fecharPopover(); // evita popover órfão quando a exclusão vem do editor
