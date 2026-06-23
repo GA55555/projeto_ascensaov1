@@ -3192,7 +3192,7 @@ function ativarPanZoom() {
     }, true);
     canvas.addEventListener('pointerdown', (e) => {
         if (!boardAtualId || e.button !== 0) return;
-        if (e.target.closest('.board-card, .board-celula, .board-shape, .board-prop, .board-text, .board-evento-node, .board-line-hit, .board-popover')) return; // não panja sobre elementos
+        if (e.target.closest('.board-card, .board-celula, .board-shape:not(.is-travada), .board-prop, .board-text, .board-evento-node, .board-line-hit, .board-popover')) return; // não panja sobre elementos (mas a zona FIXA conta como fundo → pode panjar)
         // clique no fundo: cancela o modo de conexão pendente.
         if (conectandoDe) { conectandoDe = null; canvas.classList.remove('conectando'); }
         boardPan = { sx: e.clientX, sy: e.clientY, ox: boardState.camera.x, oy: boardState.camera.y };
@@ -3868,7 +3868,7 @@ function ativarInteracoesShapes() {
             if (e.button !== 0) return;
             if (conectandoDe) { e.stopPropagation(); finalizarConexaoLocal(s.id); return; } // fecha ligação
             if (e.target.closest('.board-shape-resize, .board-shape-label')) { e.stopPropagation(); return; }
-            if (s.travada) { e.stopPropagation(); return; } // zona fixa: não arrasta (desafixe no menu p/ mover)
+            if (s.travada) return; // zona fixa: não arrasta a zona; deixa o evento SUBIR p/ o canvas panjar (o duplo-clique p/ abrir o menu/desafixar continua funcionando)
             e.stopPropagation();
             const z = boardState.camera.zoom || 1;
             const sx = e.clientX, sy = e.clientY, ox = s.x, oy = s.y;
