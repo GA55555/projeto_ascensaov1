@@ -526,6 +526,8 @@ label {
 }
 .world-card__ident { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
 .world-card__icone {
+    position: relative;
+    overflow: hidden;
     flex-shrink: 0;
     width: 40px;
     height: 40px;
@@ -538,6 +540,9 @@ label {
     color: var(--roxo-mago);
 }
 .world-card__icone i { width: 22px; height: 22px; }
+/* Avatar (Fase 15 — Atualização Imersiva 2c): cobre o ícone-base; se a imagem
+   quebrar, o onerror remove o <img> e revela o ícone Lucide por baixo (R3). */
+.world-card__avatar { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .world-card__titulo-wrap { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .world-card__nome {
     font-size: 17px;
@@ -857,6 +862,9 @@ label {
     padding: 5px 0;
     margin-bottom: 4px;
 }
+.nucleo-ident { display: flex; align-items: center; gap: 10px; min-width: 0; }
+/* Brasão do núcleo (Fase 15 — Atualização Imersiva 2c); onerror revela o nome só. */
+.nucleo-brasao { flex-shrink: 0; width: 28px; height: 28px; border-radius: 4px; object-fit: cover; border: 1px solid var(--borda); }
 .flag-row { display: flex; gap: 10px; margin-bottom: 5px; }
 .flag-key { flex: 1; }
 .flag-value { width: 120px; }
