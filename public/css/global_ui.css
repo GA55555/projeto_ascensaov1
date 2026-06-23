@@ -2709,6 +2709,40 @@ input[type="radio"] {
    NÃO usar filter no .board-svg: ele é reconstruído por frame no arrasto → re-rasterizar o
    filtro do SVG inteiro a cada frame causa lag (a linha "arrasta" atrás do card). */
 .board-tema-investigacao .board-line { stroke-width: 2.4px; opacity: 0.85; }
+
+/* — NÚCLEO (célula) = DOSSIÊ de caso (escolha de UX do Narrador): pasta manila, aba kraft com
+   LOMBADA na cor da facção, brasão como selo carimbado, nome em Cormorant. Só tokens/color-mix;
+   geometria sóbria (≤8px); tinta escura sobre o papel claro (contraste, Regra 2.6). */
+.board-tema-investigacao .board-celula {
+    background: color-mix(in srgb, var(--aviso) 28%, var(--texto-claro)); /* papel manila */
+    border: 1px solid color-mix(in srgb, var(--aviso) 55%, var(--bg-principal));
+    border-radius: 4px;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: 0 3px 10px var(--sombra-profunda);
+}
+/* Aba do dossiê: faixa kraft (mais escura que o corpo) + lombada colorida da facção no topo. */
+.board-tema-investigacao .board-celula-header {
+    background: color-mix(in srgb, var(--aviso) 45%, var(--texto-claro));
+    border-top: 3px solid var(--board-accent);   /* lombada = identidade da facção */
+    color: var(--bg-principal);                  /* tinta escura sobre o kraft (Regra 2.6) */
+}
+.board-tema-investigacao .board-celula-icone { color: var(--bg-principal); }
+.board-tema-investigacao .board-celula-nome { color: var(--bg-principal); font-size: 18px; }
+/* Brasão = selo carimbado: quadrado sóbrio (4px), anel da facção, leve rotação de "carimbo". */
+.board-tema-investigacao .board-celula-thumb {
+    width: 24px; height: 24px;
+    border: 2px solid var(--board-accent);
+    border-radius: 4px;
+    transform: rotate(-4deg);
+    box-shadow: 0 1px 2px var(--sombra);
+}
+/* Botões do header: tinta escura sobre a aba clara (contraste, Regra 2.6). */
+.board-tema-investigacao .board-celula-btn {
+    background: color-mix(in srgb, var(--bg-principal) 12%, transparent);
+    color: var(--bg-principal);
+}
+.board-tema-investigacao .board-celula-btn:hover { background: color-mix(in srgb, var(--bg-principal) 24%, transparent); }
 .board-world { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform-origin: 0 0; }
 .board-vazio { position: absolute; left: 50%; top: 40%; transform: translateX(-50%); z-index: 1; }
 /* Imagem de fundo (Fase 15 — Atualização Imersiva, Fatias 1a/1b): camada zero do #board-world,

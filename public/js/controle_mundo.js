@@ -219,7 +219,7 @@ function renderizarListaNucleos(lista, tipo) {
     div.innerHTML = lista.map(n => `
         <div class="nucleo-linha">
             <span class="nucleo-ident">
-                ${n.avatar_url ? `<img class="nucleo-brasao" src="${escapeHTML(n.avatar_url)}" alt="" onerror="this.remove()">` : ''}
+                ${n.avatar_url ? `<img class="nucleo-brasao" src="${escapeHTML(n.avatar_url)}" alt="" draggable="false" onerror="this.remove()">` : ''}
                 <span id="nucleo-nome-${n.id}">${escapeHTML(n.nome)}</span>
             </span>
             <div class="card-topo-acoes">
@@ -369,7 +369,7 @@ function cardMundoHTML(node) {
                 <div class="world-card__ident">
                     <span class="world-card__icone">
                         <i data-lucide="${iconeEntidade(node.tipo)}"></i>
-                        ${node.avatar_url ? `<img class="world-card__avatar" src="${escapeHTML(node.avatar_url)}" alt="" onerror="this.remove()">` : ''}
+                        ${node.avatar_url ? `<img class="world-card__avatar" src="${escapeHTML(node.avatar_url)}" alt="" draggable="false" onerror="this.remove()">` : ''}
                     </span>
                     <div class="world-card__titulo-wrap">
                         <strong id="node-nome-${node.id}" class="world-card__nome">${escapeHTML(node.nome)}</strong>
@@ -2883,7 +2883,7 @@ function renderBoard() {
         return `<div class="board-card${corClasse}${oculto}" data-node="${escapeHTML(String(node.id))}" style="left: ${Math.round(node.x)}px; top: ${Math.round(node.y)}px;">
             <span class="board-card-thumb">
                 <i data-lucide="${escapeHTML(icone)}" class="board-card-icone"></i>
-                ${info.avatar_url ? `<img class="board-card-avatar" src="${escapeHTML(info.avatar_url)}" alt="" onerror="this.remove()">` : ''}
+                ${info.avatar_url ? `<img class="board-card-avatar" src="${escapeHTML(info.avatar_url)}" alt="" draggable="false" onerror="this.remove()">` : ''}
             </span>
             <span class="board-card-info">
                 <span class="board-card-nome">${escapeHTML(info.nome)}</span>
@@ -3616,7 +3616,7 @@ function celulaHTML(c) {
         <div class="board-celula-header">
             <span class="board-celula-thumb">
                 <i data-lucide="users" class="board-celula-icone"></i>
-                ${nucleo?.avatar_url ? `<img class="board-celula-avatar" src="${escapeHTML(nucleo.avatar_url)}" alt="" onerror="this.remove()">` : ''}
+                ${nucleo?.avatar_url ? `<img class="board-celula-avatar" src="${escapeHTML(nucleo.avatar_url)}" alt="" draggable="false" onerror="this.remove()">` : ''}
             </span>
             <span class="board-celula-nome" title="${escapeHTML(nome)}">${escapeHTML(nome)}</span>
             <button type="button" class="board-celula-btn" title="${c.minimizada ? 'Expandir' : 'Minimizar'}" onclick="toggleMinimizarCelula('${cid}')"><i data-lucide="${c.minimizada ? 'plus' : 'minus'}"></i></button>
