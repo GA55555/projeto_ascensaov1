@@ -169,7 +169,8 @@ const dadosBoardSchema = z.object({
         label: z.string().trim().max(120).optional(),
         cor: z.enum(CORES_BOARD).optional(),
         forma: z.enum(['retangulo', 'circulo', 'triangulo']).optional(),
-        stroke: z.enum(['solid', 'dashed']).optional()
+        stroke: z.enum(['solid', 'dashed']).optional(),
+        travada: z.boolean().optional() // zona fixa: não move nem redimensiona (cadeado no menu, controle_mundo)
     })).max(200).default([]),
     // Células de Núcleo (Fase 14 — Smart Containers): contêiner que importa e arrasta
     // em bando os membros de um núcleo. `id` é local do board (não-UUID, como shapes);

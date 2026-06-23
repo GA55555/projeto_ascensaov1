@@ -3720,10 +3720,14 @@ function shapeHTML(s) {
     const triSvg = s.forma === 'triangulo'
         ? '<svg class="board-shape-tri" viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="50,2 98,98 2,98"></polygon></svg>'
         : '';
-    return `<div class="board-shape board-cor-${cor}${formaClasse}${strokeClasse}" data-shape="${escapeHTML(String(s.id))}" style="left: ${Math.round(s.x)}px; top: ${Math.round(s.y)}px; width: ${Math.round(s.w)}px; height: ${Math.round(s.h)}px;">
+    // Fixa (travada): cadeado no canto e SEM handle de resize (move/resize bloqueados no JS/CSS).
+    const cadeado = s.travada ? '<i data-lucide="lock" class="board-shape-cadeado"></i>' : '';
+    const resize = s.travada ? '' : '<span class="board-shape-resize" title="Redimensionar"></span>';
+    return `<div class="board-shape board-cor-${cor}${formaClasse}${strokeClasse}${s.travada ? ' is-travada' : ''}" data-shape="${escapeHTML(String(s.id))}" style="left: ${Math.round(s.x)}px; top: ${Math.round(s.y)}px; width: ${Math.round(s.w)}px; height: ${Math.round(s.h)}px;">
         ${triSvg}
         <span class="board-shape-label" title="Duplo-clique edita; corpo abre opções">${escapeHTML(s.label || 'Zona')}</span>
-        <span class="board-shape-resize" title="Redimensionar"></span>
+        ${cadeado}
+        ${resize}
     </div>`;
 }
 
@@ -3817,6 +3821,7 @@ window.abrirEditorShape = function(shapeId, e) {
             ${opt('solid', 'Sólida', s.stroke || 'solid')}${opt('dashed', 'Tracejada', s.stroke || 'solid')}
         </select>
         <div class="board-popover-acoes">
+            <button class="btn btn-ghost btn-sm" onclick="toggleTravarZona('${sid}')"><i data-lucide="${s.travada ? 'lock' : 'lock-open'}"></i> ${s.travada ? 'Desafixar' : 'Fixar'}</button>
             <button class="btn btn-ghost btn-sm" onclick="renomearZona('${sid}')"><i data-lucide="pencil"></i> Renomear</button>
             <button class="btn btn-secondary btn-sm" onclick="iniciarConexaoLocal('${sid}')"><i data-lucide="spline"></i> Conectar</button>
             <button class="btn btn-ghost btn-sm" onclick="removerShapeBoard('${sid}')"><i data-lucide="trash-2"></i> Excluir</button>
@@ -3831,6 +3836,15 @@ window.setShapeCor = function(shapeId, btn) {
     s.cor = btn.dataset.c;
     btn.parentElement.querySelectorAll('.board-cor-swatch').forEach(b => b.classList.remove('sel'));
     btn.classList.add('sel');
+    renderBoard();
+};
+// Fixa/solta a zona (cadeado). Fixa = não move nem redimensiona; cor/forma/renomear/conectar
+// seguem permitidos. Persiste em boardState.shapes[].travada (salvar manual — Regra 2.7).
+window.toggleTravarZona = function(shapeId) {
+    const s = boardState.shapes.find(z => String(z.id) === String(shapeId));
+    if (!s) return;
+    s.travada = !s.travada;
+    fecharPopover();
     renderBoard();
 };
 window.setShapeForma = function(shapeId, v) {
@@ -3854,6 +3868,7 @@ function ativarInteracoesShapes() {
             if (e.button !== 0) return;
             if (conectandoDe) { e.stopPropagation(); finalizarConexaoLocal(s.id); return; } // fecha ligação
             if (e.target.closest('.board-shape-resize, .board-shape-label')) { e.stopPropagation(); return; }
+            if (s.travada) { e.stopPropagation(); return; } // zona fixa: não arrasta (desafixe no menu p/ mover)
             e.stopPropagation();
             const z = boardState.camera.zoom || 1;
             const sx = e.clientX, sy = e.clientY, ox = s.x, oy = s.y;
