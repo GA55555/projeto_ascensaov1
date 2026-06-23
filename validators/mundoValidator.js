@@ -3,6 +3,10 @@ const { z } = require('zod');
 // ---- Schema auxiliar para nucleos_ids (opcional, array de UUIDs) ----
 const nucleosIdsSchema = z.array(z.string().uuid()).optional();
 
+// ---- Avatar/Brasão (Fase 15 — Atualização Imersiva, Fatia 2) ----
+// SÓ /uploads/avatares/* (bloqueia externo/../javascript:/data:/.svg). nullable = remover.
+const avatarUrlSchema = z.string().regex(/^\/uploads\/avatares\/[\w-]+\.(webp|png|jpe?g)$/i, 'avatar inválido').nullable();
+
 // ---- AUTOMAÇÕES ----
 const criarAutomacaoSchema = z.object({
     body: z.object({
@@ -27,7 +31,8 @@ const criarNodeSchema = z.object({
 
 const editarNodeSchema = z.object({
     body: z.object({
-        nome: z.string().min(1, 'Nome da entidade é obrigatório.')
+        nome: z.string().min(1, 'Nome da entidade é obrigatório.'),
+        avatar_url: avatarUrlSchema.optional() // Fatia 2: foto da entidade (em world_nodes.dados)
     })
 });
 
@@ -58,7 +63,12 @@ const criarNucleoSchema = z.object({
     })
 });
 
-const renomearNucleoSchema = criarNucleoSchema; // mesma estrutura
+const renomearNucleoSchema = z.object({ // nome + brasão opcional (Fatia 2)
+    body: z.object({
+        nome: z.string().min(1, 'Nome do núcleo é obrigatório.'),
+        avatar_url: avatarUrlSchema.optional()
+    })
+});
 
 // ---- EVENTOS ----
 const criarEventoSchema = z.object({

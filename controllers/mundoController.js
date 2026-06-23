@@ -43,6 +43,7 @@ exports.listarNodes = async (req, res) => {
     try {
         let queryStr = `
             SELECT n.id, n.nome, n.tipo, n.parent_node_id, n.nucleo_id, n.criado_em,
+                   n.dados->>'avatar_url' AS avatar_url,
                    en.nome as nucleo_nome,
                    COALESCE(json_agg(json_build_object('key', f.flag_key, 'value', f.flag_value)) FILTER (WHERE f.id IS NOT NULL), '[]') as flags
             FROM world_nodes n
@@ -89,10 +90,26 @@ exports.criarNode = async (req, res) => {
 
 exports.editarNode = async (req, res) => {
     const { cronicaId, nodeId } = req.params;
-    const { nome } = req.body;
+    const { nome, avatar_url } = req.body;
     try {
         // IDOR: amarra o node à crônica da rota — impede editar nós de outra crônica.
-        const result = await pool.query('UPDATE world_nodes SET nome = $1 WHERE id = $2 AND cronica_id = $3 RETURNING *', [nome, nodeId, cronicaId]);
+        let result;
+        if (Object.prototype.hasOwnProperty.call(req.body, 'avatar_url')) {
+            // Fatia 2: faz MERGE de avatar_url no jsonb 'dados' (não clobbera outras chaves);
+            // null limpa a chave. $2 NULL via CASE para preservar o tipo da operação.
+            result = await pool.query(
+                `UPDATE world_nodes
+                    SET nome = $1,
+                        dados = CASE WHEN $2::text IS NULL
+                                     THEN COALESCE(dados, '{}'::jsonb) - 'avatar_url'
+                                     ELSE COALESCE(dados, '{}'::jsonb) || jsonb_build_object('avatar_url', $2::text) END
+                  WHERE id = $3 AND cronica_id = $4
+                  RETURNING *`,
+                [nome, avatar_url ?? null, nodeId, cronicaId]
+            );
+        } else {
+            result = await pool.query('UPDATE world_nodes SET nome = $1 WHERE id = $2 AND cronica_id = $3 RETURNING *', [nome, nodeId, cronicaId]);
+        }
         if (result.rows.length === 0) return res.status(404).json({ erro: 'Entidade não encontrada.' });
         res.json({ mensagem: 'Entidade atualizada!', node: result.rows[0] });
     } catch (err) {
@@ -286,7 +303,7 @@ exports.deletarFlag = async (req, res) => {
 exports.listarNucleosEntidade = async (req, res) => {
     const { cronicaId } = req.params;
     try {
-        const query = await pool.query("SELECT id, nome FROM entidade_nucleos WHERE cronica_id = $1 AND tipo = 'entidade' ORDER BY nome ASC", [cronicaId]);
+        const query = await pool.query("SELECT id, nome, avatar_url FROM entidade_nucleos WHERE cronica_id = $1 AND tipo = 'entidade' ORDER BY nome ASC", [cronicaId]);
         res.json(query.rows);
     } catch (err) { res.status(500).json({ erro: 'Erro ao buscar núcleos de entidades.' }); }
 };
@@ -302,9 +319,15 @@ exports.criarNucleoEntidade = async (req, res) => {
 
 exports.renomearNucleoEntidade = async (req, res) => {
     const { cronicaId, nucleoId } = req.params;
-    const { nome } = req.body;
+    const { nome, avatar_url } = req.body;
     try {
-        const result = await pool.query('UPDATE entidade_nucleos SET nome = $1 WHERE id = $2 AND cronica_id = $3 RETURNING *', [nome.trim(), nucleoId, cronicaId]);
+        // Fatia 2: define também o brasão (avatar_url) quando enviado; null limpa.
+        let result;
+        if (Object.prototype.hasOwnProperty.call(req.body, 'avatar_url')) {
+            result = await pool.query('UPDATE entidade_nucleos SET nome = $1, avatar_url = $2 WHERE id = $3 AND cronica_id = $4 RETURNING *', [nome.trim(), avatar_url ?? null, nucleoId, cronicaId]);
+        } else {
+            result = await pool.query('UPDATE entidade_nucleos SET nome = $1 WHERE id = $2 AND cronica_id = $3 RETURNING *', [nome.trim(), nucleoId, cronicaId]);
+        }
         if (result.rows.length === 0) return res.status(404).json({ erro: 'Núcleo não encontrado.' });
         res.json(result.rows[0]);
     } catch (err) { res.status(500).json({ erro: 'Erro ao renomear núcleo.' }); }
