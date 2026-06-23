@@ -157,11 +157,14 @@ const dadosBoardSchema = z.object({
     // upload local (sem externo/javascript:/data:/traversal — R2/R3); nullable p/ remoção,
     // optional p/ boards antigos. rect em coords de mundo (posicionar na Fatia 1b).
     fundoImagem: z.object({
-        url: z.string().regex(/^\/uploads\/[a-z]+\/[\w-]+\.(webp|png|jpe?g)$/i, 'url de upload inválida'),
+        // SÓ a pasta 'fundos' (não permite apontar p/ avatares/capas de outrem → o unlink de
+        // higiene nunca apaga ficheiro alheio). Bloqueia externo/../javascript:/data:/.svg.
+        url: z.string().regex(/^\/uploads\/fundos\/[\w-]+\.(webp|png|jpe?g)$/i, 'url de upload inválida'),
         x: z.number().finite(),
         y: z.number().finite(),
         w: z.number().finite().min(1),
-        h: z.number().finite().min(1)
+        h: z.number().finite().min(1),
+        opacidade: z.number().min(0).max(1).optional() // Fatia 1c (default 1 no cliente)
     }).nullable().optional(),
     nodes: z.array(z.object({
         id: z.string().uuid(),

@@ -1,6 +1,20 @@
 const asyncHandler = require('../utils/asyncHandler');
 const pool = require('../db');
 const automacaoService = require('../services/automacaoService');
+const fs = require('fs/promises');
+const path = require('path');
+
+// Higiene de ficheiros de fundo (Regra 6.6): apaga o /uploads/fundos/* órfão quando um board
+// troca/remove a imagem ou é excluído. RESTRITO à pasta 'fundos' (nunca toca avatares/capas
+// de outrem, mesmo que a url aponte p/ lá) + anti-traversal (o caminho resolvido tem de ficar
+// dentro de public/uploads/fundos). Falha silenciosa em ficheiro ausente (Regra 4.2).
+const DIR_FUNDOS = path.resolve(__dirname, '..', 'public', 'uploads', 'fundos');
+async function apagarFundoOrfao(url) {
+    if (typeof url !== 'string' || !/^\/uploads\/fundos\/[\w-]+\.(webp|png|jpe?g)$/i.test(url)) return;
+    const abs = path.resolve(__dirname, '..', 'public', url.replace(/^\/+/, ''));
+    if (!abs.startsWith(DIR_FUNDOS + path.sep)) return; // defesa em profundidade
+    try { await fs.unlink(abs); } catch (e) { /* ENOENT/etc: ignora */ }
+}
 
 // =======================================================
 // GUARDS DE PROPRIEDADE (anti-IDOR) — Regra 3.3
@@ -762,6 +776,13 @@ exports.atualizarBoard = async (req, res) => {
     const { cronicaId, boardId } = req.params;
     const { nome, dados } = req.body;
     try {
+        // Regra 6.6: se 'dados' troca/remove a imagem de fundo, o ficheiro antigo fica órfão.
+        // Lê a url anterior ANTES do UPDATE (escopo cronica_id — anti-IDOR 3.3.1).
+        let urlAntiga = null;
+        if (dados) {
+            const prev = await pool.query('SELECT dados FROM world_boards WHERE id = $1 AND cronica_id = $2', [boardId, cronicaId]);
+            urlAntiga = prev.rows[0]?.dados?.fundoImagem?.url || null;
+        }
         // COALESCE: atualiza só os campos enviados; sempre carimba atualizado_em.
         const r = await pool.query(
             `UPDATE world_boards
@@ -773,6 +794,8 @@ exports.atualizarBoard = async (req, res) => {
             [nome ?? null, dados ? JSON.stringify(dados) : null, boardId, cronicaId]
         );
         if (r.rows.length === 0) return res.status(404).json({ erro: 'Tabuleiro não encontrado.' });
+        const urlNova = r.rows[0]?.dados?.fundoImagem?.url || null;
+        if (urlAntiga && urlAntiga !== urlNova) await apagarFundoOrfao(urlAntiga);
         res.json(r.rows[0]);
     } catch (err) {
         console.error('Erro ao atualizar tabuleiro:', err);
@@ -784,10 +807,11 @@ exports.deletarBoard = async (req, res) => {
     const { cronicaId, boardId } = req.params;
     try {
         const r = await pool.query(
-            `DELETE FROM world_boards WHERE id = $1 AND cronica_id = $2 RETURNING id`,
+            `DELETE FROM world_boards WHERE id = $1 AND cronica_id = $2 RETURNING id, dados`,
             [boardId, cronicaId]
         );
         if (r.rows.length === 0) return res.status(404).json({ erro: 'Tabuleiro não encontrado.' });
+        await apagarFundoOrfao(r.rows[0]?.dados?.fundoImagem?.url || null); // Regra 6.6
         res.json({ mensagem: 'Tabuleiro removido.' });
     } catch (err) {
         console.error('Erro ao deletar tabuleiro:', err);
