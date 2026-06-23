@@ -165,6 +165,9 @@ const dadosBoardSchema = z.object({
     // Plano de fundo da mesa (anti-Moiré aplicado no cliente). Opcional p/ migração
     // graciosa de boards antigos sem a chave (o cliente assume 'dots' por defeito).
     fundo: z.enum(['dots', 'grid', 'none']).optional(),
+    // Tema do tabuleiro (Fase 15 — Atualização Imersiva, Fatia 3). Pura apresentação (classe
+    // escopada no #board-canvas, Paradigma 5). Opcional p/ migração graciosa (cliente assume 'esquema').
+    tema: z.enum(['esquema', 'investigacao', 'mapa-tatico']).optional(),
     // Imagem de fundo (Fase 15 — Atualização Imersiva, Fatia 1). url SÓ aceita caminho de
     // upload local (sem externo/javascript:/data:/traversal — R2/R3); nullable p/ remoção,
     // optional p/ boards antigos. rect em coords de mundo (posicionar na Fatia 1b).
