@@ -2728,7 +2728,7 @@ async function persistirDiplomacia() {
 
 // Temas do tabuleiro (Fase 15 — Atualização Imersiva, Fatia 3). Paradigma 5: classe escopada
 // no #board-canvas (board-tema-*), pura apresentação; persiste no boardState (Salvar, Regra 2.7).
-const TEMAS_BOARD = ['esquema', 'investigacao', 'mapa-tatico'];
+const TEMAS_BOARD = ['esquema', 'investigacao'];
 const boardVazio = () => ({ camera: { x: 0, y: 0, zoom: 1 }, fundo: 'dots', fundoImagem: null, tema: 'esquema', nodes: [], shapes: [], celulas: [], texts: [], props: [], localLinks: [], overrides_linhas: {} });
 let boardAtualId = null;
 let boardNomeAtual = '';
