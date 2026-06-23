@@ -3,6 +3,12 @@ const { z } = require('zod');
 // ---- Schema auxiliar para nucleos_ids (opcional, array de UUIDs) ----
 const nucleosIdsSchema = z.array(z.string().uuid()).optional();
 
+// ---- Avatar/Brasão (Fase 15 — Atualização Imersiva, Fatia 2) ----
+// Pastas DEDICADAS (não a 'avatares' de perfil, que é compartilhada) → a higiene de órfãos
+// pode apagar com segurança. nullable = remover. Bloqueia externo/../javascript:/data:/.svg.
+const avatarEntidadeSchema = z.string().regex(/^\/uploads\/entidades\/[\w-]+\.(webp|png|jpe?g)$/i, 'avatar inválido').nullable();
+const avatarNucleoSchema   = z.string().regex(/^\/uploads\/nucleos\/[\w-]+\.(webp|png|jpe?g)$/i, 'brasão inválido').nullable();
+
 // ---- AUTOMAÇÕES ----
 const criarAutomacaoSchema = z.object({
     body: z.object({
@@ -27,7 +33,8 @@ const criarNodeSchema = z.object({
 
 const editarNodeSchema = z.object({
     body: z.object({
-        nome: z.string().min(1, 'Nome da entidade é obrigatório.')
+        nome: z.string().min(1, 'Nome da entidade é obrigatório.'),
+        avatar_url: avatarEntidadeSchema.optional() // Fatia 2: foto da entidade (em world_nodes.dados)
     })
 });
 
@@ -58,7 +65,12 @@ const criarNucleoSchema = z.object({
     })
 });
 
-const renomearNucleoSchema = criarNucleoSchema; // mesma estrutura
+const renomearNucleoSchema = z.object({ // nome + brasão opcional (Fatia 2)
+    body: z.object({
+        nome: z.string().min(1, 'Nome do núcleo é obrigatório.'),
+        avatar_url: avatarNucleoSchema.optional()
+    })
+});
 
 // ---- EVENTOS ----
 const criarEventoSchema = z.object({
@@ -153,6 +165,19 @@ const dadosBoardSchema = z.object({
     // Plano de fundo da mesa (anti-Moiré aplicado no cliente). Opcional p/ migração
     // graciosa de boards antigos sem a chave (o cliente assume 'dots' por defeito).
     fundo: z.enum(['dots', 'grid', 'none']).optional(),
+    // Imagem de fundo (Fase 15 — Atualização Imersiva, Fatia 1). url SÓ aceita caminho de
+    // upload local (sem externo/javascript:/data:/traversal — R2/R3); nullable p/ remoção,
+    // optional p/ boards antigos. rect em coords de mundo (posicionar na Fatia 1b).
+    fundoImagem: z.object({
+        // SÓ a pasta 'fundos' (não permite apontar p/ avatares/capas de outrem → o unlink de
+        // higiene nunca apaga ficheiro alheio). Bloqueia externo/../javascript:/data:/.svg.
+        url: z.string().regex(/^\/uploads\/fundos\/[\w-]+\.(webp|png|jpe?g)$/i, 'url de upload inválida'),
+        x: z.number().finite(),
+        y: z.number().finite(),
+        w: z.number().finite().min(1),
+        h: z.number().finite().min(1),
+        opacidade: z.number().min(0).max(1).optional() // Fatia 1c (default 1 no cliente)
+    }).nullable().optional(),
     nodes: z.array(z.object({
         id: z.string().uuid(),
         x: z.number().finite(),

@@ -2651,7 +2651,7 @@ async function persistirDiplomacia() {
     }
 }
 
-const boardVazio = () => ({ camera: { x: 0, y: 0, zoom: 1 }, fundo: 'dots', nodes: [], shapes: [], celulas: [], texts: [], props: [], localLinks: [], overrides_linhas: {} });
+const boardVazio = () => ({ camera: { x: 0, y: 0, zoom: 1 }, fundo: 'dots', fundoImagem: null, nodes: [], shapes: [], celulas: [], texts: [], props: [], localLinks: [], overrides_linhas: {} });
 let boardAtualId = null;
 let boardNomeAtual = '';
 let boardState = boardVazio();
@@ -2717,6 +2717,9 @@ window.novoBoard = async function() {
 window.abrirBoard = async function(boardId) {
     boardAtualId = boardId || null;
     eventosInvocados = {}; // invocações são por-tabuleiro: troca de board zera os painéis efêmeros
+    ajustandoFundo = false; // sai do modo de ajuste de fundo ao trocar de tabuleiro
+    document.getElementById('btn-ajustar-fundo')?.classList.remove('ativo');
+    sincronizarSliderFundo();
     if (!boardId) { boardState = boardVazio(); boardNomeAtual = ''; renderBoard(); return; }
     let resp;
     try { resp = await MundoApi.buscarBoard(cronicaId, boardId); }
@@ -2726,6 +2729,7 @@ window.abrirBoard = async function(boardId) {
     boardState = {
         camera: d.camera || { x: 0, y: 0, zoom: 1 },
         fundo: d.fundo || 'dots',
+        fundoImagem: (d.fundoImagem && typeof d.fundoImagem.url === 'string') ? d.fundoImagem : null, // defensivo (Regra 4.2)
         nodes: Array.isArray(d.nodes) ? d.nodes : [],
         shapes: Array.isArray(d.shapes) ? d.shapes : [],
         celulas: Array.isArray(d.celulas) ? d.celulas : [],
@@ -2804,7 +2808,14 @@ function renderBoard() {
     const texts = boardState.texts.map(textHTML).join('');     // textos flutuantes (z-index 3)
     const eventos = eventosInvocadosHTML();                    // painéis de evento invocados via crachá (efêmero/read-only)
     const corpo = celulas + shapes + props + eventos + texts + cards;
-    world.innerHTML = '<svg class="board-svg"></svg>' + (corpo || '<div class="board-vazio info-block-vazio">Tabuleiro vazio. Use “+ Entidade” ou “+ Zona” para começar.</div>');
+    // Fatia 1a: camada de imagem de fundo (mapa/textura) dentro do #board-world → move/zooma com
+    // os cards; z-index -1 via CSS (sob as zonas). pointer-events:none (posicionar virá na 1b).
+    const fi = boardState.fundoImagem;
+    const fundoOpac = typeof fi?.opacidade === 'number' ? fi.opacidade : 1;
+    const fundoImg = fi
+        ? `<div class="board-imagem-fundo${ajustandoFundo ? ' is-editando' : ''}" style="left: ${Math.round(fi.x)}px; top: ${Math.round(fi.y)}px; width: ${Math.round(fi.w)}px; height: ${Math.round(fi.h)}px; opacity: ${fundoOpac};"><img src="${escapeHTML(fi.url)}" alt="" draggable="false" onerror="this.closest('.board-imagem-fundo')?.remove()">${ajustandoFundo ? '<span class="board-fundo-resize" title="Redimensionar"></span>' : ''}</div>`
+        : '';
+    world.innerHTML = '<svg class="board-svg"></svg>' + fundoImg + (corpo || (fundoImg ? '' : '<div class="board-vazio info-block-vazio">Tabuleiro vazio. Use “+ Entidade” ou “+ Zona” para começar.</div>'));
     aplicarCamera();
     lucide.createIcons();
     ativarArrastoCards();
@@ -2813,6 +2824,7 @@ function renderBoard() {
     ativarInteracoesProps();
     ativarInteracoesTexts();
     ativarArrastoEventos();
+    ativarInteracoesFundo();
     if (mapaCalor) pintarCalorBoard(); // escala os boxes ANTES das linhas (re-ancoram no tamanho novo)
     desenharLinhasBoard(); // linhas a partir do cache boardLinks + localLinks
 }
@@ -2828,7 +2840,9 @@ function aplicarCamera() {
     // e mantemos background-size/-position seguindo a câmera (anti-Moiré).
     const canvas = elBoardCanvas();
     if (!canvas) return;
-    const tipo = boardState.fundo || 'dots';
+    // Auto-esconder a grade quando há imagem de fundo (Fatia 1c): view-rule reversível — não
+    // muta boardState.fundo, então a escolha do Narrador volta ao remover a imagem.
+    const tipo = boardState.fundoImagem ? 'none' : (boardState.fundo || 'dots');
     let passo = (tipo === 'grid' ? 32 : 24) * c.zoom;
     // Anti-Moiré: duplica o passo até ele sair da faixa de "chiado" (pontos colidindo).
     while (passo > 0 && passo < 14) passo *= 2;
@@ -3171,6 +3185,108 @@ window.toggleLinhasBoard = function(btn) {
 // Plano de fundo da mesa (pontilhado/grade/liso). Muta boardState.fundo e repinta o
 // canvas via aplicarCamera (que aplica o passo anti-Moiré). Persiste só no Salvar (Regra 2.7).
 window.mudarFundoBoard = function(v) { boardState.fundo = v; aplicarCamera(); };
+
+// ── IMAGEM DE FUNDO (Fase 15 — Atualização Imersiva, Fatias 1a/1b) ──────────
+// Upload reusa o pipeline /midia/upload/fundos (Sharp→WebP, nomes hash; Regras 6.3/6.5).
+// Define o rect centrado no mundo com o tamanho natural (Sharp já limita a 1920×1080).
+// Efêmero até Salvar (Regra 2.7). Sem URL externa (decisão 7.0.1) → sem superfície de XSS.
+// ajustandoFundo (transitório, fora do boardState): no modo de ajuste o fundo sobe e fica
+// arrastável/redimensionável; fora dele é pointer-events:none (pan livre por cima do mapa).
+let ajustandoFundo = false;
+window.onFundoSelecionado = async function(input) {
+    const arquivo = input.files && input.files[0];
+    input.value = ''; // permite re-selecionar o mesmo arquivo depois
+    if (!arquivo) return;
+    if (!boardAtualId) return mostrarToast('Abra um tabuleiro primeiro.', 'aviso');
+    const fd = new FormData();
+    fd.append('imagens', arquivo);
+    let url;
+    try {
+        const res = await API.fetch('/midia/upload/fundos', { method: 'POST', body: fd });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.urls || !data.urls[0]) throw new Error(data.erro || 'Falha no upload.');
+        url = data.urls[0];
+    } catch (e) { return mostrarToast(e.message || 'Erro ao enviar imagem.', 'erro'); }
+    const img = new Image();
+    img.onload = () => {
+        const c = centroMundo();
+        const w = img.naturalWidth || 800, h = img.naturalHeight || 600;
+        boardState.fundoImagem = { url, x: Math.round(c.x - w / 2), y: Math.round(c.y - h / 2), w, h, opacidade: 1 };
+        renderBoard();
+        mostrarToast('Imagem de fundo aplicada. Use Salvar para persistir.', 'sucesso');
+    };
+    img.onerror = () => mostrarToast('Imagem inválida.', 'erro');
+    img.src = url;
+};
+window.removerFundoBoard = function() {
+    if (!boardState.fundoImagem) return mostrarToast('Não há imagem de fundo.', 'aviso');
+    boardState.fundoImagem = null;
+    ajustandoFundo = false; // sai do modo de ajuste (não há mais o que ajustar)
+    document.getElementById('btn-ajustar-fundo')?.classList.remove('ativo');
+    sincronizarSliderFundo();
+    renderBoard();
+    mostrarToast('Imagem de fundo removida. Use Salvar para persistir.', 'aviso');
+};
+
+// Modo de ajuste (Fatia 1b): liga/desliga o posicionamento do fundo. No modo, o fundo sobe
+// (z-index), ganha moldura + handle e fica arrastável; fora, volta a ser fundo pannável.
+window.toggleAjusteFundo = function() {
+    if (!boardState.fundoImagem) return mostrarToast('Não há imagem de fundo para ajustar.', 'aviso');
+    ajustandoFundo = !ajustandoFundo;
+    document.getElementById('btn-ajustar-fundo')?.classList.toggle('ativo', ajustandoFundo);
+    sincronizarSliderFundo(); // o controle de opacidade só aparece no modo de ajuste
+    renderBoard();
+    if (ajustandoFundo) mostrarToast('Arraste para mover; o canto redimensiona; o slider muda a opacidade. Clique de novo p/ concluir.', 'sucesso');
+};
+// Mostra/esconde o slider de opacidade conforme o modo de ajuste e reflete o valor atual.
+function sincronizarSliderFundo() {
+    const slider = document.getElementById('board-fundo-opacidade');
+    if (!slider) return;
+    const ativo = ajustandoFundo && !!boardState.fundoImagem;
+    slider.hidden = !ativo;
+    if (ativo) slider.value = (typeof boardState.fundoImagem.opacidade === 'number') ? boardState.fundoImagem.opacidade : 1;
+}
+// Opacidade do fundo (live, sem re-render). Persiste em boardState.fundoImagem (Salvar).
+window.setOpacidadeFundo = function(v) {
+    if (!boardState.fundoImagem) return;
+    const o = Math.min(1, Math.max(0.1, parseFloat(v) || 1));
+    boardState.fundoImagem.opacidade = o;
+    const el = elBoardWorld()?.querySelector('.board-imagem-fundo');
+    if (el) el.style.opacity = o;
+};
+
+// Mover (corpo) + redimensionar (canto) o fundo, só no modo de ajuste. Coords de mundo =
+// delta/zoom; escreve no DOM + boardState.fundoImagem (persiste no Salvar). pointerup+pointercancel.
+function ativarInteracoesFundo() {
+    if (!ajustandoFundo) return;
+    const world = elBoardWorld();
+    const el = world && world.querySelector('.board-imagem-fundo');
+    const fi = boardState.fundoImagem;
+    if (!el || !fi) return;
+    el.onpointerdown = (e) => {
+        if (e.button !== 0) return;
+        if (e.target.closest('.board-fundo-resize')) return; // handle trata o resize
+        e.stopPropagation();
+        const z = boardState.camera.zoom || 1;
+        const sx = e.clientX, sy = e.clientY, ox = fi.x, oy = fi.y;
+        el.setPointerCapture(e.pointerId);
+        el.classList.add('arrastando');
+        const mv = (ev) => { fi.x = Math.round(ox + (ev.clientX - sx) / z); fi.y = Math.round(oy + (ev.clientY - sy) / z); el.style.left = fi.x + 'px'; el.style.top = fi.y + 'px'; };
+        const up = () => { el.classList.remove('arrastando'); el.removeEventListener('pointermove', mv); el.removeEventListener('pointerup', up); el.removeEventListener('pointercancel', up); };
+        el.addEventListener('pointermove', mv); el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
+    };
+    const handle = el.querySelector('.board-fundo-resize');
+    if (handle) handle.onpointerdown = (e) => {
+        if (e.button !== 0) return;
+        e.stopPropagation();
+        const z = boardState.camera.zoom || 1;
+        const sx = e.clientX, sy = e.clientY, ow = fi.w, oh = fi.h;
+        handle.setPointerCapture(e.pointerId);
+        const mv = (ev) => { fi.w = Math.max(40, Math.round(ow + (ev.clientX - sx) / z)); fi.h = Math.max(40, Math.round(oh + (ev.clientY - sy) / z)); el.style.width = fi.w + 'px'; el.style.height = fi.h + 'px'; };
+        const up = () => { handle.removeEventListener('pointermove', mv); handle.removeEventListener('pointerup', up); handle.removeEventListener('pointercancel', up); };
+        handle.addEventListener('pointermove', mv); handle.addEventListener('pointerup', up); handle.addEventListener('pointercancel', up);
+    };
+}
 
 window.removerNodeBoard = function(nodeId) {
     fecharPopover(); // evita popover órfão quando a exclusão vem do editor

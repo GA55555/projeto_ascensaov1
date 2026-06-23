@@ -7,7 +7,7 @@ const upload = require('../config/upload'); // Importa o Multer configurado
 // ==========================================
 // SEGURANÇA: Whitelist de Pastas
 // ==========================================
-const pastasPermitidas = ['capas', 'posts', 'avatares', 'cards', 'social'];
+const pastasPermitidas = ['capas', 'posts', 'avatares', 'cards', 'social', 'fundos', 'entidades', 'nucleos'];
 
 const validarDestino = (req, res, next) => {
     const { tipo } = req.params;
