@@ -2627,10 +2627,8 @@ input[type="radio"] {
 /* — Investigação: MURAL DE CORTIÇA de detetive (escolha de UX do Narrador):
    foto pregada com PINO + ETIQUETA de papel pendurada por um fio + BARBANTE mantendo a
    cor política. Tudo via CSS escopado (o HTML do card é theme-agnostic); cores só por
-   token; pino/fio/etiqueta por pseudo-elementos (geometria, não emoji — Regras 2.3/2.5). */
-.board-canvas.board-tema-investigacao {
-    background-color: color-mix(in srgb, var(--aviso) 24%, var(--bg-principal)); /* cortiça */
-}
+   token; pino/fio/etiqueta por pseudo-elementos (geometria, não emoji — Regras 2.3/2.5).
+   Fundo do canvas = cor PADRÃO do tabuleiro (decisão do Narrador; sem tinta de cortiça). */
 /* O card deixa de ser "caixa de vidro": vira o conjunto foto + etiqueta, empilhado. */
 .board-tema-investigacao .board-card {
     flex-direction: column;
@@ -2645,7 +2643,9 @@ input[type="radio"] {
     box-shadow: none;
     overflow: visible;
     transform: rotate(-1.5deg);                       /* ar de "pregada à mão" */
-    transition: var(--transicao-suave);
+    /* SÓ transform/filter (hover) — NUNCA left/top: transicionar a posição faria o card
+       "escorregar" atrás do cursor no arrasto (lag) e dessincronizar as linhas. */
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), filter 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .board-tema-investigacao .board-card:nth-of-type(3n)   { transform: rotate(1.8deg); }  /* tilt orgânico */
 .board-tema-investigacao .board-card:nth-of-type(3n+1) { transform: rotate(-2.6deg); }

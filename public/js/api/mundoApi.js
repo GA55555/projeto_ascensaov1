@@ -119,6 +119,14 @@ const MundoApi = {
         return res.json();
     },
 
+    // Todos os links da crônica numa só requisição (otimização do Tabuleiro: evita o N+1 de
+    // chamar listarLinks por nó). Devolve linhas cruas {id, origem_node_id, destino_node_id, tipo_vinculo}.
+    async listarLinksCronica(cronicaId) {
+        const res = await API.fetch(`/cronicas/${cronicaId}/links`);
+        if (!res.ok) throw new Error('Falha ao carregar conexões da crônica.');
+        return res.json();
+    },
+
     // Arestas Ricas (Fase 11): `dados` é o JSONB opcional de intriga (opt-in).
     async criarLink(cronicaId, nodeId, destinoNodeId, tipoLink = 'associado', dados = null) {
         // 'tipo_vinculo' é a coluna real de world_links (contrato da DDL); o parâmetro segue a nomenclatura Link/Sinapse.

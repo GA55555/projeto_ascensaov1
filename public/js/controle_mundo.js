@@ -2751,12 +2751,18 @@ const boardNodeInfo = (id) => boardNodesCache.find(n => String(n.id) === String(
 // Entrada da aba: carrega cache de nós + lista de tabuleiros + liga Pan/Zoom.
 async function carregarMesaGuerra() {
     if (!elBoardCanvas()) return;
-    try { boardNodesCache = await MundoApi.getNodes(cronicaId); }
-    catch (e) { mostrarToast('Erro ao carregar entidades.', 'erro'); }
-    diplomaciaCache = await MundoApi.getDiplomacia(cronicaId); // board reflete a diplomacia do Mundo (tolerante → [])
-    // Eventos (p/ crachás na render): fetch eager + gatilhos defensivo. Tolerante a falha (→ []).
-    try { boardEventosCache = await EventosApi.getEventos(cronicaId); }
-    catch (e) { boardEventosCache = []; }
+    // Os 3 carregamentos são independentes → em paralelo (1 ida ao servidor em vez de 3
+    // sequenciais). allSettled p/ tolerância: a falha de um não derruba os outros.
+    const [nodesR, diploR, eventosR] = await Promise.allSettled([
+        MundoApi.getNodes(cronicaId),
+        MundoApi.getDiplomacia(cronicaId),
+        EventosApi.getEventos(cronicaId)
+    ]);
+    if (nodesR.status === 'fulfilled') boardNodesCache = nodesR.value; // falha → mantém cache anterior
+    else mostrarToast('Erro ao carregar entidades.', 'erro');
+    diplomaciaCache = diploR.status === 'fulfilled' ? diploR.value : []; // board reflete a diplomacia do Mundo (tolerante → [])
+    // Eventos (p/ crachás na render): tolerante a falha (→ []); gatilhos normalizado abaixo.
+    boardEventosCache = eventosR.status === 'fulfilled' ? eventosR.value : [];
     boardEventosCache.forEach(ev => {
         if (typeof ev.gatilhos === 'string') { try { ev.gatilhos = JSON.parse(ev.gatilhos); } catch (_) { ev.gatilhos = []; } }
         if (!Array.isArray(ev.gatilhos)) ev.gatilhos = [];
@@ -4444,18 +4450,18 @@ function corLinhaVar(ovCor, tipo) {
 // Busca os world_links REAIS entre os nós do board (reuso de listarLinks: 1 chamada
 // por nó + dedupe por id; filtra os com AMBOS extremos no tabuleiro). Depois desenha.
 async function atualizarLinksBoard() {
+    // 1 requisição (links da crônica) em vez de N (1 por nó) — fim do N+1. Filtra para os
+    // vínculos cujas DUAS pontas estão no board; cada link vem uma única vez (dedupe por id defensivo).
     const ids = new Set(boardState.nodes.map(n => String(n.id)));
+    let links = [];
+    try { links = await MundoApi.listarLinksCronica(cronicaId); } catch (e) { links = []; }
     const vistos = new Map();
-    await Promise.all(boardState.nodes.map(async (node) => {
-        let links = [];
-        try { links = await MundoApi.listarLinks(cronicaId, node.id); } catch (e) { return; }
-        links.forEach(l => {
-            const b = String(l.node_conectado_id);
-            if (!ids.has(b)) return;
-            const id = String(l.id);
-            if (!vistos.has(id)) vistos.set(id, { id, a: String(node.id), b, tipo: l.tipo_vinculo });
-        });
-    }));
+    links.forEach(l => {
+        const a = String(l.origem_node_id), b = String(l.destino_node_id);
+        if (!ids.has(a) || !ids.has(b)) return; // só liga nós presentes no board
+        const id = String(l.id);
+        if (!vistos.has(id)) vistos.set(id, { id, a, b, tipo: l.tipo_vinculo });
+    });
     boardLinks = [...vistos.values()];
     desenharLinhasBoard();
 }
@@ -4467,11 +4473,13 @@ function caminhoCardeal(elA, elB) {
     const a = { x: elA.offsetLeft + elA.offsetWidth / 2, y: elA.offsetTop + elA.offsetHeight / 2 };
     const b = { x: elB.offsetLeft + elB.offsetWidth / 2, y: elB.offsetTop + elB.offsetHeight / 2 };
     const dx = b.x - a.x, dy = b.y - a.y;
-    // Tema Investigação: barbante ESTICADO (reta pino-a-pino, centro→centro). O SVG fica atrás
-    // dos cards (z-index 2 < 3) → o fio "entra" sob a foto e só aparece no vão. Sai cedo da
-    // curva cardeal. Afeta todas as linhas (world_links, localLinks, diplomacia, eventos).
+    // Tema Investigação: barbante ESTICADO ligando os PINOS (topo das fotos). Cards âncoram no
+    // pino (topo-centro, ~offsetTop); células/zonas (sem pino) seguem pelo centro. O SVG fica
+    // atrás dos cards (z2<3) → o fio chega ao pino e some atrás da foto. Afeta todas as linhas.
     if (boardState.tema === 'investigacao') {
-        return { d: `M ${a.x} ${a.y} L ${b.x} ${b.y}`, mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 };
+        const pino = (el, c) => el.classList.contains('board-card') ? { x: c.x, y: el.offsetTop } : c;
+        const pa = pino(elA, a), pb = pino(elB, b);
+        return { d: `M ${pa.x} ${pa.y} L ${pb.x} ${pb.y}`, mx: (pa.x + pb.x) / 2, my: (pa.y + pb.y) / 2 };
     }
     let p1, p2, c1, c2;
     if (Math.abs(dx) > Math.abs(dy)) {
