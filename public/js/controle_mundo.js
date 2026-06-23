@@ -2719,7 +2719,7 @@ window.abrirBoard = async function(boardId) {
     eventosInvocados = {}; // invocações são por-tabuleiro: troca de board zera os painéis efêmeros
     ajustandoFundo = false; // sai do modo de ajuste de fundo ao trocar de tabuleiro
     document.getElementById('btn-ajustar-fundo')?.classList.remove('ativo');
-    sincronizarSliderFundo();
+    sincronizarControlesFundo();
     if (!boardId) { boardState = boardVazio(); boardNomeAtual = ''; renderBoard(); return; }
     let resp;
     try { resp = await MundoApi.buscarBoard(cronicaId, boardId); }
@@ -3223,7 +3223,7 @@ window.removerFundoBoard = function() {
     boardState.fundoImagem = null;
     ajustandoFundo = false; // sai do modo de ajuste (não há mais o que ajustar)
     document.getElementById('btn-ajustar-fundo')?.classList.remove('ativo');
-    sincronizarSliderFundo();
+    sincronizarControlesFundo();
     renderBoard();
     mostrarToast('Imagem de fundo removida. Use Salvar para persistir.', 'aviso');
 };
@@ -3234,17 +3234,16 @@ window.toggleAjusteFundo = function() {
     if (!boardState.fundoImagem) return mostrarToast('Não há imagem de fundo para ajustar.', 'aviso');
     ajustandoFundo = !ajustandoFundo;
     document.getElementById('btn-ajustar-fundo')?.classList.toggle('ativo', ajustandoFundo);
-    sincronizarSliderFundo(); // o controle de opacidade só aparece no modo de ajuste
+    sincronizarControlesFundo(); // opacidade + aumentar/diminuir só aparecem no modo de ajuste
     renderBoard();
-    if (ajustandoFundo) mostrarToast('Arraste para mover; o canto redimensiona; o slider muda a opacidade. Clique de novo p/ concluir.', 'sucesso');
+    if (ajustandoFundo) mostrarToast('Use + / − para aumentar/diminuir (proporcional); arraste para mover; o canto redimensiona livre; o slider muda a opacidade. Clique de novo p/ concluir.', 'sucesso');
 };
 // Mostra/esconde o slider de opacidade conforme o modo de ajuste e reflete o valor atual.
-function sincronizarSliderFundo() {
-    const slider = document.getElementById('board-fundo-opacidade');
-    if (!slider) return;
+function sincronizarControlesFundo() {
     const ativo = ajustandoFundo && !!boardState.fundoImagem;
-    slider.hidden = !ativo;
-    if (ativo) slider.value = (typeof boardState.fundoImagem.opacidade === 'number') ? boardState.fundoImagem.opacidade : 1;
+    document.querySelectorAll('.board-fundo-ctrl').forEach(el => { el.hidden = !ativo; }); // opacidade + zoom
+    const slider = document.getElementById('board-fundo-opacidade');
+    if (ativo && slider) slider.value = (typeof boardState.fundoImagem.opacidade === 'number') ? boardState.fundoImagem.opacidade : 1;
 }
 // Opacidade do fundo (live, sem re-render). Persiste em boardState.fundoImagem (Salvar).
 window.setOpacidadeFundo = function(v) {
@@ -3253,6 +3252,18 @@ window.setOpacidadeFundo = function(v) {
     boardState.fundoImagem.opacidade = o;
     const el = elBoardWorld()?.querySelector('.board-imagem-fundo');
     if (el) el.style.opacity = o;
+};
+// Aumenta/diminui o fundo PROPORCIONALMENTE (mantém o aspecto, ao contrário da alça livre),
+// crescendo/encolhendo no LUGAR (centro fixo). Clampa o fator p/ nenhum lado ficar < 40px.
+window.escalarFundo = function(fator) {
+    const fi = boardState.fundoImagem;
+    if (!fi) return;
+    const f = Math.max(fator, 40 / Math.min(fi.w, fi.h)); // piso de 40px preservando proporção
+    const nw = Math.round(fi.w * f), nh = Math.round(fi.h * f);
+    fi.x = Math.round(fi.x + (fi.w - nw) / 2);
+    fi.y = Math.round(fi.y + (fi.h - nh) / 2);
+    fi.w = nw; fi.h = nh;
+    renderBoard();
 };
 
 // Mover (corpo) + redimensionar (canto) o fundo, só no modo de ajuste. Coords de mundo =
