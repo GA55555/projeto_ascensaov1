@@ -2726,7 +2726,10 @@ async function persistirDiplomacia() {
     }
 }
 
-const boardVazio = () => ({ camera: { x: 0, y: 0, zoom: 1 }, fundo: 'dots', fundoImagem: null, nodes: [], shapes: [], celulas: [], texts: [], props: [], localLinks: [], overrides_linhas: {} });
+// Temas do tabuleiro (Fase 15 — Atualização Imersiva, Fatia 3). Paradigma 5: classe escopada
+// no #board-canvas (board-tema-*), pura apresentação; persiste no boardState (Salvar, Regra 2.7).
+const TEMAS_BOARD = ['esquema', 'investigacao', 'mapa-tatico'];
+const boardVazio = () => ({ camera: { x: 0, y: 0, zoom: 1 }, fundo: 'dots', fundoImagem: null, tema: 'esquema', nodes: [], shapes: [], celulas: [], texts: [], props: [], localLinks: [], overrides_linhas: {} });
 let boardAtualId = null;
 let boardNomeAtual = '';
 let boardState = boardVazio();
@@ -2805,6 +2808,7 @@ window.abrirBoard = async function(boardId) {
         camera: d.camera || { x: 0, y: 0, zoom: 1 },
         fundo: d.fundo || 'dots',
         fundoImagem: (d.fundoImagem && typeof d.fundoImagem.url === 'string') ? d.fundoImagem : null, // defensivo (Regra 4.2)
+        tema: TEMAS_BOARD.includes(d.tema) ? d.tema : 'esquema', // Fatia 3 (defensivo, Regra 4.2)
         nodes: Array.isArray(d.nodes) ? d.nodes : [],
         shapes: Array.isArray(d.shapes) ? d.shapes : [],
         celulas: Array.isArray(d.celulas) ? d.celulas : [],
@@ -2818,6 +2822,7 @@ window.abrirBoard = async function(boardId) {
     }
     const sel = document.getElementById('board-select'); if (sel) sel.value = boardAtualId;
     const selFundo = document.getElementById('board-fundo-select'); if (selFundo) selFundo.value = boardState.fundo;
+    const selTema = document.getElementById('board-tema-select'); if (selTema) selTema.value = boardState.tema;
     renderBoard();
     atualizarLinksBoard(); // busca os world_links reais entre os nós e desenha as linhas
 };
@@ -2895,6 +2900,7 @@ function renderBoard() {
         : '';
     world.innerHTML = '<svg class="board-svg"></svg>' + fundoImg + (corpo || (fundoImg ? '' : '<div class="board-vazio info-block-vazio">Tabuleiro vazio. Use “+ Entidade” ou “+ Zona” para começar.</div>'));
     aplicarCamera();
+    aplicarTemaBoard(); // Fatia 3: classe de tema escopada no #board-canvas (Paradigma 5)
     lucide.createIcons();
     ativarArrastoCards();
     ativarArrastoCelulas();
@@ -2932,6 +2938,20 @@ function aplicarCamera() {
     }
     canvas.style.backgroundPosition = `${c.x}px ${c.y}px`;
 }
+
+// Tema do tabuleiro (Paradigma 5): aplica board-tema-* no #board-canvas (escopo). Pura
+// apresentação — não muta domínio. 'esquema' = sem overrides (a classe existe mas é no-op).
+function aplicarTemaBoard() {
+    const canvas = elBoardCanvas();
+    if (!canvas) return;
+    const ativo = TEMAS_BOARD.includes(boardState.tema) ? boardState.tema : 'esquema';
+    TEMAS_BOARD.forEach(t => canvas.classList.toggle(`board-tema-${t}`, t === ativo));
+}
+// Troca o tema (visual imediato); persiste só no Salvar (Regra 2.7, nada de auto-save).
+window.setTemaBoard = function(t) {
+    boardState.tema = TEMAS_BOARD.includes(t) ? t : 'esquema';
+    aplicarTemaBoard();
+};
 
 // Arrasto dos cards (coordenadas de mundo = delta de tela / zoom). Atualiza
 // boardState.nodes em memória; persiste só no Salvar (Regra 2.7).

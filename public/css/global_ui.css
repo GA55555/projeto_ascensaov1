@@ -2615,6 +2615,31 @@ input[type="radio"] {
     background-image: radial-gradient(circle, var(--board-dots-cor) 1.5px, transparent 1.5px);
 }
 .board-canvas.panning { cursor: grabbing; }
+
+/* ══ TEMAS DO TABULEIRO (Fase 15 — Atualização Imersiva, Fatia 3) ═══════════════
+   Paradigma 5: classe board-tema-* escopada no #board-canvas. 'esquema' = sem
+   overrides (a classe existe mas é no-op). Pura apresentação — o HTML do card é
+   theme-agnostic; só estas regras o metamorfoseiam.
+   PREMISSA DO PLANO REJEITADA por contrato: "fonte manuscrita no nome" violaria a
+   Regra 2.5 (tipografia só Cormorant/Manrope/Fira) → o ar vintage usa a serifada
+   sancionada (Cormorant Garamond). */
+
+/* — Investigação: mesa de cortiça + cards "polaroid" (cor de nó preservada) — */
+.board-canvas.board-tema-investigacao {
+    background-color: color-mix(in srgb, var(--aviso) 14%, var(--bg-principal));
+}
+.board-tema-investigacao .board-card {
+    background: color-mix(in srgb, var(--aviso) 10%, var(--bg-card)); /* aquece o vidro; mantém a borda --board-accent (codificação de cor por nó) */
+    border-radius: 4px;            /* polaroid mais reto (≤8px, Regra 2.5) */
+    padding-bottom: 18px;          /* "margem" inferior da foto antiga */
+    box-shadow: 0 4px 14px var(--sombra-profunda);
+}
+.board-tema-investigacao .board-card-nome {
+    font-family: 'Cormorant Garamond', serif; /* serifada sancionada → vintage on-contract */
+    font-size: 16px;
+    font-weight: 600;
+}
+.board-tema-investigacao .board-card-thumb { border-radius: 2px; } /* moldura de foto */
 .board-world { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform-origin: 0 0; }
 .board-vazio { position: absolute; left: 50%; top: 40%; transform: translateX(-50%); z-index: 1; }
 /* Imagem de fundo (Fase 15 — Atualização Imersiva, Fatias 1a/1b): camada zero do #board-world,
