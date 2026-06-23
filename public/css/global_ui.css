@@ -2705,9 +2705,10 @@ input[type="radio"] {
 }
 .board-tema-investigacao .board-card-tipo { display: none; }   /* limpa o ruído no mural */
 /* BARBANTE: reta esticada (geometria no JS), mantém a cor política (escolha UX), com mais
-   corpo + opacidade cheia + sombra (fio bem visível, não o traço esmaecido do tema Esquema). */
+   corpo + opacidade cheia (fio bem visível, não o traço esmaecido do tema Esquema).
+   NÃO usar filter no .board-svg: ele é reconstruído por frame no arrasto → re-rasterizar o
+   filtro do SVG inteiro a cada frame causa lag (a linha "arrasta" atrás do card). */
 .board-tema-investigacao .board-line { stroke-width: 2.4px; opacity: 0.85; }
-.board-tema-investigacao .board-svg { filter: drop-shadow(0 1px 1px var(--sombra)); }
 .board-world { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform-origin: 0 0; }
 .board-vazio { position: absolute; left: 50%; top: 40%; transform: translateX(-50%); z-index: 1; }
 /* Imagem de fundo (Fase 15 — Atualização Imersiva, Fatias 1a/1b): camada zero do #board-world,
