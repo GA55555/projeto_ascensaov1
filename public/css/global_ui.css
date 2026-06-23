@@ -2624,22 +2624,89 @@ input[type="radio"] {
    Regra 2.5 (tipografia só Cormorant/Manrope/Fira) → o ar vintage usa a serifada
    sancionada (Cormorant Garamond). */
 
-/* — Investigação: mesa de cortiça + cards "polaroid" (cor de nó preservada) — */
+/* — Investigação: MURAL DE CORTIÇA de detetive (escolha de UX do Narrador):
+   foto pregada com PINO + ETIQUETA de papel pendurada por um fio + BARBANTE mantendo a
+   cor política. Tudo via CSS escopado (o HTML do card é theme-agnostic); cores só por
+   token; pino/fio/etiqueta por pseudo-elementos (geometria, não emoji — Regras 2.3/2.5). */
 .board-canvas.board-tema-investigacao {
-    background-color: color-mix(in srgb, var(--aviso) 14%, var(--bg-principal));
+    background-color: color-mix(in srgb, var(--aviso) 24%, var(--bg-principal)); /* cortiça */
 }
+/* O card deixa de ser "caixa de vidro": vira o conjunto foto + etiqueta, empilhado. */
 .board-tema-investigacao .board-card {
-    background: color-mix(in srgb, var(--aviso) 10%, var(--bg-card)); /* aquece o vidro; mantém a borda --board-accent (codificação de cor por nó) */
-    border-radius: 4px;            /* polaroid mais reto (≤8px, Regra 2.5) */
-    padding-bottom: 18px;          /* "margem" inferior da foto antiga */
-    box-shadow: 0 4px 14px var(--sombra-profunda);
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    width: 132px;
+    padding: 0;
+    background: transparent;
+    backdrop-filter: none;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    overflow: visible;
+    transform: rotate(-1.5deg);                       /* ar de "pregada à mão" */
+    transition: var(--transicao-suave);
+}
+.board-tema-investigacao .board-card:nth-of-type(3n)   { transform: rotate(1.8deg); }  /* tilt orgânico */
+.board-tema-investigacao .board-card:nth-of-type(3n+1) { transform: rotate(-2.6deg); }
+.board-tema-investigacao .board-card:hover {
+    transform: rotate(0deg) scale(1.04);              /* "levantar a foto" */
+    filter: drop-shadow(0 6px 10px var(--sombra-profunda));
+    z-index: 4;
+}
+/* PINO no topo da foto (cabeça de tachinha com brilho). */
+.board-tema-investigacao .board-card::before {
+    content: "";
+    position: absolute;
+    top: -7px; left: 50%;
+    width: 13px; height: 13px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--texto-claro) 55%, var(--erro)), var(--erro));
+    box-shadow: 0 2px 3px var(--sombra-profunda);
+    transform: translateX(-50%);
+    z-index: 5;
+}
+/* A FOTO = thumb ampliado com moldura branca (o avatar preenche; sem foto → ícone mudo). */
+.board-tema-investigacao .board-card-thumb {
+    width: 104px;
+    height: 104px;
+    border-radius: 2px;
+    background: var(--texto-claro);
+    border: 6px solid var(--texto-claro);
+    box-shadow: 0 3px 8px var(--sombra-profunda);
+}
+.board-tema-investigacao .board-card-icone { width: 40px; height: 40px; color: var(--texto-mutado); }
+/* FIO curto ligando a foto à etiqueta. */
+.board-tema-investigacao .board-card-info::before {
+    content: "";
+    position: absolute;
+    top: -11px; left: 50%;
+    width: 1px; height: 11px;
+    background: var(--bg-principal);
+    transform: translateX(-50%) rotate(7deg);
+}
+/* ETIQUETA de papel pendurada com o nome. */
+.board-tema-investigacao .board-card-info {
+    position: relative;
+    margin-top: 13px;
+    padding: 4px 10px;
+    max-width: 122px;
+    background: color-mix(in srgb, var(--texto-claro) 85%, var(--aviso)); /* papel creme */
+    border-radius: 2px;
+    box-shadow: 0 2px 5px var(--sombra);
+    transform: rotate(1.5deg);
+    text-align: center;
 }
 .board-tema-investigacao .board-card-nome {
-    font-family: 'Cormorant Garamond', serif; /* serifada sancionada → vintage on-contract */
-    font-size: 16px;
-    font-weight: 600;
+    font-family: 'Cormorant Garamond', serif;        /* serifada sancionada (Regra 2.5) */
+    font-size: 15px; font-weight: 600;
+    color: var(--bg-principal);                      /* tinta escura sobre o papel */
+    white-space: normal;
 }
-.board-tema-investigacao .board-card-thumb { border-radius: 2px; } /* moldura de foto */
+.board-tema-investigacao .board-card-tipo { display: none; }   /* limpa o ruído no mural */
+/* BARBANTE: mantém a cor política (escolha UX), com mais corpo + sombra (cara de fio). */
+.board-tema-investigacao .board-line { stroke-width: 2.4px; }
+.board-tema-investigacao .board-svg { filter: drop-shadow(0 1px 1px var(--sombra)); }
 .board-world { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform-origin: 0 0; }
 .board-vazio { position: absolute; left: 50%; top: 40%; transform: translateX(-50%); z-index: 1; }
 /* Imagem de fundo (Fase 15 — Atualização Imersiva, Fatias 1a/1b): camada zero do #board-world,
