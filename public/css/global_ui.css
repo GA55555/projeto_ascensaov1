@@ -2709,6 +2709,57 @@ input[type="radio"] {
    NÃO usar filter no .board-svg: ele é reconstruído por frame no arrasto → re-rasterizar o
    filtro do SVG inteiro a cada frame causa lag (a linha "arrasta" atrás do card). */
 .board-tema-investigacao .board-line { stroke-width: 2.4px; opacity: 0.85; }
+
+/* — Mapa Tático: TOKENS REDONDOS sobre o mapa de fundo (F1), reaproveitando o avatar (F2).
+   EXCEÇÃO À REGRA 2.5 (border-radius 50% em card) AUTORIZADA EXPLICITAMENTE pelo Narrador,
+   restrita a este tema (token VTT clássico). Nome só no hover (Regra 7.2). Anel = cor do nó. */
+.board-tema-mapa-tatico .board-card {
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    width: auto;                 /* o card encolhe ao token */
+    padding: 0;
+    background: transparent;
+    backdrop-filter: none;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    overflow: visible;
+    transition: var(--transicao-suave);
+}
+/* O thumb vira o token circular: retrato + anel na cor da facção (--board-accent herdado). */
+.board-tema-mapa-tatico .board-card-thumb {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;          /* ← exceção autorizada (token VTT) */
+    border: 3px solid var(--board-accent);
+    background: var(--bg-card);
+    box-shadow: 0 2px 6px var(--sombra-profunda);
+}
+.board-tema-mapa-tatico .board-card-icone { width: 26px; height: 26px; color: var(--board-accent); }
+.board-tema-mapa-tatico .board-card:hover .board-card-thumb {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--board-accent) 40%, transparent), 0 4px 10px var(--sombra-profunda);
+}
+/* Nome: oculto em repouso; flutua sob o token no hover (divulgação progressiva, Regra 7.2). */
+.board-tema-mapa-tatico .board-card-info {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 2px 8px;
+    background: var(--bg-card-glass);
+    backdrop-filter: blur(6px);
+    border: 1px solid var(--borda-glass);
+    border-radius: 4px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: var(--transicao-suave);
+    z-index: 5;
+}
+.board-tema-mapa-tatico .board-card:hover .board-card-info { opacity: 1; }
+.board-tema-mapa-tatico .board-card-nome { font-size: 13px; font-weight: 600; color: var(--texto-claro); }
+.board-tema-mapa-tatico .board-card-tipo { display: none; }
 .board-world { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform-origin: 0 0; }
 .board-vazio { position: absolute; left: 50%; top: 40%; transform: translateX(-50%); z-index: 1; }
 /* Imagem de fundo (Fase 15 — Atualização Imersiva, Fatias 1a/1b): camada zero do #board-world,
