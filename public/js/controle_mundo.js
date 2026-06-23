@@ -218,8 +218,13 @@ function renderizarListaNucleos(lista, tipo) {
     if (!div) return;
     div.innerHTML = lista.map(n => `
         <div class="nucleo-linha">
-            <span id="nucleo-nome-${n.id}">${escapeHTML(n.nome)}</span>
+            <span class="nucleo-ident">
+                ${n.avatar_url ? `<img class="nucleo-brasao" src="${escapeHTML(n.avatar_url)}" alt="" onerror="this.remove()">` : ''}
+                <span id="nucleo-nome-${n.id}">${escapeHTML(n.nome)}</span>
+            </span>
             <div class="card-topo-acoes">
+                ${tipo === 'entidade' ? `<button class="btn btn-secondary btn-sm" onclick="definirBrasaoNucleo('${n.id}')" title="Definir brasão"><i data-lucide="image"></i></button>` : ''}
+                ${tipo === 'entidade' && n.avatar_url ? `<button class="btn btn-secondary btn-sm" onclick="removerBrasaoNucleo('${n.id}')" title="Remover brasão"><i data-lucide="image-off"></i></button>` : ''}
                 <button class="btn btn-primary btn-sm" onclick="editarNucleo('${n.id}', '${tipo}')"><i data-lucide="pencil"></i></button>
                 <button class="btn btn-danger btn-sm" onclick="excluirNucleo('${n.id}', '${tipo}')"><i data-lucide="trash-2"></i></button>
             </div>
@@ -362,7 +367,10 @@ function cardMundoHTML(node) {
         <div class="card world-card" data-node-id="${escapeHTML(String(node.id))}">
             <div class="world-card__head">
                 <div class="world-card__ident">
-                    <span class="world-card__icone"><i data-lucide="${iconeEntidade(node.tipo)}"></i></span>
+                    <span class="world-card__icone">
+                        <i data-lucide="${iconeEntidade(node.tipo)}"></i>
+                        ${node.avatar_url ? `<img class="world-card__avatar" src="${escapeHTML(node.avatar_url)}" alt="" onerror="this.remove()">` : ''}
+                    </span>
                     <div class="world-card__titulo-wrap">
                         <strong id="node-nome-${node.id}" class="world-card__nome">${escapeHTML(node.nome)}</strong>
                         <span class="badge world-card__tipo">${escapeHTML(node.tipo)}</span>
@@ -376,6 +384,8 @@ function cardMundoHTML(node) {
 
             <div class="card-acoes-inline">
                 <button class="btn btn-ghost btn-sm" onclick="iniciarEdicaoNome('${node.id}')"><i data-lucide="edit"></i> Editar</button>
+                <button class="btn btn-ghost btn-sm" onclick="definirAvatarEntidade('${node.id}')"><i data-lucide="image"></i> Foto</button>
+                ${node.avatar_url ? `<button class="btn btn-ghost btn-sm" onclick="removerAvatarEntidade('${node.id}')"><i data-lucide="image-off"></i> Tirar Foto</button>` : ''}
                 <button class="btn btn-ghost btn-sm" onclick="moverNodeNucleo('${node.id}')"><i data-lucide="map-pin"></i> Mudar Núcleo</button>
                 <button class="btn btn-ghost btn-sm btn-del" onclick="confirmarDeletarEntidade(this, '${node.id}')"><i data-lucide="trash"></i> Deletar</button>
             </div>
@@ -780,6 +790,71 @@ async function executarDeletarEntidade(nodeId) {
 }
 
 // Renomear a entidade inline no próprio título do card (Enter salva, Esc cancela).
+// ── AVATAR / BRASÃO (Fase 15 — Atualização Imersiva, Fatia 2b) ──────────────
+// Uploader reutilizável: abre o seletor, envia p/ /midia/upload/<pasta> (Sharp→WebP, nomes
+// hash) e devolve a url (ou null). Pastas DEDICADAS: 'entidades' (foto) e 'nucleos' (brasão).
+function selecionarEEnviarImagem(pasta) {
+    return new Promise((resolve) => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/png,image/jpeg,image/webp';
+        input.onchange = async () => {
+            const arquivo = input.files && input.files[0];
+            if (!arquivo) return resolve(null);
+            const fd = new FormData(); fd.append('imagens', arquivo);
+            try {
+                const res = await API.fetch(`/midia/upload/${pasta}`, { method: 'POST', body: fd });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.urls || !data.urls[0]) throw new Error(data.erro || 'Falha no upload.');
+                resolve(data.urls[0]);
+            } catch (e) { mostrarToast(e.message || 'Erro ao enviar imagem.', 'erro'); resolve(null); }
+        };
+        input.click();
+    });
+}
+// Foto da entidade (upload → PUT {nome, avatar_url}); o backend faz MERGE no jsonb (2a).
+window.definirAvatarEntidade = async function(nodeId) {
+    const node = nodesCache.find(n => String(n.id) === String(nodeId));
+    if (!node) return;
+    const url = await selecionarEEnviarImagem('entidades');
+    if (!url) return;
+    try {
+        const res = await API.fetch(`/cronicas/${cronicaId}/nodes/${nodeId}`, { method: 'PUT', body: JSON.stringify({ nome: node.nome, avatar_url: url }) });
+        if (!res.ok) throw new Error();
+        node.avatar_url = url; renderizarMundo(); mostrarToast('Foto atualizada!', 'sucesso');
+    } catch { mostrarToast('Erro ao salvar a foto.', 'erro'); }
+};
+window.removerAvatarEntidade = async function(nodeId) {
+    const node = nodesCache.find(n => String(n.id) === String(nodeId));
+    if (!node || !node.avatar_url) return;
+    try {
+        const res = await API.fetch(`/cronicas/${cronicaId}/nodes/${nodeId}`, { method: 'PUT', body: JSON.stringify({ nome: node.nome, avatar_url: null }) });
+        if (!res.ok) throw new Error();
+        node.avatar_url = null; renderizarMundo(); mostrarToast('Foto removida.', 'aviso');
+    } catch { mostrarToast('Erro ao remover a foto.', 'erro'); }
+};
+// Brasão do núcleo (só tipo 'entidade'; PUT {nome, avatar_url} → coluna avatar_url, 2a).
+window.definirBrasaoNucleo = async function(id) {
+    const nucleo = nucleosCache.entidade.find(n => String(n.id) === String(id));
+    if (!nucleo) return;
+    const url = await selecionarEEnviarImagem('nucleos');
+    if (!url) return;
+    try {
+        const res = await API.fetch(`/cronicas/${cronicaId}/entidade-nucleos/${id}`, { method: 'PUT', body: JSON.stringify({ nome: nucleo.nome, avatar_url: url }) });
+        if (!res.ok) throw new Error();
+        await carregarNucleos('entidade'); mostrarToast('Brasão atualizado!', 'sucesso');
+    } catch { mostrarToast('Erro ao salvar o brasão.', 'erro'); }
+};
+window.removerBrasaoNucleo = async function(id) {
+    const nucleo = nucleosCache.entidade.find(n => String(n.id) === String(id));
+    if (!nucleo || !nucleo.avatar_url) return;
+    try {
+        const res = await API.fetch(`/cronicas/${cronicaId}/entidade-nucleos/${id}`, { method: 'PUT', body: JSON.stringify({ nome: nucleo.nome, avatar_url: null }) });
+        if (!res.ok) throw new Error();
+        await carregarNucleos('entidade'); mostrarToast('Brasão removido.', 'aviso');
+    } catch { mostrarToast('Erro ao remover o brasão.', 'erro'); }
+};
+
 window.iniciarEdicaoNome = function(nodeId) {
     const strong = document.getElementById('node-nome-' + nodeId);
     if (!strong || strong.querySelector('input')) return;
@@ -2795,7 +2870,10 @@ function renderBoard() {
             ? `<div class="card-badge-evento" title="Ver eventos" onpointerdown="event.stopPropagation()" onclick="event.stopPropagation(); invocarEventosDoNode('${escapeHTML(String(node.id))}', ${Math.round(node.x + 200)}, ${Math.round(node.y - 50)})"><i data-lucide="scroll-text"></i></div>`
             : '';
         return `<div class="board-card${corClasse}${oculto}" data-node="${escapeHTML(String(node.id))}" style="left: ${Math.round(node.x)}px; top: ${Math.round(node.y)}px;">
-            <i data-lucide="${escapeHTML(icone)}" class="board-card-icone"></i>
+            <span class="board-card-thumb">
+                <i data-lucide="${escapeHTML(icone)}" class="board-card-icone"></i>
+                ${info.avatar_url ? `<img class="board-card-avatar" src="${escapeHTML(info.avatar_url)}" alt="" onerror="this.remove()">` : ''}
+            </span>
             <span class="board-card-info">
                 <span class="board-card-nome">${escapeHTML(info.nome)}</span>
                 <span class="board-card-tipo">${escapeHTML(info.tipo)}</span>
@@ -3510,7 +3588,10 @@ function celulaHTML(c) {
                + (c.minimizada ? '' : ` height: ${Math.round(c.h)}px;`);
     return `<div class="board-celula board-cor-${cor}${c.minimizada ? ' is-minimizada' : ''}" data-celula="${cid}" data-nucleo="${escapeHTML(String(c.nucleo_id))}" style="${dims}">
         <div class="board-celula-header">
-            <i data-lucide="users" class="board-celula-icone"></i>
+            <span class="board-celula-thumb">
+                <i data-lucide="users" class="board-celula-icone"></i>
+                ${nucleo?.avatar_url ? `<img class="board-celula-avatar" src="${escapeHTML(nucleo.avatar_url)}" alt="" onerror="this.remove()">` : ''}
+            </span>
             <span class="board-celula-nome" title="${escapeHTML(nome)}">${escapeHTML(nome)}</span>
             <button type="button" class="board-celula-btn" title="${c.minimizada ? 'Expandir' : 'Minimizar'}" onclick="toggleMinimizarCelula('${cid}')"><i data-lucide="${c.minimizada ? 'plus' : 'minus'}"></i></button>
             <button type="button" class="board-celula-btn" title="Opções do núcleo" onclick="abrirEditorCelula('${cid}', event)"><i data-lucide="settings"></i></button>
