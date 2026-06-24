@@ -82,14 +82,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('btn-turno-anterior')?.addEventListener('click', () => turnoAnterior());
     document.getElementById('btn-proximo-turno')?.addEventListener('click', () => proximoTurno());
     document.getElementById('btn-ordenar-iniciativa')?.addEventListener('click', () => ordenarIniciativa());
-    document.getElementById('btn-guardar-combate')?.addEventListener('click', () => transportarParaGaveta('bloco-combate'));
 
-    // Blocos — transporte para gaveta
-    document.getElementById('btn-guardar-regras')?.addEventListener('click', () => transportarParaGaveta('bloco-regras'));
-    document.getElementById('btn-guardar-resumo')?.addEventListener('click', () => transportarParaGaveta('bloco-resumo'));
-    document.getElementById('btn-guardar-mundo')?.addEventListener('click', () => transportarParaGaveta('bloco-mundo'));
-    document.getElementById('btn-guardar-eventos')?.addEventListener('click', () => transportarParaGaveta('bloco-eventos'));
-    document.getElementById('btn-guardar-automacoes')?.addEventListener('click', () => transportarParaGaveta('bloco-automacoes'));
+    // Transporte para a gaveta (Guardar/Despertar): ponto de entrada ÚNICO via
+    // delegação em document.body (data-action). Listeners diretos foram removidos
+    // porque colidiam com a delegação — o clique borbulhava e o handler delegado
+    // lia o data-action recém-mutado, revertendo o transporte (violava a Regra 2.9).
 
     // Engenharia de Mundo — filtros e ações
     document.getElementById('filtro-nucleo-entidade-escudo')?.addEventListener('change', () => aplicarFiltrosMundoEscudo());
@@ -617,45 +614,75 @@ window.aplicarFiltrosMundoEscudo = function() {
     carregarMundoEscudo(nucleoId, textoFiltro);
 }
 
+// Helpers de apresentação — espelham os de controle_mundo.js (iconeEntidade/humanizarMarco).
+// Duplicados de propósito no Caminho A (as duas páginas nunca carregam juntas); a unificação
+// num módulo compartilhado é o Caminho B. Ver memória project-refatoracao-engenharia-mundo-escudo.
+function iconeEntidade(tipo) {
+    const mapa = { npc: 'user', protagonista: 'crown', faccao: 'flag', local: 'map-pin', cenario: 'mountain' };
+    return mapa[String(tipo || '').toLowerCase()] || 'box';
+}
+function humanizarMarco(key) {
+    return String(key || '').replace(/_/g, ' ').replace(/\s+/g, ' ').trim().replace(/\b\w/g, c => c.toUpperCase());
+}
+
+// Um item de Marco: check (toggle) + nome humanizado + renomear/apagar revelados no hover (R7.2).
+// Ações via data-action (delegação CSP-safe); preserva os handlers existentes (prompt vira
+// edição inline na Fatia 2). Os ícones <i> mantêm os data-* após lucide.createIcons().
+function marcoEscudoItemHTML(nodeId, f) {
+    const id = escapeHTML(String(nodeId));
+    const k = escapeHTML(f.key);
+    return `
+        <div class="marco-item" data-flag-key="${k}">
+            <input type="checkbox" class="marco-item__check" ${f.value ? 'checked' : ''} data-action="toggle-flag" data-id="${id}" data-extra="${k}">
+            <span class="marco-item__nome">${escapeHTML(humanizarMarco(f.key))}</span>
+            <i data-lucide="pen-line" class="btn-edit-marco" title="Renomear marco" data-action="editar-flag" data-id="${id}" data-extra="${k}"></i>
+            <i data-lucide="x" class="btn-del-marco" title="Apagar marco" data-action="deletar-flag" data-id="${id}" data-extra="${k}"></i>
+        </div>`;
+}
+
+// Card de entidade da Grelha (escudo) — paridade visual com cardMundoHTML do controle_mundo:
+// 100% classes de global_ui.css (.world-card*/.marco-item), avatar (F2), zero estilo/cor inline.
+// Ações secundárias via data-action, reveladas no hover do card (Regra 7.2).
+function cardMundoEscudoHTML(node) {
+    const id = escapeHTML(String(node.id));
+    const marcos = (node.flags || []).filter(f => f.key).map(f => marcoEscudoItemHTML(node.id, f)).join('');
+    return `
+        <div class="card world-card" data-node-id="${id}">
+            <div class="world-card__head">
+                <div class="world-card__ident">
+                    <span class="world-card__icone">
+                        <i data-lucide="${iconeEntidade(node.tipo)}"></i>
+                        ${node.avatar_url ? `<img class="world-card__avatar" src="${escapeHTML(node.avatar_url)}" alt="" draggable="false" onerror="this.remove()">` : ''}
+                    </span>
+                    <div class="world-card__titulo-wrap">
+                        <strong class="world-card__nome">${escapeHTML(node.nome)}</strong>
+                        <span class="badge world-card__tipo">${escapeHTML(node.tipo)}</span>
+                    </div>
+                </div>
+                <div class="world-card__acoes">
+                    <button class="btn btn-secondary btn-sm" data-action="editar-entidade" data-id="${id}" data-extra="${escapeHTML(node.nome)}" title="Renomear"><i data-lucide="pen-line"></i></button>
+                    <button class="btn btn-secondary btn-sm" data-action="mover-entidade" data-id="${id}" title="Mudar núcleo"><i data-lucide="map-pin"></i></button>
+                    <button class="btn btn-danger btn-sm" data-action="deletar-entidade" data-id="${id}" data-extra="${escapeHTML(node.nome)}" title="Deletar"><i data-lucide="trash-2"></i></button>
+                </div>
+            </div>
+
+            <div class="world-card__marcos-label">Marcos</div>
+            <div class="world-card__marcos">${marcos}</div>
+            <button class="btn btn-secondary btn-sm btn-add-marco" data-action="adicionar-flag" data-id="${id}"><i data-lucide="plus"></i> Novo Marco</button>
+
+            <div class="world-card__rodape">
+                <div class="world-card__nucleo">
+                    <span>Núcleo: <span class="world-card__nucleo-nome">${escapeHTML(node.nucleo_nome || 'Nenhum')}</span></span>
+                </div>
+            </div>
+        </div>`;
+}
+
 function renderizarGridMundoEscudo(lista) {
     const div = document.getElementById('conteudo-mundo');
+    if (!div) return;
     if (lista.length === 0) { div.innerHTML = '<div class="info-block-vazio">Nenhuma entidade encontrada.</div>'; return; }
-
-    div.innerHTML = lista.map(node => `
-        <div class="item-interativo" style="display: flex; flex-direction: column;">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
-                <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px;">
-                    <strong style="font-size: 14px; color: var(--destaque);">${escapeHTML(node.nome)}</strong>
-                    <span style="font-size: 10px; background: rgba(152,113,245,0.2); color: var(--roxo-mago); padding: 2px 6px; border-radius: 4px; width: fit-content;">${escapeHTML(node.tipo.toUpperCase())}</span>
-                </div>
-                <div style="display: flex; gap: 4px;">
-                    <button class="btn btn-primary btn-sm" data-action="editar-entidade" data-id="${node.id}" data-extra="${escapeHTML(node.nome)}" title="Editar nome"><i data-lucide="pen-line"></i></button>
-                    <button class="btn btn-danger btn-sm" data-action="deletar-entidade" data-id="${node.id}" data-extra="${escapeHTML(node.nome)}" title="Deletar"><i data-lucide="trash-2"></i></button>
-                </div>
-            </div>
-
-            <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px;">
-                ${(node.flags || []).filter(f => f.key).map(f => `
-                    <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02); padding: 4px; border-radius: 4px;">
-                        <label style="cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--texto-claro); flex: 1; margin: 0;">
-                            <input type="checkbox" ${f.value ? 'checked' : ''} data-action="toggle-flag" data-id="${node.id}" data-extra="${escapeHTML(f.key)}" style="margin: 0; width: 14px; height: 14px;">
-                            <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHTML(f.key)}</span>
-                        </label>
-                        <div style="display: flex; gap: 4px;">
-                            <button class="btn btn-primary btn-sm" style="padding: 2px 5px;" data-action="editar-flag" data-id="${node.id}" data-extra="${escapeHTML(f.key)}"><i data-lucide="pen-line"></i></button>
-                            <button class="btn btn-danger btn-sm" style="padding: 2px 5px;" data-action="deletar-flag" data-id="${node.id}" data-extra="${escapeHTML(f.key)}"><i data-lucide="x"></i></button>
-                        </div>
-                    </div>
-                `).join('')}
-            </div>
-
-            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px;">
-                <span style="color: var(--texto-mutado); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px;">Núcleo: <span style="color: var(--texto-claro);">${escapeHTML(node.nucleo_nome || 'Nenhum')}</span></span>
-                <button class="btn btn-primary btn-sm" data-action="mover-entidade" data-id="${node.id}">Mover</button>
-            </div>
-            <button class="btn btn-primary btn-sm" style="width: 100%; margin-top: 8px;" data-action="adicionar-flag" data-id="${node.id}">+ Nova Flag</button>
-        </div>
-    `).join('');
+    div.innerHTML = lista.map(cardMundoEscudoHTML).join('');
     lucide.createIcons();
 }
 

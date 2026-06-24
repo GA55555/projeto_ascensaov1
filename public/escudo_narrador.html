@@ -142,7 +142,7 @@
                             <button id="btn-turno-anterior" class="btn btn-secondary btn-sm"><i data-lucide="chevron-left"></i></button>
                             <button id="btn-proximo-turno" class="btn btn-primary btn-sm"><i data-lucide="chevron-right"></i> Próximo</button>
                             <button id="btn-ordenar-iniciativa" class="btn btn-primary btn-sm" style="margin-left: 10px;"><i data-lucide="arrow-down-up"></i> Ordenar</button>
-                            <button id="btn-guardar-combate" class="btn btn-ghost btn-sm btn-transporte" style="margin-left: 10px;"><i data-lucide="arrow-down-to-line"></i> Guardar</button>
+                            <button id="btn-guardar-combate" class="btn btn-ghost btn-sm btn-transporte" style="margin-left: 10px;" data-action="transportar-gaveta" data-id="bloco-combate"><i data-lucide="arrow-down-to-line"></i> Guardar</button>
                         </div>
                     </div>
                     <div id="grid-combate" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; overflow-y: auto; flex: 1;"></div>
@@ -153,7 +153,7 @@
                 <div class="grid-stack-item-content">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <span style="font-weight: bold; color: var(--roxo-mago);"><i data-lucide="book-open"></i> Regras Rápidas</span>
-                        <button id="btn-guardar-regras" class="btn btn-ghost btn-sm btn-transporte"><i data-lucide="arrow-down-to-line"></i> Guardar</button>
+                        <button id="btn-guardar-regras" class="btn btn-ghost btn-sm btn-transporte" data-action="transportar-gaveta" data-id="bloco-regras"><i data-lucide="arrow-down-to-line"></i> Guardar</button>
                     </div>
                     <input type="text" id="busca-regras" placeholder="Procurar regra..." style="margin-bottom: 10px;">
                     <div id="resultados-regras" style="overflow-y: auto; flex: 1; font-size: 12px; color: var(--texto-mutado);">
@@ -166,7 +166,7 @@
                 <div class="grid-stack-item-content">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <span style="font-weight: bold; color: var(--texto-claro);"><i data-lucide="file-text"></i> Resumo da Sessão e Anotações</span>
-                        <button id="btn-guardar-resumo" class="btn btn-ghost btn-sm btn-transporte"><i data-lucide="arrow-down-to-line"></i> Guardar</button>
+                        <button id="btn-guardar-resumo" class="btn btn-ghost btn-sm btn-transporte" data-action="transportar-gaveta" data-id="bloco-resumo"><i data-lucide="arrow-down-to-line"></i> Guardar</button>
                     </div>
                     <div id="editor-resumo" contenteditable="true" placeholder="Escreva notas de contexto ou cole imagens de referência da cena aqui..." style="flex: 1; padding: 10px; background: var(--bg-principal); border: 1px solid var(--borda); border-radius: 4px; overflow-y: auto; color: var(--texto-claro); outline: none; word-wrap: break-word;"></div>
                 </div>
@@ -176,7 +176,7 @@
                 <div class="grid-stack-item-content">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <span style="font-weight: bold; color: var(--texto-claro);"><i data-lucide="map"></i> Engenharia de Mundo</span>
-                        <button id="btn-guardar-mundo" class="btn btn-ghost btn-sm btn-transporte"><i data-lucide="arrow-down-to-line"></i> Guardar</button>
+                        <button id="btn-guardar-mundo" class="btn btn-ghost btn-sm btn-transporte" data-action="transportar-gaveta" data-id="bloco-mundo"><i data-lucide="arrow-down-to-line"></i> Guardar</button>
                     </div>
 
                     <div style="display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 10px;">
@@ -200,7 +200,7 @@
                         <span style="font-weight: bold; color: var(--texto-claro);"><i data-lucide="calendar-clock"></i> Eventos do Mundo</span>
                         <div style="display: flex; gap: 5px;">
                             <button id="btn-novo-evento" class="btn btn-success btn-sm">+ Evento</button>
-                            <button id="btn-guardar-eventos" class="btn btn-ghost btn-sm btn-transporte"><i data-lucide="arrow-down-to-line"></i> Guardar</button>
+                            <button id="btn-guardar-eventos" class="btn btn-ghost btn-sm btn-transporte" data-action="transportar-gaveta" data-id="bloco-eventos"><i data-lucide="arrow-down-to-line"></i> Guardar</button>
                         </div>
                     </div>
                     <input type="text" id="busca-eventos-escudo" placeholder="Filtrar eventos..." style="margin-bottom: 8px;">
@@ -216,7 +216,7 @@
                         <span style="font-weight: bold; color: var(--destaque);"><i data-lucide="zap"></i> Automações</span>
                         <div style="display: flex; gap: 5px;">
                             <button id="btn-nova-automacao" class="btn btn-success btn-sm">+ Automação</button>
-                            <button id="btn-guardar-automacoes" class="btn btn-ghost btn-sm btn-transporte"><i data-lucide="arrow-down-to-line"></i> Guardar</button>
+                            <button id="btn-guardar-automacoes" class="btn btn-ghost btn-sm btn-transporte" data-action="transportar-gaveta" data-id="bloco-automacoes"><i data-lucide="arrow-down-to-line"></i> Guardar</button>
                         </div>
                     </div>
                     <div id="conteudo-automacoes" style="flex: 1; overflow-y: auto; padding-right: 5px; display: flex; flex-direction: column; gap: 6px;">
