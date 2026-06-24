@@ -450,6 +450,34 @@ label {
     transition: var(--transicao-suave);
 }
 
+/* Handles de resize em todos os lados — ocultos em repouso, revelados ao passar o mouse no
+   bloco (descoberta). Só pinta/realça; mantém as áreas de clique que o GridStack posiciona. */
+.grid-stack-item > .ui-resizable-handle {
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    z-index: 5;
+}
+.grid-stack-item:hover > .ui-resizable-handle { opacity: 1; }
+.grid-stack-item:hover > .ui-resizable-e,
+.grid-stack-item:hover > .ui-resizable-w {
+    background: color-mix(in srgb, var(--destaque) 22%, transparent);
+}
+.grid-stack-item:hover > .ui-resizable-n,
+.grid-stack-item:hover > .ui-resizable-s {
+    background: color-mix(in srgb, var(--destaque) 22%, transparent);
+}
+/* Cantos: pequeno indicador na cor de destaque. */
+.grid-stack-item:hover > .ui-resizable-se::after,
+.grid-stack-item:hover > .ui-resizable-sw::after,
+.grid-stack-item:hover > .ui-resizable-ne::after,
+.grid-stack-item:hover > .ui-resizable-nw::after {
+    content: '';
+    position: absolute;
+    inset: 2px;
+    border: 2px solid var(--destaque);
+    border-radius: 2px;
+}
+
 .grid-container {
     background: transparent;
     padding: 8px;
