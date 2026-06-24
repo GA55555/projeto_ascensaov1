@@ -846,57 +846,48 @@ function renderizarEventosEscudo(lista) {
     div.innerHTML = lista.map(ev => {
         const pct = Math.min((ev.pool_atual / ev.pool_maxima) * 100, 100);
         const alerta = pct >= 100;
-        const corBarra = pct < 50 ? '#2ecc71' : (pct < 75 ? '#f1c40f' : '#e74c3c');
+        const nivel = pct < 50 ? '' : (pct < 75 ? 'barra-fill--aviso' : 'barra-alerta');
 
-        let gatilhosHtml = '';
-        if (ev.gatilhos && ev.gatilhos.length > 0) {
-            gatilhosHtml = ev.gatilhos.filter(g => g && g.node_nome).map(g => `
-                <div style="font-size: 11px; background: rgba(255,255,255,0.03); padding: 4px 8px; border-radius: 4px; margin-bottom: 3px;">
-                    <i data-lucide="settings"></i> <strong>${g.node_nome}</strong> → ${g.flag_key} (+${g.peso})
-                </div>
-            `).join('');
-        }
+        const causas = (ev.gatilhos || []).filter(g => g && g.node_nome).map(g =>
+            `<div class="evento-gatilho"><i data-lucide="zap"></i> <strong>${escapeHTML(g.node_nome)}</strong> → ${escapeHTML(humanizarMarco(g.flag_key))} (+${escapeHTML(String(g.peso))})</div>`
+        ).join('');
 
-        const nucleosArray = ev.nucleos.filter(n => n && n.nome);
-        const nucleosBadges = (nucleosArray.length > 0)
-            ? nucleosArray.map(n => `<span class="badge">${n.nome}</span>`).join(' ')
+        const nucleosArray = (ev.nucleos || []).filter(n => n && n.nome);
+        const nucleosBadges = nucleosArray.length
+            ? nucleosArray.map(n => `<span class="badge">${escapeHTML(n.nome)}</span>`).join(' ')
             : 'Nenhum';
 
+        // Estado de repouso = linha enxuta; detalhes (causas/núcleos/ações) só no accordion (R7.2).
         return `
-        <div class="card" style="display: flex; flex-direction: column; height: 100%;">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 10px;">
-                <div style="flex: 1; min-width: 0;">
-                    <strong style="font-size: 16px; line-height: 1.2; display: block;">${escapeHTML(ev.nome)}</strong>
-                    <span style="font-size: 11px; color: ${alerta ? 'var(--erro)' : 'var(--destaque)'}; display: block; margin-top: 4px; display: flex; align-items: center; gap: 4px;">
-                        ${alerta ? '<i data-lucide="alert-triangle"></i> PRONTO' : '<i data-lucide="eye"></i> Monitorando'}
-                    </span>
-                </div>
-                <div style="display: flex; gap: 5px; flex-shrink: 0;">
-                    <button class="btn btn-primary btn-sm" data-action="abrir-vinculo" data-id="${ev.id}">+ Vincular</button>
-                    <button class="btn btn-danger btn-sm" data-action="deletar-evento" data-id="${ev.id}" data-extra="${escapeHTML(ev.nome)}" title="Deletar evento"><i data-lucide="trash-2"></i></button>
-                </div>
+        <div class="evento-linha" data-evento-id="${escapeHTML(String(ev.id))}">
+            <div class="evento-linha__topo" data-action="toggle-evento" data-id="${ev.id}">
+                <i data-lucide="${alerta ? 'alert-triangle' : 'eye'}" class="evento-linha__icone ${alerta ? 'evento-linha__icone--pronto' : ''}"></i>
+                <span class="evento-linha__nome" title="${escapeHTML(ev.nome)}">${escapeHTML(ev.nome)}</span>
+                <span class="evento-linha__barra barra-bg"><span class="barra-fill ${nivel}" style="width: ${pct}%"></span></span>
+                <span class="evento-linha__num">${ev.pool_atual}/${ev.pool_maxima}</span>
+                <i data-lucide="chevron-down" class="evento-linha__chevron"></i>
             </div>
-
-            <div style="flex: 1; display: flex; flex-direction: column; margin-bottom: 10px;">
-                ${gatilhosHtml || '<p style="font-size: 11px; color: var(--texto-mutado);">Nenhuma causa vinculada.</p>'}
-            </div>
-
-            <div style="margin-top: auto; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px;">
-                <div class="barra-bg">
-                    <div class="barra-fill ${alerta ? 'barra-alerta' : ''}" style="width: ${pct}%; background-color: ${corBarra};">
-                        ${pct > 15 ? `${ev.pool_atual}/${ev.pool_maxima}` : ''}
-                    </div>
+            <div class="evento-detalhe">
+                <div class="evento-detalhe__causas">
+                    ${causas || '<p class="evento-detalhe__vazio">Nenhuma causa vinculada.</p>'}
                 </div>
-                ${pct <= 15 ? `<span style="font-size: 10px; color: var(--texto-mutado);">${ev.pool_atual}/${ev.pool_maxima}</span>` : ''}
-                ${ev.ultima_excedida_em ? `<div style="font-size: 10px; color: var(--texto-mutado); margin-top: 5px; display: flex; align-items: center; gap: 4px;"><i data-lucide="clock"></i> Ativado em: ${new Date(ev.ultima_excedida_em).toLocaleString()}</div>` : ''}
-
-                <div style="font-size: 11px; margin-top: 10px;">
+                <div class="evento-detalhe__rodape">
                     <span>Núcleos: ${nucleosBadges}</span>
+                    ${ev.ultima_excedida_em ? `<span class="evento-ativado"><i data-lucide="clock"></i> ${escapeHTML(new Date(ev.ultima_excedida_em).toLocaleString())}</span>` : ''}
+                </div>
+                <div class="evento-detalhe__acoes">
+                    <button class="btn btn-secondary btn-sm" data-action="abrir-vinculo" data-id="${ev.id}"><i data-lucide="link"></i> Vincular causa</button>
+                    <button class="btn btn-danger btn-sm" data-action="deletar-evento" data-id="${ev.id}" data-extra="${escapeHTML(ev.nome)}"><i data-lucide="trash-2"></i> Excluir</button>
                 </div>
             </div>
         </div>`;
     }).join('');
     lucide.createIcons();
+}
+
+// Accordion da linha de evento: abre/fecha o detalhe (classe → CSS, sem estilo inline).
+window.toggleEventoEscudo = function(eventoId) {
+    document.querySelector(`.evento-linha[data-evento-id="${eventoId}"]`)?.classList.toggle('evento-linha--aberto');
 }
 
 window.salvarNovoEvento = async function() {
@@ -1144,6 +1135,7 @@ document.body.addEventListener('click', (e) => {
         case 'deletar-flag':       deletarFlagEscudo(id, extra); break;
         case 'mover-entidade':     moverNodeNucleoEscudo(id); break;
         case 'abrir-vinculo':      abrirModalVinculo(id); break;
+        case 'toggle-evento':      toggleEventoEscudo(id); break;
         case 'deletar-evento':     deletarEventoEscudo(id, extra); break;
         case 'deletar-automacao':  deletarAutomacaoEscudo(id); break;
         case 'aplicar-save':       aplicarSaveEscudo(id); break;

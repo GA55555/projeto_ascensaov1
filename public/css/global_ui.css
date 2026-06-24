@@ -794,7 +794,6 @@ label {
     margin-top: 10px;
     font-size: 11px;
 }
-.barra-fill--aviso { background: var(--aviso); }
 
 /* Automação */
 .auto-ident {
@@ -964,6 +963,9 @@ label {
 }
 
 .barra-alerta { background: var(--erro); }
+/* Modificador de nível médio do pool. Declarado APÓS .barra-fill p/ vencer a cascata
+   (antes vivia acima da base e era sobrescrito — o amarelo nunca aparecia). */
+.barra-fill--aviso { background: var(--aviso); }
 
 /* ── POOL DE EVENTO (numeração abaixo da barra, sem sobrepor) ── */
 .evento-pool-info {
@@ -985,6 +987,71 @@ label {
     color: var(--texto-claro);
 }
 .evento-pool-valor--alerta { color: var(--erro); }
+
+/* ── EVENTOS no Escudo: linha enxuta + divulgação progressiva (Regra 7.2) ──
+   Estado de repouso = uma linha (status + nome + mini-barra de pool + nº). O detalhe
+   (causas, núcleos, ativado em, ações) abre em accordion via .evento-linha--aberto. */
+.evento-linha {
+    background: var(--bg-card);
+    border: 1px solid var(--borda);
+    border-radius: 6px;
+    overflow: hidden;
+}
+.evento-linha__topo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    cursor: pointer;
+    transition: var(--transicao-suave);
+}
+.evento-linha__topo:hover { background: var(--bg-principal); }
+.evento-linha__icone { width: 15px; height: 15px; flex-shrink: 0; color: var(--destaque); }
+.evento-linha__icone--pronto { color: var(--erro); }
+.evento-linha__nome {
+    flex: 1;
+    min-width: 0;
+    font-size: 13px;
+    color: var(--texto-claro);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.evento-linha__barra { flex: 0 0 64px; height: 8px; }
+.evento-linha__num {
+    flex-shrink: 0;
+    min-width: 44px;
+    text-align: right;
+    font-family: 'Fira Code', monospace;
+    font-size: 11px;
+    color: var(--texto-mutado);
+}
+.evento-linha__chevron {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+    color: var(--texto-mutado);
+    transition: var(--transicao-suave);
+}
+.evento-linha--aberto .evento-linha__chevron { transform: rotate(180deg); }
+.evento-detalhe {
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+    padding: 0 10px 10px;
+}
+.evento-linha--aberto .evento-detalhe { display: flex; }
+.evento-detalhe__rodape {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: 11px;
+    color: var(--texto-mutado);
+}
+.evento-detalhe__acoes { display: flex; gap: 6px; flex-wrap: wrap; }
+.evento-detalhe__vazio { margin: 0; font-size: 11px; color: var(--texto-mutado); }
 
 /* Segunda barra (barra-bg) só existe no tema 16-bit — oculta no tema padrão.
    O slider agora vive dentro de .hp-barra-wrap, logo a barra secundária é
