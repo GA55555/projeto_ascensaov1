@@ -883,11 +883,43 @@ function renderizarEventosEscudo(lista) {
         </div>`;
     }).join('');
     lucide.createIcons();
+    ajustarAlturaBoxEventos(); // re-render começa recolhido → volta à altura base
 }
 
-// Accordion da linha de evento: abre/fecha o detalhe (classe → CSS, sem estilo inline).
+// Caixa ELÁSTICA: cresce o widget GridStack p/ caber o detalhe aberto e encolhe ao fechar.
+// Sem persistência (Regra 2.7 — resize só visual; o Salvar continua sendo explícito).
+const BOX_EVENTOS_H_BASE = 4, BOX_EVENTOS_H_MAX = 12;
+function ajustarAlturaBoxEventos() {
+    const bloco = document.querySelector('[gs-id="bloco-eventos"]');
+    if (!bloco || !gridStackInstance || bloco.classList.contains('bloco-arquivado')) return;
+
+    // Nada aberto → volta à altura base (lista recolhida pode rolar normalmente).
+    if (!bloco.querySelector('.evento-linha--aberto')) {
+        gridStackInstance.update(bloco, { h: BOX_EVENTOS_H_BASE });
+        return;
+    }
+
+    // Altura natural do conteúdo = partes fixas (cabeçalho + busca) + lista inteira.
+    const content = bloco.querySelector('.grid-stack-item-content');
+    const lista = document.getElementById('conteudo-eventos');
+    if (!content || !lista) return;
+    let chrome = 0;
+    Array.from(content.children).forEach(ch => { if (ch !== lista) chrome += ch.offsetHeight; });
+    const natural = chrome + lista.scrollHeight + 28; // folga p/ paddings/bordas
+    const rowPx = ((gridStackInstance.getCellHeight && gridStackInstance.getCellHeight()) || 80) + 10; // cellHeight + margin
+    const rows = Math.min(Math.max(Math.ceil(natural / rowPx), BOX_EVENTOS_H_BASE), BOX_EVENTOS_H_MAX);
+    gridStackInstance.update(bloco, { h: rows });
+}
+
+// Accordion EXCLUSIVO (um aberto por vez) + caixa elástica. Classe → CSS, sem estilo inline.
 window.toggleEventoEscudo = function(eventoId) {
-    document.querySelector(`.evento-linha[data-evento-id="${eventoId}"]`)?.classList.toggle('evento-linha--aberto');
+    const linha = document.querySelector(`.evento-linha[data-evento-id="${eventoId}"]`);
+    if (!linha) return;
+    const abrindo = !linha.classList.contains('evento-linha--aberto');
+    document.querySelectorAll('.evento-linha--aberto').forEach(l => l.classList.remove('evento-linha--aberto'));
+    if (abrindo) linha.classList.add('evento-linha--aberto');
+    ajustarAlturaBoxEventos();
+    if (abrindo) requestAnimationFrame(() => linha.scrollIntoView({ block: 'nearest', behavior: 'smooth' }));
 }
 
 window.salvarNovoEvento = async function() {
