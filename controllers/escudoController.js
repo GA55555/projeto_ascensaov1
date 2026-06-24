@@ -94,6 +94,27 @@ exports.obterLayoutEscudo = asyncHandler(async (req, res) => {
     res.json(result.rows[0].layout_escudo || []);
 });
 
+// Buscar o sistema (slug) da crônica — alimenta o Motor de Regras Rápidas.
+// O slug nomeia o compêndio correto em /regras/<slug>.json (ex.: dnd5e, mago_m20),
+// substituindo o antigo valor fixo "mago_m20" no escudo.
+exports.obterSistemaCronica = asyncHandler(async (req, res) => {
+    const { cronicaId } = req.params;
+
+    const result = await pool.query(
+        `SELECT s.slug, s.nome
+           FROM public.cronicas c
+           JOIN public.sistemas s ON s.id = c.sistema_id
+          WHERE c.id = $1`,
+        [cronicaId]
+    );
+
+    if (result.rowCount === 0) {
+        return res.status(404).json({ erro: "Sistema da crônica não encontrado." });
+    }
+
+    res.json(result.rows[0]);
+});
+
 // Persistir o novo layout rearranjado pelo narrador
 exports.salvarLayoutEscudo = asyncHandler(async (req, res) => {
     const { cronicaId } = req.params;

@@ -1,8 +1,16 @@
 let regrasCache = [];
 
-window.inicializarMotorDeRegras = async function(sistemaNome = 'mago_m20') {
+window.inicializarMotorDeRegras = async function(sistemaNome) {
     const divResultados = document.getElementById('resultados-regras');
     if (!divResultados) return;
+
+    regrasCache = [];
+
+    // Sem sistema identificado ou slug inválido (anti path-traversal: só [a-z0-9_-]).
+    if (!sistemaNome || !/^[a-z0-9_-]+$/i.test(sistemaNome)) {
+        divResultados.innerHTML = '<p style="color: var(--texto-mutado); font-size: 12px;">Sistema da crônica não identificado — compêndio de regras indisponível.</p>';
+        return;
+    }
 
     try {
         const res = await fetch(`/regras/${sistemaNome}.json`);
@@ -11,7 +19,7 @@ window.inicializarMotorDeRegras = async function(sistemaNome = 'mago_m20') {
             divResultados.innerHTML = '<p style="color: var(--sucesso); font-size: 12px;"><i data-lucide="check-circle" style="width:14px; height:14px;"></i> Compêndio carregado e pronto para busca.</p>';
             lucide.createIcons();
         } else {
-            divResultados.innerHTML = '<p style="color: var(--erro); font-size: 12px;">Falha ao localizar o compêndio de regras no servidor.</p>';
+            divResultados.innerHTML = '<p style="color: var(--erro); font-size: 12px;">Não há compêndio de regras cadastrado para este sistema.</p>';
         }
     } catch (err) {
         console.error("Erro no Motor de Regras:", err);

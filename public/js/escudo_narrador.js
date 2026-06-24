@@ -63,7 +63,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Inicia a Engenharia de Mundo
     await carregarNucleosMundoEscudo();
-    await inicializarMotorDeRegras('mago_m20');
+    await inicializarMotorDeRegrasDaCronica();
     carregarMundoEscudo();
 
     // FORÇA O CARREGAMENTO IMEDIATO DAS NOVAS CAIXAS
@@ -188,6 +188,22 @@ window.persistirLayoutGrid = async function(silencioso = false) {
         });
         if (res.ok && !silencioso) mostrarToast('Disposição do painel memorizada na Trama!', 'sucesso');
     } catch (err) { console.error(err); }
+}
+
+// Descobre o sistema de regras DESTA crônica e carrega o compêndio correto
+// (ex.: dnd5e, mago_m20) nas Regras Rápidas — em vez do antigo valor fixo.
+async function inicializarMotorDeRegrasDaCronica() {
+    let slug = null;
+    try {
+        const res = await fetch(`/cronicas/${cronicaId}/sistema`, { credentials: 'include' });
+        if (res.ok) {
+            const dados = await res.json();
+            slug = dados.slug;
+        }
+    } catch (err) {
+        console.error('Falha ao identificar o sistema da crônica:', err);
+    }
+    await inicializarMotorDeRegras(slug);
 }
 
 // ==========================================
