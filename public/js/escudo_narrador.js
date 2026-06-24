@@ -149,6 +149,17 @@ async function inicializarGridModular() {
         cellHeight: 80, margin: 10, animate: true, float: true
     });
 
+    // Guias visuais de alinhamento: durante arrasto/resize marca a grade com a classe
+    // 'grid-arrastando' (linhas + placeholder destacado no CSS). APENAS visual — não
+    // persiste nada; não é auto-save, então não conflita com a Regra 2.7 abaixo.
+    const gridEl = gridStackInstance.el;
+    const ligarGuias = () => gridEl.classList.add('grid-arrastando');
+    const desligarGuias = () => gridEl.classList.remove('grid-arrastando');
+    gridStackInstance.on('dragstart', ligarGuias);
+    gridStackInstance.on('resizestart', ligarGuias);
+    gridStackInstance.on('dragstop', desligarGuias);
+    gridStackInstance.on('resizestop', desligarGuias);
+
     // Regra 2.7: PROIBIDO auto-save atrelado a eventos do grid (change/added/removed).
     // O GridStack manipula apenas o DOM em memória; a persistência é explícita,
     // via botão "Salvar Layout" -> salvarEstadoCompleto() / persistirLayoutGrid().
@@ -892,23 +903,25 @@ const BOX_EVENTOS_H_BASE = 4, BOX_EVENTOS_H_MAX = 12;
 function ajustarAlturaBoxEventos() {
     const bloco = document.querySelector('[gs-id="bloco-eventos"]');
     if (!bloco || !gridStackInstance || bloco.classList.contains('bloco-arquivado')) return;
+    const hAtual = bloco.gridstackNode?.h || BOX_EVENTOS_H_BASE;
 
     // Nada aberto → volta à altura base (lista recolhida pode rolar normalmente).
     if (!bloco.querySelector('.evento-linha--aberto')) {
-        gridStackInstance.update(bloco, { h: BOX_EVENTOS_H_BASE });
+        if (hAtual !== BOX_EVENTOS_H_BASE) gridStackInstance.update(bloco, { h: BOX_EVENTOS_H_BASE });
         return;
     }
 
-    // Altura natural do conteúdo = partes fixas (cabeçalho + busca) + lista inteira.
-    const content = bloco.querySelector('.grid-stack-item-content');
+    // Sinal direto e confiável: quanto a lista ESCONDE hoje (scrollHeight − clientHeight).
+    // Cresce exatamente o necessário p/ absorver esse overflow, usando px-por-linha REAL
+    // (medido do widget em repouso — sem depender de cellHeight/margin teóricos).
     const lista = document.getElementById('conteudo-eventos');
-    if (!content || !lista) return;
-    let chrome = 0;
-    Array.from(content.children).forEach(ch => { if (ch !== lista) chrome += ch.offsetHeight; });
-    const natural = chrome + lista.scrollHeight + 28; // folga p/ paddings/bordas
-    const rowPx = ((gridStackInstance.getCellHeight && gridStackInstance.getCellHeight()) || 80) + 10; // cellHeight + margin
-    const rows = Math.min(Math.max(Math.ceil(natural / rowPx), BOX_EVENTOS_H_BASE), BOX_EVENTOS_H_MAX);
-    gridStackInstance.update(bloco, { h: rows });
+    if (!lista) return;
+    const overflow = lista.scrollHeight - lista.clientHeight;
+    if (overflow <= 2) return; // já cabe; nada a crescer
+    const rect = bloco.getBoundingClientRect();
+    const pxPorLinha = (rect.height > 0 && hAtual > 0) ? rect.height / hAtual : 90;
+    const novo = Math.min(hAtual + Math.ceil(overflow / pxPorLinha), BOX_EVENTOS_H_MAX);
+    if (novo !== hAtual) gridStackInstance.update(bloco, { h: novo });
 }
 
 // Accordion EXCLUSIVO (um aberto por vez) + caixa elástica. Classe → CSS, sem estilo inline.
