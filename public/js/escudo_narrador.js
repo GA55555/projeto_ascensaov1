@@ -583,40 +583,28 @@ window.criarNucleoEscudo = async function() {
     } catch (err) { mostrarToast('Erro de conexão.', 'erro'); }
 }
 
-// Renomear núcleo inline (sem prompt) — mesmo padrão de iniciarEdicaoNomeEscudo, sobre o
-// span #nucleo-nome-<id> na lista do modal. (Supera o controle_mundo, que aqui ainda usa
-// prompt — candidato a retroporte no Caminho B.) CSP-safe.
+// edicaoInlineTexto vive agora em /js/mundo/edicaoInline.js (compartilhado com o
+// controle_mundo; carregado antes deste script). Caminho B.
+
+// Renomear núcleo inline (sobre o span #nucleo-nome-<id> na lista do modal). Supera o
+// controle_mundo, que aqui ainda usa prompt — candidato a retroporte no Caminho B.
 window.iniciarEdicaoNucleoEscudo = function(id) {
-    const span = document.getElementById('nucleo-nome-' + id);
-    if (!span || span.querySelector('input')) return;
-    const atual = span.textContent;
-    const input = document.createElement('input');
-    input.type = 'text'; input.className = 'input-inline-nome'; input.value = atual; input.maxLength = 120;
-    span.textContent = ''; span.appendChild(input);
-    input.focus(); input.select();
-    let done = false;
-    const fim = async (salvar) => {
-        if (done) return; done = true;
-        const novo = input.value.trim();
-        if (!salvar || !novo || novo === atual) { span.textContent = atual; return; }
-        span.textContent = novo; // optimistic
-        const nuc = nucleosEscudoCache.entidade.find(n => String(n.id) === String(id));
-        if (nuc) nuc.nome = novo;
-        try {
-            await MundoApi.editarNucleo(cronicaId, id, novo);
-            await carregarNucleosMundoEscudo(); // atualiza o seletor de filtro/forja
-            aplicarFiltrosMundoEscudo();        // re-renderiza os cards (nucleo_nome)
-        } catch {
-            span.textContent = atual;
-            if (nuc) nuc.nome = atual;
-            mostrarToast('Erro ao renomear núcleo. Revertido.', 'erro');
+    edicaoInlineTexto(document.getElementById('nucleo-nome-' + id), {
+        aoSalvar: async (novo, atual, alvo) => {
+            alvo.textContent = novo; // optimistic
+            const nuc = nucleosEscudoCache.entidade.find(n => String(n.id) === String(id));
+            if (nuc) nuc.nome = novo;
+            try {
+                await MundoApi.editarNucleo(cronicaId, id, novo);
+                await carregarNucleosMundoEscudo(); // atualiza o seletor de filtro/forja
+                aplicarFiltrosMundoEscudo();        // re-renderiza os cards (nucleo_nome)
+            } catch {
+                alvo.textContent = atual;
+                if (nuc) nuc.nome = atual;
+                mostrarToast('Erro ao renomear núcleo. Revertido.', 'erro');
+            }
         }
-    };
-    input.addEventListener('keydown', (ev) => {
-        if (ev.key === 'Enter') { ev.preventDefault(); fim(true); }
-        else if (ev.key === 'Escape') { ev.preventDefault(); fim(false); }
     });
-    input.addEventListener('blur', () => fim(true));
 }
 
 window.excluirNucleoEscudo = async function(id) {
@@ -644,20 +632,12 @@ window.aplicarFiltrosMundoEscudo = function() {
     carregarMundoEscudo(nucleoId, textoFiltro);
 }
 
-// Helpers de apresentação — espelham os de controle_mundo.js (iconeEntidade/humanizarMarco).
-// Duplicados de propósito no Caminho A (as duas páginas nunca carregam juntas); a unificação
-// num módulo compartilhado é o Caminho B. Ver memória project-refatoracao-engenharia-mundo-escudo.
-function iconeEntidade(tipo) {
-    const mapa = { npc: 'user', protagonista: 'crown', faccao: 'flag', local: 'map-pin', cenario: 'mountain' };
-    return mapa[String(tipo || '').toLowerCase()] || 'box';
-}
-function humanizarMarco(key) {
-    return String(key || '').replace(/_/g, ' ').replace(/\s+/g, ' ').trim().replace(/\b\w/g, c => c.toUpperCase());
-}
+// iconeEntidade/humanizarMarco vivem agora em /js/mundo/mundoUtils.js (compartilhado com o
+// controle_mundo; carregado antes deste script). Caminho B — fim da duplicação.
 
 // Um item de Marco: check (toggle) + nome humanizado + renomear/apagar revelados no hover (R7.2).
-// Ações via data-action (delegação CSP-safe); preserva os handlers existentes (prompt vira
-// edição inline na Fatia 2). Os ícones <i> mantêm os data-* após lucide.createIcons().
+// Ações via data-action (dispatcher delegado único do escudo). Os ícones <i> preservam os
+// data-* após lucide.createIcons(), então a delegação continua funcionando sobre o <svg>.
 function marcoEscudoItemHTML(nodeId, f) {
     const id = escapeHTML(String(nodeId));
     const k = escapeHTML(f.key);
@@ -679,18 +659,9 @@ function cardMundoEscudoHTML(node) {
     return `
         <div class="card world-card" data-node-id="${id}">
             <div class="world-card__head">
-                <div class="world-card__ident">
-                    <span class="world-card__icone">
-                        <i data-lucide="${iconeEntidade(node.tipo)}"></i>
-                        ${node.avatar_url ? `<img class="world-card__avatar" src="${escapeHTML(node.avatar_url)}" alt="" draggable="false" onerror="this.remove()">` : ''}
-                    </span>
-                    <div class="world-card__titulo-wrap">
-                        <strong class="world-card__nome">${escapeHTML(node.nome)}</strong>
-                        <span class="badge world-card__tipo">${escapeHTML(node.tipo)}</span>
-                    </div>
-                </div>
+                ${cardIdentHTML(node)}
                 <div class="world-card__acoes">
-                    <button class="btn btn-secondary btn-sm" data-action="editar-entidade" data-id="${id}" data-extra="${escapeHTML(node.nome)}" title="Renomear"><i data-lucide="pen-line"></i></button>
+                    <button class="btn btn-secondary btn-sm" data-action="editar-entidade" data-id="${id}" title="Renomear"><i data-lucide="pen-line"></i></button>
                     <button class="btn btn-secondary btn-sm" data-action="mover-entidade" data-id="${id}" title="Mudar núcleo"><i data-lucide="map-pin"></i></button>
                     <button class="btn btn-danger btn-sm" data-action="deletar-entidade" data-id="${id}" data-extra="${escapeHTML(node.nome)}" title="Deletar"><i data-lucide="trash-2"></i></button>
                 </div>
@@ -702,11 +673,7 @@ function cardMundoEscudoHTML(node) {
                 <input type="text" class="input-inline-marco" maxlength="60" placeholder="+ Novo Marco (Enter)" data-action="novo-marco" data-id="${id}">
             </div>
 
-            <div class="world-card__rodape">
-                <div class="world-card__nucleo">
-                    <span>Núcleo: <span class="world-card__nucleo-nome">${escapeHTML(node.nucleo_nome || 'Nenhum')}</span></span>
-                </div>
-            </div>
+            ${cardRodapeNucleoHTML(node)}
         </div>`;
 }
 
@@ -730,37 +697,23 @@ window.salvarForjaEscudo = async function() {
     } catch (err) { mostrarToast('Erro ao forjar entidade.', 'erro'); }
 }
 
-// Renomear entidade inline (sem prompt) — espelha iniciarEdicaoNome do controle_mundo.
-// CSP-safe: o input é criado via JS e usa addEventListener (não atributo onkeydown).
+// Renomear entidade inline (sobre o .world-card__nome do card). Espelha iniciarEdicaoNome
+// do controle_mundo.
 window.iniciarEdicaoNomeEscudo = function(nodeId) {
-    const strong = document.querySelector(`.world-card[data-node-id="${nodeId}"] .world-card__nome`);
-    if (!strong || strong.querySelector('input')) return;
-    const atual = strong.textContent;
-    const input = document.createElement('input');
-    input.type = 'text'; input.className = 'input-inline-nome'; input.value = atual; input.maxLength = 120;
-    strong.textContent = ''; strong.appendChild(input);
-    input.focus(); input.select();
-    let done = false;
-    const fim = async (salvar) => {
-        if (done) return; done = true;
-        const novo = input.value.trim();
-        if (!salvar || !novo || novo === atual) { strong.textContent = atual; return; }
-        strong.textContent = novo; // optimistic
-        const node = nodesMundoCache.find(n => String(n.id) === String(nodeId));
-        if (node) node.nome = novo;
-        try {
-            await MundoApi.editarNode(cronicaId, nodeId, novo);
-        } catch {
-            strong.textContent = atual;
-            if (node) node.nome = atual;
-            mostrarToast('Erro ao renomear. Revertido.', 'erro');
+    edicaoInlineTexto(document.getElementById('node-nome-' + nodeId), {
+        aoSalvar: async (novo, atual, alvo) => {
+            alvo.textContent = novo; // optimistic
+            const node = nodesMundoCache.find(n => String(n.id) === String(nodeId));
+            if (node) node.nome = novo;
+            try {
+                await MundoApi.editarNode(cronicaId, nodeId, novo);
+            } catch {
+                alvo.textContent = atual;
+                if (node) node.nome = atual;
+                mostrarToast('Erro ao renomear. Revertido.', 'erro');
+            }
         }
-    };
-    input.addEventListener('keydown', (ev) => {
-        if (ev.key === 'Enter') { ev.preventDefault(); fim(true); }
-        else if (ev.key === 'Escape') { ev.preventDefault(); fim(false); }
     });
-    input.addEventListener('blur', () => fim(true));
 }
 
 window.deletarEntidadeEscudo = async function(nodeId, nome) {
@@ -793,37 +746,25 @@ window.adicionarMarcoInlineEscudo = async function(input, nodeId) {
     }
 }
 
-// Renomear marco inline (sem prompt) — espelha iniciarEdicaoMarco do controle_mundo.
-// Re-renderiza só o item com a nova chave (handlers/chaves coerentes). CSP-safe.
+// Renomear marco inline — espelha iniciarEdicaoMarco do controle_mundo. Em sucesso
+// re-renderiza só o item com a nova chave (handlers/chaves coerentes).
 window.iniciarEdicaoMarcoEscudo = function(nodeId, flagKey) {
     const item = document.querySelector(`.world-card[data-node-id="${nodeId}"] .marco-item[data-flag-key="${flagKey}"]`);
-    const span = item?.querySelector('.marco-item__nome');
-    if (!span || span.querySelector('input')) return;
-    const atual = span.textContent;
-    const input = document.createElement('input');
-    input.type = 'text'; input.className = 'input-inline-marco input-inline-marco--edit'; input.value = atual; input.maxLength = 60;
-    span.textContent = ''; span.appendChild(input);
-    input.focus(); input.select();
-    let done = false;
-    const fim = async (salvar) => {
-        if (done) return; done = true;
-        const novo = input.value.trim();
-        if (!salvar || !novo || novo === atual) { span.textContent = atual; return; }
-        try {
-            await MundoApi.editarFlag(cronicaId, nodeId, flagKey, novo);
-            const novaKey = novo.toLowerCase().replace(/\s+/g, '_');
-            const node = nodesMundoCache.find(n => String(n.id) === String(nodeId));
-            const fl = node?.flags?.find(f => f.key === flagKey); if (fl) fl.key = novaKey;
-            const checked = item.querySelector('.marco-item__check')?.checked;
-            item.outerHTML = marcoEscudoItemHTML(nodeId, { key: novaKey, value: checked });
-            lucide.createIcons();
-        } catch { span.textContent = atual; mostrarToast('Erro ao renomear marco.', 'erro'); }
-    };
-    input.addEventListener('keydown', (ev) => {
-        if (ev.key === 'Enter') { ev.preventDefault(); fim(true); }
-        else if (ev.key === 'Escape') { ev.preventDefault(); fim(false); }
+    edicaoInlineTexto(item?.querySelector('.marco-item__nome'), {
+        classe: 'input-inline-marco input-inline-marco--edit',
+        maxLength: 60,
+        aoSalvar: async (novo, atual, alvo) => {
+            try {
+                await MundoApi.editarFlag(cronicaId, nodeId, flagKey, novo);
+                const novaKey = novo.toLowerCase().replace(/\s+/g, '_');
+                const node = nodesMundoCache.find(n => String(n.id) === String(nodeId));
+                const fl = node?.flags?.find(f => f.key === flagKey); if (fl) fl.key = novaKey;
+                const checked = item.querySelector('.marco-item__check')?.checked;
+                item.outerHTML = marcoEscudoItemHTML(nodeId, { key: novaKey, value: checked });
+                lucide.createIcons();
+            } catch { alvo.textContent = atual; mostrarToast('Erro ao renomear marco.', 'erro'); }
+        }
     });
-    input.addEventListener('blur', () => fim(true));
 }
 
 window.deletarFlagEscudo = async function(nodeId, flagKey) {
@@ -1182,8 +1123,8 @@ window.deletarCausaEvento = async function(eventId, nodeId, flagKey) {
 
 // ==========================================
 // EVENT DELEGATION — Fases 2 e 3
-// Centraliza todos os handlers dinâmicos de click, change e input.
-// Substitui os inline handlers (onclick, onchange, oninput) bloqueados pelo CSP.
+// Centraliza todos os handlers dinâmicos de click, change e input num dispatcher único:
+// evita re-anexar listeners a cada render e mantém os inline handlers fora do markup.
 // ==========================================
 document.body.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-action]');
@@ -1240,8 +1181,9 @@ document.body.addEventListener('mousedown', (e) => {
     }
 });
 
-// Criar marco inline: Enter no input permanente "+ Novo Marco". Via delegação (o onkeydown
-// inline é bloqueado pelo CSP). Os inputs de edição inline (nome/marco) tratam o próprio
+// Criar marco inline: Enter no input permanente "+ Novo Marco". Tratado pelo dispatcher
+// delegado único do escudo (data-action) — coerente com o resto da página e sem re-anexar
+// listeners a cada render. Os inputs de edição inline (nome/marco/núcleo) tratam o próprio
 // keydown via addEventListener e não têm data-action="novo-marco", então não colidem aqui.
 document.body.addEventListener('keydown', (e) => {
     if (e.key !== 'Enter') return;
