@@ -146,7 +146,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function inicializarGridModular() {
     gridStackInstance = GridStack.init({
-        cellHeight: 80, margin: 10, animate: true, float: true
+        cellHeight: 80, margin: 10, animate: true, float: true,
+        // Resize por TODOS os lados (não só o canto 'se'): permite crescer p/ a esquerda,
+        // direita, cima e baixo. Os handles são revelados ao passar o mouse no bloco (CSS).
+        resizable: { handles: 'n, e, s, w, se, sw, ne, nw' }
     });
 
     // Guias visuais de alinhamento: durante arrasto/resize marca a grade com a classe
