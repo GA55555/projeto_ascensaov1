@@ -556,11 +556,14 @@ window.gerenciarNucleosEscudo = async function(tipo) {
     const div = document.getElementById('lista-nucleos-escudo');
     if (div) {
         div.innerHTML = nucleosEscudoCache.entidade.map(n => `
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.05); color: white;">
-                <span style="font-size: 13px;">${escapeHTML(n.nome)}</span>
-                <div style="display: flex; gap: 5px;">
-                    <button class="btn btn-primary btn-sm" data-action="editar-nucleo" data-id="${n.id}"><i data-lucide="pen-line"></i></button>
-                    <button class="btn btn-danger btn-sm" data-action="excluir-nucleo" data-id="${n.id}"><i data-lucide="trash-2"></i></button>
+            <div class="nucleo-linha">
+                <span class="nucleo-ident">
+                    ${n.avatar_url ? `<img class="nucleo-brasao" src="${escapeHTML(n.avatar_url)}" alt="" draggable="false" onerror="this.remove()">` : ''}
+                    <span id="nucleo-nome-${escapeHTML(String(n.id))}">${escapeHTML(n.nome)}</span>
+                </span>
+                <div class="card-topo-acoes">
+                    <button class="btn btn-primary btn-sm" data-action="editar-nucleo" data-id="${n.id}" title="Renomear"><i data-lucide="pen-line"></i></button>
+                    <button class="btn btn-danger btn-sm" data-action="excluir-nucleo" data-id="${n.id}" title="Excluir"><i data-lucide="trash-2"></i></button>
                 </div>
             </div>
         `).join('');
@@ -580,13 +583,40 @@ window.criarNucleoEscudo = async function() {
     } catch (err) { mostrarToast('Erro de conexão.', 'erro'); }
 }
 
-window.editarNucleoEscudo = async function(id) {
-    const novoNome = prompt('Novo nome:'); if (!novoNome || novoNome.trim() === '') return;
-    try {
-        await MundoApi.editarNucleo(cronicaId, id, novoNome.trim());
-        await gerenciarNucleosEscudo('entidade');
-        aplicarFiltrosMundoEscudo();
-    } catch (err) { mostrarToast('Erro de conexão.', 'erro'); }
+// Renomear núcleo inline (sem prompt) — mesmo padrão de iniciarEdicaoNomeEscudo, sobre o
+// span #nucleo-nome-<id> na lista do modal. (Supera o controle_mundo, que aqui ainda usa
+// prompt — candidato a retroporte no Caminho B.) CSP-safe.
+window.iniciarEdicaoNucleoEscudo = function(id) {
+    const span = document.getElementById('nucleo-nome-' + id);
+    if (!span || span.querySelector('input')) return;
+    const atual = span.textContent;
+    const input = document.createElement('input');
+    input.type = 'text'; input.className = 'input-inline-nome'; input.value = atual; input.maxLength = 120;
+    span.textContent = ''; span.appendChild(input);
+    input.focus(); input.select();
+    let done = false;
+    const fim = async (salvar) => {
+        if (done) return; done = true;
+        const novo = input.value.trim();
+        if (!salvar || !novo || novo === atual) { span.textContent = atual; return; }
+        span.textContent = novo; // optimistic
+        const nuc = nucleosEscudoCache.entidade.find(n => String(n.id) === String(id));
+        if (nuc) nuc.nome = novo;
+        try {
+            await MundoApi.editarNucleo(cronicaId, id, novo);
+            await carregarNucleosMundoEscudo(); // atualiza o seletor de filtro/forja
+            aplicarFiltrosMundoEscudo();        // re-renderiza os cards (nucleo_nome)
+        } catch {
+            span.textContent = atual;
+            if (nuc) nuc.nome = atual;
+            mostrarToast('Erro ao renomear núcleo. Revertido.', 'erro');
+        }
+    };
+    input.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter') { ev.preventDefault(); fim(true); }
+        else if (ev.key === 'Escape') { ev.preventDefault(); fim(false); }
+    });
+    input.addEventListener('blur', () => fim(true));
 }
 
 window.excluirNucleoEscudo = async function(id) {
@@ -667,8 +697,10 @@ function cardMundoEscudoHTML(node) {
             </div>
 
             <div class="world-card__marcos-label">Marcos</div>
-            <div class="world-card__marcos">${marcos}</div>
-            <button class="btn btn-secondary btn-sm btn-add-marco" data-action="adicionar-flag" data-id="${id}"><i data-lucide="plus"></i> Novo Marco</button>
+            <div class="world-card__marcos">
+                ${marcos}
+                <input type="text" class="input-inline-marco" maxlength="60" placeholder="+ Novo Marco (Enter)" data-action="novo-marco" data-id="${id}">
+            </div>
 
             <div class="world-card__rodape">
                 <div class="world-card__nucleo">
@@ -698,12 +730,37 @@ window.salvarForjaEscudo = async function() {
     } catch (err) { mostrarToast('Erro ao forjar entidade.', 'erro'); }
 }
 
-window.editarEntidadeEscudo = async function(nodeId, nomeAtual) {
-    const novoNome = prompt('Novo nome da entidade:', nomeAtual); if (!novoNome || novoNome.trim() === '' || novoNome === nomeAtual) return;
-    try {
-        await MundoApi.editarNode(cronicaId, nodeId, novoNome.trim());
-        aplicarFiltrosMundoEscudo();
-    } catch (err) { mostrarToast('Erro de conexão.', 'erro'); }
+// Renomear entidade inline (sem prompt) — espelha iniciarEdicaoNome do controle_mundo.
+// CSP-safe: o input é criado via JS e usa addEventListener (não atributo onkeydown).
+window.iniciarEdicaoNomeEscudo = function(nodeId) {
+    const strong = document.querySelector(`.world-card[data-node-id="${nodeId}"] .world-card__nome`);
+    if (!strong || strong.querySelector('input')) return;
+    const atual = strong.textContent;
+    const input = document.createElement('input');
+    input.type = 'text'; input.className = 'input-inline-nome'; input.value = atual; input.maxLength = 120;
+    strong.textContent = ''; strong.appendChild(input);
+    input.focus(); input.select();
+    let done = false;
+    const fim = async (salvar) => {
+        if (done) return; done = true;
+        const novo = input.value.trim();
+        if (!salvar || !novo || novo === atual) { strong.textContent = atual; return; }
+        strong.textContent = novo; // optimistic
+        const node = nodesMundoCache.find(n => String(n.id) === String(nodeId));
+        if (node) node.nome = novo;
+        try {
+            await MundoApi.editarNode(cronicaId, nodeId, novo);
+        } catch {
+            strong.textContent = atual;
+            if (node) node.nome = atual;
+            mostrarToast('Erro ao renomear. Revertido.', 'erro');
+        }
+    };
+    input.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter') { ev.preventDefault(); fim(true); }
+        else if (ev.key === 'Escape') { ev.preventDefault(); fim(false); }
+    });
+    input.addEventListener('blur', () => fim(true));
 }
 
 window.deletarEntidadeEscudo = async function(nodeId, nome) {
@@ -714,20 +771,59 @@ window.deletarEntidadeEscudo = async function(nodeId, nome) {
     } catch (err) { mostrarToast('Erro de conexão.', 'erro'); }
 }
 
-window.adicionarFlagEscudo = async function(nodeId) {
-    const nome = prompt('Nome da nova Flag:'); if (!nome) return;
+// Criar marco inline (Enter) — Optimistic UI. Espelha adicionarMarcoInline do controle_mundo
+// e a normalização do backend (lowercase + espaço→underscore) p/ a chave otimista bater
+// com a persistida. Disparado pelo keydown delegado (data-action="novo-marco").
+window.adicionarMarcoInlineEscudo = async function(input, nodeId) {
+    const nome = input.value.trim();
+    if (!nome) return;
+    const chave = nome.toLowerCase().replace(/\s+/g, '_');
+    const node = nodesMundoCache.find(n => String(n.id) === String(nodeId));
+    if (node?.flags?.some(f => f.key === chave)) return mostrarToast('Esse marco já existe.', 'aviso');
+    input.value = '';
     try {
         await MundoApi.adicionarFlag(cronicaId, nodeId, nome);
-        aplicarFiltrosMundoEscudo();
-    } catch (err) { console.error(err); }
+        if (node) { node.flags = node.flags || []; node.flags.push({ key: chave, value: false }); }
+        input.insertAdjacentHTML('beforebegin', marcoEscudoItemHTML(nodeId, { key: chave, value: false }));
+        lucide.createIcons();
+        input.focus(); // permite encadear vários marcos
+    } catch (err) {
+        input.value = nome; // devolve o texto p/ tentar de novo
+        mostrarToast('Erro ao criar marco.', 'erro');
+    }
 }
 
-window.editarFlagEscudo = async function(nodeId, flagKey) {
-    const novoNome = prompt('Novo nome da flag:', flagKey); if (!novoNome || novoNome.trim() === '' || novoNome === flagKey) return;
-    try {
-        await MundoApi.editarFlag(cronicaId, nodeId, flagKey, novoNome);
-        aplicarFiltrosMundoEscudo();
-    } catch (err) { mostrarToast('Erro de conexão.', 'erro'); }
+// Renomear marco inline (sem prompt) — espelha iniciarEdicaoMarco do controle_mundo.
+// Re-renderiza só o item com a nova chave (handlers/chaves coerentes). CSP-safe.
+window.iniciarEdicaoMarcoEscudo = function(nodeId, flagKey) {
+    const item = document.querySelector(`.world-card[data-node-id="${nodeId}"] .marco-item[data-flag-key="${flagKey}"]`);
+    const span = item?.querySelector('.marco-item__nome');
+    if (!span || span.querySelector('input')) return;
+    const atual = span.textContent;
+    const input = document.createElement('input');
+    input.type = 'text'; input.className = 'input-inline-marco input-inline-marco--edit'; input.value = atual; input.maxLength = 60;
+    span.textContent = ''; span.appendChild(input);
+    input.focus(); input.select();
+    let done = false;
+    const fim = async (salvar) => {
+        if (done) return; done = true;
+        const novo = input.value.trim();
+        if (!salvar || !novo || novo === atual) { span.textContent = atual; return; }
+        try {
+            await MundoApi.editarFlag(cronicaId, nodeId, flagKey, novo);
+            const novaKey = novo.toLowerCase().replace(/\s+/g, '_');
+            const node = nodesMundoCache.find(n => String(n.id) === String(nodeId));
+            const fl = node?.flags?.find(f => f.key === flagKey); if (fl) fl.key = novaKey;
+            const checked = item.querySelector('.marco-item__check')?.checked;
+            item.outerHTML = marcoEscudoItemHTML(nodeId, { key: novaKey, value: checked });
+            lucide.createIcons();
+        } catch { span.textContent = atual; mostrarToast('Erro ao renomear marco.', 'erro'); }
+    };
+    input.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter') { ev.preventDefault(); fim(true); }
+        else if (ev.key === 'Escape') { ev.preventDefault(); fim(false); }
+    });
+    input.addEventListener('blur', () => fim(true));
 }
 
 window.deletarFlagEscudo = async function(nodeId, flagKey) {
@@ -755,8 +851,8 @@ window.moverNodeNucleoEscudo = async function(nodeId) {
     const nucleoAtualId = node ? node.nucleo_id : null;
     const div = document.getElementById('lista-nucleos-mover-escudo');
     if (div) {
-        let html = `<label style="display:block; margin-bottom: 5px;"><input type="radio" name="mover-nucleo-escudo" value="" ${!nucleoAtualId ? 'checked' : ''}> Nenhum</label>`;
-        nucleosEscudoCache.entidade.forEach(n => { html += `<label style="display:block; margin-bottom: 5px;"><input type="radio" name="mover-nucleo-escudo" value="${n.id}" ${nucleoAtualId === n.id ? 'checked' : ''}> ${escapeHTML(n.nome)}</label>`; });
+        let html = `<label class="radio-label"><input type="radio" name="mover-nucleo-escudo" value="" ${!nucleoAtualId ? 'checked' : ''}> Nenhum</label>`;
+        nucleosEscudoCache.entidade.forEach(n => { html += `<label class="radio-label"><input type="radio" name="mover-nucleo-escudo" value="${n.id}" ${nucleoAtualId === n.id ? 'checked' : ''}> ${escapeHTML(n.nome)}</label>`; });
         div.innerHTML = html;
     }
     document.getElementById('mover-node-id-escudo').value = nodeId;
@@ -1099,14 +1195,13 @@ document.body.addEventListener('click', (e) => {
         case 'deletar-monstro':    deletarMonstro(id); break;
         case 'ver-imagem':         abrirImagemExpandida(extra); break;
         case 'alterar-hp':         alterarHP(id, parseInt(extra)); break;
-        case 'editar-nucleo':      editarNucleoEscudo(id); break;
+        case 'editar-nucleo':      iniciarEdicaoNucleoEscudo(id); break;
         case 'excluir-nucleo':     excluirNucleoEscudo(id); break;
-        case 'editar-entidade':    editarEntidadeEscudo(id, extra); break;
+        case 'editar-entidade':    iniciarEdicaoNomeEscudo(id); break;
         case 'deletar-entidade':   deletarEntidadeEscudo(id, extra); break;
-        case 'editar-flag':        editarFlagEscudo(id, extra); break;
+        case 'editar-flag':        iniciarEdicaoMarcoEscudo(id, extra); break;
         case 'deletar-flag':       deletarFlagEscudo(id, extra); break;
         case 'mover-entidade':     moverNodeNucleoEscudo(id); break;
-        case 'adicionar-flag':     adicionarFlagEscudo(id); break;
         case 'abrir-vinculo':      abrirModalVinculo(id); break;
         case 'deletar-evento':     deletarEventoEscudo(id, extra); break;
         case 'deletar-automacao':  deletarAutomacaoEscudo(id); break;
@@ -1143,5 +1238,16 @@ document.body.addEventListener('mousedown', (e) => {
     if (e.target.classList.contains('hp-slider')) {
         e.stopPropagation();
     }
+});
+
+// Criar marco inline: Enter no input permanente "+ Novo Marco". Via delegação (o onkeydown
+// inline é bloqueado pelo CSP). Os inputs de edição inline (nome/marco) tratam o próprio
+// keydown via addEventListener e não têm data-action="novo-marco", então não colidem aqui.
+document.body.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    const el = e.target.closest('[data-action="novo-marco"]');
+    if (!el) return;
+    e.preventDefault();
+    adicionarMarcoInlineEscudo(el, el.dataset.id);
 });
 
