@@ -43,6 +43,7 @@ router.delete('/monstros/:cardId', verificarToken, checarAcessoCronica, apenasNa
 // ==========================================
 // ROTAS DO LAYOUT (Auto-save da tela)
 // ==========================================
+router.get('/sistema', verificarToken, checarAcessoCronica, EscudoController.obterSistemaCronica);
 router.get('/layout', verificarToken, checarAcessoCronica, EscudoController.obterLayoutEscudo);
 router.put('/layout', verificarToken, checarAcessoCronica, apenasNarrador, validate(salvarLayoutSchema), EscudoController.salvarLayoutEscudo);
 
