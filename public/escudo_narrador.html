@@ -307,12 +307,12 @@
     <div id="modal-nucleos-escudo" class="modal">
         <div class="modal-content" style="max-width: 400px;">
             <h3 style="color: var(--destaque); margin-top: 0; margin-bottom: 15px;"><i data-lucide="settings"></i> Gerenciar Núcleos</h3>
-            <div id="lista-nucleos-escudo" style="max-height: 200px; overflow-y: auto; margin-bottom: 15px;"></div>
-            <div style="display: flex; gap: 10px;">
-                <input type="text" id="novo-nucleo-nome-escudo" placeholder="Nome do novo núcleo" style="flex: 1;">
+            <div id="lista-nucleos-escudo" class="modal-lista"></div>
+            <div class="modal-linha">
+                <input type="text" id="novo-nucleo-nome-escudo" placeholder="Nome do novo núcleo">
                 <button id="btn-criar-nucleo" class="btn btn-primary btn-sm">+ Criar</button>
             </div>
-            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px;">
+            <div class="modal-acoes">
                 <button id="btn-fechar-nucleos" class="btn btn-danger">Fechar</button>
             </div>
         </div>
@@ -321,9 +321,9 @@
     <div id="modal-mover-nucleo-escudo" class="modal">
         <div class="modal-content" style="max-width: 400px;">
             <h3 style="color: var(--destaque); margin-top: 0; margin-bottom: 15px;">Mover Entidade</h3>
-            <div id="lista-nucleos-mover-escudo" style="max-height: 200px; overflow-y: auto; margin-bottom: 15px; color: white;"></div>
+            <div id="lista-nucleos-mover-escudo" class="modal-lista"></div>
             <input type="hidden" id="mover-node-id-escudo">
-            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+            <div class="modal-acoes">
                 <button id="btn-cancelar-mover-nucleo" class="btn btn-danger">Cancelar</button>
                 <button id="btn-confirmar-mover-nucleo" class="btn btn-success">Mover</button>
             </div>

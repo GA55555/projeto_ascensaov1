@@ -665,8 +665,6 @@ label {
 }
 .marco-item:hover .btn-edit-marco { display: inline-block; }
 .marco-item .btn-edit-marco:hover { opacity: 1; color: var(--texto-claro); }
-/* Botão "Novo Marco" do card de mundo no escudo: largura plena, discreto. */
-.btn-add-marco { width: 100%; justify-content: center; margin-bottom: 12px; }
 .btn-del-marco-confirmar {
     flex-shrink: 0;
     padding: 1px 6px;
