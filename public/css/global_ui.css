@@ -85,16 +85,8 @@
 /* Tudo em Fira Code — o "cara" de editor de código. */
 .tema-neovim, .tema-neovim * { font-family: 'Fira Code', monospace !important; }
 
-/* Bordas sharp (terminal): zera o arredondamento dos componentes de maior tráfego.
-   Stragglers ficam para a F3 (acertos por componente). */
-.tema-neovim .btn,
-.tema-neovim input, .tema-neovim select, .tema-neovim textarea,
-.tema-neovim .card, .tema-neovim .grid-stack-item-content,
-.tema-neovim .world-card, .tema-neovim .evento-linha, .tema-neovim .marco-item,
-.tema-neovim .nucleo-linha, .tema-neovim .badge, .tema-neovim .info-block-vazio,
-.tema-neovim .barra-bg, .tema-neovim .barra-fill,
-.tema-neovim .modal-content, .tema-neovim .modal-box, .tema-neovim .modal-lista,
-.tema-neovim .input-inline-nome, .tema-neovim .input-inline-marco {
+/* Bordas sharp (terminal): zera o arredondamento de TUDO — sem stragglers (F3). */
+.tema-neovim *, .tema-neovim *::before, .tema-neovim *::after {
     border-radius: 0 !important;
 }
 
@@ -105,6 +97,17 @@
 .tema-neovim [class*="glass"] {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
+}
+
+/* F3 — Regra 2.6: os acentos do Catppuccin Mocha são PASTÉIS CLAROS. Em elementos que se
+   PREENCHEM com acento, o texto branco fica ilegível → invertido para escuro (base). */
+.tema-neovim .btn-primary, .tema-neovim .btn-primary:hover,
+.tema-neovim .btn-success, .tema-neovim .btn-success:hover,
+.tema-neovim .btn-danger:hover,
+.tema-neovim .badge,
+.tema-neovim .board-toolbar .btn.ativo,
+.tema-neovim .board-toolbar .btn.ativo:hover {
+    color: var(--bg-principal) !important;
 }
 
 /* ── RESET LIMPO ───────────────────────────────────────── */
