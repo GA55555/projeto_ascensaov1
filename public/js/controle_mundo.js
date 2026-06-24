@@ -3904,7 +3904,7 @@ function shapeHTML(s) {
         ? '<svg class="board-shape-tri" viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="50,2 98,98 2,98"></polygon></svg>'
         : '';
     // Fixa (travada): cadeado no canto e SEM handle de resize (move/resize bloqueados no JS/CSS).
-    const cadeado = s.travada ? '<i data-lucide="lock" class="board-shape-cadeado"></i>' : '';
+    const cadeado = s.travada ? '<i data-lucide="lock" class="board-shape-cadeado" title="Destravar zona"></i>' : '';
     const resize = s.travada ? '' : '<span class="board-shape-resize" title="Redimensionar"></span>';
     return `<div class="board-shape board-cor-${cor}${formaClasse}${strokeClasse}${s.travada ? ' is-travada' : ''}" data-shape="${escapeHTML(String(s.id))}" style="left: ${Math.round(s.x)}px; top: ${Math.round(s.y)}px; width: ${Math.round(s.w)}px; height: ${Math.round(s.h)}px;">
         ${triSvg}
@@ -4049,9 +4049,12 @@ function ativarInteracoesShapes() {
         if (!s) return;
         shape.onpointerdown = (e) => {
             if (e.button !== 0) return;
+            // Cadeado é o toggle da trava: clicá-lo DESTRAVA a zona (e impede o pan do canvas).
+            // Sem isto, a zona travada vira "fundo" e o clique panja, deixando-a presa.
+            if (e.target.closest('.board-shape-cadeado')) { e.stopPropagation(); toggleTravarZona(s.id); return; }
             if (conectandoDe) { e.stopPropagation(); finalizarConexaoLocal(s.id); return; } // fecha ligação
             if (e.target.closest('.board-shape-resize, .board-shape-label')) { e.stopPropagation(); return; }
-            if (s.travada) return; // zona fixa: não arrasta a zona; deixa o evento SUBIR p/ o canvas panjar (o duplo-clique p/ abrir o menu/desafixar continua funcionando)
+            if (s.travada) return; // zona fixa: não arrasta; o evento SOBE p/ o canvas panjar (a zona fixa conta como fundo). Destravar é pelo cadeado acima.
             e.stopPropagation();
             const z = boardState.camera.zoom || 1;
             const sx = e.clientX, sy = e.clientY, ox = s.x, oy = s.y;
