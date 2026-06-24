@@ -366,16 +366,7 @@ function cardMundoHTML(node) {
     return `
         <div class="card world-card" data-node-id="${escapeHTML(String(node.id))}">
             <div class="world-card__head">
-                <div class="world-card__ident">
-                    <span class="world-card__icone">
-                        <i data-lucide="${iconeEntidade(node.tipo)}"></i>
-                        ${node.avatar_url ? `<img class="world-card__avatar" src="${escapeHTML(node.avatar_url)}" alt="" draggable="false" onerror="this.remove()">` : ''}
-                    </span>
-                    <div class="world-card__titulo-wrap">
-                        <strong id="node-nome-${node.id}" class="world-card__nome">${escapeHTML(node.nome)}</strong>
-                        <span class="badge world-card__tipo">${escapeHTML(node.tipo)}</span>
-                    </div>
-                </div>
+                ${cardIdentHTML(node)}
                 <div class="world-card__acoes">
                     <button class="btn btn-secondary btn-sm" data-id="${node.id}" onclick="abrirModalSinapses(this.dataset.id)" title="Conexões (Sinapses)"><i data-lucide="share-2"></i></button>
                     <i data-lucide="more-vertical" class="kebab-trigger cursor-pointer" title="Mais ações" onclick="abrirMenuKebab(event, '${node.id}')"></i>
@@ -396,11 +387,7 @@ function cardMundoHTML(node) {
                 <input type="text" class="input-inline-marco" maxlength="60" placeholder="+ Novo Marco (Enter)" onkeydown="adicionarMarcoInline(event, '${node.id}')">
             </div>
 
-            <div class="world-card__rodape">
-                <div class="world-card__nucleo">
-                    <span>Núcleo: <span id="node-nucleo-${node.id}" class="world-card__nucleo-nome">${escapeHTML(node.nucleo_nome || 'Nenhum')}</span></span>
-                </div>
-            </div>
+            ${cardRodapeNucleoHTML(node)}
         </div>
     `;
 }
@@ -856,35 +843,21 @@ window.removerBrasaoNucleo = async function(id) {
 };
 
 window.iniciarEdicaoNome = function(nodeId) {
-    const strong = document.getElementById('node-nome-' + nodeId);
-    if (!strong || strong.querySelector('input')) return;
-    const atual = strong.textContent;
-    const input = document.createElement('input');
-    input.type = 'text'; input.className = 'input-inline-nome'; input.value = atual; input.maxLength = 120;
-    strong.textContent = ''; strong.appendChild(input);
-    input.focus(); input.select();
-    let done = false;
-    const fim = async (salvar) => {
-        if (done) return; done = true;
-        const novo = input.value.trim();
-        if (!salvar || !novo || novo === atual) { strong.textContent = atual; return; }
-        strong.textContent = novo; // optimistic
-        const node = nodesCache.find(n => String(n.id) === String(nodeId));
-        if (node) node.nome = novo;
-        try {
-            const res = await API.fetch(`/cronicas/${cronicaId}/nodes/${nodeId}`, { method: 'PUT', body: JSON.stringify({ nome: novo }) });
-            if (!res.ok) throw new Error();
-        } catch {
-            strong.textContent = atual;
-            if (node) node.nome = atual;
-            mostrarToast('Erro ao renomear. Revertido.', 'erro');
+    edicaoInlineTexto(document.getElementById('node-nome-' + nodeId), {
+        aoSalvar: async (novo, atual, alvo) => {
+            alvo.textContent = novo; // optimistic
+            const node = nodesCache.find(n => String(n.id) === String(nodeId));
+            if (node) node.nome = novo;
+            try {
+                const res = await API.fetch(`/cronicas/${cronicaId}/nodes/${nodeId}`, { method: 'PUT', body: JSON.stringify({ nome: novo }) });
+                if (!res.ok) throw new Error();
+            } catch {
+                alvo.textContent = atual;
+                if (node) node.nome = atual;
+                mostrarToast('Erro ao renomear. Revertido.', 'erro');
+            }
         }
-    };
-    input.addEventListener('keydown', (ev) => {
-        if (ev.key === 'Enter') { ev.preventDefault(); fim(true); }
-        else if (ev.key === 'Escape') { ev.preventDefault(); fim(false); }
     });
-    input.addEventListener('blur', () => fim(true));
 };
 
 // ==========================================
@@ -1161,20 +1134,8 @@ function capitalizar(s) {
     return s.charAt(0).toUpperCase() + s.slice(1);
 }
 // Exibição humana de um Marco (ex-flag): "porta_secreta" -> "Porta Secreta".
-// NÃO altera o identificador real (flag_key); só o texto visível. O valor cru
-// continua viajando em data-flag-key/title e no payload da API.
-function humanizarMarco(key) {
-    return String(key || '')
-        .replace(/_/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim()
-        .replace(/\b\w/g, c => c.toUpperCase());
-}
-// Ícone Lucide por tipo de entidade (world_nodes.tipo).
-function iconeEntidade(tipo) {
-    const mapa = { npc: 'user', protagonista: 'crown', faccao: 'flag', local: 'map-pin', cenario: 'mountain' };
-    return mapa[String(tipo || '').toLowerCase()] || 'box';
-}
+// humanizarMarco/iconeEntidade migraram para /js/mundo/mundoUtils.js (compartilhado com o
+// escudo_narrador; carregado antes deste script). Caminho B — fim da duplicação.
 
 // ==========================================
 // MAPA DE SINAPSES (VISÃO RELACIONAL EM TEIA — sem Canvas/WebGL)
@@ -1317,36 +1278,24 @@ window.adicionarMarcoInline = async function(e, nodeId) {
 window.iniciarEdicaoMarco = function(e, nodeId, flagKey) {
     e.stopPropagation();
     const item = e.target.closest('.marco-item');
-    const span = item?.querySelector('.marco-item__nome');
-    if (!span || span.querySelector('input')) return;
-    const atual = span.textContent;
-    const input = document.createElement('input');
-    input.type = 'text'; input.className = 'input-inline-marco input-inline-marco--edit'; input.value = atual; input.maxLength = 60;
-    span.textContent = ''; span.appendChild(input);
-    input.focus(); input.select();
-    let done = false;
-    const fim = async (salvar) => {
-        if (done) return; done = true;
-        const novo = input.value.trim();
-        if (!salvar || !novo || novo === atual) { span.textContent = atual; return; }
-        try {
-            const res = await API.fetch(`/cronicas/${cronicaId}/nodes/${nodeId}/flags/${flagKey}`, {
-                method: 'PUT', body: JSON.stringify({ novo_nome: novo })
-            });
-            if (!res.ok) throw new Error();
-            const novaKey = novo.toLowerCase().replace(/\s+/g, '_');
-            const node = nodesCache.find(n => String(n.id) === String(nodeId));
-            const fl = node?.flags?.find(f => f.key === flagKey); if (fl) fl.key = novaKey;
-            const checked = item.querySelector('.marco-item__check')?.checked;
-            item.outerHTML = marcoItemHTML(nodeId, { key: novaKey, value: checked });
-            lucide.createIcons();
-        } catch { span.textContent = atual; mostrarToast('Erro ao renomear marco.', 'erro'); }
-    };
-    input.addEventListener('keydown', (ev) => {
-        if (ev.key === 'Enter') { ev.preventDefault(); fim(true); }
-        else if (ev.key === 'Escape') { ev.preventDefault(); fim(false); }
+    edicaoInlineTexto(item?.querySelector('.marco-item__nome'), {
+        classe: 'input-inline-marco input-inline-marco--edit',
+        maxLength: 60,
+        aoSalvar: async (novo, atual, alvo) => {
+            try {
+                const res = await API.fetch(`/cronicas/${cronicaId}/nodes/${nodeId}/flags/${flagKey}`, {
+                    method: 'PUT', body: JSON.stringify({ novo_nome: novo })
+                });
+                if (!res.ok) throw new Error();
+                const novaKey = novo.toLowerCase().replace(/\s+/g, '_');
+                const node = nodesCache.find(n => String(n.id) === String(nodeId));
+                const fl = node?.flags?.find(f => f.key === flagKey); if (fl) fl.key = novaKey;
+                const checked = item.querySelector('.marco-item__check')?.checked;
+                item.outerHTML = marcoItemHTML(nodeId, { key: novaKey, value: checked });
+                lucide.createIcons();
+            } catch { alvo.textContent = atual; mostrarToast('Erro ao renomear marco.', 'erro'); }
+        }
     });
-    input.addEventListener('blur', () => fim(true));
 };
 
 // Apagar marco em 2 passos inline: × → botão "apagar?" (3s) → executa (sem confirm() nativo).
