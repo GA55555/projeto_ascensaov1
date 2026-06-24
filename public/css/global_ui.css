@@ -42,6 +42,71 @@
     zoom: 1.33;
 }
 
+/* ════════════════════════════════════════════════════════════════════════
+   TEMA NEOVIM — paleta Catppuccin Mocha. Paradigma 5: F1 só redefine tokens
+   (a UI inteira repinta via variáveis). Tipografia monoespaçada, flat (sem
+   glassmorphism), bordas sharp e acertos por componente vêm nas fatias F2–F3.
+   ════════════════════════════════════════════════════════════════════════ */
+.tema-neovim {
+    --bg-principal:     #1e1e2e;                  /* base */
+    --bg-secundario:    #181825;                  /* mantle */
+    --bg-card:          #313244;                  /* surface0 */
+    --bg-card-glass:    #313244;                  /* surface0 sólido (flat — sem glass) */
+    --bg-afundado:      #11111b;                  /* crust */
+    --board-grid-cor:   #45475a;                  /* surface1 */
+    --board-dots-cor:   #6c7086;                  /* overlay0 */
+    --borda:            #45475a;                  /* surface1 */
+    --borda-glass:      #585b70;                  /* surface2 */
+    --texto-claro:      #cdd6f4;                  /* text */
+    --texto-mutado:     #a6adc8;                  /* subtext0 */
+    --roxo-mago:        #cba6f7;                  /* mauve */
+    --roxo-hover:       #b4befe;                  /* lavender */
+    --destaque:         #89b4fa;                  /* blue */
+    --destaque-hover:   #74c7ec;                  /* sapphire */
+    --erro:             #f38ba8;                  /* red */
+    --aviso:            #f9e2af;                  /* yellow */
+    --azul-vida:        #89dceb;                  /* sky */
+    --pressao-baixa:    #a6e3a1;                  /* green */
+    --pressao-alta:     #f38ba8;                  /* red */
+    --rosa:             #f5c2e7;                  /* pink */
+    --dourado:          #fab387;                  /* peach */
+    --link-aliado:      #a6e3a1;                  /* green */
+    --link-inimigo:     #f38ba8;                  /* red */
+    --link-associado:   #cba6f7;                  /* mauve */
+    --link-localizacao: #94e2d5;                  /* teal */
+    --sombra:           rgba(17, 17, 27, 0.5);    /* crust */
+    --sombra-borda:     rgba(17, 17, 27, 0.6);
+    --sombra-profunda:  rgba(17, 17, 27, 0.7);
+}
+
+/* ── TEMA NEOVIM — F2: tipografia monoespaçada · geometria sharp · flat (sem glass) ──
+   Override de tipografia/geometria é permitido no Paradigma 5 (o 16-bit faz com VT323). */
+
+/* Tudo em Fira Code — o "cara" de editor de código. */
+.tema-neovim, .tema-neovim * { font-family: 'Fira Code', monospace !important; }
+
+/* Bordas sharp (terminal): zera o arredondamento dos componentes de maior tráfego.
+   Stragglers ficam para a F3 (acertos por componente). */
+.tema-neovim .btn,
+.tema-neovim input, .tema-neovim select, .tema-neovim textarea,
+.tema-neovim .card, .tema-neovim .grid-stack-item-content,
+.tema-neovim .world-card, .tema-neovim .evento-linha, .tema-neovim .marco-item,
+.tema-neovim .nucleo-linha, .tema-neovim .badge, .tema-neovim .info-block-vazio,
+.tema-neovim .barra-bg, .tema-neovim .barra-fill,
+.tema-neovim .modal-content, .tema-neovim .modal-box, .tema-neovim .modal-lista,
+.tema-neovim .input-inline-nome, .tema-neovim .input-inline-marco {
+    border-radius: 0 !important;
+}
+
+/* Flat: remove o glassmorphism (blur) das superfícies; o fundo já é sólido via tokens. */
+.tema-neovim .grid-stack-item-content,
+.tema-neovim .modal-content, .tema-neovim .modal-box,
+.tema-neovim .card, .tema-neovim .painel-mestre,
+.tema-neovim [class*="glass"] {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
 /* ── RESET LIMPO ───────────────────────────────────────── */
 *,
 *::before,
@@ -1035,6 +1100,17 @@ label {
     color: var(--texto-claro);
 }
 .evento-pool-valor--alerta { color: var(--erro); }
+
+/* Corpo rolável de um bloco do escudo (flex em coluna + scroll). Extraído do inline do
+   #conteudo-eventos; os demais conteúdos de bloco podem adotar a mesma classe. */
+.bloco-lista-rolavel {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 5px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
 
 /* ── EVENTOS no Escudo: linha enxuta + divulgação progressiva (Regra 7.2) ──
    Estado de repouso = uma linha (status + nome + mini-barra de pool + nº). O detalhe
@@ -2670,6 +2746,10 @@ input[type="radio"] {
     border-bottom-color: #ffffff !important;
     cursor: se-resize !important;
 }
+
+/* Coesão de tema (Paradigma 5) p/ componentes novos do escudo: bordas quadradas no retrô. */
+.tema-pixel-16bit .evento-linha { border-radius: 0; }
+.tema-pixel-16bit .grid-stack-item:hover > .ui-resizable-handle::after { border-radius: 0 !important; }
 
 /* ── POP-UPS DE CONFIRMAÇÃO/DELEÇÃO 16-BIT ─────────────── */
 
