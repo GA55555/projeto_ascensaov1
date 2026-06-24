@@ -894,34 +894,22 @@ function renderizarEventosEscudo(lista) {
         </div>`;
     }).join('');
     lucide.createIcons();
-    ajustarAlturaBoxEventos(); // re-render começa recolhido → volta à altura base
+    ajustarAlturaBoxEventos(); // ajusta a caixa ao conteúdo após (re)render
 }
 
 // Caixa ELÁSTICA: cresce o widget GridStack p/ caber o detalhe aberto e encolhe ao fechar.
 // Sem persistência (Regra 2.7 — resize só visual; o Salvar continua sendo explícito).
-const BOX_EVENTOS_H_BASE = 4, BOX_EVENTOS_H_MAX = 12;
+// Caixa de eventos = size-to-content. A lista NÃO rola mais por dentro (removido o
+// flex:1/overflow do #conteudo-eventos), então o GridStack consegue medir o conteúdo REAL
+// e crescer/encolher o widget p/ caber: ao abrir o accordion a caixa expande para baixo e
+// mostra o detalhe inteiro; ao fechar, volta. Usa a API nativa resizeToContent. Resize só
+// visual — não persiste (o Salvar continua explícito, Regra 2.7).
 function ajustarAlturaBoxEventos() {
     const bloco = document.querySelector('[gs-id="bloco-eventos"]');
     if (!bloco || !gridStackInstance || bloco.classList.contains('bloco-arquivado')) return;
-    const hAtual = bloco.gridstackNode?.h || BOX_EVENTOS_H_BASE;
-
-    // Nada aberto → volta à altura base (lista recolhida pode rolar normalmente).
-    if (!bloco.querySelector('.evento-linha--aberto')) {
-        if (hAtual !== BOX_EVENTOS_H_BASE) gridStackInstance.update(bloco, { h: BOX_EVENTOS_H_BASE });
-        return;
+    if (typeof gridStackInstance.resizeToContent === 'function') {
+        gridStackInstance.resizeToContent(bloco);
     }
-
-    // Sinal direto e confiável: quanto a lista ESCONDE hoje (scrollHeight − clientHeight).
-    // Cresce exatamente o necessário p/ absorver esse overflow, usando px-por-linha REAL
-    // (medido do widget em repouso — sem depender de cellHeight/margin teóricos).
-    const lista = document.getElementById('conteudo-eventos');
-    if (!lista) return;
-    const overflow = lista.scrollHeight - lista.clientHeight;
-    if (overflow <= 2) return; // já cabe; nada a crescer
-    const rect = bloco.getBoundingClientRect();
-    const pxPorLinha = (rect.height > 0 && hAtual > 0) ? rect.height / hAtual : 90;
-    const novo = Math.min(hAtual + Math.ceil(overflow / pxPorLinha), BOX_EVENTOS_H_MAX);
-    if (novo !== hAtual) gridStackInstance.update(bloco, { h: novo });
 }
 
 // Accordion EXCLUSIVO (um aberto por vez) + caixa elástica. Classe → CSS, sem estilo inline.
