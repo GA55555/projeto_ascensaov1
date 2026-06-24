@@ -88,7 +88,7 @@ router.put('/avatar', verificarToken, async (req, res) => {
 // Atualizar tema da interface
 router.put('/tema', verificarToken, async (req, res) => {
     const { tema_interface } = req.body;
-    const temasPermitidos = ['padrao', 'tema-pixel-16bit'];
+    const temasPermitidos = ['padrao', 'tema-pixel-16bit', 'tema-neovim'];
     if (!tema_interface || !temasPermitidos.includes(tema_interface)) {
         return res.status(400).json({ erro: 'Tema inválido.' });
     }

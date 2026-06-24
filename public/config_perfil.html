@@ -55,6 +55,7 @@
             <select id="seletor-tema">
                 <option value="padrao">Clássico (Glassmorphism)</option>
                 <option value="tema-pixel-16bit">16-Bit JRPG Clássico</option>
+                <option value="tema-neovim">Neovim (Catppuccin Mocha)</option>
             </select>
         </div>
         <button class="btn btn-primary" onclick="salvarTema()"><i data-lucide="save"></i> Salvar Tema</button>
@@ -169,8 +170,11 @@
                 const data = await res.json();
                 if (res.ok) {
                     localStorage.setItem('m20_tema', tema_interface);
-                    // Aplica o tema imediatamente sem recarregar a página
-                    document.documentElement.classList.remove('tema-pixel-16bit');
+                    // Aplica o tema imediatamente sem recarregar a página. Remove QUALQUER
+                    // classe de tema ativa (não só a 16-bit) p/ não deixar tema preso ao trocar.
+                    [...document.documentElement.classList]
+                        .filter(c => c.startsWith('tema-'))
+                        .forEach(c => document.documentElement.classList.remove(c));
                     if (tema_interface !== 'padrao') {
                         document.documentElement.classList.add(tema_interface);
                     }
