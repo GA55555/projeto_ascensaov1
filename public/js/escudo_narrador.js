@@ -894,33 +894,46 @@ function renderizarEventosEscudo(lista) {
         </div>`;
     }).join('');
     lucide.createIcons();
-    ajustarAlturaBoxEventos(); // ajusta a caixa ao conteúdo após (re)render
 }
 
-// Caixa ELÁSTICA: cresce o widget GridStack p/ caber o detalhe aberto e encolhe ao fechar.
-// Sem persistência (Regra 2.7 — resize só visual; o Salvar continua sendo explícito).
-// Caixa de eventos = size-to-content. A lista NÃO rola mais por dentro (removido o
-// flex:1/overflow do #conteudo-eventos), então o GridStack consegue medir o conteúdo REAL
-// e crescer/encolher o widget p/ caber: ao abrir o accordion a caixa expande para baixo e
-// mostra o detalhe inteiro; ao fechar, volta. Usa a API nativa resizeToContent. Resize só
-// visual — não persiste (o Salvar continua explícito, Regra 2.7).
+// A caixa de eventos se comporta como as outras: tamanho fixo, lista COM scroll interno,
+// redimensionável só pelo usuário. ÚNICA exceção automática: ao ABRIR uma sanfona, se a caixa
+// estiver pequena demais p/ a célula ativa, cresce o MÍNIMO p/ mostrá-la. Nunca encolhe sozinha
+// (nada no render nem ao fechar). Resize só visual — não persiste (Salvar é explícito, Regra 2.7).
+// Há espaço livre abaixo do bloco (rows 11+ em x=6-11), então crescer não empurra vizinhos.
 function ajustarAlturaBoxEventos() {
     const bloco = document.querySelector('[gs-id="bloco-eventos"]');
     if (!bloco || !gridStackInstance || bloco.classList.contains('bloco-arquivado')) return;
-    if (typeof gridStackInstance.resizeToContent === 'function') {
-        gridStackInstance.resizeToContent(bloco);
+    const aberta = bloco.querySelector('.evento-linha--aberto');
+    if (!aberta) return; // nada aberto → NÃO mexe no tamanho (só o usuário comanda)
+    const lista = document.getElementById('conteudo-eventos');
+    if (!lista) return;
+
+    // "Pequena demais" = a célula ativa (linha + detalhe) é mais alta que a área visível da lista.
+    const faltam = aberta.offsetHeight - lista.clientHeight;
+    if (faltam > 0) {
+        const node = bloco.gridstackNode;
+        const rect = bloco.getBoundingClientRect();
+        const hAtual = (node && node.h) || Math.max(Math.round(rect.height / 90), 1);
+        const pxPorLinha = (rect.height > 0 && hAtual > 0) ? rect.height / hAtual : 90;
+        const novoH = hAtual + Math.ceil(faltam / pxPorLinha); // cresce o mínimo p/ caber a célula ativa
+        // Passa o conjunto completo (x,y,w,h) — mesma assinatura do update que funciona no boot (L51).
+        gridStackInstance.update(bloco, node ? { x: node.x, y: node.y, w: node.w, h: novoH } : { h: novoH });
     }
+    requestAnimationFrame(() => aberta.scrollIntoView({ block: 'nearest', behavior: 'smooth' }));
 }
 
-// Accordion EXCLUSIVO (um aberto por vez) + caixa elástica. Classe → CSS, sem estilo inline.
+// Accordion EXCLUSIVO (um aberto por vez). Só CRESCE a caixa ao ABRIR (se a célula ativa não
+// couber); ao FECHAR não mexe no tamanho — "abrir e ficar". Classe → CSS, sem estilo inline.
 window.toggleEventoEscudo = function(eventoId) {
     const linha = document.querySelector(`.evento-linha[data-evento-id="${eventoId}"]`);
     if (!linha) return;
     const abrindo = !linha.classList.contains('evento-linha--aberto');
     document.querySelectorAll('.evento-linha--aberto').forEach(l => l.classList.remove('evento-linha--aberto'));
-    if (abrindo) linha.classList.add('evento-linha--aberto');
-    ajustarAlturaBoxEventos();
-    if (abrindo) requestAnimationFrame(() => linha.scrollIntoView({ block: 'nearest', behavior: 'smooth' }));
+    if (abrindo) {
+        linha.classList.add('evento-linha--aberto');
+        ajustarAlturaBoxEventos();
+    }
 }
 
 window.salvarNovoEvento = async function() {
