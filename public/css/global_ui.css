@@ -652,6 +652,21 @@ label {
 }
 .marco-item:hover .btn-del-marco { display: inline-block; }
 .marco-item .btn-del-marco:hover { opacity: 1; }
+/* Renomear marco (escudo): lápis oculto, revelado no hover — mesmo padrão do × (R7.2),
+   cor neutra. Ponte do Caminho A; no Caminho B unifica com o rename-por-dblclick. */
+.marco-item .btn-edit-marco {
+    display: none;
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+    cursor: pointer;
+    color: var(--texto-mutado);
+    opacity: 0.7;
+}
+.marco-item:hover .btn-edit-marco { display: inline-block; }
+.marco-item .btn-edit-marco:hover { opacity: 1; color: var(--texto-claro); }
+/* Botão "Novo Marco" do card de mundo no escudo: largura plena, discreto. */
+.btn-add-marco { width: 100%; justify-content: center; margin-bottom: 12px; }
 .btn-del-marco-confirmar {
     flex-shrink: 0;
     padding: 1px 6px;
