@@ -968,3 +968,70 @@ exports.salvarDiplomacia = async (req, res) => {
         client.release();
     }
 };
+
+// =======================================================
+// ORÁCULO (RAG) — Fatia 3: Big Bang (sincronização inicial)
+// Popula o banco vetorial com o mundo que JÁ existe no Postgres desta crônica.
+// Só Narrador (apenasNarrador na rota) + escopo cronica_id em toda query (Regras 3.3.1/6.2).
+// Idempotente: o id no Chroma é tipo:entidade_id → re-sincronizar SOBRESCREVE, nunca duplica
+// (oraculo.md §5/F3). Escopo espelha o que a F2 escreve: world_nodes + world_events (Sessões/
+// Automações ainda dependem de chunking — débito declarado, fora desta fatia).
+// =======================================================
+const sleepOraculo = (ms) => new Promise((r) => setTimeout(r, ms));
+
+exports.sincronizarOraculo = async (req, res) => {
+    const { cronicaId } = req.params;
+    try {
+        // Gate grosso: serviço configurado no servidor? Sem isto o envio é no-op silencioso —
+        // então respondemos claro em vez de fingir sucesso (Regra 3.2).
+        if (!oraculoClient.oraculoConfigurado()) {
+            return res.status(503).json({ erro: 'O serviço do Oráculo não está configurado neste servidor.' });
+        }
+
+        // Gate fino (opt-in por crônica): só sincroniza se o Narrador ligou o Oráculo nesta mesa.
+        const cron = await pool.query('SELECT oraculo_ativo FROM cronicas WHERE id = $1', [cronicaId]);
+        if (cron.rows.length === 0) return res.status(404).json({ erro: 'Crônica não encontrada.' });
+        if (!cron.rows[0].oraculo_ativo) {
+            return res.status(409).json({ erro: 'O Oráculo está desligado nesta crônica. Ative-o antes de sincronizar.' });
+        }
+
+        // Lê o mundo da crônica (escopo cronica_id — Regras 3.3.1/6.2). Os textos espelham
+        // EXATAMENTE os ganchos da F2 (editarNode / criarEvento) p/ manter o Chroma coerente.
+        const nodesQ = await pool.query('SELECT id, nome, tipo, dados FROM world_nodes WHERE cronica_id = $1', [cronicaId]);
+        const eventosQ = await pool.query('SELECT id, nome, descricao FROM world_events WHERE cronica_id = $1', [cronicaId]);
+
+        const payloads = [
+            ...nodesQ.rows.map((n) => ({
+                cronica_id: cronicaId, tipo: n.tipo, entidade_id: n.id,
+                texto: `Nome: ${n.nome}\nTipo: ${n.tipo}\nDados: ${JSON.stringify(n.dados || {})}`,
+            })),
+            ...eventosQ.rows.map((e) => ({
+                cronica_id: cronicaId, tipo: 'evento', entidade_id: e.id,
+                texto: `Evento: ${e.nome}\nDescrição: ${e.descricao || ''}`,
+            })),
+        ];
+
+        // Envia em lotes pequenos com pausa entre eles — backpressure p/ não pregar a CPU do
+        // servidor modesto nem estourar o rate-limit de embeddings (oraculo.md §5/F3).
+        const TAMANHO_LOTE = 10;
+        let enviados = 0;
+        for (let i = 0; i < payloads.length; i += TAMANHO_LOTE) {
+            const lote = payloads.slice(i, i + TAMANHO_LOTE);
+            const resultados = await Promise.all(
+                lote.map((p) => oraculoClient.enviarParaOraculoAsync('upsert', p))
+            );
+            enviados += resultados.filter(Boolean).length;
+            if (i + TAMANHO_LOTE < payloads.length) await sleepOraculo(150);
+        }
+
+        res.json({
+            mensagem: 'Sincronização com o Oráculo concluída.',
+            total: payloads.length,
+            enviados,
+            falhas: payloads.length - enviados,
+        });
+    } catch (err) {
+        console.error('Erro na sincronização do Oráculo (Big Bang):', err);
+        res.status(500).json({ erro: 'Erro ao sincronizar o mundo com o Oráculo.' });
+    }
+};

@@ -290,8 +290,15 @@ const salvarDiplomaciaSchema = z.object({
     })
 });
 
+// ── ORÁCULO (RAG): Big Bang (sincronização inicial) ──
+// POST sem body; valida só o escopo (cronicaId UUID — Regras 3.1/4.3).
+const sincronizarOraculoSchema = z.object({
+    params: z.object({ ...cronicaParamOnly })
+});
+
 module.exports = {
     criarAutomacaoSchema, toggleStatusSchema,
+    sincronizarOraculoSchema,
     criarNodeSchema, editarNodeSchema,
     criarFlagSchema, atualizarFlagSchema, renomearFlagSchema,
     criarNucleoSchema, renomearNucleoSchema,
