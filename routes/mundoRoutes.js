@@ -16,7 +16,8 @@ const {
     atualizarNucleoNodeSchema,
     listarLinksSchema, criarLinkSchema, deletarLinkSchema, atualizarLinkSchema,
     criarBoardSchema, atualizarBoardSchema, boardIdParamsSchema,
-    salvarDiplomaciaSchema
+    salvarDiplomaciaSchema,
+    sincronizarOraculoSchema
 } = require('../validators/mundoValidator');
 
 // Middleware apenas narrador
@@ -110,5 +111,11 @@ router.delete('/boards/:boardId', verificarToken, checarAcessoCronica, apenasNar
 // ============================================
 router.get('/diplomacia', verificarToken, checarAcessoCronica, MundoController.listarDiplomacia);
 router.put('/diplomacia', verificarToken, checarAcessoCronica, apenasNarrador, validate(salvarDiplomaciaSchema), MundoController.salvarDiplomacia);
+
+// ==========================================
+// ORÁCULO (RAG) — Fatia 3: Big Bang (sincronização inicial)
+// Só o Narrador da crônica popula o banco vetorial com o mundo já existente. Idempotente.
+// ==========================================
+router.post('/oraculo/sincronizar', verificarToken, checarAcessoCronica, apenasNarrador, validate(sincronizarOraculoSchema), MundoController.sincronizarOraculo);
 
 module.exports = router;
