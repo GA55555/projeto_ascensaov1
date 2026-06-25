@@ -1,6 +1,7 @@
 const asyncHandler = require('../utils/asyncHandler');
 const pool = require('../db');
 const automacaoService = require('../services/automacaoService');
+const oraculoClient = require('../services/oraculoClient'); // F2: sincronização invisível com o Oráculo (fire-and-forget)
 const fs = require('fs/promises');
 const path = require('path');
 
@@ -84,6 +85,12 @@ exports.criarNode = async (req, res) => {
             "INSERT INTO world_nodes (cronica_id, nome, tipo, status, nucleo_id) VALUES ($1, $2, $3, 'aprovado', $4) RETURNING *",
             [cronicaId, nome, tipo, nucleo_id || null]
         );
+        // F2: avisa o Oráculo (após o INSERT, no caminho de sucesso). cronicaId já validado pelo middleware.
+        const node = novoNode.rows[0];
+        oraculoClient.enviarParaOraculo('upsert', {
+            cronica_id: cronicaId, tipo: node.tipo, entidade_id: node.id,
+            texto: `Nome: ${node.nome}\nTipo: ${node.tipo}`,
+        });
         res.status(201).json(novoNode.rows[0]);
     } catch (err) {
         console.error("ERRO FATAL NA FORJA:", err);
@@ -125,6 +132,12 @@ exports.editarNode = async (req, res) => {
             const urlNova = result.rows[0]?.dados?.avatar_url || null;
             if (urlAntigaAvatar && urlAntigaAvatar !== urlNova) await apagarUploadOrfao(urlAntigaAvatar, ['entidades']);
         }
+        // F2: re-upsert do node editado (idempotente — mesmo id sobrescreve o vetor).
+        const node = result.rows[0];
+        oraculoClient.enviarParaOraculo('upsert', {
+            cronica_id: cronicaId, tipo: node.tipo, entidade_id: node.id,
+            texto: `Nome: ${node.nome}\nTipo: ${node.tipo}\nDados: ${JSON.stringify(node.dados || {})}`,
+        });
         res.json({ mensagem: 'Entidade atualizada!', node: result.rows[0] });
     } catch (err) {
         console.error('Erro ao editar entidade:', err);
@@ -139,6 +152,8 @@ exports.deletarNode = async (req, res) => {
         const result = await pool.query("DELETE FROM world_nodes WHERE id = $1 AND cronica_id = $2 RETURNING id, dados->>'avatar_url' AS avatar_url", [nodeId, cronicaId]);
         if (result.rows.length === 0) return res.status(404).json({ erro: 'Entidade não encontrada.' });
         await apagarUploadOrfao(result.rows[0]?.avatar_url || null, ['entidades']); // Regra 6.6
+        // F2: remove o vetor (Regra 4.2/6.6 — nada de "mortos" lembrados). Apaga por metadata {cronica_id, entidade_id}.
+        oraculoClient.enviarParaOraculo('remover', { cronica_id: cronicaId, entidade_id: nodeId });
         res.json({ mensagem: 'Entidade e vínculos apagados.' });
     } catch (err) {
         console.error('Erro ao deletar entidade:', err);
@@ -471,6 +486,11 @@ exports.criarEvento = async (req, res) => {
             }
         }
         await pool.query('COMMIT');
+        // F2: evento entra no escopo do Oráculo (lore). tipo fixo 'evento'.
+        oraculoClient.enviarParaOraculo('upsert', {
+            cronica_id: cronicaId, tipo: 'evento', entidade_id: novoEvento.id,
+            texto: `Evento: ${novoEvento.nome}\nDescrição: ${novoEvento.descricao || ''}`,
+        });
         res.status(201).json(novoEvento);
     } catch (err) {
         await pool.query('ROLLBACK');
@@ -492,6 +512,8 @@ exports.deletarEvento = async (req, res) => {
         await pool.query('COMMIT');
         
         if (result.rows.length === 0) return res.status(404).json({ erro: 'Evento não encontrado.' });
+        // F2: remove o vetor do evento apagado.
+        oraculoClient.enviarParaOraculo('remover', { cronica_id: cronicaId, entidade_id: eventoId });
         res.json({ mensagem: 'Evento deletado permanentemente.' });
     } catch (err) {
         await pool.query('ROLLBACK');
