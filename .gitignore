@@ -16,3 +16,13 @@ public/uploads/**/*
 # Logs
 *.log
 npm-debug.log*
+
+# ==========================================
+# Oráculo Service (Python) — segredos e artefactos NUNCA vão para o Git
+# ==========================================
+# (venv real é 'venv/'; '.venv/' incluído por segurança)
+oraculo_service/venv/
+oraculo_service/.venv/
+oraculo_service/chroma_data/
+oraculo_service/.env
+oraculo_service/__pycache__/
