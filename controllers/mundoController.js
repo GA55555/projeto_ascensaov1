@@ -3,6 +3,7 @@ const pool = require('../db');
 const automacaoService = require('../services/automacaoService');
 const oraculoClient = require('../services/oraculoClient'); // F2: sincronização invisível com o Oráculo (fire-and-forget)
 const oraculoCripto = require('../utils/oraculoCripto'); // F4: decifra a chave BYOK do Narrador p/ a consulta
+const oraculoTexto = require('../services/oraculoTexto'); // texto rico (relações/flags/diplomacia) p/ o RAG
 const fs = require('fs/promises');
 const path = require('path');
 
@@ -86,12 +87,12 @@ exports.criarNode = async (req, res) => {
             "INSERT INTO world_nodes (cronica_id, nome, tipo, status, nucleo_id) VALUES ($1, $2, $3, 'aprovado', $4) RETURNING *",
             [cronicaId, nome, tipo, nucleo_id || null]
         );
-        // F2: avisa o Oráculo (após o INSERT, no caminho de sucesso). cronicaId já validado pelo middleware.
+        // F2: indexa o node no Oráculo com TEXTO RICO (facção/flags/relações). Fire-and-forget e
+        // SEM await (não atrasa a tela, Regra 2.7): monta o texto em 2º plano e dispara o upsert.
         const node = novoNode.rows[0];
-        oraculoClient.enviarParaOraculo('upsert', {
-            cronica_id: cronicaId, tipo: node.tipo, entidade_id: node.id,
-            texto: `Nome: ${node.nome}\nTipo: ${node.tipo}`,
-        });
+        oraculoTexto.textoDoNode(cronicaId, node.id)
+            .then(texto => { if (texto) oraculoClient.enviarParaOraculo('upsert', { cronica_id: cronicaId, tipo: node.tipo, entidade_id: node.id, texto }); })
+            .catch(err => console.error('[oraculo] texto do node (criar) falhou:', err.message));
         res.status(201).json(novoNode.rows[0]);
     } catch (err) {
         console.error("ERRO FATAL NA FORJA:", err);
@@ -133,12 +134,11 @@ exports.editarNode = async (req, res) => {
             const urlNova = result.rows[0]?.dados?.avatar_url || null;
             if (urlAntigaAvatar && urlAntigaAvatar !== urlNova) await apagarUploadOrfao(urlAntigaAvatar, ['entidades']);
         }
-        // F2: re-upsert do node editado (idempotente — mesmo id sobrescreve o vetor).
+        // F2: re-upsert do node editado com texto rico (idempotente — mesmo id sobrescreve). Sem await.
         const node = result.rows[0];
-        oraculoClient.enviarParaOraculo('upsert', {
-            cronica_id: cronicaId, tipo: node.tipo, entidade_id: node.id,
-            texto: `Nome: ${node.nome}\nTipo: ${node.tipo}\nDados: ${JSON.stringify(node.dados || {})}`,
-        });
+        oraculoTexto.textoDoNode(cronicaId, node.id)
+            .then(texto => { if (texto) oraculoClient.enviarParaOraculo('upsert', { cronica_id: cronicaId, tipo: node.tipo, entidade_id: node.id, texto }); })
+            .catch(err => console.error('[oraculo] texto do node (editar) falhou:', err.message));
         res.json({ mensagem: 'Entidade atualizada!', node: result.rows[0] });
     } catch (err) {
         console.error('Erro ao editar entidade:', err);
@@ -487,11 +487,10 @@ exports.criarEvento = async (req, res) => {
             }
         }
         await pool.query('COMMIT');
-        // F2: evento entra no escopo do Oráculo (lore). tipo fixo 'evento'.
-        oraculoClient.enviarParaOraculo('upsert', {
-            cronica_id: cronicaId, tipo: 'evento', entidade_id: novoEvento.id,
-            texto: `Evento: ${novoEvento.nome}\nDescrição: ${novoEvento.descricao || ''}`,
-        });
+        // F2: evento entra no escopo do Oráculo com texto rico (núcleos/gatilhos). Sem await.
+        oraculoTexto.textoDoEvento(cronicaId, novoEvento.id)
+            .then(texto => { if (texto) oraculoClient.enviarParaOraculo('upsert', { cronica_id: cronicaId, tipo: 'evento', entidade_id: novoEvento.id, texto }); })
+            .catch(err => console.error('[oraculo] texto do evento (criar) falhou:', err.message));
         res.status(201).json(novoEvento);
     } catch (err) {
         await pool.query('ROLLBACK');
@@ -996,40 +995,39 @@ exports.sincronizarOraculo = async (req, res) => {
             return res.status(409).json({ erro: 'O Oráculo está desligado nesta crônica. Ative-o antes de sincronizar.' });
         }
 
-        // Lê o mundo da crônica (escopo cronica_id — Regras 3.3.1/6.2). Os textos espelham
-        // EXATAMENTE os ganchos da F2 (editarNode / criarEvento) p/ manter o Chroma coerente.
-        const nodesQ = await pool.query('SELECT id, nome, tipo, dados FROM world_nodes WHERE cronica_id = $1', [cronicaId]);
-        const eventosQ = await pool.query('SELECT id, nome, descricao FROM world_events WHERE cronica_id = $1', [cronicaId]);
+        // Lista os ids do mundo da crônica (escopo cronica_id — Regras 3.3.1/6.2). O TEXTO RICO de
+        // cada um é montado pelos describers (mesma fonte dos ganchos da F2 — DRY). Inclui NÚCLEOS/
+        // facções (membros + diplomacia), que os ganchos individuais ainda não cobrem.
+        const nodesQ = await pool.query('SELECT id, tipo FROM world_nodes WHERE cronica_id = $1', [cronicaId]);
+        const nucleosQ = await pool.query("SELECT id FROM entidade_nucleos WHERE cronica_id = $1 AND tipo = 'entidade'", [cronicaId]);
+        const eventosQ = await pool.query('SELECT id FROM world_events WHERE cronica_id = $1', [cronicaId]);
 
-        const payloads = [
-            ...nodesQ.rows.map((n) => ({
-                cronica_id: cronicaId, tipo: n.tipo, entidade_id: n.id,
-                texto: `Nome: ${n.nome}\nTipo: ${n.tipo}\nDados: ${JSON.stringify(n.dados || {})}`,
-            })),
-            ...eventosQ.rows.map((e) => ({
-                cronica_id: cronicaId, tipo: 'evento', entidade_id: e.id,
-                texto: `Evento: ${e.nome}\nDescrição: ${e.descricao || ''}`,
-            })),
+        const alvos = [
+            ...nodesQ.rows.map((n) => ({ tipo: n.tipo, id: n.id, montar: () => oraculoTexto.textoDoNode(cronicaId, n.id) })),
+            ...nucleosQ.rows.map((x) => ({ tipo: 'nucleo', id: x.id, montar: () => oraculoTexto.textoDoNucleo(cronicaId, x.id) })),
+            ...eventosQ.rows.map((e) => ({ tipo: 'evento', id: e.id, montar: () => oraculoTexto.textoDoEvento(cronicaId, e.id) })),
         ];
 
         // Envia em lotes pequenos com pausa entre eles — backpressure p/ não pregar a CPU do
         // servidor modesto nem estourar o rate-limit de embeddings (oraculo.md §5/F3).
         const TAMANHO_LOTE = 10;
         let enviados = 0;
-        for (let i = 0; i < payloads.length; i += TAMANHO_LOTE) {
-            const lote = payloads.slice(i, i + TAMANHO_LOTE);
-            const resultados = await Promise.all(
-                lote.map((p) => oraculoClient.enviarParaOraculoAsync('upsert', p))
-            );
+        for (let i = 0; i < alvos.length; i += TAMANHO_LOTE) {
+            const lote = alvos.slice(i, i + TAMANHO_LOTE);
+            const resultados = await Promise.all(lote.map(async (a) => {
+                const texto = await a.montar();
+                if (!texto) return false; // entidade sumiu entre o list e o montar
+                return oraculoClient.enviarParaOraculoAsync('upsert', { cronica_id: cronicaId, tipo: a.tipo, entidade_id: a.id, texto });
+            }));
             enviados += resultados.filter(Boolean).length;
-            if (i + TAMANHO_LOTE < payloads.length) await sleepOraculo(150);
+            if (i + TAMANHO_LOTE < alvos.length) await sleepOraculo(150);
         }
 
         res.json({
             mensagem: 'Sincronização com o Oráculo concluída.',
-            total: payloads.length,
+            total: alvos.length,
             enviados,
-            falhas: payloads.length - enviados,
+            falhas: alvos.length - enviados,
         });
     } catch (err) {
         console.error('Erro na sincronização do Oráculo (Big Bang):', err);
