@@ -4,8 +4,11 @@
 > linha foi implementada ainda. Cada decisão foi validada contra o **código real** (file:line),
 > conforme o imperativo de "verificar premissas de prompt antes de implementar".
 >
-> **Status:** análise concluída, fatiamento pronto. Aguardando decisões do Narrador (§7) e
-> DDL do DBA (§6) antes de codificar a Fatia 1.
+> **Status (atualizado jun/2026):** F1–F4 **implementados e provados ao vivo**; F5 **em
+> andamento** (aba de chat + toggle backend prontos; faltam o switch e o form BYOK na UI).
+> DDL aplicada, decisões travadas. **O estado real de implementação e o guia de retomada estão
+> na §9 (Diário de Implementação)** — leia-a primeiro ao retomar; o corpo do plano (§1–§8) é a
+> intenção original e pode divergir de detalhes já implementados.
 
 ---
 
@@ -442,3 +445,77 @@ ORACULO_URL=http://127.0.0.1:<porta>
 - Entidades: `world_nodes` (npc/faccao/local, `cronica_id`), `world_events` (`cronica_id`),
   `entidade_nucleos` (`cronica_id`). Auth: cookie-only (`m20_token`). Sem Docker. `process.env`:
   `JWT_SECRET`, `NODE_ENV`, `CORS_ORIGINS`.
+
+---
+
+## 9. 🛠️ Diário de Implementação & Guia de Retomada (jun/2026)
+
+> Esta seção reflete o **código real** (sobrepõe-se ao §1–§8 em caso de divergência). O microsserviço
+> Python foi **movido para dentro do repo** (monorepo): `oraculo_service/` na raiz de
+> `projeto_ascensaov1/`; `.gitignore` protege `venv/`, `chroma_data/`, `.env`. Trabalho na branch
+> **`sandbox`**; o servidor (Debian 12, prod) faz `git pull` da `sandbox` + `pm2 restart` (Node =
+> `mochila`, Python = `oraculo`). Ambiente de dev (WSL) **sem Postgres/browser** → validação estática
+> aqui, **smoke ao vivo feito pelo Narrador no servidor**.
+
+### Pré-requisitos JÁ resolvidos
+- **DDL aplicada** (Narrador assumiu DBA): `cronicas.oraculo_ativo` (bool, default false);
+  `usuarios.oraculo_gen_key` (text, cifrada), `oraculo_gen_url` (default `https://api.deepseek.com`),
+  `oraculo_gen_model` (default `deepseek-chat`).
+- **`.env` do Node:** `ORACULO_URL` (atenção: o Python roda na porta **8001** em prod, não 8000),
+  `ORACULO_SHARED_SECRET` (idêntico ao do Python), `ORACULO_ENC_KEY` (AES da chave BYOK).
+- **`.env` do Python (`oraculo_service/`):** `ORACULO_PORT=8001`, `ORACULO_SHARED_SECRET`,
+  `OPENAI_EMBEDDINGS_KEY`. Lembrete: **`pm2` não recarrega** — após editar, `pm2 restart`.
+
+### Estado por fatia
+- **F1 — Microsserviço (✅ feito, ao vivo):** `oraculo_service/app.py` (FastAPI, 127.0.0.1, header
+  `X-Oraculo-Secret`, ChromaDB `PersistentClient`, `embedding_function=None`). RSS ~7MB.
+- **F2 — Escrita invisível (✅ feito, ao vivo):** `services/oraculoClient.js`
+  (`enviarParaOraculo` fire-and-forget, `enviarParaOraculoAsync` awaitable, `consultarOraculo`,
+  `oraculoConfigurado`). Ganchos em `mundoController.js`: criar/editar node + criar/deletar evento +
+  deletar node. Python `/upsert` e `/remover` (delete por `$and {cronica_id, entidade_id}`).
+- **F3 — Big Bang (✅ feito, ao vivo):** `POST /cronicas/:cronicaId/oraculo/sincronizar` (só Narrador).
+  Lê nodes + **núcleos/facções** + eventos da crônica, monta texto rico, upsert em lotes de 10 com
+  pausa. Idempotente.
+- **F4 — Consulta RAG (✅ feito, ao vivo):** Python `/consultar` (embeda pergunta, retrieval
+  `where cronica_id`, super-prompt anti-alucinação, geração BYOK, "não sei" se vazio).
+  `utils/oraculoCripto.js` (AES-256-GCM, chave derivada de `ORACULO_ENC_KEY` por SHA-256).
+  `PUT /perfil/oraculo` (grava a chave **cifrada, write-only**; `GET /perfil` expõe só
+  `oraculo_tem_chave`). Proxy `POST /cronicas/:cronicaId/oraculo/consultar` (gates → decifra a chave
+  do Narrador → chama o Python).
+- **Texto rico (✅ feito):** `services/oraculoTexto.js` — describer único (DRY) usado pelo Big Bang e
+  pelos ganchos: `textoDoNode` (facção, local-pai, flags, sinapses), `textoDoNucleo` (membros +
+  diplomacia), `textoDoEvento` (estado/tensão, núcleos, gatilhos). Os ganchos montam o texto em 2º
+  plano (sem `await` — não atrasam a tela).
+- **F5 — Interface (🟡 parcial):**
+  - ✅ **Aba "Oráculo"** no `controle_mundo` (chat): `public/js/api/oraculoApi.js`
+    (`consultar`/`toggle`/`salvarChave`), aba + painel central, bolhas Narrador/Oráculo, loading,
+    `escapeHTML` na resposta (Regra 6.1), classes `.oraculo-*` só com tokens. Decisão do Narrador:
+    aba dedicada (NÃO chat sobre o board).
+  - ✅ **Toggle backend** `PUT /cronicas/:cronicaId/oraculo` (liga/desliga `oraculo_ativo`, só Narrador).
+  - ❌ **Switch opt-in na UI** (consumir `OraculoApi.toggle`) — hoje só por SQL/fetch manual.
+  - ❌ **Form BYOK no `config_perfil.html`** (consumir `OraculoApi.salvarChave`, mostrar "chave
+    definida ✓") — hoje só por fetch manual.
+
+### Como continuar (próximos passos, em ordem)
+1. **Fechar o F5 (UI):** o **switch opt-in** (sugestão: cabeçalho da própria aba Oráculo) e o
+   **form BYOK** em `config_perfil.html`. Toda a rede (`oraculoApi.js`) já existe.
+2. **Ganchos de re-indexação (débito de consistência, Regra 4.2):** hoje mudanças de **flag**
+   (`atualizarFlag`/`renomearFlag`/`deletarFlag`), **diplomacia** (`salvarDiplomacia`), **núcleo CRUD**
+   e **sinapses** (`criarLink`/`deletarLink`/`atualizarLink`) **não** re-indexam o nó/núcleo afetado —
+   a frescura depende de re-rodar o Big Bang. Fechar isso (fire-and-forget via describers) mantém o
+   Oráculo fresco sem re-sync manual. Atenção: deletar núcleo deveria também `remover` o doc `nucleo:id`.
+3. **Escopo ampliado (futuro, §4.4/5):** Sessões e Automações via **chunking** (textos longos → vários
+   vetores `tipo:entidade_id:i`; apagar todos os chunks antes de regravar).
+4. **Cosméticos no `app.py`:** silenciar a telemetria do ChromaDB (passar `settings=` no
+   `PersistentClient`) e o warning do Pydantic (`model_config['protected_namespaces'] = ()` no
+   `ConsultaRequest`, por causa do campo `model_llm`).
+
+### Mapa de arquivos (implementação)
+- Python: `oraculo_service/app.py`
+- Node rede/serviços: `services/oraculoClient.js`, `services/oraculoTexto.js`, `utils/oraculoCripto.js`
+- Node rotas: `routes/mundoRoutes.js` (sincronizar/consultar), `routes/cronicasRoutes.js` (toggle),
+  `routes/perfilRoutes.js` (BYOK write-only)
+- Node controller/validators: `controllers/mundoController.js`, `validators/mundoValidator.js`
+  (sincronizar/consultar), `validators/perfilValidators.js`
+- Front: `public/controle_mundo.html` (aba), `public/js/controle_mundo.js` (`consultarOraculo`),
+  `public/js/api/oraculoApi.js`, `public/css/global_ui.css` (`.oraculo-*`)
