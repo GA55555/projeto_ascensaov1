@@ -3,6 +3,9 @@ const router = express.Router();
 const pool = require('../db');
 const verificarToken = require('../middlewares/auth');
 const bcrypt = require('bcrypt');
+const validate = require('../middlewares/validate');
+const { salvarOraculoConfigSchema } = require('../validators/perfilValidators');
+const oraculoCripto = require('../utils/oraculoCripto');
 
 // Buscar perfil completo
 // Devolve o usuário e as crônicas com os respectivos apelidos e avatares
@@ -10,8 +13,16 @@ router.get('/', verificarToken, async (req, res) => {
     try {
         const usuarioId = req.usuario.id;
         
-        // Busca os dados básicos do utilizador principal
-        const user = await pool.query('SELECT nome_usuario, email, avatar_url, tema_interface FROM usuarios WHERE id = $1', [usuarioId]);
+        // Busca os dados básicos do utilizador principal.
+        // Oráculo (BYOK): expõe URL/modelo e APENAS um booleano de "chave definida" — a chave
+        // cifrada NUNCA é devolvida ao frontend (write-only, oraculo.md §4.4 / Regra 6).
+        const user = await pool.query(
+            `SELECT nome_usuario, email, avatar_url, tema_interface,
+                    oraculo_gen_url, oraculo_gen_model,
+                    (oraculo_gen_key IS NOT NULL) AS oraculo_tem_chave
+               FROM usuarios WHERE id = $1`,
+            [usuarioId]
+        );
         
         // Busca as crónicas em que o utilizador participa e as suas identidades (apelido/avatar)
         const perfis = await pool.query(`
@@ -128,6 +139,40 @@ router.put('/cronica/:cronicaId', verificarToken, async (req, res) => {
     } catch (err) {
         console.error("Erro ao atualizar o perfil da crónica:", err);
         res.status(500).json({ erro: "Erro interno do servidor ao guardar a identidade." });
+    }
+});
+
+// ==========================================
+// ORÁCULO (RAG) — BYOK do Narrador (F4-Node, fatia 1: gravação write-only)
+// Grava a chave de GERAÇÃO do utilizador CIFRADA em repouso (AES-GCM). A chave entra mas nunca
+// volta (write-only); o GET / só revela "oraculo_tem_chave". Só a consulta (próxima fatia) decifra.
+// ==========================================
+router.put('/oraculo', verificarToken, validate(salvarOraculoConfigSchema), async (req, res) => {
+    const { gen_key, gen_url, gen_model } = req.body;
+    try {
+        // Só cifra quando uma chave nova é enviada; senão preserva a guardada (permite trocar só URL/modelo).
+        let chaveCifrada = null;
+        if (gen_key) {
+            if (!oraculoCripto.criptoConfigurada()) {
+                return res.status(503).json({ erro: 'Cifragem do Oráculo indisponível no servidor (ORACULO_ENC_KEY ausente).' });
+            }
+            chaveCifrada = oraculoCripto.cifrar(gen_key);
+        }
+        // COALESCE: campos ausentes não apagam o valor atual; a chave só troca quando enviada.
+        const result = await pool.query(
+            `UPDATE usuarios
+                SET oraculo_gen_key   = COALESCE($1, oraculo_gen_key),
+                    oraculo_gen_url   = COALESCE($2, oraculo_gen_url),
+                    oraculo_gen_model = COALESCE($3, oraculo_gen_model)
+              WHERE id = $4
+              RETURNING oraculo_gen_url, oraculo_gen_model, (oraculo_gen_key IS NOT NULL) AS oraculo_tem_chave`,
+            [chaveCifrada, gen_url ?? null, gen_model ?? null, req.usuario.id]
+        );
+        // Resposta write-only: confirma o estado SEM jamais devolver a chave.
+        res.json({ mensagem: 'Configuração do Oráculo salva.', ...result.rows[0] });
+    } catch (err) {
+        console.error('Erro ao salvar config do Oráculo:', err);
+        res.status(500).json({ erro: 'Erro ao salvar a configuração do Oráculo.' });
     }
 });
 
