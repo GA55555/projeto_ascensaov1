@@ -135,7 +135,53 @@ window.abrirTab = function(tab) {
         carregarNucleos('sessao');
     }
     else if (tab === 'macro') carregarMesaGuerra();
+    else if (tab === 'oraculo') document.getElementById('oraculo-pergunta')?.focus();
 }
+
+// ======================================================
+// ABA ORÁCULO (RAG — F5): consulta em linguagem natural
+// A resposta da IA é texto NÃO-confiável → escapeHTML antes do innerHTML (Regra 6.1).
+// ======================================================
+window.consultarOraculo = async function(event) {
+    if (event) event.preventDefault();
+    const input = document.getElementById('oraculo-pergunta');
+    const pergunta = (input.value || '').trim();
+    if (!pergunta) return false;
+
+    const conversa = document.getElementById('oraculo-conversa');
+    const btn = document.getElementById('oraculo-enviar');
+
+    // Tira o placeholder vazio na primeira pergunta.
+    conversa.querySelector('.oraculo-vazio')?.remove();
+
+    // Bolha do Narrador (pergunta escapada — XSS, Regra 6.1).
+    conversa.insertAdjacentHTML('beforeend', `<div class="oraculo-msg oraculo-msg-narrador">${escapeHTML(pergunta)}</div>`);
+    input.value = '';
+
+    // Bolha temporária "a pensar".
+    const idPensando = `oraculo-pensando-${Date.now()}`;
+    conversa.insertAdjacentHTML('beforeend',
+        `<div id="${idPensando}" class="oraculo-msg oraculo-msg-resposta oraculo-pensando">O Oráculo está a ler as estrelas…</div>`);
+    conversa.scrollTop = conversa.scrollHeight;
+    btn.disabled = true;
+
+    try {
+        const dados = await OraculoApi.consultar(cronicaId, pergunta);
+        const resp = dados.resposta_oraculo || 'O Oráculo silenciou.';
+        // trechos_usados é inteiro vindo do backend; resp é escapado (texto da IA).
+        const meta = dados.trechos_usados
+            ? `<span class="oraculo-msg-meta">Baseado em ${dados.trechos_usados} trecho(s) da crônica.</span>` : '';
+        document.getElementById(idPensando).outerHTML =
+            `<div class="oraculo-msg oraculo-msg-resposta">${escapeHTML(resp)}${meta}</div>`;
+    } catch (e) {
+        document.getElementById(idPensando)?.remove();
+        mostrarToast(e.message || 'Erro ao consultar o Oráculo.', 'erro');
+    } finally {
+        btn.disabled = false;
+        conversa.scrollTop = conversa.scrollHeight;
+    }
+    return false;
+};
 
 window.abrirModal = async function(id) {
     const modal = document.getElementById(id);

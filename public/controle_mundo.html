@@ -25,6 +25,7 @@
         <button class="tab-btn" onclick="abrirTab('automacoes')"><i data-lucide="zap"></i> Automações</button>
         <button class="tab-btn" onclick="abrirTab('sessoes')"><i data-lucide="book-open"></i> Sessões</button>
         <button class="tab-btn" onclick="abrirTab('macro')"><i data-lucide="map"></i> Tabuleiro</button>
+        <button class="tab-btn" onclick="abrirTab('oraculo')"><i data-lucide="sparkles"></i> Oráculo</button>
     </div>
 
     <!-- TAB: MUNDO -->
@@ -356,7 +357,30 @@
     </div>
 </div>
 
-
+<!-- ====================================================== -->
+<!-- ABA ORÁCULO (RAG — F5): consulta em linguagem natural   -->
+<!-- ====================================================== -->
+<div id="tab-oraculo" class="tab-content">
+    <div class="oraculo-painel">
+        <div class="oraculo-cabecalho">
+            <h3 class="texto-roxo"><i data-lucide="sparkles"></i> Consultar o Oráculo</h3>
+            <p class="texto-mutado oraculo-sub">
+                Pergunte em linguagem natural sobre o mundo desta crônica. O Oráculo responde com base
+                <strong>apenas</strong> no que já foi registrado — sincronize o mundo antes para enriquecer as respostas.
+            </p>
+        </div>
+        <div id="oraculo-conversa" class="oraculo-conversa">
+            <p class="oraculo-vazio texto-mutado">As respostas do Oráculo aparecerão aqui.</p>
+        </div>
+        <form id="oraculo-form" class="oraculo-input-row" onsubmit="return consultarOraculo(event)">
+            <input type="text" id="oraculo-pergunta" class="oraculo-input"
+                   placeholder="Ex: Quem pode trair a Igreja?" autocomplete="off" maxlength="1000">
+            <button type="submit" class="btn btn-primary" id="oraculo-enviar">
+                <i data-lucide="send"></i> Perguntar
+            </button>
+        </form>
+    </div>
+</div>
 
 <script src="/js/lucide.min.js"></script>
 <script src="/js/toast.js"></script>
@@ -369,7 +393,8 @@
 <script src="/js/api/eventosApi.js"></script>
 <script src="/js/api/automacoesApi.js"></script>
 <script src="/js/api/sessoesApi.js"></script>
-<script src="/js/controle_mundo.js?v=1"></script>
+<script src="/js/api/oraculoApi.js"></script>
+<script src="/js/controle_mundo.js?v=2"></script>
 <script>lucide.createIcons();</script>
 
 </body>

@@ -3725,3 +3725,29 @@ input[type="radio"] {
 .tema-pixel-16bit .cena-elenco,
 .tema-pixel-16bit .cena-coluna,
 .tema-pixel-16bit .ator-card { border-radius: 0 !important; }
+
+/* ======================================================
+   ORÁCULO (RAG) — aba de consulta (F5)
+   Só tokens (Regra 2.5). As bolhas diferenciam-se por alinhamento + borda de acento
+   (não por cor de fundo forte), evitando a armadilha de contraste entre temas (Regra 2.6).
+   ====================================================== */
+.oraculo-painel { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+.oraculo-sub { margin: 4px 0 0; font-size: 0.9rem; }
+.oraculo-conversa {
+    display: flex; flex-direction: column; gap: 12px;
+    min-height: 320px; max-height: 55vh; overflow-y: auto;
+    padding: 16px; border: 1px solid var(--borda); border-radius: 8px;
+    background: var(--bg-afundado);
+}
+.oraculo-vazio { text-align: center; margin: auto; }
+.oraculo-msg {
+    max-width: 85%; padding: 10px 14px; border-radius: 6px; line-height: 1.5;
+    white-space: pre-wrap; word-wrap: break-word; color: var(--texto-claro);
+    border: 1px solid var(--borda);
+}
+.oraculo-msg-narrador { align-self: flex-end; background: var(--bg-secundario); border-left: 3px solid var(--roxo-mago); }
+.oraculo-msg-resposta { align-self: flex-start; background: var(--bg-card); border-left: 3px solid var(--destaque); }
+.oraculo-msg-meta { display: block; margin-top: 6px; font-size: 0.75rem; color: var(--texto-mutado); }
+.oraculo-pensando { font-style: italic; color: var(--texto-mutado); }
+.oraculo-input-row { display: flex; gap: 10px; }
+.oraculo-input { flex: 1; }
