@@ -3,6 +3,8 @@ const router = express.Router();
 const pool = require('../db'); // Conexão com o banco
 const verificarToken = require('../middlewares/auth'); // O segurança da porta
 const { checarAcessoCronica } = require('../middlewares/permissoes'); // O middleware de mesa
+const validate = require('../middlewares/validate'); // Validação Zod (Regra 3.1)
+const { toggleOraculoSchema } = require('../validators/cronicasValidators');
 
 // Rota: Buscar todas as crônicas criadas pelo narrador logado
 router.get('/', verificarToken, async (req, res) => {
@@ -104,16 +106,12 @@ router.put('/:cronicaId/status', verificarToken, async (req, res) => {
 // =======================================================
 // ORÁCULO (RAG) — toggle opt-in por crônica (F5)
 // Liga/desliga o oraculo_ativo. Desligado, os ganchos da F2, o Big Bang (F3) e a consulta (F4)
-// recusam — o critério de ouro do plano (Oráculo é opcional). Só o Narrador (WHERE narrador_id),
-// validação inline coerente com a rota /status irmã.
+// recusam — o critério de ouro do plano (Oráculo é opcional). Só o Narrador (WHERE narrador_id).
+// Validação via Zod + middleware (Regra 3.1), não inline.
 // =======================================================
-router.put('/:cronicaId/oraculo', verificarToken, async (req, res) => {
+router.put('/:cronicaId/oraculo', verificarToken, validate(toggleOraculoSchema), async (req, res) => {
     const { cronicaId } = req.params;
     const { ativo } = req.body;
-
-    if (typeof ativo !== 'boolean') {
-        return res.status(400).json({ erro: 'O campo "ativo" deve ser booleano (true ou false).' });
-    }
 
     try {
         const result = await pool.query(

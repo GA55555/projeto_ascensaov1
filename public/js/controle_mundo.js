@@ -5,9 +5,10 @@ const urlParams = new URLSearchParams(window.location.search);
 const cronicaId = urlParams.get('id');
 
 let nodesCache = [];
-let eventosCache = []; 
+let eventosCache = [];
 let abasCache = [];
 let automacoesCache = [];
+let oraculoAtivo = false; // F5: opt-in do Oráculo nesta crônica (lido do init, alternado pelo switch)
 let sessoesCache = [];
 let nucleosCache = { entidade: [], evento: [], sessao: [] };
 let nucleoAtivoTipo = 'entidade'; // 'entidade' | 'evento' | 'sessao'
@@ -103,6 +104,10 @@ async function verificarAcesso() {
         
         const elNome = document.getElementById('nome-cronica');
         if (elNome) elNome.innerText = dados.cronica?.nome || '';
+
+        // F5: reflete o opt-in do Oráculo (vem de graça no SELECT * da crônica) no switch da aba.
+        oraculoAtivo = !!dados.cronica?.oraculo_ativo;
+        refletirEstadoOraculo();
         return true;
     } catch (err) { 
         window.location.href = '/profile.html'; 
@@ -181,6 +186,38 @@ window.consultarOraculo = async function(event) {
         conversa.scrollTop = conversa.scrollHeight;
     }
     return false;
+};
+
+// Reflete o estado opt-in no switch + esmaece/bloqueia o chat quando desligado (critério de ouro:
+// o Oráculo é opcional; desligado, a consulta nem fica acessível na UI).
+function refletirEstadoOraculo() {
+    const chk = document.getElementById('oraculo-toggle');
+    const txt = document.getElementById('oraculo-toggle-txt');
+    const input = document.getElementById('oraculo-pergunta');
+    const btn = document.getElementById('oraculo-enviar');
+    if (chk) chk.checked = oraculoAtivo;
+    if (txt) txt.textContent = oraculoAtivo ? 'Ligado' : 'Desligado';
+    document.querySelector('.oraculo-switch')?.classList.toggle('oraculo-switch--on', oraculoAtivo);
+    document.querySelector('.oraculo-painel')?.classList.toggle('oraculo-painel--off', !oraculoAtivo);
+    if (input) input.disabled = !oraculoAtivo;
+    if (btn) btn.disabled = !oraculoAtivo;
+}
+
+// Liga/desliga o Oráculo (PUT /cronicas/:id/oraculo). Otimista com reversão em falha (Regra 3.2).
+window.alternarOraculo = async function(el) {
+    const novo = el.checked;
+    el.disabled = true;
+    try {
+        const dados = await OraculoApi.toggle(cronicaId, novo);
+        oraculoAtivo = !!dados.oraculo_ativo;
+        mostrarToast(dados.mensagem || (oraculoAtivo ? 'Oráculo ligado.' : 'Oráculo desligado.'), 'sucesso');
+    } catch (e) {
+        el.checked = !novo; // reverte o switch — o estado de domínio não mudou
+        mostrarToast(e.message || 'Falha ao alternar o Oráculo.', 'erro');
+    } finally {
+        el.disabled = false;
+        refletirEstadoOraculo(); // reabilita/bloqueia o chat conforme o estado real
+    }
 };
 
 window.abrirModal = async function(id) {

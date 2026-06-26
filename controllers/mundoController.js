@@ -4,6 +4,7 @@ const automacaoService = require('../services/automacaoService');
 const oraculoClient = require('../services/oraculoClient'); // F2: sincronização invisível com o Oráculo (fire-and-forget)
 const oraculoCripto = require('../utils/oraculoCripto'); // F4: decifra a chave BYOK do Narrador p/ a consulta
 const oraculoTexto = require('../services/oraculoTexto'); // texto rico (relações/flags/diplomacia) p/ o RAG
+const oraculoSync = require('../services/oraculoSync'); // Regra 4.2: re-indexação fire-and-forget (describer + conector)
 const fs = require('fs/promises');
 const path = require('path');
 
@@ -87,12 +88,9 @@ exports.criarNode = async (req, res) => {
             "INSERT INTO world_nodes (cronica_id, nome, tipo, status, nucleo_id) VALUES ($1, $2, $3, 'aprovado', $4) RETURNING *",
             [cronicaId, nome, tipo, nucleo_id || null]
         );
-        // F2: indexa o node no Oráculo com TEXTO RICO (facção/flags/relações). Fire-and-forget e
-        // SEM await (não atrasa a tela, Regra 2.7): monta o texto em 2º plano e dispara o upsert.
+        // F2: indexa o node no Oráculo com TEXTO RICO (facção/flags/relações), fire-and-forget (Regra 2.7).
         const node = novoNode.rows[0];
-        oraculoTexto.textoDoNode(cronicaId, node.id)
-            .then(texto => { if (texto) oraculoClient.enviarParaOraculo('upsert', { cronica_id: cronicaId, tipo: node.tipo, entidade_id: node.id, texto }); })
-            .catch(err => console.error('[oraculo] texto do node (criar) falhou:', err.message));
+        oraculoSync.reindexarNode(cronicaId, node.id, node.tipo);
         res.status(201).json(novoNode.rows[0]);
     } catch (err) {
         console.error("ERRO FATAL NA FORJA:", err);
@@ -136,9 +134,7 @@ exports.editarNode = async (req, res) => {
         }
         // F2: re-upsert do node editado com texto rico (idempotente — mesmo id sobrescreve). Sem await.
         const node = result.rows[0];
-        oraculoTexto.textoDoNode(cronicaId, node.id)
-            .then(texto => { if (texto) oraculoClient.enviarParaOraculo('upsert', { cronica_id: cronicaId, tipo: node.tipo, entidade_id: node.id, texto }); })
-            .catch(err => console.error('[oraculo] texto do node (editar) falhou:', err.message));
+        oraculoSync.reindexarNode(cronicaId, node.id, node.tipo);
         res.json({ mensagem: 'Entidade atualizada!', node: result.rows[0] });
     } catch (err) {
         console.error('Erro ao editar entidade:', err);
@@ -154,7 +150,7 @@ exports.deletarNode = async (req, res) => {
         if (result.rows.length === 0) return res.status(404).json({ erro: 'Entidade não encontrada.' });
         await apagarUploadOrfao(result.rows[0]?.avatar_url || null, ['entidades']); // Regra 6.6
         // F2: remove o vetor (Regra 4.2/6.6 — nada de "mortos" lembrados). Apaga por metadata {cronica_id, entidade_id}.
-        oraculoClient.enviarParaOraculo('remover', { cronica_id: cronicaId, entidade_id: nodeId });
+        oraculoSync.removerEntidade(cronicaId, nodeId);
         res.json({ mensagem: 'Entidade e vínculos apagados.' });
     } catch (err) {
         console.error('Erro ao deletar entidade:', err);
@@ -167,8 +163,15 @@ exports.atualizarNucleoNode = async (req, res) => {
     const { nucleo_id } = req.body;
     try {
         // IDOR: só associa núcleo a um node da própria crônica.
-        const result = await pool.query('UPDATE world_nodes SET nucleo_id = $1 WHERE id = $2 AND cronica_id = $3 RETURNING id', [nucleo_id || null, nodeId, cronicaId]);
+        const antes = await pool.query('SELECT nucleo_id FROM world_nodes WHERE id = $1 AND cronica_id = $2', [nodeId, cronicaId]);
+        const result = await pool.query('UPDATE world_nodes SET nucleo_id = $1 WHERE id = $2 AND cronica_id = $3 RETURNING id, tipo', [nucleo_id || null, nodeId, cronicaId]);
         if (result.rows.length === 0) return res.status(404).json({ erro: 'Entidade não encontrada.' });
+        // Regra 4.2: a facção do node mudou → re-indexa o node e os núcleos afetados (o antigo perde
+        // um membro, o novo ganha). Fire-and-forget.
+        oraculoSync.reindexarNode(cronicaId, nodeId, result.rows[0].tipo);
+        const nucleoAntigo = antes.rows[0]?.nucleo_id || null;
+        if (nucleoAntigo) oraculoSync.reindexarNucleo(cronicaId, nucleoAntigo);
+        if (nucleo_id && nucleo_id !== nucleoAntigo) oraculoSync.reindexarNucleo(cronicaId, nucleo_id);
         res.json({ mensagem: 'Núcleo atualizado.' });
     } catch (err) {
         console.error(err);
@@ -190,6 +193,7 @@ exports.criarFlag = async (req, res) => {
             "INSERT INTO world_flags (node_id, flag_key, flag_value) VALUES ($1, $2, FALSE)",
             [nodeId, flag_key.trim().toLowerCase().replace(/\s+/g, '_')]
         );
+        oraculoSync.reindexarNode(cronicaId, nodeId); // Regra 4.2: a flag mudou o estado do node
         res.status(201).json({ mensagem: 'Nova flag forjada.' });
     } catch (err) {
         if (err.code === '23505') return res.status(400).json({ erro: 'Flag já existe.' });
@@ -253,6 +257,9 @@ exports.atualizarFlag = async (req, res) => {
                 `, [novoPool, novoStatus, eventId]);
             }
         }
+        // Regra 4.2: a flag mudou o estado do node E a tensão dos eventos vinculados → re-indexa ambos.
+        oraculoSync.reindexarNode(cronicaId, nodeId);
+        for (const row of eventosAfetados.rows) oraculoSync.reindexarEvento(cronicaId, row.event_id);
         res.json({ mensagem: 'Realidade alterada.', avisos });
     } catch (err) {
         console.error("Erro no Motor de Eventos:", err);
@@ -278,6 +285,7 @@ exports.renomearFlag = async (req, res) => {
         await pool.query('UPDATE world_flags SET flag_key = $1 WHERE node_id = $2 AND flag_key = $3', [novo_nome, nodeId, flagKey]);
         await pool.query('UPDATE event_flag_weights SET flag_key = $1 WHERE node_id = $2 AND flag_key = $3', [novo_nome, nodeId, flagKey]);
         await pool.query('COMMIT');
+        oraculoSync.reindexarNode(cronicaId, nodeId); // Regra 4.2: a chave da flag mudou no texto do node
         res.json({ mensagem: 'Flag renomeada com sucesso.' });
     } catch (err) {
         await pool.query('ROLLBACK');
@@ -320,6 +328,9 @@ exports.deletarFlag = async (req, res) => {
             }
         }
         await pool.query('COMMIT');
+        // Regra 4.2: removida a flag, re-indexa o node e os eventos cuja tensão foi recalculada.
+        oraculoSync.reindexarNode(cronicaId, nodeId);
+        for (const row of eventosVinculados.rows) oraculoSync.reindexarEvento(cronicaId, row.event_id);
         res.json({ mensagem: 'Flag e seus vínculos removidos. Eventos recalculados.' });
     } catch (err) {
         await pool.query('ROLLBACK');
@@ -344,6 +355,7 @@ exports.criarNucleoEntidade = async (req, res) => {
     const { nome } = req.body;
         try {
         const novo = await pool.query("INSERT INTO entidade_nucleos (cronica_id, nome, tipo) VALUES ($1, $2, 'entidade') RETURNING *", [cronicaId, nome.trim()]);
+        oraculoSync.reindexarNucleo(cronicaId, novo.rows[0].id); // Regra 4.2: indexa a facção nova (nome pesquisável)
         res.status(201).json(novo.rows[0]);
     } catch (err) { res.status(500).json({ erro: 'Erro ao criar núcleo.' }); }
 };
@@ -367,6 +379,7 @@ exports.renomearNucleoEntidade = async (req, res) => {
         }
         if (result.rows.length === 0) return res.status(404).json({ erro: 'Núcleo não encontrado.' });
         if (temAvatar && urlAntiga && urlAntiga !== (result.rows[0]?.avatar_url || null)) await apagarUploadOrfao(urlAntiga, ['nucleos']);
+        oraculoSync.reindexarNucleo(cronicaId, nucleoId); // Regra 4.2: nome da facção mudou (membros sanam no próximo big-bang)
         res.json(result.rows[0]);
     } catch (err) { res.status(500).json({ erro: 'Erro ao renomear núcleo.' }); }
 };
@@ -377,6 +390,7 @@ exports.excluirNucleoEntidade = async (req, res) => {
         const result = await pool.query('DELETE FROM entidade_nucleos WHERE id = $1 AND cronica_id = $2 RETURNING id, avatar_url', [nucleoId, cronicaId]);
         if (result.rows.length === 0) return res.status(404).json({ erro: 'Núcleo não encontrado.' });
         await apagarUploadOrfao(result.rows[0]?.avatar_url || null, ['nucleos']); // Regra 6.6
+        oraculoSync.removerEntidade(cronicaId, nucleoId); // Regra 4.2/6.6: apaga o doc `nucleo:id` (nada de facção zumbi)
         res.json({ mensagem: 'Núcleo excluído.' });
     } catch (err) {
         // Caso a FK world_nodes.nucleo_id não seja ON DELETE SET NULL: falha graciosamente (não 500 opaco).
@@ -488,9 +502,7 @@ exports.criarEvento = async (req, res) => {
         }
         await pool.query('COMMIT');
         // F2: evento entra no escopo do Oráculo com texto rico (núcleos/gatilhos). Sem await.
-        oraculoTexto.textoDoEvento(cronicaId, novoEvento.id)
-            .then(texto => { if (texto) oraculoClient.enviarParaOraculo('upsert', { cronica_id: cronicaId, tipo: 'evento', entidade_id: novoEvento.id, texto }); })
-            .catch(err => console.error('[oraculo] texto do evento (criar) falhou:', err.message));
+        oraculoSync.reindexarEvento(cronicaId, novoEvento.id);
         res.status(201).json(novoEvento);
     } catch (err) {
         await pool.query('ROLLBACK');
@@ -513,7 +525,7 @@ exports.deletarEvento = async (req, res) => {
         
         if (result.rows.length === 0) return res.status(404).json({ erro: 'Evento não encontrado.' });
         // F2: remove o vetor do evento apagado.
-        oraculoClient.enviarParaOraculo('remover', { cronica_id: cronicaId, entidade_id: eventoId });
+        oraculoSync.removerEntidade(cronicaId, eventoId);
         res.json({ mensagem: 'Evento deletado permanentemente.' });
     } catch (err) {
         await pool.query('ROLLBACK');
@@ -729,6 +741,9 @@ exports.criarLink = async (req, res) => {
             INSERT INTO world_links (cronica_id, origem_node_id, destino_node_id, tipo_vinculo, dados)
             VALUES ($1, $2, $3, $4, $5::jsonb) RETURNING *
         `, [cronicaId, nodeId, destino_node_id, tipo_vinculo || 'associado', JSON.stringify(dados || {})]);
+        // Regra 4.2: a sinapse aparece na seção "Relações" dos DOIS nós → re-indexa ambos.
+        oraculoSync.reindexarNode(cronicaId, nodeId);
+        oraculoSync.reindexarNode(cronicaId, destino_node_id);
         res.status(201).json(novo.rows[0]);
     } catch (err) {
         if (err.code === '23505') return res.status(400).json({ erro: 'Estas entidades já estão conectadas.' });
@@ -745,9 +760,12 @@ exports.deletarLink = async (req, res) => {
             DELETE FROM world_links
             WHERE id = $1 AND cronica_id = $2
               AND (origem_node_id = $3 OR destino_node_id = $3)
-            RETURNING id
+            RETURNING id, origem_node_id, destino_node_id
         `, [linkId, cronicaId, nodeId]);
         if (result.rows.length === 0) return res.status(404).json({ erro: 'Conexão não encontrada.' });
+        // Regra 4.2: a relação sumiu do texto dos DOIS nós → re-indexa ambos.
+        oraculoSync.reindexarNode(cronicaId, result.rows[0].origem_node_id);
+        oraculoSync.reindexarNode(cronicaId, result.rows[0].destino_node_id);
         res.json({ mensagem: 'Conexão desfeita.' });
     } catch (err) {
         console.error('Erro ao deletar sinapse:', err);
@@ -770,6 +788,9 @@ exports.atualizarLink = async (req, res) => {
             RETURNING *
         `, [JSON.stringify(dados || {}), linkId, cronicaId, nodeId]);
         if (result.rows.length === 0) return res.status(404).json({ erro: 'Conexão não encontrada.' });
+        // Regra 4.2: tags/intriga da sinapse aparecem no texto dos DOIS nós → re-indexa ambos.
+        oraculoSync.reindexarNode(cronicaId, result.rows[0].origem_node_id);
+        oraculoSync.reindexarNode(cronicaId, result.rows[0].destino_node_id);
         res.json(result.rows[0]);
     } catch (err) {
         console.error('Erro ao atualizar sinapse:', err);
@@ -959,6 +980,9 @@ exports.salvarDiplomacia = async (req, res) => {
             `SELECT id, nucleo_a_id, nucleo_b_id, status FROM nucleo_diplomacia WHERE cronica_id = $1`,
             [cronicaId]
         );
+        // Regra 4.2: diplomacia é bulk-replace (relações somem/surgem entre várias facções) → re-indexa
+        // todas as facções da crônica para refletir a nova linha "Diplomacia" no texto de cada uma.
+        oraculoSync.reindexarNucleosDaCronica(cronicaId);
         res.json(out.rows.map(mapDip));
     } catch (err) {
         await client.query('ROLLBACK').catch(() => {});

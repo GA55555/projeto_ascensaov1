@@ -61,6 +61,27 @@
         <button class="btn btn-primary" onclick="salvarTema()"><i data-lucide="save"></i> Salvar Tema</button>
     </div>
 
+    <div class="card oraculo-cfg">
+        <h3 class="texto-roxo"><i data-lucide="sparkles"></i> Oráculo de IA (sua chave)</h3>
+        <p class="texto-mutado oraculo-cfg-sub">
+            Chave de geração no modelo BYOK. Guardada <strong>cifrada</strong> e nunca exibida de volta.
+            Padrão DeepSeek; pode trocar para OpenAI (ex.: <code>gpt-4o-mini</code>).
+        </p>
+        <div class="campo">
+            <label>Chave da API <span id="oraculo-chave-estado" class="texto-mutado"></span></label>
+            <input type="password" id="oraculo-gen-key" autocomplete="off" placeholder="cole a chave aqui (deixe em branco para manter a atual)">
+        </div>
+        <div class="campo">
+            <label>URL do Provedor</label>
+            <input type="text" id="oraculo-gen-url" placeholder="https://api.deepseek.com">
+        </div>
+        <div class="campo">
+            <label>Modelo</label>
+            <input type="text" id="oraculo-gen-model" placeholder="deepseek-chat">
+        </div>
+        <button class="btn btn-primary" onclick="salvarOraculo()"><i data-lucide="save"></i> Salvar Oráculo</button>
+    </div>
+
     <div class="card" style="margin-top: 20px;">
         <h3 class="texto-roxo"><i data-lucide="users"></i> Identidades em Crônicas</h3>
         <div id="container-perfis-cronica">
@@ -72,6 +93,7 @@
 
     <script src="/js/lucide.min.js"></script>
     <script src="/js/api.js"></script>
+    <script src="/js/api/oraculoApi.js"></script>
     <script src="/js/utils.js"></script>
     <script>
         let nomeOficial = '';
@@ -103,6 +125,15 @@
                 if (seletorTema && dados.usuario.tema_interface) {
                     seletorTema.value = dados.usuario.tema_interface;
                 }
+
+                // Oráculo BYOK: prefill de URL/modelo; a chave nunca volta (write-only) — só o estado.
+                const u = dados.usuario;
+                if (u.oraculo_gen_url) document.getElementById('oraculo-gen-url').value = u.oraculo_gen_url;
+                if (u.oraculo_gen_model) document.getElementById('oraculo-gen-model').value = u.oraculo_gen_model;
+                const estadoChave = document.getElementById('oraculo-chave-estado');
+                if (estadoChave) estadoChave.textContent = u.oraculo_tem_chave
+                    ? '— chave definida (deixe em branco para manter)'
+                    : '— nenhuma chave salva ainda';
 
                 renderizarPerfisCronica(dados.perfis_cronica);
 
@@ -157,6 +188,30 @@
                 container.appendChild(div);
             });
             lucide.createIcons();
+        }
+
+        // Oráculo BYOK: só envia campos preenchidos — a chave em branco é OMITIDA (o backend usa
+        // COALESCE p/ preservar a atual; e o Zod rejeita gen_key vazia). Write-only: nada volta.
+        async function salvarOraculo() {
+            const gen_key = document.getElementById('oraculo-gen-key').value.trim();
+            const gen_url = document.getElementById('oraculo-gen-url').value.trim();
+            const gen_model = document.getElementById('oraculo-gen-model').value.trim();
+            const payload = {};
+            if (gen_key) payload.gen_key = gen_key;
+            if (gen_url) payload.gen_url = gen_url;
+            if (gen_model) payload.gen_model = gen_model;
+            if (Object.keys(payload).length === 0) return mostrarMsg('Nada para salvar no Oráculo.', 'erro');
+            try {
+                const dados = await OraculoApi.salvarChave(payload);
+                document.getElementById('oraculo-gen-key').value = ''; // não retém o segredo na tela
+                const estadoChave = document.getElementById('oraculo-chave-estado');
+                if (estadoChave) estadoChave.textContent = dados.oraculo_tem_chave
+                    ? '— chave definida (deixe em branco para manter)'
+                    : '— nenhuma chave salva ainda';
+                mostrarMsg('Configuração do Oráculo salva.', 'sucesso');
+            } catch (e) {
+                mostrarMsg(e.message || 'Erro ao salvar o Oráculo.', 'erro');
+            }
         }
 
         async function salvarTema() {

@@ -486,36 +486,53 @@ ORACULO_URL=http://127.0.0.1:<porta>
   pelos ganchos: `textoDoNode` (facção, local-pai, flags, sinapses), `textoDoNucleo` (membros +
   diplomacia), `textoDoEvento` (estado/tensão, núcleos, gatilhos). Os ganchos montam o texto em 2º
   plano (sem `await` — não atrasam a tela).
-- **F5 — Interface (🟡 parcial):**
+- **Re-indexação de frescura (✅ feito, Regra 4.2):** `services/oraculoSync.js` — módulo central (DRY)
+  que combina describer + conector, fire-and-forget, **nunca lança**: `reindexarNode(c,id,tipo?)`
+  (resolve o tipo se omitido — evita doc duplicado), `reindexarNucleo`, `reindexarEvento`,
+  `reindexarNucleosDaCronica`, `removerEntidade`. Os 5 ganchos antigos foram **refatorados** para ele.
+  **Novos ganchos:** `atualizarNucleoNode` (node + núcleo antigo/novo), flags (`criar/atualizar/
+  renomear/deletarFlag` → node; atualizar/deletar também re-indexam os **eventos** cuja tensão muda),
+  núcleo-entidade (`criar/renomear` → `reindexarNucleo`; `excluir` → `removerEntidade` do `nucleo:id`),
+  sinapses (`criar/deletar/atualizarLink` → **ambos** os nós; `deletarLink` ganhou os 2 ids no RETURNING),
+  diplomacia (`salvarDiplomacia` → todas as facções, por ser bulk-replace). **Débito menor restante:**
+  renomear/excluir facção não re-indexa os membros (texto deles guarda o nome antigo) — sanado no próximo
+  Big Bang.
+- **F5 — Interface (✅ feito):**
   - ✅ **Aba "Oráculo"** no `controle_mundo` (chat): `public/js/api/oraculoApi.js`
     (`consultar`/`toggle`/`salvarChave`), aba + painel central, bolhas Narrador/Oráculo, loading,
     `escapeHTML` na resposta (Regra 6.1), classes `.oraculo-*` só com tokens. Decisão do Narrador:
     aba dedicada (NÃO chat sobre o board).
   - ✅ **Toggle backend** `PUT /cronicas/:cronicaId/oraculo` (liga/desliga `oraculo_ativo`, só Narrador).
-  - ❌ **Switch opt-in na UI** (consumir `OraculoApi.toggle`) — hoje só por SQL/fetch manual.
-  - ❌ **Form BYOK no `config_perfil.html`** (consumir `OraculoApi.salvarChave`, mostrar "chave
-    definida ✓") — hoje só por fetch manual.
+    Validação **Zod + middleware** (`validators/cronicasValidators.js` → `toggleOraculoSchema`: params
+    `cronicaId` UUID + body `ativo` booleano), saldando o desvio da Regra 3.1.
+  - ✅ **Switch opt-in na UI** (cabeçalho da aba Oráculo): `.oraculo-switch` + `alternarOraculo()`
+    (otimista c/ reversão), lê o estado de graça em `verificarAcesso` (o `SELECT *` da crônica já
+    traz `oraculo_ativo`); desligado **esmaece + bloqueia** o chat (`.oraculo-painel--off`, inputs
+    `disabled`) — reforça o critério de ouro (opcional).
+  - ✅ **Form BYOK no `config_perfil.html`** (`salvarOraculo()` → `OraculoApi.salvarChave`): card
+    chave/URL/modelo, prefill de URL/modelo do `GET /perfil`, estado "chave definida" (write-only —
+    a chave nunca volta). **Corretude:** o front **omite** `gen_key` em branco (Zod rejeita vazia +
+    COALESCE preserva a atual).
 
 ### Como continuar (próximos passos, em ordem)
-1. **Fechar o F5 (UI):** o **switch opt-in** (sugestão: cabeçalho da própria aba Oráculo) e o
-   **form BYOK** em `config_perfil.html`. Toda a rede (`oraculoApi.js`) já existe.
-2. **Ganchos de re-indexação (débito de consistência, Regra 4.2):** hoje mudanças de **flag**
-   (`atualizarFlag`/`renomearFlag`/`deletarFlag`), **diplomacia** (`salvarDiplomacia`), **núcleo CRUD**
-   e **sinapses** (`criarLink`/`deletarLink`/`atualizarLink`) **não** re-indexam o nó/núcleo afetado —
-   a frescura depende de re-rodar o Big Bang. Fechar isso (fire-and-forget via describers) mantém o
-   Oráculo fresco sem re-sync manual. Atenção: deletar núcleo deveria também `remover` o doc `nucleo:id`.
-3. **Escopo ampliado (futuro, §4.4/5):** Sessões e Automações via **chunking** (textos longos → vários
+1. **Escopo ampliado (futuro, §4.4/5):** Sessões e Automações via **chunking** (textos longos → vários
    vetores `tipo:entidade_id:i`; apagar todos os chunks antes de regravar).
-4. **Cosméticos no `app.py`:** silenciar a telemetria do ChromaDB (passar `settings=` no
-   `PersistentClient`) e o warning do Pydantic (`model_config['protected_namespaces'] = ()` no
-   `ConsultaRequest`, por causa do campo `model_llm`).
+2. **Cosméticos no `app.py`:** silenciar a telemetria do ChromaDB (passar `settings=` no
+   `PersistentClient` — a linha 31 atual é objeto solto, no-op) e o warning do Pydantic
+   (`model_config['protected_namespaces'] = ()` no `ConsultaRequest`, por causa do campo `model_llm`).
+3. **(Opcional) Re-indexar membros ao renomear/excluir facção** — hoje sanado pelo Big Bang.
+
+> Nota: a rota irmã `PUT /:cronicaId/status` ainda valida `status` inline (mesmo padrão antigo).
+> Fora do escopo Oráculo, mas é o próximo alvo natural se for padronizar tudo em Zod.
 
 ### Mapa de arquivos (implementação)
 - Python: `oraculo_service/app.py`
-- Node rede/serviços: `services/oraculoClient.js`, `services/oraculoTexto.js`, `utils/oraculoCripto.js`
+- Node rede/serviços: `services/oraculoClient.js`, `services/oraculoTexto.js`, `services/oraculoSync.js`
+  (re-indexação Regra 4.2), `utils/oraculoCripto.js`
 - Node rotas: `routes/mundoRoutes.js` (sincronizar/consultar), `routes/cronicasRoutes.js` (toggle),
   `routes/perfilRoutes.js` (BYOK write-only)
 - Node controller/validators: `controllers/mundoController.js`, `validators/mundoValidator.js`
-  (sincronizar/consultar), `validators/perfilValidators.js`
-- Front: `public/controle_mundo.html` (aba), `public/js/controle_mundo.js` (`consultarOraculo`),
-  `public/js/api/oraculoApi.js`, `public/css/global_ui.css` (`.oraculo-*`)
+  (sincronizar/consultar), `validators/perfilValidators.js`, `validators/cronicasValidators.js` (toggle)
+- Front: `public/controle_mundo.html` (aba + switch), `public/js/controle_mundo.js`
+  (`consultarOraculo`/`alternarOraculo`/`refletirEstadoOraculo`), `public/config_perfil.html`
+  (card BYOK + `salvarOraculo`), `public/js/api/oraculoApi.js`, `public/css/global_ui.css` (`.oraculo-*`)

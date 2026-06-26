@@ -363,7 +363,13 @@
 <div id="tab-oraculo" class="tab-content">
     <div class="oraculo-painel">
         <div class="oraculo-cabecalho">
-            <h3 class="texto-roxo"><i data-lucide="sparkles"></i> Consultar o Oráculo</h3>
+            <div class="oraculo-cabecalho-topo">
+                <h3 class="texto-roxo"><i data-lucide="sparkles"></i> Consultar o Oráculo</h3>
+                <label class="oraculo-switch" title="Liga ou desliga o Oráculo nesta crônica (opt-in)">
+                    <input type="checkbox" class="oraculo-switch__check" id="oraculo-toggle" onchange="alternarOraculo(this)">
+                    <span id="oraculo-toggle-txt">Desligado</span>
+                </label>
+            </div>
             <p class="texto-mutado oraculo-sub">
                 Pergunte em linguagem natural sobre o mundo desta crônica. O Oráculo responde com base
                 <strong>apenas</strong> no que já foi registrado — sincronize o mundo antes para enriquecer as respostas.
