@@ -102,6 +102,42 @@ router.put('/:cronicaId/status', verificarToken, async (req, res) => {
 });
 
 // =======================================================
+// ORÁCULO (RAG) — toggle opt-in por crônica (F5)
+// Liga/desliga o oraculo_ativo. Desligado, os ganchos da F2, o Big Bang (F3) e a consulta (F4)
+// recusam — o critério de ouro do plano (Oráculo é opcional). Só o Narrador (WHERE narrador_id),
+// validação inline coerente com a rota /status irmã.
+// =======================================================
+router.put('/:cronicaId/oraculo', verificarToken, async (req, res) => {
+    const { cronicaId } = req.params;
+    const { ativo } = req.body;
+
+    if (typeof ativo !== 'boolean') {
+        return res.status(400).json({ erro: 'O campo "ativo" deve ser booleano (true ou false).' });
+    }
+
+    try {
+        const result = await pool.query(
+            `UPDATE cronicas SET oraculo_ativo = $1
+              WHERE id = $2 AND narrador_id = $3
+              RETURNING id, oraculo_ativo`,
+            [ativo, cronicaId, req.usuario.id]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(403).json({ erro: 'Apenas o Narrador pode ligar ou desligar o Oráculo.' });
+        }
+
+        res.json({
+            mensagem: `Oráculo ${ativo ? 'ligado' : 'desligado'} nesta crônica.`,
+            oraculo_ativo: result.rows[0].oraculo_ativo
+        });
+    } catch (err) {
+        console.error('Erro ao alternar o Oráculo:', err);
+        res.status(500).json({ erro: 'Erro ao atualizar o estado do Oráculo.' });
+    }
+});
+
+// =======================================================
 // ABAS DA COMUNIDADE
 // =======================================================
 router.post('/:cronicaId/abas', verificarToken, checarAcessoCronica, async (req, res) => {
