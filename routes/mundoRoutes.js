@@ -17,7 +17,7 @@ const {
     listarLinksSchema, criarLinkSchema, deletarLinkSchema, atualizarLinkSchema,
     criarBoardSchema, atualizarBoardSchema, boardIdParamsSchema,
     salvarDiplomaciaSchema,
-    sincronizarOraculoSchema
+    sincronizarOraculoSchema, consultarOraculoSchema
 } = require('../validators/mundoValidator');
 
 // Middleware apenas narrador
@@ -117,5 +117,8 @@ router.put('/diplomacia', verificarToken, checarAcessoCronica, apenasNarrador, v
 // Só o Narrador da crônica popula o banco vetorial com o mundo já existente. Idempotente.
 // ==========================================
 router.post('/oraculo/sincronizar', verificarToken, checarAcessoCronica, apenasNarrador, validate(sincronizarOraculoSchema), MundoController.sincronizarOraculo);
+
+// Fatia 4: consulta RAG — só o Narrador pergunta (usa a SUA chave BYOK). Decifra no controller.
+router.post('/oraculo/consultar', verificarToken, checarAcessoCronica, apenasNarrador, validate(consultarOraculoSchema), MundoController.consultarOraculo);
 
 module.exports = router;

@@ -2,6 +2,7 @@ const asyncHandler = require('../utils/asyncHandler');
 const pool = require('../db');
 const automacaoService = require('../services/automacaoService');
 const oraculoClient = require('../services/oraculoClient'); // F2: sincronização invisível com o Oráculo (fire-and-forget)
+const oraculoCripto = require('../utils/oraculoCripto'); // F4: decifra a chave BYOK do Narrador p/ a consulta
 const fs = require('fs/promises');
 const path = require('path');
 
@@ -1033,5 +1034,67 @@ exports.sincronizarOraculo = async (req, res) => {
     } catch (err) {
         console.error('Erro na sincronização do Oráculo (Big Bang):', err);
         res.status(500).json({ erro: 'Erro ao sincronizar o mundo com o Oráculo.' });
+    }
+};
+
+// =======================================================
+// ORÁCULO (RAG) — Fatia 4: Consulta (o cérebro / RAG)
+// Proxy: decifra a chave BYOK do Narrador (em memória), repassa ao Python a pergunta + a chave +
+// a crônica JÁ validada (anti-IDOR no retrieval é feito lá com where={cronica_id}). Só Narrador
+// (apenasNarrador na rota). A chave nunca é logada nem volta ao frontend (oraculo.md §4.4 / Regra 6).
+// =======================================================
+exports.consultarOraculo = async (req, res) => {
+    const { cronicaId } = req.params;
+    const { pergunta } = req.body;
+    try {
+        // Gate grosso: serviço configurado no servidor?
+        if (!oraculoClient.oraculoConfigurado()) {
+            return res.status(503).json({ erro: 'O serviço do Oráculo não está configurado neste servidor.' });
+        }
+
+        // Gate fino opt-in por crônica.
+        const cron = await pool.query('SELECT oraculo_ativo FROM cronicas WHERE id = $1', [cronicaId]);
+        if (cron.rows.length === 0) return res.status(404).json({ erro: 'Crônica não encontrada.' });
+        if (!cron.rows[0].oraculo_ativo) {
+            return res.status(409).json({ erro: 'O Oráculo está desligado nesta crônica. Ative-o antes de consultar.' });
+        }
+
+        // BYOK: a chave de geração é do PRÓPRIO Narrador (req.usuario.id), não da crônica.
+        const u = await pool.query(
+            'SELECT oraculo_gen_key, oraculo_gen_url, oraculo_gen_model FROM usuarios WHERE id = $1',
+            [req.usuario.id]
+        );
+        const conf = u.rows[0] || {};
+        if (!conf.oraculo_gen_key) {
+            return res.status(400).json({ erro: 'Configure a sua chave de IA (BYOK) no perfil antes de consultar o Oráculo.' });
+        }
+
+        let chave;
+        try {
+            chave = oraculoCripto.decifrar(conf.oraculo_gen_key); // só aqui, em memória
+        } catch (e) {
+            console.error('Falha ao decifrar a chave BYOK:', e.message); // sem logar a chave
+            return res.status(500).json({ erro: 'A sua chave de IA está corrompida (ou a ENC_KEY mudou). Regrave-a no perfil.' });
+        }
+
+        // Chama o Python (espera a resposta). A chave decifrada só trafega na chamada interna 127.0.0.1.
+        let resposta;
+        try {
+            resposta = await oraculoClient.consultarOraculo({
+                cronica_id: cronicaId,
+                pergunta,
+                api_key_llm: chave,
+                base_url_llm: conf.oraculo_gen_url || 'https://api.deepseek.com',
+                model_llm: conf.oraculo_gen_model || 'deepseek-chat',
+            });
+        } catch (e) {
+            console.error('Oráculo (consultar) falhou:', e.message);
+            return res.status(502).json({ erro: 'O Oráculo não conseguiu responder agora. Verifique a sua chave de IA e tente de novo.' });
+        }
+
+        res.json(resposta); // { status, resposta_oraculo, trechos_usados } | { status:'sem_contexto', resposta_oraculo }
+    } catch (err) {
+        console.error('Erro ao consultar o Oráculo:', err);
+        res.status(500).json({ erro: 'Erro ao consultar o Oráculo.' });
     }
 };

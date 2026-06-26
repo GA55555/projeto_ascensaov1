@@ -296,9 +296,18 @@ const sincronizarOraculoSchema = z.object({
     params: z.object({ ...cronicaParamOnly })
 });
 
+// ── ORÁCULO (RAG): Consulta (F4) ──
+// Pergunta do Narrador em linguagem natural. Limite de tamanho contém custo de tokens (oraculo.md §8).
+const consultarOraculoSchema = z.object({
+    params: z.object({ ...cronicaParamOnly }),
+    body: z.object({
+        pergunta: z.string().trim().min(1, 'A pergunta não pode ser vazia.').max(1000, 'Pergunta longa demais.')
+    })
+});
+
 module.exports = {
     criarAutomacaoSchema, toggleStatusSchema,
-    sincronizarOraculoSchema,
+    sincronizarOraculoSchema, consultarOraculoSchema,
     criarNodeSchema, editarNodeSchema,
     criarFlagSchema, atualizarFlagSchema, renomearFlagSchema,
     criarNucleoSchema, renomearNucleoSchema,

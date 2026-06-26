@@ -64,4 +64,22 @@ async function enviarParaOraculoAsync(acao, dados, timeoutMs = 8000) {
     }
 }
 
-module.exports = { enviarParaOraculo, enviarParaOraculoAsync, oraculoConfigurado };
+/**
+ * Consulta RAG (F4): ESPERA a resposta do Python (o Narrador aguarda — a geração pode demorar,
+ * por isso o timeout é generoso e a UI mostra "lendo as estrelas"). Devolve o JSON do Oráculo
+ * ({status, resposta_oraculo, ...}). LANÇA em erro de rede/timeout ou status != 2xx — o controller
+ * traduz para a resposta padronizada ao frontend (Regra 3.2). NÃO loga a chave que vai no corpo.
+ * @returns {Promise<object>}
+ */
+async function consultarOraculo(dados, timeoutMs = 30000) {
+    if (!oraculoConfigurado()) throw new Error('Oráculo não configurado.');
+    const resp = await _postar('consultar', dados, timeoutMs);
+    if (!resp.ok) {
+        let detalhe = '';
+        try { const j = await resp.json(); detalhe = j.detail || JSON.stringify(j); } catch { /* corpo não-JSON */ }
+        throw new Error(`Oráculo respondeu ${resp.status}: ${detalhe}`);
+    }
+    return resp.json();
+}
+
+module.exports = { enviarParaOraculo, enviarParaOraculoAsync, consultarOraculo, oraculoConfigurado };
