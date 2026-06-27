@@ -485,9 +485,14 @@ ORACULO_URL=http://127.0.0.1:<porta>
 - Observado: vaza o tipo cru `(cenario)` nas respostas → item 3 abaixo (pendente).
 
 **PRÓXIMA SESSÃO — por onde pegar (em ordem; ver "Como continuar" abaixo p/ detalhe):**
-1. ~~Memória multi-turn~~ ✅ FEITO nesta sessão.
-2. **Automações via chunking** (mesma mecânica das sessões: describer `textoDaAutomacao` + ganchos).
-3. **Não vazar o `tipo` cru** no super-prompt (ex.: "(cenario)") — ajustar `montar_system`.
+1. ~~Memória multi-turn~~ ✅ FEITO.
+2. ~~Automações~~ ✅ FEITO. **Correção de premissa:** o plano dizia "via chunking", mas o código real
+   (`world_triggers`) mostra que automação é **regra curta** (condição→efeito), **não** texto longo →
+   indexada como **vetor único** (`automacao:id`, `upsert`), não `upsert_chunks`. Describer
+   `textoDaAutomacao` (resolve evento-gatilho, node-alvo e facção → nomes legíveis), `reindexarAutomacao`
+   em `oraculoSync`, ganchos em `automacaoController` (criar/deletar/toggle) e automações no Big Bang.
+3. **Não vazar o `tipo` cru** no super-prompt (ex.: "(cenario)") — ajustar `montar_system`. (O texto da
+   automação já é auto-descritivo: começa com "Automação (regra reativa):".)
 4. ~~Cosmético do warning Pydantic~~ ✅ FEITO junto com a multi-turn. Resta: silenciar telemetria do ChromaDB.
 5. (Opcional) re-index de membros ao renomear/excluir facção.
 
@@ -538,6 +543,12 @@ re-rodar Big Bang; perguntar "resumo da campanha?". Mexer numa flag/sinapse/dipl
   `oraculoSync.reindexarSessao` (ação `upsert_chunks`). Ganchos em `sessaoController` (criar/editar →
   reindex; deletar → `removerEntidade`, que apaga `sessao:id:*` por metadata). Big Bang inclui sessões
   (laço agora respeita `acao` por-alvo). **Destrava "resumo da campanha"/"o que aconteceu" no chat.**
+- **Automações (✅ feito, SEM chunking):** `world_triggers` é regra curta (condição→efeito) → **vetor
+  único** `automacao:id` (`upsert`, não `upsert_chunks` — premissa do §4.4/5 corrigida contra o código).
+  `oraculoTexto.textoDaAutomacao` traduz o `effect_json` p/ frase natural (resolve evento-gatilho/node/
+  facção → nomes) + estado armada/desarmada; `oraculoSync.reindexarAutomacao`; ganchos em
+  `automacaoController` (criar/deletar/toggle); Big Bang inclui `world_triggers`. Destrava perguntas tipo
+  "o que acontece quando o evento X disparar?".
 - **Re-indexação de frescura (✅ feito, Regra 4.2):** `services/oraculoSync.js` — módulo central (DRY)
   que combina describer + conector, fire-and-forget, **nunca lança**: `reindexarNode(c,id,tipo?)`
   (resolve o tipo se omitido — evita doc duplicado), `reindexarNucleo`, `reindexarEvento`,
@@ -570,8 +581,15 @@ re-rodar Big Bang; perguntar "resumo da campanha?". Mexer numa flag/sinapse/dipl
 1. ✅ **Memória de conversa (multi-turn) — FEITO (sessão 27/jun):** `/consultar` agora recebe `historico`;
    front guarda ~4 trocas, Zod com teto 8, Python monta `messages=[system(grounding), ...histórico, user]`
    e embeda `últimaPergunta+atual` no retrieval. Detalhe na "Retomada rápida" no topo do §9.
-2. **Automações via chunking (§4.4/5):** mesma mecânica das sessões (`upsert_chunks`), se o texto de
-   automação valer indexação. Falta um describer `textoDaAutomacao` + ganchos no controller de automações.
+2. ✅ **Automações — FEITO (sem chunking):** premissa do §4.4/5 corrigida contra o código real —
+   `world_triggers` é **regra curta** (condição `evento_id` → efeito `tipo_nome`+`parametros`), não texto
+   longo → **vetor único** (`automacao:id`, `upsert`), não `upsert_chunks`. Implementado:
+   `oraculoTexto.textoDaAutomacao` (traduz o efeito p/ linguagem natural — `criar_flag`/`alterar_flag`/
+   `postar_em_aba`/`criar_evento`/`criar_entidade` — e resolve UUID→nome de evento-gatilho, node-alvo e
+   facção, escopado por `cronica_id`); `oraculoSync.reindexarAutomacao`; ganchos em `automacaoController`
+   (criar → reindex do novo id, extraído defensivo do retorno da fn do banco; deletar → `removerEntidade`;
+   toggle armada/desarmada → reindex, pois o estado faz parte do texto, Regra 4.2); automações entram no
+   Big Bang. Ganchos imunes a IDOR (describer binda `id=$1 AND cronica_id=$2`).
 3. **Não vazar rótulo técnico:** instruir o `montar_system` a não exibir o `tipo` cru (ex.: "(cenario)").
 4. **Cosméticos no `app.py`:** silenciar a telemetria do ChromaDB (passar `settings=` no
    `PersistentClient` — a linha 31 atual é objeto solto, no-op) e o warning do Pydantic
@@ -592,7 +610,8 @@ re-rodar Big Bang; perguntar "resumo da campanha?". Mexer numa flag/sinapse/dipl
 - Node rotas: `routes/mundoRoutes.js` (sincronizar/consultar), `routes/cronicasRoutes.js` (toggle),
   `routes/perfilRoutes.js` (BYOK write-only)
 - Node controller/validators: `controllers/mundoController.js`, `controllers/sessaoController.js`
-  (ganchos de sessão), `validators/mundoValidator.js` (sincronizar/consultar), `validators/perfilValidators.js`,
+  (ganchos de sessão), `controllers/automacaoController.js` (ganchos de automação),
+  `validators/mundoValidator.js` (sincronizar/consultar), `validators/perfilValidators.js`,
   `validators/cronicasValidators.js` (toggle)
 - Front: `public/controle_mundo.html` (aba + switch), `public/js/controle_mundo.js`
   (`consultarOraculo`/`alternarOraculo`/`refletirEstadoOraculo`), `public/config_perfil.html`

@@ -1,4 +1,5 @@
 const pool = require('../db');
+const oraculoSync = require('../services/oraculoSync');
 
 exports.listarAutomacoes = async (req, res) => {
     const { cronicaId } = req.params;
@@ -34,16 +35,23 @@ exports.criarAutomacao = async (req, res) => {
             [cronicaId, evento_id, tipo_nome, JSON.stringify(parametros || {})]
         );
 
-        res.status(201).json(result.rows[0].trigger_criado);
+        const criado = result.rows[0].trigger_criado;
+        // F2: indexa a automação no Oráculo (texto curto condição→efeito), fire-and-forget (Regra 2.7).
+        // O id pode vir como objeto (linha) ou uuid cru, conforme a função do banco → extrai defensivo.
+        const novoId = (criado && typeof criado === 'object') ? criado.id : criado;
+        if (novoId) oraculoSync.reindexarAutomacao(cronicaId, novoId);
+        res.status(201).json(criado);
     } catch (err) {
         res.status(500).json({ erro: 'Erro no banco', detalhe: err.message });
     }
 };
 
 exports.deletarAutomacao = async (req, res) => {
-    const { id } = req.params;
+    const { id, cronicaId } = req.params;
     try {
         await pool.query('DELETE FROM world_triggers WHERE id = $1', [id]);
+        // F2: remove o vetor da automação apagada (escopo cronica_id da URL — imune a IDOR de doc).
+        oraculoSync.removerEntidade(cronicaId, id);
         res.json({ mensagem: 'Automação deletada.' });
     } catch (err) {
         console.error('Erro ao deletar automação:', err);
@@ -52,10 +60,12 @@ exports.deletarAutomacao = async (req, res) => {
 };
 
 exports.toggleStatusAutomacao = async (req, res) => {
-    const { id } = req.params;
+    const { id, cronicaId } = req.params;
     const { ativo } = req.body;
     try {
         await pool.query('UPDATE world_triggers SET ativo = $1 WHERE id = $2', [ativo, id]);
+        // F2: o estado armada/desarmada faz parte do texto indexado → re-indexa (Regra 4.2).
+        oraculoSync.reindexarAutomacao(cronicaId, id);
         res.json({ mensagem: `Automação ${ativo ? 'armada' : 'desarmada'} com sucesso.` });
     } catch (err) {
         console.error('Erro ao alternar automação:', err);

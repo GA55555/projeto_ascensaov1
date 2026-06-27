@@ -179,4 +179,72 @@ async function textoDaSessao(cronicaId, sessaoId) {
     return linhas.join('\n');
 }
 
-module.exports = { textoDoNode, textoDoNucleo, textoDoEvento, textoDaSessao };
+// Resolve o nome de um recurso por id, escopado por cronica_id. A tabela vem de um WHITELIST fixo
+// (nunca de input do utilizador) — coerente com a Regra 6.2 (sem SQL dinâmico de fonte externa).
+// Defensivo: id sujo/não-uuid faria o cast estourar → try/catch devolve null em vez de derrubar.
+async function nomePorId(chaveTabela, cronicaId, id) {
+    if (!id) return null;
+    const tabelas = { node: 'world_nodes', nucleo: 'entidade_nucleos' };
+    const tabela = tabelas[chaveTabela];
+    if (!tabela) return null;
+    try {
+        const r = await pool.query(`SELECT nome FROM ${tabela} WHERE id = $1 AND cronica_id = $2`, [id, cronicaId]);
+        return r.rows[0]?.nome || null;
+    } catch {
+        return null;
+    }
+}
+
+// Traduz o EFEITO de uma automação (effect_json) para linguagem natural, resolvendo ids → nomes.
+// Os 'parametros' vêm do jsonb e podem estar incompletos/sujos → tudo com fallback (Regra 4.2).
+async function efeitoDaAutomacao(cronicaId, tipo, p) {
+    switch (tipo) {
+        case 'criar_flag': {
+            const alvo = await nomePorId('node', cronicaId, p.node_id);
+            return `cria o marco "${p.flag_key || '?'}" (valor inicial ${simNao(p.valor_inicial)})${alvo ? ` na entidade ${alvo}` : ''}`;
+        }
+        case 'alterar_flag': {
+            const alvo = await nomePorId('node', cronicaId, p.node_id);
+            return `altera o marco "${p.flag_key || '?'}" para ${simNao(p.novo_valor)}${alvo ? ` na entidade ${alvo}` : ''}`;
+        }
+        case 'postar_em_aba':
+            return p.conteudo ? `publica no diário: "${p.conteudo}"` : 'publica uma postagem no diário';
+        case 'criar_evento':
+            return `cria o evento "${p.nome || '?'}"${p.descricao ? `: ${p.descricao}` : ''}`;
+        case 'criar_entidade': {
+            const nucleo = await nomePorId('nucleo', cronicaId, p.nucleo_id);
+            return `cria a entidade ${p.tipo || ''} "${p.nome || '?'}"${nucleo ? ` na facção ${nucleo}` : ''}`.replace(/\s{2,}/g, ' ');
+        }
+        default:
+            return `executa a ação "${tipo || 'desconhecida'}"`;
+    }
+}
+
+/** Texto rico de uma AUTOMAÇÃO (regra reativa `world_triggers`): "quando o evento X ocorre → efeito Y".
+ *  É texto CURTO e estruturado (condição + efeito), NÃO precisa de chunking → indexado como vetor único
+ *  `automacao:id`. Resolve nomes (evento-gatilho, node-alvo, facção) p/ leitura humana do RAG. */
+async function textoDaAutomacao(cronicaId, automacaoId) {
+    const tQ = await pool.query(
+        `SELECT t.ativo,
+                t.effect_json->>'tipo_nome' AS tipo_nome,
+                t.effect_json->'parametros' AS parametros,
+                e.nome AS evento_nome
+           FROM world_triggers t
+           LEFT JOIN world_events e ON (t.condition_json->>'evento_id')::uuid = e.id
+          WHERE t.id = $1 AND t.cronica_id = $2`,
+        [automacaoId, cronicaId]
+    );
+    if (tQ.rows.length === 0) return null;
+    const t = tQ.rows[0];
+    const params = (t.parametros && typeof t.parametros === 'object') ? t.parametros : {};
+
+    const gatilho = t.evento_nome ? `quando o evento "${t.evento_nome}" ocorre` : 'quando o evento-gatilho ocorre';
+    const efeito = await efeitoDaAutomacao(cronicaId, t.tipo_nome, params);
+
+    return [
+        `Automação (regra reativa): ${gatilho}, ${efeito}.`,
+        `Estado: ${t.ativo ? 'armada (ativa)' : 'desarmada (inativa)'}.`,
+    ].join('\n');
+}
+
+module.exports = { textoDoNode, textoDoNucleo, textoDoEvento, textoDaSessao, textoDaAutomacao };

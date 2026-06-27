@@ -998,8 +998,8 @@ exports.salvarDiplomacia = async (req, res) => {
 // Popula o banco vetorial com o mundo que JÁ existe no Postgres desta crônica.
 // Só Narrador (apenasNarrador na rota) + escopo cronica_id em toda query (Regras 3.3.1/6.2).
 // Idempotente: o id no Chroma é tipo:entidade_id → re-sincronizar SOBRESCREVE, nunca duplica
-// (oraculo.md §5/F3). Escopo espelha o que a F2 escreve: world_nodes + world_events (Sessões/
-// Automações ainda dependem de chunking — débito declarado, fora desta fatia).
+// (oraculo.md §5/F3). Escopo espelha o que a F2 escreve: world_nodes + world_events + sessões
+// (chunking) + automações (vetor único — texto curto condição→efeito).
 // =======================================================
 const sleepOraculo = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -1026,6 +1026,7 @@ exports.sincronizarOraculo = async (req, res) => {
         const nucleosQ = await pool.query("SELECT id FROM entidade_nucleos WHERE cronica_id = $1 AND tipo = 'entidade'", [cronicaId]);
         const eventosQ = await pool.query('SELECT id FROM world_events WHERE cronica_id = $1', [cronicaId]);
         const sessoesQ = await pool.query('SELECT id FROM sessoes WHERE cronica_id = $1', [cronicaId]);
+        const automacoesQ = await pool.query('SELECT id FROM world_triggers WHERE cronica_id = $1', [cronicaId]);
 
         // Cada alvo declara sua AÇÃO: nodes/núcleos/eventos = doc único (`upsert`); sessões = texto longo
         // → CHUNKING (`upsert_chunks`, §4.4/5). 'upsert' é o default.
@@ -1034,6 +1035,7 @@ exports.sincronizarOraculo = async (req, res) => {
             ...nucleosQ.rows.map((x) => ({ tipo: 'nucleo', id: x.id, montar: () => oraculoTexto.textoDoNucleo(cronicaId, x.id) })),
             ...eventosQ.rows.map((e) => ({ tipo: 'evento', id: e.id, montar: () => oraculoTexto.textoDoEvento(cronicaId, e.id) })),
             ...sessoesQ.rows.map((s) => ({ tipo: 'sessao', id: s.id, acao: 'upsert_chunks', montar: () => oraculoTexto.textoDaSessao(cronicaId, s.id) })),
+            ...automacoesQ.rows.map((a) => ({ tipo: 'automacao', id: a.id, montar: () => oraculoTexto.textoDaAutomacao(cronicaId, a.id) })),
         ];
 
         // Envia em lotes pequenos com pausa entre eles — backpressure p/ não pregar a CPU do

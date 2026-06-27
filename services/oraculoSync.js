@@ -68,6 +68,15 @@ function reindexarNucleosDaCronica(cronicaId) {
     })();
 }
 
+// Re-indexa uma AUTOMAÇÃO (`automacao:id`): texto CURTO (condição→efeito) → vetor único via `upsert`
+// (sem chunking — automação não é texto longo como a sessão). Muda em criar/editar-estado da regra.
+function reindexarAutomacao(cronicaId, automacaoId) {
+    if (!oraculoClient.oraculoConfigurado()) return;
+    oraculoTexto.textoDaAutomacao(cronicaId, automacaoId)
+        .then(texto => { if (texto) oraculoClient.enviarParaOraculo('upsert', { cronica_id: cronicaId, tipo: 'automacao', entidade_id: automacaoId, texto }); })
+        .catch(err => console.error('[oraculo] reindexarAutomacao falhou (seguindo):', err.message));
+}
+
 // Remove o vetor de uma entidade apagada (node/evento/núcleo). Apaga por metadata {cronica_id,
 // entidade_id} — varre todos os `tipo:id` daquela entidade. Já é fire-and-forget no conector.
 function removerEntidade(cronicaId, entidadeId) {
@@ -75,6 +84,6 @@ function removerEntidade(cronicaId, entidadeId) {
 }
 
 module.exports = {
-    reindexarNode, reindexarNucleo, reindexarEvento, reindexarSessao,
+    reindexarNode, reindexarNucleo, reindexarEvento, reindexarSessao, reindexarAutomacao,
     reindexarNucleosDaCronica, removerEntidade,
 };
