@@ -16,6 +16,25 @@ function descricaoDoDados(dados) {
     return typeof d === 'string' && d.trim() ? d.trim() : null;
 }
 
+// Lê o "Contrato de Relação" do jsonb de uma sinapse (world_links.dados): `tags` = incidentes/motivos
+// que enchem o TERMÔMETRO de pressão; `limite` = topo do termômetro. Devolve a leitura legível —
+// pressão atual e quanto FALTA para a massa crítica — p/ a IA entender a tensão e a iminência de ruptura.
+// Defensivo contra jsonb sujo (Regra 4.2): limite mínimo 1, tags só strings não-vazias.
+function descreverContrato(dados) {
+    const d = (dados && typeof dados === 'object') ? dados : {};
+    const tags = Array.isArray(d.tags) ? d.tags.filter((t) => typeof t === 'string' && t.trim()) : [];
+    const limite = Math.max(parseInt(d.limite, 10) || 3, 1);
+    const pressao = tags.length;
+    const partes = [];
+    if (pressao) partes.push(`incidentes/motivos: ${tags.join('; ')}`);
+    if (pressao >= limite) {
+        partes.push(`termômetro de pressão ${pressao}/${limite} — MASSA CRÍTICA atingida (relação no limite, prestes a romper)`);
+    } else {
+        partes.push(`termômetro de pressão ${pressao}/${limite} (faltam ${limite - pressao} incidente(s) para a massa crítica)`);
+    }
+    return partes.join('; ');
+}
+
 /** Texto rico de uma ENTIDADE (npc/faccao/local…): facção, local-pai, flags e sinapses. */
 async function textoDoNode(cronicaId, nodeId) {
     const nodeQ = await pool.query(
@@ -46,7 +65,8 @@ async function textoDoNode(cronicaId, nodeId) {
         linhas.push(`Estado (flags): ${flagsQ.rows.map(f => `${f.flag_key}=${simNao(f.flag_value)}`).join(', ')}`);
     }
 
-    // Sinapses = relações bidirecionais (sempre o nome do OUTRO nó + tipo de vínculo + tags).
+    // Sinapses = relações bidirecionais. Cada uma tem um "Contrato de Relação" (incidentes/motivos +
+    // termômetro de pressão) → a IA lê a tensão e quanto falta p/ a massa crítica (ruptura).
     const linksQ = await pool.query(
         `SELECT l.tipo_vinculo, l.dados,
                 CASE WHEN l.origem_node_id = $1 THEN dst.nome ELSE src.nome END AS outro_nome,
@@ -58,11 +78,10 @@ async function textoDoNode(cronicaId, nodeId) {
         [nodeId, cronicaId]
     );
     if (linksQ.rows.length) {
-        const rel = linksQ.rows.map(r => {
-            const tags = r.dados && Array.isArray(r.dados.tags) && r.dados.tags.length ? ` [${r.dados.tags.join(', ')}]` : '';
-            return `${r.tipo_vinculo || 'associado'} → ${r.outro_nome} (${r.outro_tipo})${tags}`;
-        }).join('; ');
-        linhas.push(`Relações: ${rel}`);
+        linhas.push('Relações (Contrato de Relação):');
+        for (const r of linksQ.rows) {
+            linhas.push(`- ${r.tipo_vinculo || 'associado'} com ${r.outro_nome} (${r.outro_tipo}) — ${descreverContrato(r.dados)}`);
+        }
     }
 
     return linhas.join('\n');

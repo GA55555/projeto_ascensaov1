@@ -551,9 +551,15 @@ re-rodar Big Bang; perguntar "resumo da campanha?". Mexer numa flag/sinapse/dipl
   `oraculo_tem_chave`). Proxy `POST /cronicas/:cronicaId/oraculo/consultar` (gates → decifra a chave
   do Narrador → chama o Python).
 - **Texto rico (✅ feito):** `services/oraculoTexto.js` — describer único (DRY) usado pelo Big Bang e
-  pelos ganchos: `textoDoNode` (facção, local-pai, flags, sinapses), `textoDoNucleo` (membros +
-  diplomacia), `textoDoEvento` (estado/tensão, núcleos, gatilhos). Os ganchos montam o texto em 2º
-  plano (sem `await` — não atrasam a tela).
+  pelos ganchos: `textoDoNode` (facção, local-pai, flags, sinapses + **Contrato de Relação**),
+  `textoDoNucleo` (membros + diplomacia), `textoDoEvento` (estado/tensão, núcleos, gatilhos). Os ganchos
+  montam o texto em 2º plano (sem `await` — não atrasam a tela).
+- **Contrato de Relação no RAG (✅ feito):** cada sinapse (`world_links.dados`) tem um contrato —
+  `tags` = incidentes/motivos que enchem o **termômetro de pressão**, `limite` = topo do termômetro.
+  `oraculoTexto.descreverContrato` traduz isso p/ texto legível (incidentes/motivos + leitura do
+  termômetro: pressão X/Y, **quanto falta p/ a massa crítica** ou "MASSA CRÍTICA atingida"). Assim a IA
+  entende a tensão e a iminência de ruptura de uma relação. Re-indexação já coberta: `atualizarLink`
+  re-indexa AMBOS os nós ao mudar o contrato; nós antigos pegam o texto novo no próximo **Big Bang**.
 - **Sessões via chunking (✅ feito, §4.4/5):** o resumo de sessão é texto LONGO → indexado em vários
   vetores. Python ganhou `/upsert_chunks` (apaga TODOS os chunks antigos da entidade + fatia + embeda em
   lote + grava `sessao:id:i` com metadata `chunk:i`, tudo NUM handler — sem corrida delete/write);
