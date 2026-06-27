@@ -1071,7 +1071,7 @@ exports.sincronizarOraculo = async (req, res) => {
 // =======================================================
 exports.consultarOraculo = async (req, res) => {
     const { cronicaId } = req.params;
-    const { pergunta } = req.body;
+    const { pergunta, historico } = req.body; // historico: memória multi-turn (Zod já validou/limitou)
     try {
         // Gate grosso: serviço configurado no servidor?
         if (!oraculoClient.oraculoConfigurado()) {
@@ -1109,6 +1109,7 @@ exports.consultarOraculo = async (req, res) => {
             resposta = await oraculoClient.consultarOraculo({
                 cronica_id: cronicaId,
                 pergunta,
+                historico: historico || [],
                 api_key_llm: chave,
                 base_url_llm: conf.oraculo_gen_url || 'https://api.deepseek.com',
                 model_llm: conf.oraculo_gen_model || 'deepseek-chat',

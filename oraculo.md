@@ -458,32 +458,44 @@ ORACULO_URL=http://127.0.0.1:<porta>
 > `mochila`, Python = `oraculo`). Ambiente de dev (WSL) **sem Postgres/browser** → validação estática
 > aqui, **smoke ao vivo feito pelo Narrador no servidor**.
 
-### 🔖 Retomada rápida — sessão 26/jun/2026 (LEIA PRIMEIRO ao voltar)
+### 🔖 Retomada rápida — sessão 27/jun/2026 (LEIA PRIMEIRO ao voltar)
 **O que esta sessão fechou (tudo validado estaticamente; smoke ao vivo PENDENTE no servidor):**
-1. **F5 completo** — switch opt-in na aba Oráculo (`controle_mundo`) + card BYOK em `config_perfil.html`.
-2. **Re-indexação de frescura (Regra 4.2)** — `services/oraculoSync.js` (módulo central) + 24 ganchos
-   (flags, sinapses, diplomacia, núcleo CRUD, mudança de facção). Os 5 ganchos antigos refatorados p/ ele.
-3. **Desvio Zod saldado (Regra 3.1)** — toggle agora usa `validate(toggleOraculoSchema)`
-   (`validators/cronicasValidators.js`). **Nuance Zod v4.4.3:** usar `error:` (não `required_error`).
-4. **Chunking de Sessões (§4.4/5)** — `/upsert_chunks` no Python + `textoDaSessao` + `reindexarSessao`
-   + ganchos no `sessaoController` + sessões no Big Bang. Destrava "resumo da campanha" no chat.
+1. **Memória de conversa multi-turn (✅ feito — item 1 da fila):** o `/consultar` deixou de ser stateless.
+   - **Front** (`controle_mundo.js`): `oraculoHistorico` guarda as últimas ~4 trocas (`ORACULO_HIST_MAX=8`);
+     envia o histórico (sem a pergunta atual) e empilha a troca no sucesso.
+   - **API** (`oraculoApi.js`): `consultar(cronicaId, pergunta, historico=[])` → body `{pergunta, historico}`.
+   - **Zod** (`consultarOraculoSchema`): `historico` opcional, `default []`, **teto 8 msgs**, `role` em
+     `enum(['user','assistant'])`, `content` 1–2000 chars (contém custo de tokens, §8).
+   - **Controller** (`mundoController.consultarOraculo`): repassa `historico` ao client (o client é genérico).
+   - **Python** (`/consultar`): `ConsultaRequest.historico: list[MensagemHistorico]=[]`; filtra papéis válidos
+     + corta a `HIST_MAX=8` (defesa em profundidade); **retrieval embeda `últimaPergunta+atual`** (resolve
+     "eles/isso"); geração com `messages=[system(grounding desta vez), ...histórico, user]`. `montar_super_prompt`
+     virou `montar_system` (grounding como mensagem de **sistema**, pois os trechos mudam a cada turno).
+     Bônus: `model_config={"protected_namespaces":()}` silencia o warning do Pydantic do campo `model_llm`
+     (item 4 da fila, cosmético). **Não toca o banco.**
 
-**Smoke test ao vivo do F4 (feito pelo Narrador nesta sessão) — diagnóstico:**
+**Sessões anteriores (já commitadas):**
+- **Chunking de Sessões (§4.4/5)** — `/upsert_chunks` + `textoDaSessao` + `reindexarSessao` + ganchos no
+  `sessaoController` + sessões no Big Bang. (Commit `fd2b3114`.) Destrava "resumo da campanha" no chat.
+- **F5 completo**, **Re-indexação de frescura (Regra 4.2, `oraculoSync.js`)**, **Zod no toggle (Regra 3.1)**.
+
+**Smoke test ao vivo do F4 (feito pelo Narrador) — diagnóstico:**
 - ✅ Funciona: retrieval por crônica, diplomacia (inferiu "vilões"), anti-alucinação ("não sei" quando
-  não há trecho). ❌ Falhou "resumo da campanha" → **causa: sessões não indexadas → CORRIGIDO** (item 4).
-- Observado: vaza o tipo cru `(cenario)` nas respostas; e não há memória de conversa (cada pergunta é
-  stateless) → viram os próximos passos.
+  não há trecho). ❌ Falhou "resumo da campanha" → **causa: sessões não indexadas → CORRIGIDO** (chunking).
+- Observado: vaza o tipo cru `(cenario)` nas respostas → item 3 abaixo (pendente).
 
 **PRÓXIMA SESSÃO — por onde pegar (em ordem; ver "Como continuar" abaixo p/ detalhe):**
-1. **Memória de conversa multi-turn** (~4 trocas — decisão do Narrador): maior ganho de "direção da
-   conversa". Front guarda histórico → Zod opcional c/ teto → Python `messages=[system,…histórico,user]`;
-   retrieval embeda `últimaPergunta+atual` p/ resolver pronomes ("eles"). **Não toca o banco.**
-2. Automações via chunking (mesma mecânica das sessões). 3. Não vazar o `tipo` cru no super-prompt.
-4. Cosméticos `app.py`. 5. (Opcional) re-index de membros ao renomear facção.
+1. ~~Memória multi-turn~~ ✅ FEITO nesta sessão.
+2. **Automações via chunking** (mesma mecânica das sessões: describer `textoDaAutomacao` + ganchos).
+3. **Não vazar o `tipo` cru** no super-prompt (ex.: "(cenario)") — ajustar `montar_system`.
+4. ~~Cosmético do warning Pydantic~~ ✅ FEITO junto com a multi-turn. Resta: silenciar telemetria do ChromaDB.
+5. (Opcional) re-index de membros ao renomear/excluir facção.
 
 **Pendência ANTES de confiar:** rodar o **smoke ao vivo** no servidor (`pm2 restart oraculo mochila`):
 criar/editar sessão c/ resumo longo → `pm2 logs oraculo` deve mostrar `/upsert_chunks` com N chunks;
 re-rodar Big Bang; perguntar "resumo da campanha?". Mexer numa flag/sinapse/diplomacia → ver re-upsert.
+**Multi-turn:** perguntar "quem é o vilão?" e depois "e o que **ele** quer?" — a 2ª deve entender o pronome
+(retrieval `últimaPergunta+atual`) e a resposta usar o contexto da 1ª (histórico nas `messages`).
 
 **⚠️ Achado de segurança (fora do escopo, NÃO corrigido):** IDOR em `sessaoController.editarSessao`/
 `deletarSessao` (`WHERE id=$1` sem `cronica_id`) — detalhe na nota ao fim do §9. Decidir se corrige.
@@ -555,13 +567,12 @@ re-rodar Big Bang; perguntar "resumo da campanha?". Mexer numa flag/sinapse/dipl
     COALESCE preserva a atual).
 
 ### Como continuar (próximos passos, em ordem)
-1. **Memória de conversa (multi-turn):** o `/consultar` é stateless (montar_super_prompt só usa
-   trechos+pergunta; o front envia só `{pergunta}`). Passar as **últimas ~4 trocas** como histórico
-   (front guarda → Zod opcional c/ teto → Python vira `messages=[system, ...histórico, user]`; retrieval
-   continua por pergunta, embedando `últimaPergunta+atual` p/ resolver pronomes). Não toca o banco.
+1. ✅ **Memória de conversa (multi-turn) — FEITO (sessão 27/jun):** `/consultar` agora recebe `historico`;
+   front guarda ~4 trocas, Zod com teto 8, Python monta `messages=[system(grounding), ...histórico, user]`
+   e embeda `últimaPergunta+atual` no retrieval. Detalhe na "Retomada rápida" no topo do §9.
 2. **Automações via chunking (§4.4/5):** mesma mecânica das sessões (`upsert_chunks`), se o texto de
    automação valer indexação. Falta um describer `textoDaAutomacao` + ganchos no controller de automações.
-3. **Não vazar rótulo técnico:** instruir o super-prompt a não exibir o `tipo` cru (ex.: "(cenario)").
+3. **Não vazar rótulo técnico:** instruir o `montar_system` a não exibir o `tipo` cru (ex.: "(cenario)").
 4. **Cosméticos no `app.py`:** silenciar a telemetria do ChromaDB (passar `settings=` no
    `PersistentClient` — a linha 31 atual é objeto solto, no-op) e o warning do Pydantic
    (`model_config['protected_namespaces'] = ()` no `ConsultaRequest`, por causa do campo `model_llm`).

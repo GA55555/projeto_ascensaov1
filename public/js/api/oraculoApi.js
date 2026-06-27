@@ -3,10 +3,11 @@
 
 const OraculoApi = {
     // Consulta RAG (F4): o Narrador pergunta; o backend decifra a chave BYOK e fala com o Python.
-    async consultar(cronicaId, pergunta) {
+    // historico: memória multi-turn (trocas anteriores) — o backend valida/limita (Zod, teto 8).
+    async consultar(cronicaId, pergunta, historico = []) {
         const res = await API.fetch(`/cronicas/${cronicaId}/oraculo/consultar`, {
             method: 'POST',
-            body: JSON.stringify({ pergunta })
+            body: JSON.stringify({ pergunta, historico })
         });
         const dados = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(dados.erro || 'O Oráculo não respondeu.');

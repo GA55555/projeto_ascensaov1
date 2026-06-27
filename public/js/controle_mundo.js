@@ -9,6 +9,8 @@ let eventosCache = [];
 let abasCache = [];
 let automacoesCache = [];
 let oraculoAtivo = false; // F5: opt-in do Oráculo nesta crônica (lido do init, alternado pelo switch)
+let oraculoHistorico = []; // memória multi-turn: [{role:'user'|'assistant', content}], só as últimas ~4 trocas
+const ORACULO_HIST_MAX = 8; // teto local (4 trocas) — alinhado ao Zod/Python (defesa em profundidade)
 let sessoesCache = [];
 let nucleosCache = { entidade: [], evento: [], sessao: [] };
 let nucleoAtivoTipo = 'entidade'; // 'entidade' | 'evento' | 'sessao'
@@ -171,13 +173,19 @@ window.consultarOraculo = async function(event) {
     btn.disabled = true;
 
     try {
-        const dados = await OraculoApi.consultar(cronicaId, pergunta);
+        // Envia as trocas anteriores (sem a pergunta atual) p/ a memória multi-turn.
+        const dados = await OraculoApi.consultar(cronicaId, pergunta, oraculoHistorico);
         const resp = dados.resposta_oraculo || 'O Oráculo silenciou.';
         // trechos_usados é inteiro vindo do backend; resp é escapado (texto da IA).
         const meta = dados.trechos_usados
             ? `<span class="oraculo-msg-meta">Baseado em ${dados.trechos_usados} trecho(s) da crônica.</span>` : '';
         document.getElementById(idPensando).outerHTML =
             `<div class="oraculo-msg oraculo-msg-resposta">${escapeHTML(resp)}${meta}</div>`;
+        // Memória: empilha a troca e mantém só as últimas ORACULO_HIST_MAX mensagens.
+        oraculoHistorico.push({ role: 'user', content: pergunta }, { role: 'assistant', content: resp });
+        if (oraculoHistorico.length > ORACULO_HIST_MAX) {
+            oraculoHistorico = oraculoHistorico.slice(-ORACULO_HIST_MAX);
+        }
     } catch (e) {
         document.getElementById(idPensando)?.remove();
         mostrarToast(e.message || 'Erro ao consultar o Oráculo.', 'erro');

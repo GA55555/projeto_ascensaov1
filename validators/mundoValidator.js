@@ -301,7 +301,13 @@ const sincronizarOraculoSchema = z.object({
 const consultarOraculoSchema = z.object({
     params: z.object({ ...cronicaParamOnly }),
     body: z.object({
-        pergunta: z.string().trim().min(1, 'A pergunta não pode ser vazia.').max(1000, 'Pergunta longa demais.')
+        pergunta: z.string().trim().min(1, 'A pergunta não pode ser vazia.').max(1000, 'Pergunta longa demais.'),
+        // Memória multi-turn: trocas anteriores (front guarda ~4). Teto de 8 mensagens + tamanho por
+        // mensagem contém custo de tokens (oraculo.md §8); o Python ainda corta de novo (defesa em profundidade).
+        historico: z.array(z.object({
+            role: z.enum(['user', 'assistant']),
+            content: z.string().trim().min(1).max(2000)
+        })).max(8).optional().default([])
     })
 });
 

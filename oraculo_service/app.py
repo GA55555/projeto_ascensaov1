@@ -95,12 +95,19 @@ class UpsertChunksRequest(BaseModel):
     entidade_id: str
     texto: str
 
+class MensagemHistorico(BaseModel):
+    role: str    # 'user' | 'assistant' — qualquer outro é descartado no /consultar
+    content: str
+
 class ConsultaRequest(BaseModel):
+    # protected_namespaces=() silencia o warning do Pydantic sobre o campo model_llm (começa com "model_").
+    model_config = {"protected_namespaces": ()}
     cronica_id: str
     pergunta: str
-    api_key_llm: str    
-    base_url_llm: str   
-    model_llm: str      
+    api_key_llm: str
+    base_url_llm: str
+    model_llm: str
+    historico: list[MensagemHistorico] = []   # memória multi-turn: trocas anteriores (front guarda ~4)
 
 # ==========================================
 # 5. Rotas (Endpoints) REAIS
@@ -187,16 +194,20 @@ RESPOSTA_SEM_CONTEXTO = (
     "crônica que responda a isto."
 )
 
-def montar_super_prompt(trechos: list[str], pergunta: str) -> str:
-    """Grounding anti-alucinação: a IA responde SÓ com base nos trechos recuperados (§4/F4)."""
+# Teto de mensagens de histórico aceitas na geração (defesa em profundidade — o front e o Node já
+# limitam; aqui cortamos de novo p/ não estourar contexto/custo mesmo se vier mais). ~4 trocas.
+HIST_MAX = 8
+
+def montar_system(trechos: list[str]) -> str:
+    """Grounding anti-alucinação como mensagem de SISTEMA: a IA responde SÓ com base nos trechos
+    recuperados desta vez + no histórico da conversa (§4/F4). Os trechos mudam a cada turno."""
     contexto = "\n\n---\n\n".join(trechos)
     return (
         "Você é o Oráculo, uma entidade que conhece a história desta crônica de RPG. "
         "Responda à pergunta do Narrador baseando-se ÚNICA E EXCLUSIVAMENTE nos trechos "
-        "abaixo. Se a resposta não estiver nos trechos, diga claramente que não sabe — "
-        "nunca invente fatos.\n\n"
-        f"=== TRECHOS DA CRÔNICA ===\n{contexto}\n\n"
-        f"=== PERGUNTA DO NARRADOR ===\n{pergunta}"
+        "abaixo e no histórico desta conversa. Se a resposta não estiver nos trechos, diga "
+        "claramente que não sabe — nunca invente fatos.\n\n"
+        f"=== TRECHOS DA CRÔNICA ===\n{contexto}"
     )
 
 @app.post("/consultar", dependencies=[Depends(verificar_segredo)])
@@ -206,8 +217,21 @@ def consultar_oraculo(req: ConsultaRequest):
         raise HTTPException(status_code=500, detail="Chave OPENAI_EMBEDDINGS_KEY ausente.")
 
     try:
+        # 0. Memória multi-turn: filtra o histórico p/ papéis válidos e não-vazios; corta às últimas
+        #    HIST_MAX mensagens (defesa em profundidade). Pega a última pergunta do Narrador p/ o retrieval.
+        historico = [
+            {"role": m.role, "content": m.content}
+            for m in req.historico
+            if m.role in ("user", "assistant") and m.content.strip()
+        ][-HIST_MAX:]
+        ultima_user = next(
+            (m["content"] for m in reversed(historico) if m["role"] == "user"), ""
+        )
+
         # 1. Embeda a pergunta com o MESMO modelo do /upsert (consistência obrigatória, §4/F4).
-        vetor_pergunta = embeddar([req.pergunta])[0]
+        #    Combina a última pergunta + a atual p/ resolver pronomes ("eles", "isso") no retrieval.
+        texto_busca = f"{ultima_user}\n{req.pergunta}" if ultima_user else req.pergunta
+        vetor_pergunta = embeddar([texto_busca])[0]
 
         # 2. Busca de similaridade AMARRADA à crônica.
         #    O where={"cronica_id": ...} é a fronteira de segurança da Regra 3.3.1 —
@@ -226,12 +250,16 @@ def consultar_oraculo(req: ConsultaRequest):
             return {"status": "sem_contexto", "resposta_oraculo": RESPOSTA_SEM_CONTEXTO}
 
         # 4. Geração via SDK openai com a chave BYOK do Narrador (base_url/model dele — §4.4).
+        #    messages = [system c/ grounding desta vez, ...histórico da conversa, pergunta atual].
+        mensagens = [
+            {"role": "system", "content": montar_system(trechos)},
+            *historico,
+            {"role": "user", "content": req.pergunta},
+        ]
         cliente_geracao = OpenAI(api_key=req.api_key_llm, base_url=req.base_url_llm)
         completion = cliente_geracao.chat.completions.create(
             model=req.model_llm,
-            messages=[
-                {"role": "user", "content": montar_super_prompt(trechos, req.pergunta)}
-            ]
+            messages=mensagens
         )
         resposta = completion.choices[0].message.content
 
