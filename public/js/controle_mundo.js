@@ -22,6 +22,7 @@ if (window.API && typeof API.onMutacao === 'function') {
     API.onMutacao((url) => {
         if (/\/oraculo(\/|$|\?)/.test(url) || url.includes('/perfil/oraculo')) return;
         oraculoMundoSujo = true;
+        sinalizarMundoMudou(); // dica visível no chat: a resposta na tela envelheceu, pergunte de novo
     });
 }
 let sessoesCache = [];
@@ -178,6 +179,7 @@ window.consultarOraculo = async function(event) {
 
     // Tira o placeholder vazio na primeira pergunta.
     conversa.querySelector('.oraculo-vazio')?.remove();
+    document.getElementById('oraculo-aviso-mudanca')?.remove(); // a pergunta nova já endereça a mudança
 
     // Bolha do Narrador (pergunta escapada — XSS, Regra 6.1).
     conversa.insertAdjacentHTML('beforeend', `<div class="oraculo-msg oraculo-msg-narrador">${escapeHTML(pergunta)}</div>`);
@@ -213,6 +215,19 @@ window.consultarOraculo = async function(event) {
     }
     return false;
 };
+
+// Dica visível quando o mundo muda no meio da sessão do Oráculo: deixa claro que a resposta na tela
+// envelheceu e que basta perguntar de novo (a próxima leitura já usa o estado atual). Aparece só se já
+// houve conversa e nunca duplica. Some quando uma nova pergunta é feita ou em "Nova leitura".
+function sinalizarMundoMudou() {
+    const conversa = document.getElementById('oraculo-conversa');
+    if (!conversa || conversa.querySelector('.oraculo-vazio')) return; // sem conversa → nada a avisar
+    if (document.getElementById('oraculo-aviso-mudanca')) return;       // já avisado
+    conversa.insertAdjacentHTML('beforeend',
+        '<div id="oraculo-aviso-mudanca" class="oraculo-aviso-mudanca"><i data-lucide="refresh-cw"></i> O mundo mudou desde a última leitura — pergunte de novo para o Oráculo reler o estado atual.</div>');
+    if (window.lucide) lucide.createIcons();
+    conversa.scrollTop = conversa.scrollHeight;
+}
 
 // Botão "Nova leitura": zera a memória da conversa (e a tela). Útil após mudanças amplas no mundo
 // — garante que a próxima leitura nasça só do estado atual, sem arrastar respostas antigas.

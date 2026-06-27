@@ -3760,6 +3760,14 @@ input[type="radio"] {
 .oraculo-msg-resposta code { font-family: 'Fira Code', monospace; font-size: 0.85em; background: var(--bg-secundario); padding: 1px 5px; border-radius: 4px; }
 .oraculo-md-h { display: block; font-family: 'Cormorant Garamond', serif; font-size: 1.1rem; margin: 4px 0; color: var(--destaque); }
 .oraculo-msg-meta { display: block; margin-top: 6px; font-size: 0.75rem; color: var(--texto-mutado); }
+/* Dica "o mundo mudou — pergunte de novo" (token --aviso, âmbar). */
+.oraculo-aviso-mudanca {
+    align-self: center; display: inline-flex; align-items: center; gap: 6px;
+    margin: 4px 0; padding: 6px 12px; font-size: 0.8rem; font-style: italic;
+    color: var(--aviso); background: color-mix(in srgb, var(--aviso) 12%, var(--bg-card));
+    border: 1px solid color-mix(in srgb, var(--aviso) 40%, transparent); border-radius: 6px;
+}
+.oraculo-aviso-mudanca i { width: 14px; height: 14px; }
 .oraculo-pensando { font-style: italic; color: var(--texto-mutado); }
 .oraculo-input-row { display: flex; gap: 10px; }
 .oraculo-input { flex: 1; }
