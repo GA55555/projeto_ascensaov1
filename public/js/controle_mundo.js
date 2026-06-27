@@ -147,7 +147,8 @@ window.abrirTab = function(tab) {
 
 // ======================================================
 // ABA ORÁCULO (RAG — F5): consulta em linguagem natural
-// A resposta da IA é texto NÃO-confiável → escapeHTML antes do innerHTML (Regra 6.1).
+// A resposta da IA é texto NÃO-confiável → renderMarkdownSeguro (escapa TUDO antes, Regra 6.1) p/
+// exibir a marcação (negrito/listas/títulos) sem abrir vetor de XSS.
 // ======================================================
 window.consultarOraculo = async function(event) {
     if (event) event.preventDefault();
@@ -176,11 +177,11 @@ window.consultarOraculo = async function(event) {
         // Envia as trocas anteriores (sem a pergunta atual) p/ a memória multi-turn.
         const dados = await OraculoApi.consultar(cronicaId, pergunta, oraculoHistorico);
         const resp = dados.resposta_oraculo || 'O Oráculo silenciou.';
-        // trechos_usados é inteiro vindo do backend; resp é escapado (texto da IA).
+        // trechos_usados é inteiro vindo do backend; resp é markdown da IA (renderizado com escape-first).
         const meta = dados.trechos_usados
             ? `<span class="oraculo-msg-meta">Baseado em ${dados.trechos_usados} trecho(s) da crônica.</span>` : '';
         document.getElementById(idPensando).outerHTML =
-            `<div class="oraculo-msg oraculo-msg-resposta">${escapeHTML(resp)}${meta}</div>`;
+            `<div class="oraculo-msg oraculo-msg-resposta">${renderMarkdownSeguro(resp)}${meta}</div>`;
         // Memória: empilha a troca e mantém só as últimas ORACULO_HIST_MAX mensagens.
         oraculoHistorico.push({ role: 'user', content: pergunta }, { role: 'assistant', content: resp });
         if (oraculoHistorico.length > ORACULO_HIST_MAX) {

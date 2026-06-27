@@ -3746,7 +3746,15 @@ input[type="radio"] {
     border: 1px solid var(--borda);
 }
 .oraculo-msg-narrador { align-self: flex-end; background: var(--bg-secundario); border-left: 3px solid var(--roxo-mago); }
-.oraculo-msg-resposta { align-self: flex-start; background: var(--bg-card); border-left: 3px solid var(--destaque); }
+.oraculo-msg-resposta { align-self: flex-start; background: var(--bg-card); border-left: 3px solid var(--destaque); white-space: normal; }
+/* Conteúdo da resposta é Markdown renderizado (não texto cru) → margens de bloco enxutas (Regra 2.5). */
+.oraculo-msg-resposta p { margin: 0 0 8px; }
+.oraculo-msg-resposta p:last-child { margin-bottom: 0; }
+.oraculo-msg-resposta ul, .oraculo-msg-resposta ol { margin: 4px 0 8px; padding-left: 20px; }
+.oraculo-msg-resposta li { margin: 2px 0; }
+.oraculo-msg-resposta strong { font-weight: 600; color: var(--texto-claro); }
+.oraculo-msg-resposta code { font-family: 'Fira Code', monospace; font-size: 0.85em; background: var(--bg-secundario); padding: 1px 5px; border-radius: 4px; }
+.oraculo-md-h { display: block; font-family: 'Cormorant Garamond', serif; font-size: 1.1rem; margin: 4px 0; color: var(--destaque); }
 .oraculo-msg-meta { display: block; margin-top: 6px; font-size: 0.75rem; color: var(--texto-mutado); }
 .oraculo-pensando { font-style: italic; color: var(--texto-mutado); }
 .oraculo-input-row { display: flex; gap: 10px; }

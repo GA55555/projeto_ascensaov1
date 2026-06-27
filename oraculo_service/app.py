@@ -6,6 +6,15 @@ import chromadb
 from chromadb.config import Settings
 from openai import OpenAI
 
+# Telemetria do ChromaDB: a versão do posthog instalada (7.x) é INCOMPATÍVEL com a chamada do chromadb
+# 0.5.0 (`posthog.capture(user_id, event, props)`) → cada evento logava no error.log
+# "capture() takes 1 positional argument but 3 were given". anonymized_telemetry=False NÃO resolve (o
+# chromadb invoca capture() na mesma; o erro é capturado e logado). Fix robusto e sem reinstalar nada:
+# desliga o posthog e torna capture() um no-op à prova de versão. Tem de vir ANTES do PersistentClient.
+import posthog
+posthog.disabled = True
+posthog.capture = lambda *args, **kwargs: None
+
 # 1. CARREGA AS VARIÁVEIS DE AMBIENTE (.env)
 # Sem isto, o PM2 não consegue ler a chave da OpenAI nem o segredo!
 load_dotenv()
@@ -26,8 +35,8 @@ def verificar_segredo(x_oraculo_secret: str = Header(None)):
 # 3. Banco Vetorial (ChromaDB) e IA (OpenAI)
 # ==========================================
 DB_PATH = os.path.join(os.getcwd(), "chroma_data")
-# Silencia a telemetria do ChromaDB (avisos chatos). Tem de ser PASSADO ao client — o Settings(...)
-# solto de antes era um no-op (criava o objeto e descartava, sem efeito).
+# anonymized_telemetry=False declara a intenção (e desativa o posthog no construtor); o no-op do
+# posthog.capture acima é que garante de facto o silêncio, dada a incompatibilidade de versão.
 chroma_client = chromadb.PersistentClient(
     path=DB_PATH,
     settings=Settings(anonymized_telemetry=False),
@@ -213,7 +222,9 @@ def montar_system(trechos: list[str]) -> str:
         "Fale em linguagem natural e imersiva: os trechos são fichas internas, com rótulos e "
         "códigos técnicos (ex.: 'Tipo: npc', 'cenario', 'faccao', 'flags', 'Estado (flags)', "
         "nomes de campos e ids). NUNCA repita esses rótulos ou códigos crus na resposta — "
-        "traduza-os para termos do mundo (personagem, facção, cenário/local, estado…).\n\n"
+        "traduza-os para termos do mundo (personagem, facção, cenário/local, estado…).\n"
+        "Use Markdown simples para organizar a resposta quando ajudar a leitura: **negrito** para "
+        "nomes/destaques, listas com '-' e títulos curtos com '##'. Não use tabelas nem blocos de código.\n\n"
         f"=== TRECHOS DA CRÔNICA ===\n{contexto}"
     )
 

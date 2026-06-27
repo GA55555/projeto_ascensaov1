@@ -494,8 +494,17 @@ ORACULO_URL=http://127.0.0.1:<porta>
 3. ~~Não vazar o `tipo` cru~~ ✅ FEITO. `montar_system` (app.py) agora instrui o Oráculo a NÃO repetir
    rótulos/códigos técnicos dos trechos (ex.: 'Tipo: npc', 'cenario', 'faccao', 'flags') e traduzi-los
    p/ termos do mundo. Fix instantâneo (vale p/ vetores já indexados, sem re-index).
-4. ~~Cosmético do warning Pydantic~~ ✅ + ~~telemetria do ChromaDB~~ ✅ FEITO: o `Settings(...)` solto era
-   no-op; agora é PASSADO ao `PersistentClient(settings=...)`.
+4. ~~Cosmético do warning Pydantic~~ ✅ + ~~telemetria do ChromaDB~~ ✅ FEITO (corrigido de vez): o
+   `Settings(anonymized_telemetry=False)` **não bastou** — o `posthog` instalado (7.x) é incompatível com
+   o chromadb 0.5.0 e o erro `capture() takes 1 positional argument but 3 were given` continuava no
+   error.log (o chromadb chama `capture()` na mesma). Fix robusto em `app.py`: `posthog.disabled = True`
+   + `posthog.capture = no-op` ANTES do `PersistentClient`. Sem reinstalar dependências.
+
+**Bônus desta sessão — Markdown no chat do Oráculo (achado do smoke ao vivo):** a IA respondia com `**`,
+listas e `##` que apareciam como texto cru. Agora o front renderiza um subconjunto seguro de Markdown:
+`utils.renderMarkdownSeguro` (escape-first → Regra 6.1, zero libs → Regra 1) usado na bolha de resposta;
+CSS `.oraculo-msg-resposta`/`.oraculo-md-h` com tokens (Fira Code no código, Cormorant no título — Regra
+2.5); e `montar_system` agora sugere Markdown simples (negrito/listas/títulos, sem tabelas/blocos).
 5. ~~Re-index de membros ao renomear/excluir facção~~ ✅ FEITO. Renomear → `reindexarMembrosDoNucleo`
    (busca por nucleo_id, ainda vinculados); excluir → controller captura os ids ANTES do delete (a FK
    desvincula) e chama `reindexarNodes`. Tira o nome de facção obsoleto do texto dos membros na hora.
@@ -597,9 +606,13 @@ re-rodar Big Bang; perguntar "resumo da campanha?". Mexer numa flag/sinapse/dipl
 3. ✅ **Não vazar rótulo técnico — FEITO:** `montar_system` (app.py) ganhou instrução p/ o Oráculo NÃO
    ecoar rótulos/códigos crus dos trechos ('Tipo: npc', 'cenario', 'faccao', 'flags', ids…) e traduzi-los
    p/ linguagem do mundo. Vale p/ todo o acervo já indexado (não precisa re-index).
-4. ✅ **Cosméticos no `app.py` — FEITO:** telemetria do ChromaDB agora silenciada de verdade
-   (`PersistentClient(settings=Settings(anonymized_telemetry=False))` — antes o `Settings(...)` solto era
-   no-op). O warning do Pydantic (`model_config protected_namespaces`) já fora resolvido na multi-turn.
+4. ✅ **Cosméticos no `app.py` — FEITO:** telemetria do ChromaDB silenciada **de verdade** via
+   neutralização do `posthog` (`disabled=True` + `capture` no-op) — o `Settings(anonymized_telemetry=
+   False)` sozinho não bastava por causa da incompatibilidade posthog 7.x ↔ chromadb 0.5.0. Warning do
+   Pydantic já resolvido na multi-turn.
+6. ✅ **Markdown no chat (achado do smoke) — FEITO:** `utils.renderMarkdownSeguro` (escape-first, vanilla)
+   na bolha de resposta; CSS por tokens; `montar_system` sugere Markdown simples. Itens de resposta
+   (negrito/listas/títulos) deixam de aparecer como `**`/`-` crus.
 5. ✅ **Re-indexar membros ao renomear/excluir facção — FEITO:** `oraculoSync.reindexarMembrosDoNucleo`
    (renomear, busca por nucleo_id) e `oraculoSync.reindexarNodes` (excluir, ids capturados ANTES do delete
    pois a FK ON DELETE SET NULL desvincula os membros). Tira o nome de facção obsoleto na hora — a fila
@@ -624,4 +637,5 @@ re-rodar Big Bang; perguntar "resumo da campanha?". Mexer numa flag/sinapse/dipl
   `validators/cronicasValidators.js` (toggle)
 - Front: `public/controle_mundo.html` (aba + switch), `public/js/controle_mundo.js`
   (`consultarOraculo`/`alternarOraculo`/`refletirEstadoOraculo`), `public/config_perfil.html`
-  (card BYOK + `salvarOraculo`), `public/js/api/oraculoApi.js`, `public/css/global_ui.css` (`.oraculo-*`)
+  (card BYOK + `salvarOraculo`), `public/js/api/oraculoApi.js`, `public/css/global_ui.css` (`.oraculo-*`),
+  `public/js/utils.js` (`renderMarkdownSeguro` — render Markdown seguro da resposta da IA)
