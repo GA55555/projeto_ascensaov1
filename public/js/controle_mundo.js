@@ -1141,7 +1141,6 @@ function corpoContratoHTML() {
         <div class="reta-rotulo">
             <span class="reta-pos reta-pos--${tier.lado}">${sinalNum}</span>
             <span class="reta-tier">${escapeHTML(rotulo)}</span>
-            <span class="reta-escala">reta −10 … +10</span>
         </div>`;
 }
 

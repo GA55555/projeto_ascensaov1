@@ -1980,7 +1980,6 @@ label {
 .reta-rotulo { display: flex; align-items: baseline; gap: 10px; margin: 10px 0 2px; }
 .reta-rotulo .reta-pos { font-family: 'Fira Code', monospace; font-size: 18px; font-weight: 700; }
 .reta-rotulo .reta-tier { font-weight: 600; color: var(--texto-claro); }
-.reta-rotulo .reta-escala { margin-left: auto; font-size: 11px; color: var(--texto-mutado); }
 
 /* Botões de adicionar tag assinada (outline → preenche no hover, com texto/ícone invertidos — Regra 2.6). */
 .contrato-add-acoes { display: flex; gap: 8px; margin: 6px 0 2px; }
