@@ -1003,10 +1003,6 @@ window.abrirModalSinapses = async function(nodeId) {
                         <option value="localizacao">Localização</option>
                     </select>
                 </div>
-                <div class="sinapse-col-max">
-                    <label class="campo-label" title="Máximo de pressão (limite do termômetro)">Máx.</label>
-                    <input type="number" id="sinapse-limite" class="input-sm input-full" min="1" max="20" value="3">
-                </div>
                 <button class="btn btn-primary btn-sm" data-id="${escapeHTML(String(nodeId))}" onclick="conectarSinapse(this.dataset.id)"><i data-lucide="link"></i> Conectar</button>
             </div>
         </div>`;
@@ -1043,18 +1039,17 @@ async function recarregarSinapses(nodeId) {
         cont.innerHTML = '<div class="info-block-vazio">Nenhuma conexão ainda.</div>';
     } else {
         cont.innerHTML = links.map(l => {
-            const d = l.dados || {};
-            const tags = Array.isArray(d.tags) ? d.tags : [];
-            const limite = parseInt(d.limite, 10) || 3;
-            const pressao = tags.length;
-            const critico = pressao >= limite && pressao > 0;
-            const termo = pressao > 0
-                ? `<span class="badge-termometro-wrap" data-link="${escapeHTML(String(l.id))}" onclick="abrirContratoRelacao(this.dataset.link)" title="Pressão ${pressao}/${limite}${critico ? ' — MASSA CRÍTICA' : ''}">${barraPressaoHTML(pressao, limite, true)}</span>`
+            // Reta de Relação: posição derivada das tags assinadas (RelacaoEscala, fonte única).
+            const { posicao, tier, tags } = RelacaoEscala.lerRelacao(l.dados || {}, l.tipo_vinculo);
+            const extremo = tier.nivel === 'extremo';
+            const sinalNum = `${posicao > 0 ? '+' : ''}${posicao}`;
+            const reta = tags.length
+                ? `<span class="reta-badge reta-pos--${tier.lado}" data-link="${escapeHTML(String(l.id))}" onclick="abrirContratoRelacao(this.dataset.link)" title="${tier.nivel === 'neutro' ? 'Neutro' : escapeHTML(tier.rotulo)} (${sinalNum} de 10)">${barraRetaHTML(posicao, true)}<span class="reta-badge-num">${sinalNum}</span></span>`
                 : '';
             return `
-            <span class="badge-link ${classeTipoLink(l.tipo_vinculo)}${critico ? ' link-massa-critica' : ''}">
+            <span class="badge-link ${classeTipoLink(l.tipo_vinculo)}${extremo ? ' link-extremo' : ''}">
                 <span class="badge-link-nome" data-id="${escapeHTML(String(l.node_conectado_id))}" onclick="navegarSinapse(this.dataset.id)" title="Abrir entidade conectada">${escapeHTML(l.tipo_vinculo)}: ${escapeHTML(l.node_conectado_nome)}</span>
-                ${termo}
+                ${reta}
                 <i data-lucide="book-open" class="btn-contrato" data-link="${escapeHTML(String(l.id))}" onclick="abrirContratoRelacao(this.dataset.link)" title="Contrato de Relação"></i>
                 <i data-lucide="x" class="btn-deletar-link" data-node="${escapeHTML(String(nodeId))}" data-link="${escapeHTML(String(l.id))}" onclick="removerSinapse(this.dataset.node, this.dataset.link)" title="Remover conexão"></i>
             </span>`;
@@ -1081,11 +1076,10 @@ window.conectarSinapse = async function(nodeId) {
     const destino = document.getElementById('sinapse-destino')?.value;
     const tipo = document.getElementById('sinapse-tipo')?.value || 'associado';
     if (!destino) { mostrarToast('Selecione uma entidade para conectar.', 'aviso'); return; }
-    const limite = Math.min(20, Math.max(1, parseInt(document.getElementById('sinapse-limite')?.value, 10) || 3));
     try {
-        // Criação rápida: nó + tipo + limite do termômetro. As tags (pressão) são
+        // Criação rápida: nó + tipo. As tags assinadas (que movem a Reta de Relação) são
         // adicionadas depois, pelo Contrato de Relação ao clicar no badge.
-        await MundoApi.criarLink(cronicaId, nodeId, destino, tipo, { limite });
+        await MundoApi.criarLink(cronicaId, nodeId, destino, tipo, { tags: [] });
         mostrarToast('Conexão criada!', 'sucesso');
         await recarregarSinapses(nodeId);
     } catch (e) {
@@ -1109,38 +1103,45 @@ window.navegarSinapse = function(connectedNodeId) {
     abrirModalSinapses(connectedNodeId);
 };
 
-// ── PANELA DE PRESSÃO (Fase 11 refatorada): TAGS + TERMÔMETRO ──
-// Estado local do Contrato aberto (fonte da verdade enquanto o modal vive).
+// ── RETA DE RELAÇÃO (reta_relacao.md): TAGS ASSINADAS + RETA BIPOLAR -10..+10 ──
+// Estado local do Contrato aberto (fonte da verdade enquanto o modal vive). As tags são objetos
+// {texto, sinal}; o tipo_vinculo guia a inferência de tags LEGADAS (string) na abertura (decisão 5).
 let contratoLinkId = null;
 let contratoTags = [];
-let contratoLimite = 3;
+let contratoTipoVinculo = 'associado';
 
-// Barrinha de pressão contínua: largura = pressao/limite, cor modula brando→escuro
-// (paleta Brasa) via color-mix das vars --pressao-baixa/--pressao-alta. `compacta` =
-// versão miúda do badge. Largura% + cor são dinâmicos data-driven (Regra 2.5, barra-fill).
-function barraPressaoHTML(pressao, limite, compacta = false) {
-    const lim = Math.max(1, parseInt(limite, 10) || 3);
-    const p = Math.max(0, parseInt(pressao, 10) || 0);
-    const pct = Math.round(Math.min(p / lim, 1) * 100);
-    const critico = p >= lim;
-    const cor = `color-mix(in srgb, var(--pressao-alta) ${pct}%, var(--pressao-baixa))`;
-    return `<span class="pressao-barra${compacta ? ' compacta' : ''}${critico ? ' massa-critica' : ''}">
-        <span class="pressao-fill" style="width: ${pct}%; background: ${cor};"></span>
+// Barra DIVERGENTE: preenche do centro (0) até a posição. Direita (+) = aliado, esquerda (−) = inimigo.
+// left/width são data-driven (Regra 2.5 permite inline p/ layout dinâmico); a COR vem de classe/token.
+function barraRetaHTML(posicao, compacta = false) {
+    const pos = Math.max(-10, Math.min(10, parseInt(posicao, 10) || 0));
+    const metade = (Math.abs(pos) / 10) * 50;                 // % do total, a partir do centro
+    const lado = pos > 0 ? 'reta-fill--pos' : (pos < 0 ? 'reta-fill--neg' : '');
+    const estiloFill = pos >= 0 ? `left:50%;width:${metade}%;` : `left:${50 - metade}%;width:${metade}%;`;
+    const agulha = 50 + (pos / 10) * 50;                      // % posição da agulha
+    return `<span class="reta-barra${compacta ? ' compacta' : ''}">
+        <span class="reta-zero"></span>
+        <span class="reta-fill ${lado}" style="${estiloFill}"></span>
+        <span class="reta-agulha" style="left:${agulha}%;"></span>
     </span>`;
 }
 
-// Corpo dinâmico do Contrato (pills + termômetro), re-renderizado a cada mudança.
+// Corpo dinâmico do Contrato (pills assinadas + reta), re-renderizado a cada mudança.
 function corpoContratoHTML() {
-    const pressao = contratoTags.length;
-    const critico = pressao >= contratoLimite;
-    const pills = contratoTags.map((t, i) =>
-        `<span class="tag">${escapeHTML(t)}<i data-lucide="x" class="tag-remover" data-idx="${i}" onclick="removerTagContrato(this.dataset.idx)" title="Remover"></i></span>`
-    ).join('');
+    const { posicao, tier } = RelacaoEscala.lerRelacao({ tags: contratoTags }, contratoTipoVinculo);
+    const pills = contratoTags.map((t, i) => {
+        const cls = t.sinal > 0 ? 'tag--pos' : (t.sinal < 0 ? 'tag--neg' : 'tag--neutro');
+        const icone = t.sinal > 0 ? 'plus' : (t.sinal < 0 ? 'minus' : 'circle');
+        return `<span class="tag ${cls}"><i data-lucide="${icone}" class="tag-selo"></i>${escapeHTML(t.texto)}<i data-lucide="x" class="tag-remover" data-idx="${i}" onclick="removerTagContrato(this.dataset.idx)" title="Remover"></i></span>`;
+    }).join('');
+    const sinalNum = `${posicao > 0 ? '+' : ''}${posicao}`;
+    const rotulo = tier.nivel === 'neutro' ? 'Neutro' : tier.rotulo;
     return `
         <div class="tag-lista">${pills}</div>
-        <div class="termometro-rotulo">
-            ${barraPressaoHTML(pressao, contratoLimite, false)}
-            <span class="termo-estado ${critico ? 'critico' : ''}">${critico ? 'MASSA CRÍTICA' : `Pressão ${pressao}/${contratoLimite}`}</span>
+        ${barraRetaHTML(posicao, false)}
+        <div class="reta-rotulo">
+            <span class="reta-pos reta-pos--${tier.lado}">${sinalNum}</span>
+            <span class="reta-tier">${escapeHTML(rotulo)}</span>
+            <span class="reta-escala">reta −10 … +10</span>
         </div>`;
 }
 
@@ -1154,8 +1155,10 @@ window.abrirContratoRelacao = function(linkId) {
     const nomeA = central ? central.nome : 'Entidade';
     const d = l.dados || {};
     contratoLinkId = l.id;
-    contratoTags = Array.isArray(d.tags) ? d.tags.slice() : [];
-    contratoLimite = parseInt(d.limite, 10) || 3;
+    contratoTipoVinculo = l.tipo_vinculo || 'associado';
+    // Normaliza: tolera tags LEGADAS (string) → {texto, sinal} inferido do tipo_vinculo (decisão 5).
+    // Soft-migration: ao persistir, voltam gravadas como objetos assinados.
+    contratoTags = RelacaoEscala.normalizarTags(d.tags, contratoTipoVinculo).map(t => ({ texto: t.texto, sinal: t.sinal }));
 
     const modal = document.createElement('div');
     modal.className = 'modal show';
@@ -1163,7 +1166,7 @@ window.abrirContratoRelacao = function(linkId) {
     modal.innerHTML = `
         <div class="modal-box modal-contrato-box">
             <div class="modal-head">
-                <h3 class="texto-roxo modal-titulo"><i data-lucide="flame"></i> Contrato de Relação</h3>
+                <h3 class="texto-roxo modal-titulo"><i data-lucide="move-horizontal"></i> Contrato de Relação</h3>
                 <button class="btn btn-ghost btn-sm" onclick="fecharContrato()" title="Fechar"><i data-lucide="x"></i></button>
             </div>
             <div class="contrato-partes">
@@ -1173,7 +1176,11 @@ window.abrirContratoRelacao = function(linkId) {
             </div>
             <p class="contrato-tipo">Tipo: ${escapeHTML(capitalizar(l.tipo_vinculo))}</p>
             <label>Incidentes / Motivos</label>
-            <input type="text" id="contrato-tag-input" class="input-sm input-full" placeholder="Adicionar incidente/motivo... (Enter)" onkeydown="contratoTagKeydown(event)">
+            <input type="text" id="contrato-tag-input" class="input-sm input-full" placeholder="Descreva o incidente/motivo…" onkeydown="contratoTagKeydown(event)">
+            <div class="contrato-add-acoes">
+                <button type="button" class="btn btn-sm btn-aproxima" onclick="adicionarTagContrato(1)"><i data-lucide="plus"></i> Aproxima</button>
+                <button type="button" class="btn btn-sm btn-afasta" onclick="adicionarTagContrato(-1)"><i data-lucide="minus"></i> Afasta</button>
+            </div>
             <div id="contrato-corpo">${corpoContratoHTML()}</div>
         </div>`;
     document.body.appendChild(modal);
@@ -1185,33 +1192,36 @@ window.fecharContrato = function() {
     const m = document.getElementById('modal-contrato');
     if (m) m.remove();
 };
-// Enter no input → vira tag e persiste. Único ponto de escuta no elemento (Regra 2.9).
+// Adiciona uma tag ASSINADA (+1 aproxima / −1 afasta) e persiste. Um passo move a reta (decisão 4).
+window.adicionarTagContrato = function(sinal) {
+    const input = document.getElementById('contrato-tag-input');
+    const val = (input?.value || '').trim();
+    if (!val) return;
+    if (contratoTags.length >= 50) { mostrarToast('Limite de tags atingido.', 'aviso'); return; }
+    contratoTags.push({ texto: val.slice(0, 120), sinal: sinal < 0 ? -1 : 1 });
+    if (input) input.value = '';
+    persistirContrato();
+};
+// Enter no input = atalho p/ "Aproxima" (+); o "Afasta" (−) fica no botão. Único ponto de escuta (Regra 2.9).
 window.contratoTagKeydown = function(e) {
     if (e.key !== 'Enter') return;
     e.preventDefault();
-    const val = (e.target.value || '').trim();
-    if (!val) return;
-    if (contratoTags.length >= 50) { mostrarToast('Limite de tags atingido.', 'aviso'); return; }
-    contratoTags.push(val.slice(0, 120));
-    e.target.value = '';
-    persistirContrato();
+    adicionarTagContrato(1);
 };
 window.removerTagContrato = function(idx) {
     contratoTags.splice(parseInt(idx, 10), 1);
     persistirContrato();
 };
-// Persiste o array de tags no JSONB e atualiza o corpo do modal + os badges do painel.
+// Persiste o array de tags ASSINADAS no JSONB e atualiza o corpo do modal + os badges do painel.
 async function persistirContrato() {
     const corpo = document.getElementById('contrato-corpo');
     if (corpo) { corpo.innerHTML = corpoContratoHTML(); lucide.createIcons(); } // re-render otimista
-    // MERGE: preserva x/y/icone/cargo da Mesa de Guerra (mesmo JSONB world_links.dados).
-    const link = sinapsesAtuais.find(l => String(l.id) === String(contratoLinkId));
-    const dados = { ...(link?.dados || {}), tags: contratoTags, limite: contratoLimite };
+    const dados = { tags: contratoTags }; // `dados` só guarda as tags (limite é obsoleto — reta_relacao.md)
     try {
         await MundoApi.atualizarLink(cronicaId, nodeAtualSinapse, contratoLinkId, dados);
-        await recarregarSinapses(nodeAtualSinapse); // reflete termômetro/massa crítica no badge
+        await recarregarSinapses(nodeAtualSinapse); // reflete a reta no badge
     } catch (e) {
-        mostrarToast(e.message || 'Erro ao gravar a pressão da relação.', 'erro');
+        mostrarToast(e.message || 'Erro ao gravar a relação.', 'erro');
     }
 }
 

@@ -1941,10 +1941,11 @@ label {
     margin: 0 0 14px;
 }
 
-/* Barrinha de pressão contínua: trilho fixo, preenchimento modula em largura+cor
-   (paleta Brasa, definida inline data-driven — Regra 2.5 barra-fill). */
-.pressao-barra {
-    display: inline-block;
+/* ── RETA DE RELAÇÃO (reta_relacao.md): barra DIVERGENTE -10..+10 ──
+   Trilho fixo; o preenchimento (largura/posição) é data-driven inline (Regra 2.5 barra-fill);
+   a COR sai de token (--link-aliado verde / --link-inimigo vermelho). */
+.reta-barra {
+    position: relative;
     width: 100%;
     height: 10px;
     background: var(--bg-principal);
@@ -1953,33 +1954,48 @@ label {
     overflow: hidden;
     vertical-align: middle;
 }
-.pressao-fill {
-    display: block;
-    height: 100%;
-    border-radius: 4px;
-    transition: width 0.3s ease, background 0.3s ease;
-}
-/* Versão compacta dentro do badge do painel. */
-.badge-termometro-wrap { display: inline-flex; align-items: center; cursor: pointer; flex-shrink: 0; }
-.pressao-barra.compacta { width: 40px; height: 6px; }
+.reta-barra.compacta { width: 56px; height: 7px; flex-shrink: 0; }
+.reta-zero { position: absolute; top: 0; bottom: 0; left: 50%; width: 1px; background: var(--borda); transform: translateX(-0.5px); }
+.reta-fill { position: absolute; top: 0; bottom: 0; transition: width 0.3s ease, left 0.3s ease; }
+.reta-fill--pos { background: var(--link-aliado); }
+.reta-fill--neg { background: var(--link-inimigo); }
+.reta-agulha { position: absolute; top: -1px; bottom: -1px; width: 2px; background: var(--texto-claro); transform: translateX(-1px); transition: left 0.3s ease; }
 
-/* Massa Crítica: pulsação suave no badge do painel principal. */
-@keyframes pulso-critico {
-    0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--erro) 50%, transparent); }
-    50%      { box-shadow: 0 0 7px 2px color-mix(in srgb, var(--erro) 45%, transparent); }
-}
-.badge-link.link-massa-critica {
-    border-color: var(--erro);
-    animation: pulso-critico 1.8s ease-in-out infinite;
-}
+/* Badge da reta no painel de sinapses (barra compacta + número assinado). */
+.reta-badge { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; flex-shrink: 0; }
+.reta-badge-num { font-family: 'Fira Code', monospace; font-size: 12px; font-weight: 600; }
+.reta-pos--aliado  { color: var(--link-aliado); }
+.reta-pos--inimigo { color: var(--link-inimigo); }
+.reta-pos--neutro  { color: var(--texto-mutado); }
 
-/* Input + pills de tags (FATE) no Contrato de Relação. */
+/* Extremo (±8..10): realce sutil pulsante no badge da conexão (herda a cor do tipo de vínculo). */
+@keyframes pulso-extremo {
+    0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--cor-link, var(--destaque)) 45%, transparent); }
+    50%      { box-shadow: 0 0 7px 2px color-mix(in srgb, var(--cor-link, var(--destaque)) 40%, transparent); }
+}
+.badge-link.link-extremo { animation: pulso-extremo 2s ease-in-out infinite; }
+
+/* Rótulo da reta no modal (posição + tier + escala). */
+.reta-rotulo { display: flex; align-items: baseline; gap: 10px; margin: 10px 0 2px; }
+.reta-rotulo .reta-pos { font-family: 'Fira Code', monospace; font-size: 18px; font-weight: 700; }
+.reta-rotulo .reta-tier { font-weight: 600; color: var(--texto-claro); }
+.reta-rotulo .reta-escala { margin-left: auto; font-size: 11px; color: var(--texto-mutado); }
+
+/* Botões de adicionar tag assinada (outline → preenche no hover, com texto/ícone invertidos — Regra 2.6). */
+.contrato-add-acoes { display: flex; gap: 8px; margin: 6px 0 2px; }
+.contrato-add-acoes .btn { flex: 1; }
+.btn-aproxima { border: 1px solid var(--link-aliado); color: var(--link-aliado); background: transparent; }
+.btn-aproxima:hover { background: var(--link-aliado); color: var(--bg-principal); }
+.btn-afasta { border: 1px solid var(--link-inimigo); color: var(--link-inimigo); background: transparent; }
+.btn-afasta:hover { background: var(--link-inimigo); color: var(--bg-principal); }
+
+/* Pills de tags ASSINADAS no Contrato de Relação (selo +/− por cor de valência). */
 .tag-lista { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 4px; }
 .tag-lista:empty { display: none; }
 .tag {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
     background: color-mix(in srgb, var(--roxo-mago) 16%, var(--bg-principal));
     border: 1px solid var(--roxo-mago);
     border-radius: 4px;
@@ -1987,6 +2003,12 @@ label {
     font-size: 13px;
     color: var(--texto-claro);
 }
+.tag .tag-selo { width: 13px; height: 13px; flex-shrink: 0; }
+.tag--pos { background: color-mix(in srgb, var(--link-aliado) 16%, var(--bg-principal)); border-color: var(--link-aliado); }
+.tag--pos .tag-selo { color: var(--link-aliado); }
+.tag--neg { background: color-mix(in srgb, var(--link-inimigo) 16%, var(--bg-principal)); border-color: var(--link-inimigo); }
+.tag--neg .tag-selo { color: var(--link-inimigo); }
+.tag--neutro .tag-selo { color: var(--texto-mutado); }
 .tag .tag-remover {
     cursor: pointer;
     width: 13px;
@@ -1995,27 +2017,13 @@ label {
     transition: var(--transicao-suave);
 }
 .tag .tag-remover:hover { color: var(--erro); }
-.termometro-rotulo {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    margin: 10px 0 2px;
-}
-.termometro-rotulo .pressao-barra { flex: 1; width: auto; }
-.termometro-rotulo .termo-estado {
-    flex-shrink: 0;
-    font-family: 'Fira Code', monospace;
-    font-size: 12px;
-    color: var(--texto-mutado);
-}
-.termometro-rotulo .termo-estado.critico { color: var(--erro); }
 
 /* Coerência 16-bit: bordas retas + numerais pixelados (Scope Override, Paradigma 5). */
-.tema-pixel-16bit .pressao-barra,
-.tema-pixel-16bit .pressao-fill,
+.tema-pixel-16bit .reta-barra,
+.tema-pixel-16bit .reta-fill,
 .tema-pixel-16bit .tag { border-radius: 0 !important; }
-.tema-pixel-16bit .termometro-rotulo .termo-estado { font-family: 'VT323', monospace !important; }
+.tema-pixel-16bit .reta-rotulo .reta-pos,
+.tema-pixel-16bit .reta-badge-num { font-family: 'VT323', monospace !important; }
 
 /* ── MAPA DE SINAPSES (VISÃO RELACIONAL EM TEIA) ───────── */
 .mapa-sinapses-box {

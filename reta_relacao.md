@@ -117,4 +117,22 @@ links"/reputação de RPG): guarda-se o log de eventos assinados e deriva-se a p
     null/sujo — todos corretos. **Smoke ao vivo PENDENTE** (sem Postgres/browser no dev).
   - **Estado interino consciente:** UI ainda mostra o termômetro; o RAG já fala em "reta". Alinha na
     Fatia 2. A UI antiga continua funcionando (grava string → contrato tolerante a aceita).
-- **PRÓXIMO:** Fatia 2 (frontend da reta) — enviar opções de UX ao Narrador (decisão 2) antes de codar.
+- **Fatia 2 — Frontend da reta (✅ feito, validado estaticamente):**
+  - **UX escolhida pelo Narrador:** reta = **barra divergente + agulha** (preenche do centro, verde→/←vermelho
+    por tokens); tags = **pills com selo de sinal** (+Aproxima/−Afasta). Selos usam **Lucide** `plus`/`minus`
+    (Regra 2.3 — nada de emoji/unicode).
+  - `public/js/relacaoEscala.js` (novo) — **espelho browser** do `services/relacaoEscala.js` (`window.
+    RelacaoEscala`); manter em sync (sem build).
+  - `controle_mundo.js` — `barraRetaHTML` (divergente, left/width inline data-driven; cor por token),
+    `corpoContratoHTML` (pills assinadas + reta + tier), estado `contratoTags` agora `{texto,sinal}` +
+    `contratoTipoVinculo`, `abrirContratoRelacao` normaliza tags legadas (soft-migration), `adicionarTag
+    Contrato(sinal)` + botões Aproxima/Afasta (Enter = +), `persistirContrato` grava só `{tags}` (sem
+    `limite`). Badge do painel troca termômetro→reta; `link-massa-critica`→`link-extremo` (tier ±8..10).
+    Form de criar conexão perdeu o campo "Máx." (obsoleto).
+  - `global_ui.css` — bloco do termômetro **substituído** por `.reta-*`/`.tag--pos|neg|neutro`/botões
+    Aproxima/Afasta (tokens `--link-aliado`/`--link-inimigo`; contraste no hover Regra 2.6; 16-bit override).
+  - `controle_mundo.html` — carrega `relacaoEscala.js` antes do `controle_mundo.js`; cache-buster `?v=3`.
+  - **Sem órfãos** (grep limpo de `barraPressaoHTML`/`pressao-*`/`termometro`/`massa-critica`). node --check ok.
+  - **Débito p/ Fatia 3:** tokens `--pressao-baixa/--pressao-alta` ficaram mortos (remover na limpeza).
+- **PRÓXIMO:** smoke ao vivo do Narrador (modal da reta, sinais, badge, RAG após Sincronizar). Depois,
+  opcional, **Fatia 3** (limpeza: remover `limite`/tokens mortos; migração em massa das tags legadas).
