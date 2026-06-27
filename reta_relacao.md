@@ -134,5 +134,13 @@ links"/reputação de RPG): guarda-se o log de eventos assinados e deriva-se a p
   - `controle_mundo.html` — carrega `relacaoEscala.js` antes do `controle_mundo.js`; cache-buster `?v=3`.
   - **Sem órfãos** (grep limpo de `barraPressaoHTML`/`pressao-*`/`termometro`/`massa-critica`). node --check ok.
   - **Débito p/ Fatia 3:** tokens `--pressao-baixa/--pressao-alta` ficaram mortos (remover na limpeza).
-- **PRÓXIMO:** smoke ao vivo do Narrador (modal da reta, sinais, badge, RAG após Sincronizar). Depois,
-  opcional, **Fatia 3** (limpeza: remover `limite`/tokens mortos; migração em massa das tags legadas).
+- **Fatia 3 — Limpeza (✅ feito):**
+  - Removidos os tokens mortos `--pressao-baixa/--pressao-alta` (nos 2 temas) — sobra do termômetro,
+    confirmado sem uso por grep.
+  - `dadosLinkSchema` perdeu o campo `limite` (obsoleto); um `limite` residual de gravações legadas é
+    descartado pelo strip do Zod (objeto strict). `dados` agora é só `{tags}`.
+  - **Migração em massa das tags legadas: NÃO feita (decisão consciente).** A soft-migration ao abrir/salvar
+    cada contrato já basta; um `UPDATE` em massa seria risco desnecessário (Regra 4.2). Tags legadas seguem
+    sendo lidas via inferência por `tipo_vinculo` até serem tocadas.
+- **Feature COMPLETA (Fatias 1–3).** Resta só o **smoke ao vivo do Narrador** (modal da reta, Aproxima/
+  Afasta movendo a agulha, badge, e RAG após o Sincronizar/Big Bang).

@@ -128,10 +128,10 @@ const listarLinksSchema = z.object({
 });
 // JSONB world_links.dados — "Reta de Relação" (reta_relacao.md): tags assinadas que somam uma posição
 // bipolar -10..+10 (cada tag = 1 passo; gancho PESO_TAG p/ passos variáveis no futuro — decisão 4).
-// CONTRATO TOLERANTE (expand-contract, Regra 4.2): a `tag` pode vir como STRING legada (a UI atual ainda
-// grava string) OU como objeto {texto, sinal, peso?} (UI nova). Assim a Fatia 1 sobe sem quebrar o front
-// antigo; a leitura (relacaoEscala) normaliza os dois. `limite` é OBSOLETO (reta fixa ±10) — apenas
-// tolerado p/ não rejeitar gravações legadas; removido na Fatia 3. Chaves desconhecidas: strip do Zod.
+// CONTRATO TOLERANTE (expand-contract, Regra 4.2): a `tag` pode vir como STRING legada OU como objeto
+// {texto, sinal, peso?} (UI nova). A leitura (relacaoEscala) normaliza os dois. O campo `limite` do antigo
+// termômetro foi APOSENTADO (reta fixa ±10); um eventual `limite` residual de gravações legadas é
+// descartado pelo strip do Zod (objeto strict). Chaves desconhecidas: strip do Zod.
 const tagRelacaoSchema = z.union([
     z.string().trim().min(1).max(120), // legado (string sem sinal — polaridade inferida do tipo_vinculo)
     z.object({
@@ -141,8 +141,7 @@ const tagRelacaoSchema = z.union([
     })
 ]);
 const dadosLinkSchema = z.object({
-    tags: z.array(tagRelacaoSchema).max(50).default([]),
-    limite: z.number().int().min(1).max(20).optional() // OBSOLETO (ver acima)
+    tags: z.array(tagRelacaoSchema).max(50).default([])
 }).optional();
 
 const criarLinkSchema = z.object({

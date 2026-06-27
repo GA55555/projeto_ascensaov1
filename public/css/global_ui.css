@@ -27,8 +27,6 @@
     --erro:            #ef4444;
     --aviso:           #f59e0b;
     --azul-vida:       #3b82f6;
-    --pressao-baixa:   #f0a020;
-    --pressao-alta:    #7a1420;
     --rosa:            #ec4899;
     --dourado:         #eab308;  /* acento de Eventos no tabuleiro (Fase 15) */
     --link-aliado:      #22c55e;
@@ -66,8 +64,6 @@
     --erro:             #f38ba8;                  /* red */
     --aviso:            #f9e2af;                  /* yellow */
     --azul-vida:        #89dceb;                  /* sky */
-    --pressao-baixa:    #a6e3a1;                  /* green */
-    --pressao-alta:     #f38ba8;                  /* red */
     --rosa:             #f5c2e7;                  /* pink */
     --dourado:          #fab387;                  /* peach */
     --link-aliado:      #a6e3a1;                  /* green */
