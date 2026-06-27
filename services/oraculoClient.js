@@ -40,7 +40,11 @@ function _postar(acao, dados, timeoutMs) {
  */
 function enviarParaOraculo(acao, dados) {
     if (!oraculoConfigurado()) return; // gate grosso → no-op
-    _postar(acao, dados, 2000) // timeout curto: não pendura a conexão do salvar
+    // Timeout FOLGADO (10s): o /upsert chama a API de embeddings (OpenAI), que às vezes passa de 2s.
+    // Como isto é FIRE-AND-FORGET (sem await), um timeout maior NÃO atrasa o salvar do Narrador — só
+    // evita abortar a re-indexação no meio (o que deixava o vetor desatualizado e o Oráculo "cego" à
+    // mudança). Alinha com o Big Bang (8s). O antigo 2s causava falha silenciosa em escritas legítimas.
+    _postar(acao, dados, 10000)
         .catch(err => console.error(`[oraculo] ${acao} falhou (seguindo a vida):`, err.message));
     // Sem await: o controller segue e responde ao Narrador imediatamente.
 }

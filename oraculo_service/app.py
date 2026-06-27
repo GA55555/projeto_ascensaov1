@@ -224,6 +224,8 @@ def montar_system(trechos: list[str]) -> str:
         "No máximo uma pitada de mística (uma metáfora breve de carta/véu/destino) — nunca floreio longo.\n"
         "Responda baseando-se ÚNICA E EXCLUSIVAMENTE nos trechos abaixo e no histórico desta conversa. "
         "Se a resposta não estiver nos trechos, diga — no mesmo tom — que as cartas se calam; nunca invente.\n"
+        "Os trechos refletem o estado ATUAL do mundo, que pode ter mudado desde mensagens anteriores. "
+        "Se o histórico contradisser os trechos, os TRECHOS PREVALECEM (o destino se reescreveu).\n"
         "Os trechos são fichas internas, com rótulos e códigos técnicos (ex.: 'Tipo: npc', 'cenario', "
         "'faccao', 'flags', 'Estado (flags)', nomes de campos e ids). NUNCA repita esses rótulos ou "
         "códigos crus — traduza-os para termos do mundo (personagem, facção, cenário/local, estado…).\n"
