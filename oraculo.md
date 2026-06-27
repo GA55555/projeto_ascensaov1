@@ -505,6 +505,13 @@ listas e `##` que apareciam como texto cru. Agora o front renderiza um subconjun
 `utils.renderMarkdownSeguro` (escape-first → Regra 6.1, zero libs → Regra 1) usado na bolha de resposta;
 CSS `.oraculo-msg-resposta`/`.oraculo-md-h` com tokens (Fira Code no código, Cormorant no título — Regra
 2.5); e `montar_system` agora sugere Markdown simples (negrito/listas/títulos, sem tabelas/blocos).
+
+**Persona "leitora de cartas" (pedido do Narrador):** `montar_system` ganhou tom LEVEMENTE místico de
+vidente de cartas — evocativo mas SÓBRIO, CONCISO (poucas frases, sem preâmbulo/floreio). Mensagens fixas
+alinhadas ao tema ("As cartas se calam"; loading "O Oráculo vira as cartas…"). Brevidade reforçada por
+`max_tokens=400` na geração (também contém custo, §8). Só tom — RAG/segurança intactos. **Melhoria futura
+sugerida (não feita):** limiar de distância no retrieval p/ o top-k não forçar resposta em perguntas fora
+do mundo (hoje os 5 docs mais próximos sempre entram).
 5. ~~Re-index de membros ao renomear/excluir facção~~ ✅ FEITO. Renomear → `reindexarMembrosDoNucleo`
    (busca por nucleo_id, ainda vinculados); excluir → controller captura os ids ANTES do delete (a FK
    desvincula) e chama `reindexarNodes`. Tira o nome de facção obsoleto do texto dos membros na hora.

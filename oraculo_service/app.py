@@ -202,9 +202,12 @@ TOP_K = 5
 
 # Mensagem fixa quando o retrieval volta vazio: nunca inventar (Regra anti-alucinação, F4).
 RESPOSTA_SEM_CONTEXTO = (
-    "O Oráculo consultou as estrelas, mas não encontrou nada na história desta "
-    "crônica que responda a isto."
+    "As cartas se calam: não há nada na história desta crônica que responda a isto."
 )
+
+# Teto de tokens da geração: reforça a brevidade pedida (tom de leitora de cartas, sem prolixidade)
+# e contém o custo (§8). Folga suficiente p/ algumas frases; respostas curtas usam bem menos.
+MAX_TOKENS_RESPOSTA = 400
 
 # Teto de mensagens de histórico aceitas na geração (defesa em profundidade — o front e o Node já
 # limitam; aqui cortamos de novo p/ não estourar contexto/custo mesmo se vier mais). ~4 trocas.
@@ -215,16 +218,17 @@ def montar_system(trechos: list[str]) -> str:
     recuperados desta vez + no histórico da conversa (§4/F4). Os trechos mudam a cada turno."""
     contexto = "\n\n---\n\n".join(trechos)
     return (
-        "Você é o Oráculo, uma entidade que conhece a história desta crônica de RPG. "
-        "Responda à pergunta do Narrador baseando-se ÚNICA E EXCLUSIVAMENTE nos trechos "
-        "abaixo e no histórico desta conversa. Se a resposta não estiver nos trechos, diga "
-        "claramente que não sabe — nunca invente fatos.\n"
-        "Fale em linguagem natural e imersiva: os trechos são fichas internas, com rótulos e "
-        "códigos técnicos (ex.: 'Tipo: npc', 'cenario', 'faccao', 'flags', 'Estado (flags)', "
-        "nomes de campos e ids). NUNCA repita esses rótulos ou códigos crus na resposta — "
-        "traduza-os para termos do mundo (personagem, facção, cenário/local, estado…).\n"
-        "Use Markdown simples para organizar a resposta quando ajudar a leitura: **negrito** para "
-        "nomes/destaques, listas com '-' e títulos curtos com '##'. Não use tabelas nem blocos de código.\n\n"
+        "Você é o Oráculo: uma vidente que lê o destino desta crônica de RPG como quem vira cartas. "
+        "Adote um tom LEVEMENTE místico de leitora de cartas — evocativo, mas SÓBRIO e DIRETO.\n"
+        "Seja CONCISO: responda em poucas frases, sem preâmbulo, sem repetir a pergunta, sem enrolação. "
+        "No máximo uma pitada de mística (uma metáfora breve de carta/véu/destino) — nunca floreio longo.\n"
+        "Responda baseando-se ÚNICA E EXCLUSIVAMENTE nos trechos abaixo e no histórico desta conversa. "
+        "Se a resposta não estiver nos trechos, diga — no mesmo tom — que as cartas se calam; nunca invente.\n"
+        "Os trechos são fichas internas, com rótulos e códigos técnicos (ex.: 'Tipo: npc', 'cenario', "
+        "'faccao', 'flags', 'Estado (flags)', nomes de campos e ids). NUNCA repita esses rótulos ou "
+        "códigos crus — traduza-os para termos do mundo (personagem, facção, cenário/local, estado…).\n"
+        "Pode usar **negrito** para nomes/destaques; evite listas e títulos longos (a resposta é curta). "
+        "Sem tabelas nem blocos de código.\n\n"
         f"=== TRECHOS DA CRÔNICA ===\n{contexto}"
     )
 
@@ -277,7 +281,8 @@ def consultar_oraculo(req: ConsultaRequest):
         cliente_geracao = OpenAI(api_key=req.api_key_llm, base_url=req.base_url_llm)
         completion = cliente_geracao.chat.completions.create(
             model=req.model_llm,
-            messages=mensagens
+            messages=mensagens,
+            max_tokens=MAX_TOKENS_RESPOSTA,  # brevidade + custo (tom de leitora de cartas, sem prolixidade)
         )
         resposta = completion.choices[0].message.content
 

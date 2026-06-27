@@ -169,7 +169,7 @@ window.consultarOraculo = async function(event) {
     // Bolha temporária "a pensar".
     const idPensando = `oraculo-pensando-${Date.now()}`;
     conversa.insertAdjacentHTML('beforeend',
-        `<div id="${idPensando}" class="oraculo-msg oraculo-msg-resposta oraculo-pensando">O Oráculo está a ler as estrelas…</div>`);
+        `<div id="${idPensando}" class="oraculo-msg oraculo-msg-resposta oraculo-pensando">O Oráculo vira as cartas…</div>`);
     conversa.scrollTop = conversa.scrollHeight;
     btn.disabled = true;
 
