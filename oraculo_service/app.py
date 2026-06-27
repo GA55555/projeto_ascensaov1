@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Header, Depends
 from pydantic import BaseModel
 import chromadb
+from chromadb.config import Settings
 from openai import OpenAI
 
 # 1. CARREGA AS VARIÁVEIS DE AMBIENTE (.env)
@@ -25,10 +26,12 @@ def verificar_segredo(x_oraculo_secret: str = Header(None)):
 # 3. Banco Vetorial (ChromaDB) e IA (OpenAI)
 # ==========================================
 DB_PATH = os.path.join(os.getcwd(), "chroma_data")
-chroma_client = chromadb.PersistentClient(path=DB_PATH)
-
-# Silencia os avisos chatos de telemetria do ChromaDB
-chromadb.config.Settings(anonymized_telemetry=False)
+# Silencia a telemetria do ChromaDB (avisos chatos). Tem de ser PASSADO ao client — o Settings(...)
+# solto de antes era um no-op (criava o objeto e descartava, sem efeito).
+chroma_client = chromadb.PersistentClient(
+    path=DB_PATH,
+    settings=Settings(anonymized_telemetry=False),
+)
 
 # Garantimos que o ONNX nunca sobe para a RAM
 colecao_oraculo = chroma_client.get_or_create_collection(
@@ -206,7 +209,11 @@ def montar_system(trechos: list[str]) -> str:
         "Você é o Oráculo, uma entidade que conhece a história desta crônica de RPG. "
         "Responda à pergunta do Narrador baseando-se ÚNICA E EXCLUSIVAMENTE nos trechos "
         "abaixo e no histórico desta conversa. Se a resposta não estiver nos trechos, diga "
-        "claramente que não sabe — nunca invente fatos.\n\n"
+        "claramente que não sabe — nunca invente fatos.\n"
+        "Fale em linguagem natural e imersiva: os trechos são fichas internas, com rótulos e "
+        "códigos técnicos (ex.: 'Tipo: npc', 'cenario', 'faccao', 'flags', 'Estado (flags)', "
+        "nomes de campos e ids). NUNCA repita esses rótulos ou códigos crus na resposta — "
+        "traduza-os para termos do mundo (personagem, facção, cenário/local, estado…).\n\n"
         f"=== TRECHOS DA CRÔNICA ===\n{contexto}"
     )
 

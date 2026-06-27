@@ -491,9 +491,11 @@ ORACULO_URL=http://127.0.0.1:<porta>
    indexada como **vetor único** (`automacao:id`, `upsert`), não `upsert_chunks`. Describer
    `textoDaAutomacao` (resolve evento-gatilho, node-alvo e facção → nomes legíveis), `reindexarAutomacao`
    em `oraculoSync`, ganchos em `automacaoController` (criar/deletar/toggle) e automações no Big Bang.
-3. **Não vazar o `tipo` cru** no super-prompt (ex.: "(cenario)") — ajustar `montar_system`. (O texto da
-   automação já é auto-descritivo: começa com "Automação (regra reativa):".)
-4. ~~Cosmético do warning Pydantic~~ ✅ FEITO junto com a multi-turn. Resta: silenciar telemetria do ChromaDB.
+3. ~~Não vazar o `tipo` cru~~ ✅ FEITO. `montar_system` (app.py) agora instrui o Oráculo a NÃO repetir
+   rótulos/códigos técnicos dos trechos (ex.: 'Tipo: npc', 'cenario', 'faccao', 'flags') e traduzi-los
+   p/ termos do mundo. Fix instantâneo (vale p/ vetores já indexados, sem re-index).
+4. ~~Cosmético do warning Pydantic~~ ✅ + ~~telemetria do ChromaDB~~ ✅ FEITO: o `Settings(...)` solto era
+   no-op; agora é PASSADO ao `PersistentClient(settings=...)`.
 5. (Opcional) re-index de membros ao renomear/excluir facção.
 
 **Pendência ANTES de confiar:** rodar o **smoke ao vivo** no servidor (`pm2 restart oraculo mochila`):
@@ -590,10 +592,12 @@ re-rodar Big Bang; perguntar "resumo da campanha?". Mexer numa flag/sinapse/dipl
    (criar → reindex do novo id, extraído defensivo do retorno da fn do banco; deletar → `removerEntidade`;
    toggle armada/desarmada → reindex, pois o estado faz parte do texto, Regra 4.2); automações entram no
    Big Bang. Ganchos imunes a IDOR (describer binda `id=$1 AND cronica_id=$2`).
-3. **Não vazar rótulo técnico:** instruir o `montar_system` a não exibir o `tipo` cru (ex.: "(cenario)").
-4. **Cosméticos no `app.py`:** silenciar a telemetria do ChromaDB (passar `settings=` no
-   `PersistentClient` — a linha 31 atual é objeto solto, no-op) e o warning do Pydantic
-   (`model_config['protected_namespaces'] = ()` no `ConsultaRequest`, por causa do campo `model_llm`).
+3. ✅ **Não vazar rótulo técnico — FEITO:** `montar_system` (app.py) ganhou instrução p/ o Oráculo NÃO
+   ecoar rótulos/códigos crus dos trechos ('Tipo: npc', 'cenario', 'faccao', 'flags', ids…) e traduzi-los
+   p/ linguagem do mundo. Vale p/ todo o acervo já indexado (não precisa re-index).
+4. ✅ **Cosméticos no `app.py` — FEITO:** telemetria do ChromaDB agora silenciada de verdade
+   (`PersistentClient(settings=Settings(anonymized_telemetry=False))` — antes o `Settings(...)` solto era
+   no-op). O warning do Pydantic (`model_config protected_namespaces`) já fora resolvido na multi-turn.
 5. **(Opcional) Re-indexar membros ao renomear/excluir facção** — hoje sanado pelo Big Bang.
 
 > ⚠️ **Achado de segurança FORA do escopo Oráculo (Regra 3.3.1 — anti-IDOR):** `sessaoController.editarSessao`
