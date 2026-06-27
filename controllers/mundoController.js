@@ -379,7 +379,8 @@ exports.renomearNucleoEntidade = async (req, res) => {
         }
         if (result.rows.length === 0) return res.status(404).json({ erro: 'Núcleo não encontrado.' });
         if (temAvatar && urlAntiga && urlAntiga !== (result.rows[0]?.avatar_url || null)) await apagarUploadOrfao(urlAntiga, ['nucleos']);
-        oraculoSync.reindexarNucleo(cronicaId, nucleoId); // Regra 4.2: nome da facção mudou (membros sanam no próximo big-bang)
+        oraculoSync.reindexarNucleo(cronicaId, nucleoId); // Regra 4.2: nome da facção mudou
+        oraculoSync.reindexarMembrosDoNucleo(cronicaId, nucleoId); // Regra 4.2: membros carregam o nome da facção
         res.json(result.rows[0]);
     } catch (err) { res.status(500).json({ erro: 'Erro ao renomear núcleo.' }); }
 };
@@ -387,10 +388,14 @@ exports.renomearNucleoEntidade = async (req, res) => {
 exports.excluirNucleoEntidade = async (req, res) => {
     const { cronicaId, nucleoId } = req.params;
     try {
+        // Regra 4.2: captura os membros ANTES do delete — a FK desvincula-os (nucleo_id → NULL), então
+        // depois não dá mais p/ achá-los por nucleo_id. Re-indexamos no fim p/ tirar a facção do texto.
+        const membros = await pool.query('SELECT id FROM world_nodes WHERE nucleo_id = $1 AND cronica_id = $2', [nucleoId, cronicaId]);
         const result = await pool.query('DELETE FROM entidade_nucleos WHERE id = $1 AND cronica_id = $2 RETURNING id, avatar_url', [nucleoId, cronicaId]);
         if (result.rows.length === 0) return res.status(404).json({ erro: 'Núcleo não encontrado.' });
         await apagarUploadOrfao(result.rows[0]?.avatar_url || null, ['nucleos']); // Regra 6.6
         oraculoSync.removerEntidade(cronicaId, nucleoId); // Regra 4.2/6.6: apaga o doc `nucleo:id` (nada de facção zumbi)
+        oraculoSync.reindexarNodes(cronicaId, membros.rows.map((m) => m.id)); // Regra 4.2: ex-membros perderam a facção
         res.json({ mensagem: 'Núcleo excluído.' });
     } catch (err) {
         // Caso a FK world_nodes.nucleo_id não seja ON DELETE SET NULL: falha graciosamente (não 500 opaco).

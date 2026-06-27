@@ -77,6 +77,31 @@ function reindexarAutomacao(cronicaId, automacaoId) {
         .catch(err => console.error('[oraculo] reindexarAutomacao falhou (seguindo):', err.message));
 }
 
+// Re-indexa TODOS os membros (world_nodes) de um núcleo/facção. Usado quando a facção é RENOMEADA: o
+// texto de cada membro carrega o nome da facção (textoDoNode) → re-indexa p/ refletir o nome novo.
+// Os membros continuam vinculados (nucleo_id intacto) → busca por nucleo_id. Bounded pelo nº de
+// membros; fire-and-forget, não atrasa a tela.
+function reindexarMembrosDoNucleo(cronicaId, nucleoId) {
+    if (!oraculoClient.oraculoConfigurado()) return;
+    (async () => {
+        try {
+            const r = await pool.query('SELECT id FROM world_nodes WHERE nucleo_id = $1 AND cronica_id = $2', [nucleoId, cronicaId]);
+            for (const row of r.rows) reindexarNode(cronicaId, row.id);
+        } catch (err) {
+            console.error('[oraculo] reindexarMembrosDoNucleo falhou (seguindo):', err.message);
+        }
+    })();
+}
+
+// Re-indexa uma lista EXPLÍCITA de nodes por id. Usado quando a facção é EXCLUÍDA: os membros são
+// desvinculados (FK ON DELETE SET NULL) e já não dá p/ achá-los por nucleo_id — o controller captura os
+// ids ANTES do delete e os passa aqui. Cada node resolve o próprio tipo; se já não existir, é no-op.
+function reindexarNodes(cronicaId, ids) {
+    if (!oraculoClient.oraculoConfigurado()) return;
+    if (!Array.isArray(ids)) return;
+    for (const id of ids) reindexarNode(cronicaId, id);
+}
+
 // Remove o vetor de uma entidade apagada (node/evento/núcleo). Apaga por metadata {cronica_id,
 // entidade_id} — varre todos os `tipo:id` daquela entidade. Já é fire-and-forget no conector.
 function removerEntidade(cronicaId, entidadeId) {
@@ -85,5 +110,5 @@ function removerEntidade(cronicaId, entidadeId) {
 
 module.exports = {
     reindexarNode, reindexarNucleo, reindexarEvento, reindexarSessao, reindexarAutomacao,
-    reindexarNucleosDaCronica, removerEntidade,
+    reindexarNucleosDaCronica, reindexarMembrosDoNucleo, reindexarNodes, removerEntidade,
 };

@@ -496,7 +496,9 @@ ORACULO_URL=http://127.0.0.1:<porta>
    p/ termos do mundo. Fix instantâneo (vale p/ vetores já indexados, sem re-index).
 4. ~~Cosmético do warning Pydantic~~ ✅ + ~~telemetria do ChromaDB~~ ✅ FEITO: o `Settings(...)` solto era
    no-op; agora é PASSADO ao `PersistentClient(settings=...)`.
-5. (Opcional) re-index de membros ao renomear/excluir facção.
+5. ~~Re-index de membros ao renomear/excluir facção~~ ✅ FEITO. Renomear → `reindexarMembrosDoNucleo`
+   (busca por nucleo_id, ainda vinculados); excluir → controller captura os ids ANTES do delete (a FK
+   desvincula) e chama `reindexarNodes`. Tira o nome de facção obsoleto do texto dos membros na hora.
 
 **Pendência ANTES de confiar:** rodar o **smoke ao vivo** no servidor (`pm2 restart oraculo mochila`):
 criar/editar sessão c/ resumo longo → `pm2 logs oraculo` deve mostrar `/upsert_chunks` com N chunks;
@@ -559,9 +561,9 @@ re-rodar Big Bang; perguntar "resumo da campanha?". Mexer numa flag/sinapse/dipl
   renomear/deletarFlag` → node; atualizar/deletar também re-indexam os **eventos** cuja tensão muda),
   núcleo-entidade (`criar/renomear` → `reindexarNucleo`; `excluir` → `removerEntidade` do `nucleo:id`),
   sinapses (`criar/deletar/atualizarLink` → **ambos** os nós; `deletarLink` ganhou os 2 ids no RETURNING),
-  diplomacia (`salvarDiplomacia` → todas as facções, por ser bulk-replace). **Débito menor restante:**
-  renomear/excluir facção não re-indexa os membros (texto deles guarda o nome antigo) — sanado no próximo
-  Big Bang.
+  diplomacia (`salvarDiplomacia` → todas as facções, por ser bulk-replace). **Membros ao mudar a facção
+  (✅ feito):** renomear → `reindexarMembrosDoNucleo`; excluir → `reindexarNodes` com ids capturados ANTES
+  do delete (a FK desvincula os membros). O nome de facção obsoleto sai do texto dos membros na hora.
 - **F5 — Interface (✅ feito):**
   - ✅ **Aba "Oráculo"** no `controle_mundo` (chat): `public/js/api/oraculoApi.js`
     (`consultar`/`toggle`/`salvarChave`), aba + painel central, bolhas Narrador/Oráculo, loading,
@@ -598,7 +600,10 @@ re-rodar Big Bang; perguntar "resumo da campanha?". Mexer numa flag/sinapse/dipl
 4. ✅ **Cosméticos no `app.py` — FEITO:** telemetria do ChromaDB agora silenciada de verdade
    (`PersistentClient(settings=Settings(anonymized_telemetry=False))` — antes o `Settings(...)` solto era
    no-op). O warning do Pydantic (`model_config protected_namespaces`) já fora resolvido na multi-turn.
-5. **(Opcional) Re-indexar membros ao renomear/excluir facção** — hoje sanado pelo Big Bang.
+5. ✅ **Re-indexar membros ao renomear/excluir facção — FEITO:** `oraculoSync.reindexarMembrosDoNucleo`
+   (renomear, busca por nucleo_id) e `oraculoSync.reindexarNodes` (excluir, ids capturados ANTES do delete
+   pois a FK ON DELETE SET NULL desvincula os membros). Tira o nome de facção obsoleto na hora — a fila
+   principal do Oráculo fica **zerada** (resta só o smoke ao vivo no servidor).
 
 > ⚠️ **Achado de segurança FORA do escopo Oráculo (Regra 3.3.1 — anti-IDOR):** `sessaoController.editarSessao`
 > e `deletarSessao` usam `WHERE id = $1` **sem `cronica_id`** — um narrador pode editar/apagar sessão de
