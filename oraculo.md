@@ -4,11 +4,12 @@
 > linha foi implementada ainda. Cada decisão foi validada contra o **código real** (file:line),
 > conforme o imperativo de "verificar premissas de prompt antes de implementar".
 >
-> **Status (atualizado jun/2026):** F1–F4 **implementados e provados ao vivo**; F5 **em
-> andamento** (aba de chat + toggle backend prontos; faltam o switch e o form BYOK na UI).
-> DDL aplicada, decisões travadas. **O estado real de implementação e o guia de retomada estão
-> na §9 (Diário de Implementação)** — leia-a primeiro ao retomar; o corpo do plano (§1–§8) é a
-> intenção original e pode divergir de detalhes já implementados.
+> **Status (atualizado 26/jun/2026):** F1–F5 **completos**; além disso: re-indexação de frescura
+> (Regra 4.2), validação Zod do toggle (Regra 3.1) e **chunking de Sessões** (§4.4/5) — todos feitos
+> nesta data, validados estaticamente; **smoke ao vivo de ponta a ponta ainda PENDENTE no servidor**.
+> Próximo foco: **memória de conversa multi-turn**. DDL aplicada, decisões travadas. **O estado real e o
+> guia de retomada estão na §9 (Diário) — comece pela "🔖 Retomada rápida — sessão 26/jun" no topo dela**;
+> o corpo do plano (§1–§8) é a intenção original e pode divergir de detalhes já implementados.
 
 ---
 
@@ -457,6 +458,36 @@ ORACULO_URL=http://127.0.0.1:<porta>
 > `mochila`, Python = `oraculo`). Ambiente de dev (WSL) **sem Postgres/browser** → validação estática
 > aqui, **smoke ao vivo feito pelo Narrador no servidor**.
 
+### 🔖 Retomada rápida — sessão 26/jun/2026 (LEIA PRIMEIRO ao voltar)
+**O que esta sessão fechou (tudo validado estaticamente; smoke ao vivo PENDENTE no servidor):**
+1. **F5 completo** — switch opt-in na aba Oráculo (`controle_mundo`) + card BYOK em `config_perfil.html`.
+2. **Re-indexação de frescura (Regra 4.2)** — `services/oraculoSync.js` (módulo central) + 24 ganchos
+   (flags, sinapses, diplomacia, núcleo CRUD, mudança de facção). Os 5 ganchos antigos refatorados p/ ele.
+3. **Desvio Zod saldado (Regra 3.1)** — toggle agora usa `validate(toggleOraculoSchema)`
+   (`validators/cronicasValidators.js`). **Nuance Zod v4.4.3:** usar `error:` (não `required_error`).
+4. **Chunking de Sessões (§4.4/5)** — `/upsert_chunks` no Python + `textoDaSessao` + `reindexarSessao`
+   + ganchos no `sessaoController` + sessões no Big Bang. Destrava "resumo da campanha" no chat.
+
+**Smoke test ao vivo do F4 (feito pelo Narrador nesta sessão) — diagnóstico:**
+- ✅ Funciona: retrieval por crônica, diplomacia (inferiu "vilões"), anti-alucinação ("não sei" quando
+  não há trecho). ❌ Falhou "resumo da campanha" → **causa: sessões não indexadas → CORRIGIDO** (item 4).
+- Observado: vaza o tipo cru `(cenario)` nas respostas; e não há memória de conversa (cada pergunta é
+  stateless) → viram os próximos passos.
+
+**PRÓXIMA SESSÃO — por onde pegar (em ordem; ver "Como continuar" abaixo p/ detalhe):**
+1. **Memória de conversa multi-turn** (~4 trocas — decisão do Narrador): maior ganho de "direção da
+   conversa". Front guarda histórico → Zod opcional c/ teto → Python `messages=[system,…histórico,user]`;
+   retrieval embeda `últimaPergunta+atual` p/ resolver pronomes ("eles"). **Não toca o banco.**
+2. Automações via chunking (mesma mecânica das sessões). 3. Não vazar o `tipo` cru no super-prompt.
+4. Cosméticos `app.py`. 5. (Opcional) re-index de membros ao renomear facção.
+
+**Pendência ANTES de confiar:** rodar o **smoke ao vivo** no servidor (`pm2 restart oraculo mochila`):
+criar/editar sessão c/ resumo longo → `pm2 logs oraculo` deve mostrar `/upsert_chunks` com N chunks;
+re-rodar Big Bang; perguntar "resumo da campanha?". Mexer numa flag/sinapse/diplomacia → ver re-upsert.
+
+**⚠️ Achado de segurança (fora do escopo, NÃO corrigido):** IDOR em `sessaoController.editarSessao`/
+`deletarSessao` (`WHERE id=$1` sem `cronica_id`) — detalhe na nota ao fim do §9. Decidir se corrige.
+
 ### Pré-requisitos JÁ resolvidos
 - **DDL aplicada** (Narrador assumiu DBA): `cronicas.oraculo_ativo` (bool, default false);
   `usuarios.oraculo_gen_key` (text, cifrada), `oraculo_gen_url` (default `https://api.deepseek.com`),
@@ -486,6 +517,15 @@ ORACULO_URL=http://127.0.0.1:<porta>
   pelos ganchos: `textoDoNode` (facção, local-pai, flags, sinapses), `textoDoNucleo` (membros +
   diplomacia), `textoDoEvento` (estado/tensão, núcleos, gatilhos). Os ganchos montam o texto em 2º
   plano (sem `await` — não atrasam a tela).
+- **Sessões via chunking (✅ feito, §4.4/5):** o resumo de sessão é texto LONGO → indexado em vários
+  vetores. Python ganhou `/upsert_chunks` (apaga TODOS os chunks antigos da entidade + fatia + embeda em
+  lote + grava `sessao:id:i` com metadata `chunk:i`, tudo NUM handler — sem corrida delete/write);
+  helpers `embeddar(lote)`, `fatiar_texto` (~900 chars, parágrafo-aware) e const `EMBED_MODEL` (DRY;
+  os 2 embeddings inline antigos passaram a usá-los). Describer `oraculoTexto.textoDaSessao` (título,
+  data, estado, grupo, personagens/eventos citados resolvidos por UUID→nome, desfechos, resumo).
+  `oraculoSync.reindexarSessao` (ação `upsert_chunks`). Ganchos em `sessaoController` (criar/editar →
+  reindex; deletar → `removerEntidade`, que apaga `sessao:id:*` por metadata). Big Bang inclui sessões
+  (laço agora respeita `acao` por-alvo). **Destrava "resumo da campanha"/"o que aconteceu" no chat.**
 - **Re-indexação de frescura (✅ feito, Regra 4.2):** `services/oraculoSync.js` — módulo central (DRY)
   que combina describer + conector, fire-and-forget, **nunca lança**: `reindexarNode(c,id,tipo?)`
   (resolve o tipo se omitido — evita doc duplicado), `reindexarNucleo`, `reindexarEvento`,
@@ -515,15 +555,24 @@ ORACULO_URL=http://127.0.0.1:<porta>
     COALESCE preserva a atual).
 
 ### Como continuar (próximos passos, em ordem)
-1. **Escopo ampliado (futuro, §4.4/5):** Sessões e Automações via **chunking** (textos longos → vários
-   vetores `tipo:entidade_id:i`; apagar todos os chunks antes de regravar).
-2. **Cosméticos no `app.py`:** silenciar a telemetria do ChromaDB (passar `settings=` no
+1. **Memória de conversa (multi-turn):** o `/consultar` é stateless (montar_super_prompt só usa
+   trechos+pergunta; o front envia só `{pergunta}`). Passar as **últimas ~4 trocas** como histórico
+   (front guarda → Zod opcional c/ teto → Python vira `messages=[system, ...histórico, user]`; retrieval
+   continua por pergunta, embedando `últimaPergunta+atual` p/ resolver pronomes). Não toca o banco.
+2. **Automações via chunking (§4.4/5):** mesma mecânica das sessões (`upsert_chunks`), se o texto de
+   automação valer indexação. Falta um describer `textoDaAutomacao` + ganchos no controller de automações.
+3. **Não vazar rótulo técnico:** instruir o super-prompt a não exibir o `tipo` cru (ex.: "(cenario)").
+4. **Cosméticos no `app.py`:** silenciar a telemetria do ChromaDB (passar `settings=` no
    `PersistentClient` — a linha 31 atual é objeto solto, no-op) e o warning do Pydantic
    (`model_config['protected_namespaces'] = ()` no `ConsultaRequest`, por causa do campo `model_llm`).
-3. **(Opcional) Re-indexar membros ao renomear/excluir facção** — hoje sanado pelo Big Bang.
+5. **(Opcional) Re-indexar membros ao renomear/excluir facção** — hoje sanado pelo Big Bang.
 
-> Nota: a rota irmã `PUT /:cronicaId/status` ainda valida `status` inline (mesmo padrão antigo).
-> Fora do escopo Oráculo, mas é o próximo alvo natural se for padronizar tudo em Zod.
+> ⚠️ **Achado de segurança FORA do escopo Oráculo (Regra 3.3.1 — anti-IDOR):** `sessaoController.editarSessao`
+> e `deletarSessao` usam `WHERE id = $1` **sem `cronica_id`** — um narrador pode editar/apagar sessão de
+> outra crônica adivinhando o id (o middleware só garante acesso à crônica da URL). Corrigir amarrando
+> `id = $1 AND cronica_id = $2` no WHERE. (Os ganchos do Oráculo já são imunes: o describer binda
+> `cronica_id`, então não mis-indexam cross-tenant.) A rota irmã `PUT /:cronicaId/status` segue validando
+> `status` inline (desvio Zod menor) — ambos fora do escopo Oráculo, mas registrados.
 
 ### Mapa de arquivos (implementação)
 - Python: `oraculo_service/app.py`
@@ -531,8 +580,9 @@ ORACULO_URL=http://127.0.0.1:<porta>
   (re-indexação Regra 4.2), `utils/oraculoCripto.js`
 - Node rotas: `routes/mundoRoutes.js` (sincronizar/consultar), `routes/cronicasRoutes.js` (toggle),
   `routes/perfilRoutes.js` (BYOK write-only)
-- Node controller/validators: `controllers/mundoController.js`, `validators/mundoValidator.js`
-  (sincronizar/consultar), `validators/perfilValidators.js`, `validators/cronicasValidators.js` (toggle)
+- Node controller/validators: `controllers/mundoController.js`, `controllers/sessaoController.js`
+  (ganchos de sessão), `validators/mundoValidator.js` (sincronizar/consultar), `validators/perfilValidators.js`,
+  `validators/cronicasValidators.js` (toggle)
 - Front: `public/controle_mundo.html` (aba + switch), `public/js/controle_mundo.js`
   (`consultarOraculo`/`alternarOraculo`/`refletirEstadoOraculo`), `public/config_perfil.html`
   (card BYOK + `salvarOraculo`), `public/js/api/oraculoApi.js`, `public/css/global_ui.css` (`.oraculo-*`)

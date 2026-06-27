@@ -45,6 +45,15 @@ function reindexarEvento(cronicaId, eventoId) {
         .catch(err => console.error('[oraculo] reindexarEvento falhou (seguindo):', err.message));
 }
 
+// Re-indexa uma SESSÃO (`sessao:id:i`): o resumo é texto LONGO → vai pela rota de CHUNKING
+// (`upsert_chunks`), onde o Python apaga os chunks antigos e reescreve os novos num só handler (§4.4/5).
+function reindexarSessao(cronicaId, sessaoId) {
+    if (!oraculoClient.oraculoConfigurado()) return;
+    oraculoTexto.textoDaSessao(cronicaId, sessaoId)
+        .then(texto => { if (texto) oraculoClient.enviarParaOraculo('upsert_chunks', { cronica_id: cronicaId, tipo: 'sessao', entidade_id: sessaoId, texto }); })
+        .catch(err => console.error('[oraculo] reindexarSessao falhou (seguindo):', err.message));
+}
+
 // Re-indexa TODOS os núcleos-facção (tipo 'entidade') de uma crônica. Usado pela diplomacia, que é
 // um bulk-replace: relações somem/surgem entre vários núcleos de uma vez. Bounded pelo nº de facções.
 function reindexarNucleosDaCronica(cronicaId) {
@@ -66,5 +75,6 @@ function removerEntidade(cronicaId, entidadeId) {
 }
 
 module.exports = {
-    reindexarNode, reindexarNucleo, reindexarEvento, reindexarNucleosDaCronica, removerEntidade,
+    reindexarNode, reindexarNucleo, reindexarEvento, reindexarSessao,
+    reindexarNucleosDaCronica, removerEntidade,
 };

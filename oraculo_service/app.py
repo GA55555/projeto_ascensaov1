@@ -40,6 +40,42 @@ colecao_oraculo = chroma_client.get_or_create_collection(
 chave_openai = os.getenv("OPENAI_EMBEDDINGS_KEY")
 openai_client = OpenAI(api_key=chave_openai) if chave_openai else None
 
+# Modelo de embeddings — MESMO nos dois lados (escrita e consulta), senão a busca não casa (§4/F4).
+EMBED_MODEL = "text-embedding-3-small"
+
+def embeddar(textos: list[str]) -> list[list[float]]:
+    """Gera vetores p/ uma lista de textos numa só chamada (batch barato). Mantém a ordem do input."""
+    resp = openai_client.embeddings.create(input=textos, model=EMBED_MODEL)
+    return [d.embedding for d in resp.data]
+
+# Chunking (§4.4/5): textos longos (resumos de sessão) viram vários blocos — cada um um vetor — para a
+# busca trazer SÓ os trechos relevantes, sem estourar contexto/custo. Agrupa parágrafos até ~CHUNK_ALVO
+# chars sem cortar no meio; parágrafo gigante é fatiado em janela. Determinístico (mesmo texto → mesmos blocos).
+CHUNK_ALVO = 900
+
+def fatiar_texto(texto: str) -> list[str]:
+    texto = (texto or "").strip()
+    if not texto:
+        return []
+    paragrafos = [p.strip() for p in texto.split("\n\n") if p.strip()] or [texto]
+    blocos, atual = [], ""
+    for p in paragrafos:
+        if atual and len(atual) + len(p) + 2 > CHUNK_ALVO:
+            blocos.append(atual)
+            atual = p
+        else:
+            atual = f"{atual}\n\n{p}" if atual else p
+    if atual:
+        blocos.append(atual)
+    # Guarda p/ um único parágrafo gigante: fatia em janelas duras de CHUNK_ALVO.
+    final = []
+    for b in blocos:
+        if len(b) <= CHUNK_ALVO * 1.5:
+            final.append(b)
+        else:
+            final.extend(b[i:i + CHUNK_ALVO] for i in range(0, len(b), CHUNK_ALVO))
+    return final
+
 # ==========================================
 # 4. Modelos de Dados (Pydantic)
 # ==========================================
@@ -52,6 +88,12 @@ class UpsertRequest(BaseModel):
 class RemoverRequest(BaseModel):
     cronica_id: str
     entidade_id: str
+
+class UpsertChunksRequest(BaseModel):
+    cronica_id: str
+    tipo: str
+    entidade_id: str
+    texto: str
 
 class ConsultaRequest(BaseModel):
     cronica_id: str
@@ -74,12 +116,8 @@ def upsert_dado(req: UpsertRequest):
         raise HTTPException(status_code=500, detail="Chave OPENAI_EMBEDDINGS_KEY ausente.")
     
     try:
-        resposta = openai_client.embeddings.create(
-            input=req.texto,
-            model="text-embedding-3-small"
-        )
-        vetor = resposta.data[0].embedding
-        
+        vetor = embeddar([req.texto])[0]
+
         doc_id = f"{req.tipo}:{req.entidade_id}"
         metadados = {
             "cronica_id": req.cronica_id,
@@ -108,6 +146,34 @@ def remover_dado(req: RemoverRequest):
             where={"$and": [{"cronica_id": req.cronica_id}, {"entidade_id": req.entidade_id}]}
         )
         return {"status": "removido", "entidade_id": req.entidade_id}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/upsert_chunks", dependencies=[Depends(verificar_segredo)])
+def upsert_chunks(req: UpsertChunksRequest):
+    """(§4.4/5) Indexa um texto LONGO (ex.: resumo de sessão) em vários chunks. Atômico no handler:
+    apaga TODOS os chunks antigos da entidade (o nº pode mudar) e reescreve. Idempotente."""
+    if not openai_client:
+        raise HTTPException(status_code=500, detail="Chave OPENAI_EMBEDDINGS_KEY ausente.")
+    try:
+        # 1. Limpa os chunks antigos desta entidade (amarrado à crônica — anti-IDOR). Feito no MESMO
+        #    handler para evitar corrida entre delete e write (ao contrário de chamadas separadas).
+        colecao_oraculo.delete(
+            where={"$and": [{"cronica_id": req.cronica_id}, {"entidade_id": req.entidade_id}]}
+        )
+        # 2. Fatia o texto. Vazio → nada a reescrever (já limpamos acima).
+        blocos = fatiar_texto(req.texto)
+        if not blocos:
+            return {"status": "sucesso", "chunks": 0, "mensagem": "Texto vazio; chunks limpos."}
+        # 3. Embeda todos os blocos numa só chamada e grava cada um como vetor próprio.
+        vetores = embeddar(blocos)
+        ids = [f"{req.tipo}:{req.entidade_id}:{i}" for i in range(len(blocos))]
+        metadados = [
+            {"cronica_id": req.cronica_id, "tipo": req.tipo, "entidade_id": req.entidade_id, "chunk": i}
+            for i in range(len(blocos))
+        ]
+        colecao_oraculo.upsert(ids=ids, embeddings=vetores, metadatas=metadados, documents=blocos)
+        return {"status": "sucesso", "entidade_id": req.entidade_id, "chunks": len(blocos)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -141,11 +207,7 @@ def consultar_oraculo(req: ConsultaRequest):
 
     try:
         # 1. Embeda a pergunta com o MESMO modelo do /upsert (consistência obrigatória, §4/F4).
-        emb = openai_client.embeddings.create(
-            input=req.pergunta,
-            model="text-embedding-3-small"
-        )
-        vetor_pergunta = emb.data[0].embedding
+        vetor_pergunta = embeddar([req.pergunta])[0]
 
         # 2. Busca de similaridade AMARRADA à crônica.
         #    O where={"cronica_id": ...} é a fronteira de segurança da Regra 3.3.1 —

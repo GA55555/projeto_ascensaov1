@@ -1025,11 +1025,15 @@ exports.sincronizarOraculo = async (req, res) => {
         const nodesQ = await pool.query('SELECT id, tipo FROM world_nodes WHERE cronica_id = $1', [cronicaId]);
         const nucleosQ = await pool.query("SELECT id FROM entidade_nucleos WHERE cronica_id = $1 AND tipo = 'entidade'", [cronicaId]);
         const eventosQ = await pool.query('SELECT id FROM world_events WHERE cronica_id = $1', [cronicaId]);
+        const sessoesQ = await pool.query('SELECT id FROM sessoes WHERE cronica_id = $1', [cronicaId]);
 
+        // Cada alvo declara sua AÇÃO: nodes/núcleos/eventos = doc único (`upsert`); sessões = texto longo
+        // → CHUNKING (`upsert_chunks`, §4.4/5). 'upsert' é o default.
         const alvos = [
             ...nodesQ.rows.map((n) => ({ tipo: n.tipo, id: n.id, montar: () => oraculoTexto.textoDoNode(cronicaId, n.id) })),
             ...nucleosQ.rows.map((x) => ({ tipo: 'nucleo', id: x.id, montar: () => oraculoTexto.textoDoNucleo(cronicaId, x.id) })),
             ...eventosQ.rows.map((e) => ({ tipo: 'evento', id: e.id, montar: () => oraculoTexto.textoDoEvento(cronicaId, e.id) })),
+            ...sessoesQ.rows.map((s) => ({ tipo: 'sessao', id: s.id, acao: 'upsert_chunks', montar: () => oraculoTexto.textoDaSessao(cronicaId, s.id) })),
         ];
 
         // Envia em lotes pequenos com pausa entre eles — backpressure p/ não pregar a CPU do
@@ -1041,7 +1045,7 @@ exports.sincronizarOraculo = async (req, res) => {
             const resultados = await Promise.all(lote.map(async (a) => {
                 const texto = await a.montar();
                 if (!texto) return false; // entidade sumiu entre o list e o montar
-                return oraculoClient.enviarParaOraculoAsync('upsert', { cronica_id: cronicaId, tipo: a.tipo, entidade_id: a.id, texto });
+                return oraculoClient.enviarParaOraculoAsync(a.acao || 'upsert', { cronica_id: cronicaId, tipo: a.tipo, entidade_id: a.id, texto });
             }));
             enviados += resultados.filter(Boolean).length;
             if (i + TAMANHO_LOTE < alvos.length) await sleepOraculo(150);

@@ -1,4 +1,5 @@
 const pool = require('../db');
+const oraculoSync = require('../services/oraculoSync'); // Oráculo: indexa o resumo da sessão (chunking, §4.4/5)
 
 // =======================================================
 // SESSÕES (DIÁRIOS DE CAMPANHA)
@@ -47,6 +48,7 @@ exports.criarSessao = async (req, res) => {
                 JSON.stringify(desfechos || [])
             ]
         );
+        oraculoSync.reindexarSessao(cronicaId, result.rows[0].id); // §4.4/5: indexa o resumo (chunking), fire-and-forget
         res.status(201).json(result.rows[0]);
     } catch (err) {
         console.error('❌ Erro ao criar sessão:', err);
@@ -55,7 +57,7 @@ exports.criarSessao = async (req, res) => {
 };
 
 exports.editarSessao = async (req, res) => {
-    const { id } = req.params;
+    const { cronicaId, id } = req.params;
     const { titulo, data_sessao, resumo, status, nucleo_id, entidades, eventos, automacoes, desfechos } = req.body;
 
     try {
@@ -79,6 +81,7 @@ exports.editarSessao = async (req, res) => {
             ]
         );
         if (result.rows.length === 0) return res.status(404).json({ erro: 'Sessão não encontrada.' });
+        oraculoSync.reindexarSessao(cronicaId, id); // §4.4/5: re-indexa (chunking apaga os blocos antigos e reescreve)
         res.json(result.rows[0]);
     } catch (err) {
         console.error('❌ Erro ao editar sessão:', err);
@@ -87,10 +90,11 @@ exports.editarSessao = async (req, res) => {
 };
 
 exports.deletarSessao = async (req, res) => {
-    const { id } = req.params;
+    const { cronicaId, id } = req.params;
     try {
         const result = await pool.query('DELETE FROM sessoes WHERE id = $1 RETURNING id', [id]);
         if (result.rows.length === 0) return res.status(404).json({ erro: 'Sessão não encontrada.' });
+        oraculoSync.removerEntidade(cronicaId, id); // §4.2: apaga todos os chunks `sessao:id:*` da sessão
         res.json({ mensagem: 'Sessão apagada dos registros.' });
     } catch (err) {
         console.error('❌ Erro ao deletar sessão:', err);

@@ -135,4 +135,48 @@ async function textoDoEvento(cronicaId, eventoId) {
     return linhas.join('\n');
 }
 
-module.exports = { textoDoNode, textoDoNucleo, textoDoEvento };
+/** Texto rico de uma SESSÃO (diário de campanha): título, data, estado, grupo, personagens/eventos
+ *  citados (resolve os UUIDs → nomes), desfechos e o RESUMO (texto longo → o Python fatia em chunks). */
+async function textoDaSessao(cronicaId, sessaoId) {
+    const sQ = await pool.query(
+        `SELECT s.titulo, s.data_sessao, s.status, s.resumo, s.desfechos, s.entidades, s.eventos,
+                en.nome AS nucleo_nome
+           FROM sessoes s
+           LEFT JOIN entidade_nucleos en ON s.nucleo_id = en.id
+          WHERE s.id = $1 AND s.cronica_id = $2`,
+        [sessaoId, cronicaId]
+    );
+    if (sQ.rows.length === 0) return null;
+    const s = sQ.rows[0];
+
+    const linhas = [`Sessão: ${s.titulo}`];
+    if (s.data_sessao) linhas.push(`Data: ${String(s.data_sessao).slice(0, 10)}`);
+    if (s.status) linhas.push(`Estado: ${s.status}`);
+    if (s.nucleo_nome) linhas.push(`Grupo/Núcleo: ${s.nucleo_nome}`);
+
+    // entidades/eventos são arrays jsonb de UUIDs → resolve nomes (escopado por cronica_id).
+    const entIds = Array.isArray(s.entidades) ? s.entidades.filter(Boolean) : [];
+    if (entIds.length) {
+        const r = await pool.query(
+            'SELECT nome FROM world_nodes WHERE cronica_id = $1 AND id = ANY($2::uuid[]) ORDER BY nome',
+            [cronicaId, entIds]
+        );
+        if (r.rows.length) linhas.push(`Personagens presentes: ${r.rows.map(x => x.nome).join(', ')}`);
+    }
+    const evIds = Array.isArray(s.eventos) ? s.eventos.filter(Boolean) : [];
+    if (evIds.length) {
+        const r = await pool.query(
+            'SELECT nome FROM world_events WHERE cronica_id = $1 AND id = ANY($2::uuid[]) ORDER BY nome',
+            [cronicaId, evIds]
+        );
+        if (r.rows.length) linhas.push(`Eventos relacionados: ${r.rows.map(x => x.nome).join(', ')}`);
+    }
+
+    const desf = Array.isArray(s.desfechos) ? s.desfechos.filter(d => typeof d === 'string' && d.trim()) : [];
+    if (desf.length) linhas.push(`Desfechos: ${desf.join('; ')}`);
+    if (typeof s.resumo === 'string' && s.resumo.trim()) linhas.push(`Resumo: ${s.resumo.trim()}`);
+
+    return linhas.join('\n');
+}
+
+module.exports = { textoDoNode, textoDoNucleo, textoDoEvento, textoDaSessao };
