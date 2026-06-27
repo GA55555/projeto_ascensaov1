@@ -638,6 +638,18 @@ re-rodar Big Bang; perguntar "resumo da campanha?". Mexer numa flag/sinapse/dipl
 > `cronica_id`, então não mis-indexam cross-tenant.) A rota irmã `PUT /:cronicaId/status` segue validando
 > `status` inline (desvio Zod menor) — ambos fora do escopo Oráculo, mas registrados.
 
+### Frescura "na mesma sessão" (mundo muda enquanto o chat vive) — ✅ feito
+Sintoma: alterar o mundo (ex.: Contrato de Relação) e o Oráculo não reconhecer a mudança sem reload.
+Três causas atacadas:
+1. **Timeout do hook** (`oraculoClient.enviarParaOraculo`) era 2s e abortava o `/upsert` (que chama a API
+   de embeddings) no meio → vetor velho. Subiu p/ **10s** (é fire-and-forget → não atrasa o salvar).
+2. **Histórico mandava no modelo** → `montar_system` agora diz que os **trechos refletem o estado ATUAL
+   e PREVALECEM** sobre o histórico em caso de conflito.
+3. **Reset do histórico no front** (`controle_mundo.js`): flag `oraculoMundoSujo` ligada nas mutações de
+   vínculo (Contrato/criar/remover) → a **próxima** consulta zera o histórico (nasce do estado novo);
+   mais um botão **"Nova leitura"** (`limparConversaOraculo`) p/ reset manual. (Extensível: ligar a flag
+   em outras mutações se necessário.)
+
 ### Mapa de arquivos (implementação)
 - Python: `oraculo_service/app.py`
 - Node rede/serviços: `services/oraculoClient.js`, `services/oraculoTexto.js`, `services/oraculoSync.js`

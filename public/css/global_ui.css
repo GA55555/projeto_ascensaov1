@@ -3766,6 +3766,7 @@ input[type="radio"] {
 
 /* F5 — Switch opt-in no cabeçalho da aba: título + liga/desliga lado a lado. */
 .oraculo-cabecalho-topo { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.oraculo-cabecalho-acoes { display: inline-flex; align-items: center; gap: 10px; }
 .oraculo-switch { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem; color: var(--texto-mutado); user-select: none; transition: var(--transicao-suave); }
 .oraculo-switch--on { color: var(--destaque); }
 .oraculo-switch__check { width: 16px; height: 16px; margin: 0; cursor: pointer; accent-color: var(--roxo-mago); }

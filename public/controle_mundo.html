@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Controle de Mundo & Eventos</title>
 
-    <link rel="stylesheet" href="/css/global_ui.css?v=3">
+    <link rel="stylesheet" href="/css/global_ui.css?v=4">
 </head>
 <body>
     <div class="page-container">
@@ -365,10 +365,15 @@
         <div class="oraculo-cabecalho">
             <div class="oraculo-cabecalho-topo">
                 <h3 class="texto-roxo"><i data-lucide="sparkles"></i> Consultar o Oráculo</h3>
-                <label class="oraculo-switch" title="Liga ou desliga o Oráculo nesta crônica (opt-in)">
-                    <input type="checkbox" class="oraculo-switch__check" id="oraculo-toggle" onchange="alternarOraculo(this)">
-                    <span id="oraculo-toggle-txt">Desligado</span>
-                </label>
+                <div class="oraculo-cabecalho-acoes">
+                    <button type="button" class="btn btn-outline btn-sm" id="oraculo-limpar" onclick="limparConversaOraculo()" title="Esquece a conversa atual — use após mudar o mundo">
+                        <i data-lucide="rotate-ccw"></i> Nova leitura
+                    </button>
+                    <label class="oraculo-switch" title="Liga ou desliga o Oráculo nesta crônica (opt-in)">
+                        <input type="checkbox" class="oraculo-switch__check" id="oraculo-toggle" onchange="alternarOraculo(this)">
+                        <span id="oraculo-toggle-txt">Desligado</span>
+                    </label>
+                </div>
             </div>
             <p class="texto-mutado oraculo-sub">
                 Pergunte em linguagem natural sobre o mundo desta crônica. O Oráculo responde com base
@@ -401,7 +406,7 @@
 <script src="/js/api/automacoesApi.js"></script>
 <script src="/js/api/sessoesApi.js"></script>
 <script src="/js/api/oraculoApi.js"></script>
-<script src="/js/controle_mundo.js?v=4"></script>
+<script src="/js/controle_mundo.js?v=5"></script>
 <script>lucide.createIcons();</script>
 
 </body>

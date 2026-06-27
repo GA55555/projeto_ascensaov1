@@ -11,6 +11,8 @@ let automacoesCache = [];
 let oraculoAtivo = false; // F5: opt-in do Oráculo nesta crônica (lido do init, alternado pelo switch)
 let oraculoHistorico = []; // memória multi-turn: [{role:'user'|'assistant', content}], só as últimas ~4 trocas
 const ORACULO_HIST_MAX = 8; // teto local (4 trocas) — alinhado ao Zod/Python (defesa em profundidade)
+let oraculoMundoSujo = false; // mundo mudou desde a última pergunta? → zera o histórico na próxima consulta
+                              // (senão o modelo cola na resposta antiga — "não reconhece a mudança na mesma sessão")
 let sessoesCache = [];
 let nucleosCache = { entidade: [], evento: [], sessao: [] };
 let nucleoAtivoTipo = 'entidade'; // 'entidade' | 'evento' | 'sessao'
@@ -156,6 +158,10 @@ window.consultarOraculo = async function(event) {
     const pergunta = (input.value || '').trim();
     if (!pergunta) return false;
 
+    // Mundo mudou desde a última pergunta? Esquece o histórico p/ a leitura nascer do estado ATUAL
+    // (combate o "não reconhece a mudança na mesma sessão"; os trechos recuperados já vêm frescos).
+    if (oraculoMundoSujo) { oraculoHistorico = []; oraculoMundoSujo = false; }
+
     const conversa = document.getElementById('oraculo-conversa');
     const btn = document.getElementById('oraculo-enviar');
 
@@ -195,6 +201,16 @@ window.consultarOraculo = async function(event) {
         conversa.scrollTop = conversa.scrollHeight;
     }
     return false;
+};
+
+// Botão "Nova leitura": zera a memória da conversa (e a tela). Útil após mudanças amplas no mundo
+// — garante que a próxima leitura nasça só do estado atual, sem arrastar respostas antigas.
+window.limparConversaOraculo = function() {
+    oraculoHistorico = [];
+    oraculoMundoSujo = false;
+    const conversa = document.getElementById('oraculo-conversa');
+    if (conversa) conversa.innerHTML = '<p class="oraculo-vazio texto-mutado">As respostas do Oráculo aparecerão aqui.</p>';
+    mostrarToast('Nova leitura — o Oráculo esqueceu a conversa anterior.', 'sucesso');
 };
 
 // Reflete o estado opt-in no switch + esmaece/bloqueia o chat quando desligado (critério de ouro:
@@ -1081,6 +1097,7 @@ window.conectarSinapse = async function(nodeId) {
         // adicionadas depois, pelo Contrato de Relação ao clicar no badge.
         await MundoApi.criarLink(cronicaId, nodeId, destino, tipo, { tags: [] });
         mostrarToast('Conexão criada!', 'sucesso');
+        oraculoMundoSujo = true; // novo vínculo → próxima consulta ao Oráculo parte do estado novo
         await recarregarSinapses(nodeId);
     } catch (e) {
         mostrarToast(e.message || 'Erro ao criar conexão.', 'erro');
@@ -1092,6 +1109,7 @@ window.removerSinapse = async function(nodeId, linkId) {
     try {
         await MundoApi.deletarLink(cronicaId, nodeId, linkId);
         mostrarToast('Conexão removida.', 'sucesso');
+        oraculoMundoSujo = true; // vínculo removido → próxima consulta ao Oráculo parte do estado novo
         await recarregarSinapses(nodeId);
     } catch (e) {
         mostrarToast(e.message || 'Erro ao remover conexão.', 'erro');
@@ -1218,6 +1236,7 @@ async function persistirContrato() {
     const dados = { tags: contratoTags }; // `dados` só guarda as tags (limite é obsoleto — reta_relacao.md)
     try {
         await MundoApi.atualizarLink(cronicaId, nodeAtualSinapse, contratoLinkId, dados);
+        oraculoMundoSujo = true; // a relação mudou → a próxima consulta ao Oráculo nasce do estado novo
         await recarregarSinapses(nodeAtualSinapse); // reflete a reta no badge
     } catch (e) {
         mostrarToast(e.message || 'Erro ao gravar a relação.', 'erro');
