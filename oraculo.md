@@ -645,10 +645,16 @@ Três causas atacadas:
    de embeddings) no meio → vetor velho. Subiu p/ **10s** (é fire-and-forget → não atrasa o salvar).
 2. **Histórico mandava no modelo** → `montar_system` agora diz que os **trechos refletem o estado ATUAL
    e PREVALECEM** sobre o histórico em caso de conflito.
-3. **Reset do histórico no front** (`controle_mundo.js`): flag `oraculoMundoSujo` ligada nas mutações de
-   vínculo (Contrato/criar/remover) → a **próxima** consulta zera o histórico (nasce do estado novo);
-   mais um botão **"Nova leitura"** (`limparConversaOraculo`) p/ reset manual. (Extensível: ligar a flag
-   em outras mutações se necessário.)
+3. **Reset do histórico no front** (`controle_mundo.js`): flag `oraculoMundoSujo` → a **próxima** consulta
+   zera o histórico (nasce do estado novo); mais um botão **"Nova leitura"** (`limparConversaOraculo`) p/
+   reset manual.
+   - **Cobertura COMPLETA (centralizada):** em vez de gancho por-mutação, a flag liga num **ouvinte único**
+     no `api.js` (`API.onMutacao`) — toda requisição mutante (não-GET ok via `API.fetch`) marca o mundo
+     sujo. Cobre mutações **futuras** sem novo gancho. Exclui os endpoints do próprio Oráculo
+     (`/oraculo*`, `/perfil/oraculo`) — senão cada pergunta zeraria a memória multi-turn.
+   - **Trade-off aceito:** editar o mundo no meio de uma conversa custa a continuidade multi-turn da
+     próxima pergunta (pronomes), em troca de nunca responder o estado velho. Pode marcar dirty em saves
+     puramente de layout (board/cena) — inócuo (no máximo um reset a mais).
 
 ### Mapa de arquivos (implementação)
 - Python: `oraculo_service/app.py`

@@ -13,6 +13,17 @@ let oraculoHistorico = []; // memória multi-turn: [{role:'user'|'assistant', co
 const ORACULO_HIST_MAX = 8; // teto local (4 trocas) — alinhado ao Zod/Python (defesa em profundidade)
 let oraculoMundoSujo = false; // mundo mudou desde a última pergunta? → zera o histórico na próxima consulta
                               // (senão o modelo cola na resposta antiga — "não reconhece a mudança na mesma sessão")
+
+// Frescura do Oráculo (CENTRALIZADO): QUALQUER mutação de mundo (não-GET ok via API.fetch) marca a
+// sessão como suja → a próxima consulta zera o histórico, nascendo do estado ATUAL. Cobre mutações
+// FUTURAS sem novo gancho. Exclui os endpoints do próprio Oráculo (consultar/toggle/sincronizar/BYOK) —
+// senão cada pergunta zeraria a memória multi-turn. (Substitui os antigos ganchos inline por-mutação.)
+if (window.API && typeof API.onMutacao === 'function') {
+    API.onMutacao((url) => {
+        if (/\/oraculo(\/|$|\?)/.test(url) || url.includes('/perfil/oraculo')) return;
+        oraculoMundoSujo = true;
+    });
+}
 let sessoesCache = [];
 let nucleosCache = { entidade: [], evento: [], sessao: [] };
 let nucleoAtivoTipo = 'entidade'; // 'entidade' | 'evento' | 'sessao'
@@ -1097,7 +1108,6 @@ window.conectarSinapse = async function(nodeId) {
         // adicionadas depois, pelo Contrato de Relação ao clicar no badge.
         await MundoApi.criarLink(cronicaId, nodeId, destino, tipo, { tags: [] });
         mostrarToast('Conexão criada!', 'sucesso');
-        oraculoMundoSujo = true; // novo vínculo → próxima consulta ao Oráculo parte do estado novo
         await recarregarSinapses(nodeId);
     } catch (e) {
         mostrarToast(e.message || 'Erro ao criar conexão.', 'erro');
@@ -1109,7 +1119,6 @@ window.removerSinapse = async function(nodeId, linkId) {
     try {
         await MundoApi.deletarLink(cronicaId, nodeId, linkId);
         mostrarToast('Conexão removida.', 'sucesso');
-        oraculoMundoSujo = true; // vínculo removido → próxima consulta ao Oráculo parte do estado novo
         await recarregarSinapses(nodeId);
     } catch (e) {
         mostrarToast(e.message || 'Erro ao remover conexão.', 'erro');
@@ -1236,7 +1245,6 @@ async function persistirContrato() {
     const dados = { tags: contratoTags }; // `dados` só guarda as tags (limite é obsoleto — reta_relacao.md)
     try {
         await MundoApi.atualizarLink(cronicaId, nodeAtualSinapse, contratoLinkId, dados);
-        oraculoMundoSujo = true; // a relação mudou → a próxima consulta ao Oráculo nasce do estado novo
         await recarregarSinapses(nodeAtualSinapse); // reflete a reta no badge
     } catch (e) {
         mostrarToast(e.message || 'Erro ao gravar a relação.', 'erro');

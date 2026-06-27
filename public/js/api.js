@@ -11,6 +11,12 @@
 // escapeHTML vive exclusivamente em utils.js (fonte única — Regra 6.1).
 
 const API = {
+    _mutacaoListeners: [],
+    // Registra um ouvinte chamado após CADA requisição mutante (não-GET) bem-sucedida: fn(url, metodo).
+    // Genérico (não acopla a feature alguma) — ex.: a aba Oráculo usa p/ marcar o mundo como "sujo".
+    onMutacao(fn) {
+        if (typeof fn === 'function') this._mutacaoListeners.push(fn);
+    },
     async fetch(url, options = {}) {
         const headers = {
             ...options.headers,
@@ -34,6 +40,15 @@ const API = {
                 localStorage.removeItem('m20_user');
                 window.location.href = '/login.html';
                 throw new Error("Sessão expirada. Faça login novamente.");
+            }
+
+            // Notifica ouvintes de MUTAÇÃO (não-GET bem-sucedida) — depois do gate de sessão, antes de
+            // devolver. Falha de um ouvinte nunca afeta a resposta da API.
+            const metodo = (options.method || 'GET').toUpperCase();
+            if (resposta.ok && metodo !== 'GET' && this._mutacaoListeners.length) {
+                for (const fn of this._mutacaoListeners) {
+                    try { fn(url, metodo); } catch (e) { console.error('Ouvinte de mutação falhou:', e); }
+                }
             }
 
             return resposta;
