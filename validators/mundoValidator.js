@@ -126,13 +126,23 @@ const sinapseParamsBase = {
 const listarLinksSchema = z.object({
     params: z.object({ ...sinapseParamsBase })
 });
-// JSONB world_links.dados — Panela de Pressão (Fase 11): tags (FATE) + limite
-// (pressao = tags.length). Os campos espaciais x/y/icone/cargo (Mesa de Guerra,
-// Fase 12) foram REMOVIDOS na Fase 13: posições agora vivem em world_boards.dados.
-// Chaves desconhecidas/legadas são descartadas pelo strip do Zod (migração graciosa).
+// JSONB world_links.dados — "Reta de Relação" (reta_relacao.md): tags assinadas que somam uma posição
+// bipolar -10..+10 (cada tag = 1 passo; gancho PESO_TAG p/ passos variáveis no futuro — decisão 4).
+// CONTRATO TOLERANTE (expand-contract, Regra 4.2): a `tag` pode vir como STRING legada (a UI atual ainda
+// grava string) OU como objeto {texto, sinal, peso?} (UI nova). Assim a Fatia 1 sobe sem quebrar o front
+// antigo; a leitura (relacaoEscala) normaliza os dois. `limite` é OBSOLETO (reta fixa ±10) — apenas
+// tolerado p/ não rejeitar gravações legadas; removido na Fatia 3. Chaves desconhecidas: strip do Zod.
+const tagRelacaoSchema = z.union([
+    z.string().trim().min(1).max(120), // legado (string sem sinal — polaridade inferida do tipo_vinculo)
+    z.object({
+        texto: z.string().trim().min(1).max(120),
+        sinal: z.union([z.literal(1), z.literal(-1), z.literal(0)]).default(0),
+        peso: z.number().int().min(1).max(10).optional() // PESO_TAG: gancho futuro (decisão 4); ausente ⇒ 1 passo
+    })
+]);
 const dadosLinkSchema = z.object({
-    tags: z.array(z.string().trim().min(1).max(120)).max(50).default([]),
-    limite: z.number().int().min(1).max(20).default(3)
+    tags: z.array(tagRelacaoSchema).max(50).default([]),
+    limite: z.number().int().min(1).max(20).optional() // OBSOLETO (ver acima)
 }).optional();
 
 const criarLinkSchema = z.object({

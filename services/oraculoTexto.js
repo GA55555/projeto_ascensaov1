@@ -6,6 +6,7 @@
 // defensivo contra jsonb corrompido (Regra 4.2) — nunca deve derrubar o caminho de quem chama.
 
 const pool = require('../db');
+const escala = require('./relacaoEscala'); // reta bipolar -10..+10 da relação (fonte única da lógica)
 
 const simNao = (v) => (v ? 'sim' : 'não');
 
@@ -16,22 +17,21 @@ function descricaoDoDados(dados) {
     return typeof d === 'string' && d.trim() ? d.trim() : null;
 }
 
-// Lê o "Contrato de Relação" do jsonb de uma sinapse (world_links.dados): `tags` = incidentes/motivos
-// que enchem o TERMÔMETRO de pressão; `limite` = topo do termômetro. Devolve a leitura legível —
-// pressão atual e quanto FALTA para a massa crítica — p/ a IA entender a tensão e a iminência de ruptura.
-// Defensivo contra jsonb sujo (Regra 4.2): limite mínimo 1, tags só strings não-vazias.
-function descreverContrato(dados) {
-    const d = (dados && typeof dados === 'object') ? dados : {};
-    const tags = Array.isArray(d.tags) ? d.tags.filter((t) => typeof t === 'string' && t.trim()) : [];
-    const limite = Math.max(parseInt(d.limite, 10) || 3, 1);
-    const pressao = tags.length;
+// "Contrato de Relação" no RAG: lê a RETA BIPOLAR (-10..+10) da sinapse (reta_relacao.md) e descreve os
+// incidentes/motivos ASSINADOS (+ aproximam, − afastam) e a posição/lado atual — p/ a IA entender a
+// valência e a tendência da relação. Substitui o antigo termômetro de pressão (evolução). `tipoVinculo`
+// serve p/ inferir o sinal de tags LEGADAS (string) — decisão 5. Lógica/normalização vêm de relacaoEscala.
+function descreverContrato(dados, tipoVinculo) {
+    const { posicao, tier, tags, min, max } = escala.lerRelacao(dados, tipoVinculo);
     const partes = [];
-    if (pressao) partes.push(`incidentes/motivos: ${tags.join('; ')}`);
-    if (pressao >= limite) {
-        partes.push(`termômetro de pressão ${pressao}/${limite} — MASSA CRÍTICA atingida (relação no limite, prestes a romper)`);
-    } else {
-        partes.push(`termômetro de pressão ${pressao}/${limite} (faltam ${limite - pressao} incidente(s) para a massa crítica)`);
-    }
+    const pos = tags.filter((t) => t.sinal > 0).map((t) => t.texto);
+    const neg = tags.filter((t) => t.sinal < 0).map((t) => t.texto);
+    const semSinal = tags.filter((t) => t.sinal === 0).map((t) => t.texto);
+    if (pos.length) partes.push(`fatores de aproximação: ${pos.join('; ')}`);
+    if (neg.length) partes.push(`fatores de afastamento: ${neg.join('; ')}`);
+    if (semSinal.length) partes.push(`registros sem polaridade definida: ${semSinal.join('; ')}`);
+    const lado = tier.nivel === 'neutro' ? 'relação neutra' : tier.rotulo;
+    partes.push(`posição ${posicao} (${lado}) numa reta de ${min} (inimizade total) a ${max} (lealdade total)`);
     return partes.join('; ');
 }
 
@@ -65,8 +65,8 @@ async function textoDoNode(cronicaId, nodeId) {
         linhas.push(`Estado (flags): ${flagsQ.rows.map(f => `${f.flag_key}=${simNao(f.flag_value)}`).join(', ')}`);
     }
 
-    // Sinapses = relações bidirecionais. Cada uma tem um "Contrato de Relação" (incidentes/motivos +
-    // termômetro de pressão) → a IA lê a tensão e quanto falta p/ a massa crítica (ruptura).
+    // Sinapses = relações bidirecionais. Cada uma tem um "Contrato de Relação" (incidentes/motivos
+    // assinados numa reta -10..+10) → a IA lê a valência (aliado/inimigo) e a posição atual da relação.
     const linksQ = await pool.query(
         `SELECT l.tipo_vinculo, l.dados,
                 CASE WHEN l.origem_node_id = $1 THEN dst.nome ELSE src.nome END AS outro_nome,
@@ -80,7 +80,7 @@ async function textoDoNode(cronicaId, nodeId) {
     if (linksQ.rows.length) {
         linhas.push('Relações (Contrato de Relação):');
         for (const r of linksQ.rows) {
-            linhas.push(`- ${r.tipo_vinculo || 'associado'} com ${r.outro_nome} (${r.outro_tipo}) — ${descreverContrato(r.dados)}`);
+            linhas.push(`- ${r.tipo_vinculo || 'associado'} com ${r.outro_nome} (${r.outro_tipo}) — ${descreverContrato(r.dados, r.tipo_vinculo)}`);
         }
     }
 
