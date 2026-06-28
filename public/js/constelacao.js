@@ -20,6 +20,8 @@
     let proximaSemente = null;               // {x,y} onde o PRÓXIMO núcleo novo nasce (clique de criação)
     let orbePress = null;                    // {x,y} do pointerdown num orbe (p/ distinguir clique de arrasto)
     let catalogoTarot = null;                // catálogo dos arcanos (carregado sob demanda em /data/tarot.json)
+    let focoId = null;                        // núcleo focado (sistema solar) — null = visão geral
+    let entidadesAtual = [];                  // entidades do último snapshot (viram os "planetas" no foco)
     let interacaoPronta = false;
     const HOLD_MS = 600;                     // tempo do clica-segura (decisão E — ajustável)
     const MOVE_TOL = 6;                      // px: acima disso o clica-segura vira pan
@@ -47,6 +49,7 @@
             const res = await API.fetch(`/cronicas/${cronicaId}/constelacao`);
             if (!res.ok) throw new Error('falha');
             const snap = await res.json();
+            entidadesAtual = snap.entidades || [];
             forcas = ConstelacaoCalc.calcular(snap);
             criarOrbes(snap, true);
             montar();
@@ -99,6 +102,7 @@
             orbeEl.set(o.id, div);
         }
         desenhar();
+        if (focoId) { const sol = orbes.find((o) => o.id === focoId); if (sol) renderPlanetas(sol); else sairFoco(); }
     }
 
     function desenhar() {
@@ -157,6 +161,9 @@
                     arrastoOffset = { dx: o.x - p.x, dy: o.y - p.y };
                     iniciarLoop(); // roda a física durante o arrasto → vizinhos reagem ao vivo (o pego é fixo)
                 }
+            } else if (focoId) {
+                // Em foco (sistema solar): o vazio só faz PAN; sair do foco é pela barra ou Esc.
+                panning = { x: e.clientX, y: e.clientY };
             } else {
                 // Vazio: clica-SEGURA (parado ~600ms) cria núcleo; se MOVER antes, vira pan.
                 pressInicio = { x: e.clientX, y: e.clientY, mundo: paraMundo(e.clientX, e.clientY) };
@@ -193,7 +200,7 @@
                 const id = arrastando.id;
                 const foiClique = orbePress && Math.hypot(e.clientX - orbePress.x, e.clientY - orbePress.y) <= CLICK_TOL;
                 arrastando.fixo = false; arrastando = null; orbePress = null; iniciarLoop(); // física reassume
-                if (foiClique) abrirConfigNucleo(id); // clique sem arrastar → painel de config (F3.2)
+                if (foiClique) focar(id); // clique sem arrastar → FOCA o núcleo (sistema solar, F3.3)
             }
             panning = null;
             try { c.releasePointerCapture(e.pointerId); } catch (_) { /* já solto */ }
@@ -212,6 +219,8 @@
             aplicarCamera();
         }, { passive: false });
 
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && focoId) sairFoco(); });
+
         // Recálculo ao mudar o mundo (paralelo ao da frescura do Oráculo). Só quando a lente está ativa.
         if (window.API && typeof API.onMutacao === 'function') {
             API.onMutacao((url) => {
@@ -228,6 +237,7 @@
             const res = await API.fetch(`/cronicas/${cronicaAtual}/constelacao`);
             if (!res.ok) return;
             const snap = await res.json();
+            entidadesAtual = snap.entidades || [];
             forcas = ConstelacaoCalc.calcular(snap);
             criarOrbes(snap, false); // false = mantém posições/velocidades existentes
             montar();
@@ -422,6 +432,79 @@
         });
         if (window.lucide) lucide.createIcons();
         modal.querySelector('#ce-nome').focus();
+    }
+
+    // ── F3.3a: sistema solar (clique no núcleo → foco + entidades como planetas) ──
+    function centrarCamera(o, zoom) {
+        const c = canvas(); if (!c) return;
+        const m = elMundo();
+        if (m) { m.classList.add('animando'); setTimeout(() => m.classList.remove('animando'), 420); }
+        cam.zoom = zoom;
+        cam.x = c.clientWidth / 2 - o.x * zoom;
+        cam.y = c.clientHeight / 2 - o.y * zoom;
+        aplicarCamera();
+    }
+
+    function focar(id) {
+        const o = orbes.find((x) => x.id === String(id));
+        if (!o) return;
+        focoId = String(id);
+        o.fixo = true;                          // o sol fica parado durante o foco
+        canvas().classList.add('em-foco');
+        centrarCamera(o, 1.6);
+        renderPlanetas(o);
+        mostrarBarraFoco(o);
+    }
+
+    function sairFoco() {
+        if (!focoId) return;
+        const o = orbes.find((x) => x.id === focoId);
+        if (o) o.fixo = false;
+        focoId = null;
+        removerPlanetas(); removerBarraFoco();
+        const c = canvas(); if (c) c.classList.remove('em-foco');
+        iniciarLoop();
+    }
+
+    function removerPlanetas() { (wrapOrbes()?.querySelectorAll('.constelacao-planeta') || []).forEach((el) => el.remove()); }
+    function renderPlanetas(sol) {
+        removerPlanetas();
+        const wrap = wrapOrbes(); if (!wrap) return;
+        const ents = entidadesAtual.filter((e) => String(e.nucleo_id) === focoId);
+        const raio = diametro(sol.massa) * 0.6 + 100;
+        ents.forEach((e, i) => {
+            const ang = (i / Math.max(1, ents.length)) * 2 * Math.PI - Math.PI / 2;
+            const px = sol.x + Math.cos(ang) * raio, py = sol.y + Math.sin(ang) * raio;
+            const div = document.createElement('div');
+            div.className = 'constelacao-planeta';
+            div.style.left = (px - 28) + 'px'; div.style.top = (py - 28) + 'px';
+            div.title = `${e.nome} (${e.tipo})`;
+            div.innerHTML = `<span class="constelacao-planeta-nome">${escapeHTML(e.nome)}</span>`;
+            wrap.appendChild(div);
+        });
+    }
+
+    function removerBarraFoco() { document.getElementById('constelacao-foco-barra')?.remove(); }
+    function mostrarBarraFoco(o) {
+        removerBarraFoco();
+        const c = canvas(); if (!c) return;
+        const bar = document.createElement('div');
+        bar.id = 'constelacao-foco-barra';
+        bar.className = 'constelacao-foco-barra';
+        bar.innerHTML = `
+            <span class="cfb-nome">${escapeHTML(o.nome)}</span>
+            <button class="btn btn-sm btn-outline" data-acao="config"><i data-lucide="settings"></i> Configurar</button>
+            <button class="btn btn-sm btn-outline" data-acao="criar"><i data-lucide="user-plus"></i> Entidade</button>
+            <button class="btn btn-sm btn-ghost" data-acao="sair"><i data-lucide="x"></i> Sair</button>`;
+        c.appendChild(bar);
+        bar.addEventListener('pointerdown', (e) => e.stopPropagation()); // não deixa o clique virar pan do canvas
+        bar.addEventListener('click', (e) => {
+            const ac = e.target.closest('[data-acao]')?.dataset.acao;
+            if (ac === 'config') abrirConfigNucleo(focoId);
+            else if (ac === 'criar') abrirCriarEntidade(focoId, o.nome);
+            else if (ac === 'sair') sairFoco();
+        });
+        if (window.lucide) lucide.createIcons();
     }
 
     window.Constelacao = { entrar, sair };

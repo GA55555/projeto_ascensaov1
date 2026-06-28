@@ -3813,6 +3813,24 @@ input[type="radio"] {
 .cf-significado { min-height: 1.2em; margin: 6px 0 2px; font-size: 0.82rem; font-style: italic; }
 .modal-acoes--split { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 .cf-extras { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 4px; }
+/* Sistema solar (F3.3): foco num núcleo → entidades como planetas + barra de foco. */
+.constelacao-mundo.animando { transition: transform 0.42s ease; }
+.constelacao-canvas.em-foco .constelacao-linhas { opacity: 0.1; }
+.constelacao-planeta {
+    position: absolute; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center;
+    text-align: center; box-sizing: border-box; padding: 4px; border-radius: 50%; pointer-events: none;
+    background: var(--bg-secundario); border: 1px solid var(--azul-vida); color: var(--texto-claro);
+    font-size: 0.66rem; line-height: 1.05; box-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
+    animation: constelacao-planeta-surge 0.3s ease-out;
+}
+.constelacao-planeta-nome { overflow: hidden; max-height: 100%; }
+@keyframes constelacao-planeta-surge { from { transform: scale(0.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.constelacao-foco-barra {
+    position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 5;
+    display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px;
+    background: var(--bg-card); border: 1px solid var(--borda); border-radius: 8px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+.constelacao-foco-barra .cfb-nome { font-family: 'Cormorant Garamond', serif; font-size: 1.05rem; color: var(--destaque); margin-right: 4px; }
 .constelacao-orbe-nome { font-weight: 600; overflow: hidden; max-height: 100%; }
 .constelacao-orbe-tarot {
     position: absolute; top: -5px; right: -5px; background: var(--roxo-mago); color: var(--texto-claro);

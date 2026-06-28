@@ -780,7 +780,7 @@ exports.listarConstelacao = async (req, res) => {
     try {
         const [nucleosQ, entidadesQ, linksQ, dipQ] = await Promise.all([
             pool.query("SELECT id, nome, dados FROM entidade_nucleos WHERE cronica_id = $1 AND tipo = 'entidade'", [cronicaId]),
-            pool.query('SELECT id, nucleo_id FROM world_nodes WHERE cronica_id = $1 AND nucleo_id IS NOT NULL', [cronicaId]),
+            pool.query('SELECT id, nucleo_id, nome, tipo FROM world_nodes WHERE cronica_id = $1 AND nucleo_id IS NOT NULL', [cronicaId]),
             pool.query('SELECT origem_node_id, destino_node_id, tipo_vinculo, dados FROM world_links WHERE cronica_id = $1', [cronicaId]),
             pool.query('SELECT nucleo_a_id, nucleo_b_id, status FROM nucleo_diplomacia WHERE cronica_id = $1', [cronicaId]),
         ]);
@@ -793,7 +793,7 @@ exports.listarConstelacao = async (req, res) => {
                 tarot: (n.dados && typeof n.dados === 'object' && n.dados.tarot) || null,
                 pos: (n.dados && typeof n.dados === 'object' && n.dados.pos) || null,
             })),
-            entidades: entidadesQ.rows.map((e) => ({ id: e.id, nucleo_id: e.nucleo_id })),
+            entidades: entidadesQ.rows.map((e) => ({ id: e.id, nucleo_id: e.nucleo_id, nome: e.nome, tipo: e.tipo })),
             links: linksQ.rows.map((l) => ({
                 origem: l.origem_node_id,
                 destino: l.destino_node_id,
