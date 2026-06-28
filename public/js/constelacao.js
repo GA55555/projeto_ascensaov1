@@ -38,6 +38,14 @@
     const wrapLinhas = () => document.getElementById('constelacao-linhas');
     const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
     const diametro = (massa) => clamp(40 + (Number(massa) || 1) * 12, 48, 140); // raio ∝ massa
+    const diametroOrbe = (o) => diametro(o.massa) * (Number(o.escala) || 1);    // × override visual (F3.5)
+    // Paleta de COR por TOKEN (Regra 2.5: nada de cor hardcoded; a cor é uma chave que mapeia p/ var CSS).
+    const PALETA_COR = [
+        { key: 'destaque', varname: '--destaque' }, { key: 'roxo', varname: '--roxo-mago' },
+        { key: 'azul', varname: '--azul-vida' }, { key: 'aliado', varname: '--link-aliado' },
+        { key: 'inimigo', varname: '--link-inimigo' }, { key: 'aviso', varname: '--aviso' }, { key: 'rosa', varname: '--rosa' },
+    ];
+    const corVar = (key) => (PALETA_COR.find((c) => c.key === key)?.varname) || '--destaque';
     const espessura = (t) => 1 + Math.abs(Number(t) || 0) / 10 * 4;            // 1..5px ∝ |tensão|
     const classeLinha = (t) => { const v = Number(t) || 0; return 'constelacao-linha ' + (v > 1 ? 'constelacao-linha--aliado' : v < -1 ? 'constelacao-linha--inimigo' : 'constelacao-linha--neutro'); };
     const ROMANO = ['0', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX', 'XXI'];
@@ -72,12 +80,12 @@
             const id = String(n.id);
             const massa = forcas.massa[id] || 1;
             const ex = !reposicionar && antigos.get(id);
-            if (ex) { ex.nome = n.nome; ex.descricao = n.descricao; ex.tarot = n.tarot; ex.massa = massa; return ex; } // mantém posição/velocidade
+            if (ex) { ex.nome = n.nome; ex.descricao = n.descricao; ex.tarot = n.tarot; ex.massa = massa; ex.cor = n.cor; ex.escala = n.escala; return ex; } // mantém posição/velocidade
             let pos;
             if (proximaSemente) { pos = { x: proximaSemente.x, y: proximaSemente.y }; proximaSemente = null; } // nasce onde o Narrador clicou
             else if (n.pos && typeof n.pos.x === 'number') { pos = { x: n.pos.x, y: n.pos.y }; }
             else { const ang = (i / Math.max(1, nucleos.length)) * 2 * Math.PI; pos = { x: centroMundo.x + Math.cos(ang) * raio, y: centroMundo.y + Math.sin(ang) * raio }; }
-            return { id, nome: n.nome, descricao: n.descricao, tarot: n.tarot, x: pos.x, y: pos.y, vx: 0, vy: 0, massa, fixo: false };
+            return { id, nome: n.nome, descricao: n.descricao, cor: n.cor, escala: n.escala, tarot: n.tarot, x: pos.x, y: pos.y, vx: 0, vy: 0, massa, fixo: false };
         });
     }
 
@@ -95,8 +103,9 @@
         for (const o of orbes) {
             const div = document.createElement('div');
             div.className = 'constelacao-orbe';
-            const dia = diametro(o.massa);
+            const dia = diametroOrbe(o);
             div.style.width = dia + 'px'; div.style.height = dia + 'px';
+            if (o.cor) div.style.borderColor = `var(${corVar(o.cor)})`; // cor por token (Regra 2.5)
             div.dataset.id = o.id;
             const selo = o.tarot
                 ? `<span class="constelacao-orbe-tarot" title="Arcano ${o.tarot.carta_num}${o.tarot.orientacao === -1 ? ' (invertido)' : ''}">${ROMANO[o.tarot.carta_num] || o.tarot.carta_num}${o.tarot.orientacao === -1 ? '↡' : ''}</span>`
@@ -113,7 +122,7 @@
         const byId = new Map(orbes.map((o) => [o.id, o]));
         for (const o of orbes) {
             const el = orbeEl.get(o.id);
-            if (el) { const dia = diametro(o.massa); el.style.left = (o.x - dia / 2) + 'px'; el.style.top = (o.y - dia / 2) + 'px'; }
+            if (el) { const dia = diametroOrbe(o); el.style.left = (o.x - dia / 2) + 'px'; el.style.top = (o.y - dia / 2) + 'px'; }
         }
         for (const L of linhaEls) {
             const a = byId.get(L.a), b = byId.get(L.b);
@@ -371,6 +380,18 @@
                     </div>
                     <p id="cf-significado" class="cf-significado texto-mutado"></p>
                 </div>
+                <label class="campo-label">Aparência</label>
+                <div class="cf-aparencia">
+                    <div class="cf-cores" id="cf-cores">
+                        ${PALETA_COR.map((c) => `<button type="button" class="cf-cor ${o.cor === c.key ? 'sel' : ''}" data-cor="${c.key}" style="background: var(${c.varname})" title="${c.key}"></button>`).join('')}
+                        <button type="button" class="cf-cor cf-cor-padrao ${!o.cor ? 'sel' : ''}" data-cor="" title="Padrão">·</button>
+                    </div>
+                    <select id="cf-escala" class="cf-escala-sel">
+                        <option value="0.75">Pequeno</option>
+                        <option value="1">Médio</option>
+                        <option value="1.4">Grande</option>
+                    </select>
+                </div>
                 <div class="cf-extras">
                     <button class="btn btn-outline btn-sm" id="cf-diplo"><i data-lucide="handshake"></i> Diplomacia</button>
                     <button class="btn btn-outline btn-sm" id="cf-criar-ent"><i data-lucide="user-plus"></i> Criar entidade dentro</button>
@@ -394,6 +415,14 @@
         const chkTarot = modal.querySelector('#cf-usar-tarot');
         chkTarot.addEventListener('change', () => { modal.querySelector('#cf-tarot-bloco').hidden = !chkTarot.checked; });
         refSig();
+        // Aparência (F3.5): seleção de cor (paleta de tokens) + tamanho.
+        let corEscolhida = o.cor || '';
+        modal.querySelector('#cf-cores').addEventListener('click', (e) => {
+            const b = e.target.closest('.cf-cor'); if (!b) return;
+            corEscolhida = b.dataset.cor;
+            modal.querySelectorAll('.cf-cor').forEach((x) => x.classList.toggle('sel', x === b));
+        });
+        modal.querySelector('#cf-escala').value = String(o.escala || 1);
         modal.addEventListener('click', (e) => { if (e.target === modal || (e.target.closest && e.target.closest('[data-fechar]'))) fechar(); });
 
         modal.querySelector('#cf-salvar').addEventListener('click', async () => {
@@ -403,8 +432,10 @@
             const usarTarot = modal.querySelector('#cf-usar-tarot').checked;
             const cartaVal = modal.querySelector('#cf-carta').value;
             const or = modal.querySelector('input[name="cf-or"]:checked')?.value === '-1' ? -1 : 1;
+            const cor = corEscolhida || null;
+            const escala = parseFloat(modal.querySelector('#cf-escala').value) || 1;
             try {
-                await API.fetch(`/cronicas/${cronicaAtual}/entidade-nucleos/${id}`, { method: 'PUT', body: JSON.stringify({ nome, descricao }) });
+                await API.fetch(`/cronicas/${cronicaAtual}/entidade-nucleos/${id}`, { method: 'PUT', body: JSON.stringify({ nome, descricao, cor, escala }) });
                 if (usarTarot && cartaVal !== '') {
                     await API.fetch(`/cronicas/${cronicaAtual}/entidade-nucleos/${id}/tarot`, { method: 'PUT', body: JSON.stringify({ carta_num: parseInt(cartaVal, 10), orientacao: or }) });
                 } else if (!usarTarot && t) { // desmarcou o Tarot que existia → remove
@@ -511,7 +542,7 @@
         removerPlanetas();
         const wrap = wrapOrbes(); if (!wrap) return;
         const ents = entidadesAtual.filter((e) => String(e.nucleo_id) === focoId);
-        const raio = diametro(sol.massa) * 0.6 + 100;
+        const raio = diametroOrbe(sol) * 0.6 + 100;
         ents.forEach((e, i) => {
             const ang = (i / Math.max(1, ents.length)) * 2 * Math.PI - Math.PI / 2;
             const px = sol.x + Math.cos(ang) * raio, py = sol.y + Math.sin(ang) * raio;

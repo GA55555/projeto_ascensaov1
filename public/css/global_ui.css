@@ -3809,6 +3809,13 @@ input[type="radio"] {
 .cf-tarot-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 4px 0; }
 .cf-tarot-row #cf-carta { flex: 1; min-width: 180px; }
 .cf-usar { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--texto-mutado); cursor: pointer; margin: 2px 0 4px; }
+/* Aparência (F3.5): paleta de cores (tokens) + tamanho. */
+.cf-aparencia { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 4px 0; }
+.cf-cores { display: flex; gap: 6px; flex-wrap: wrap; }
+.cf-cor { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--borda); cursor: pointer; padding: 0; line-height: 1; }
+.cf-cor.sel { border-color: var(--texto-claro); box-shadow: 0 0 0 2px var(--bg-card), 0 0 0 4px var(--texto-claro); }
+.cf-cor-padrao { background: var(--bg-secundario); color: var(--texto-mutado); }
+.cf-escala-sel { min-width: 110px; }
 .cf-or { display: inline-flex; align-items: center; gap: 5px; font-size: 0.85rem; color: var(--texto-mutado); cursor: pointer; }
 .cf-significado { min-height: 1.2em; margin: 6px 0 2px; font-size: 0.82rem; font-style: italic; }
 .modal-acoes--split { display: flex; justify-content: space-between; align-items: center; gap: 10px; }

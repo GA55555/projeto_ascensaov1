@@ -70,7 +70,9 @@ const renomearNucleoSchema = z.object({ // nome + brasão opcional (Fatia 2) + d
     body: z.object({
         nome: z.string().min(1, 'Nome do núcleo é obrigatório.'),
         avatar_url: avatarNucleoSchema.optional(),
-        descricao: z.string().trim().max(2000).optional()
+        descricao: z.string().trim().max(2000).optional(),
+        cor: z.string().max(40).nullable().optional(),        // Constelação F3.5: token-key da paleta
+        escala: z.number().min(0.5).max(2).nullable().optional() // Constelação F3.5: multiplicador de tamanho
     })
 });
 

@@ -450,12 +450,16 @@ exports.renomearNucleoEntidade = async (req, res) => {
         }
         if (result.rows.length === 0) return res.status(404).json({ erro: 'Núcleo não encontrado.' });
         if (temAvatar && urlAntiga && urlAntiga !== (result.rows[0]?.avatar_url || null)) await apagarUploadOrfao(urlAntiga, ['nucleos']);
-        // Constelação F3.2: merge da descrição no JSONB `dados` (sem clobber de tarot/pos), se enviada.
-        if (Object.prototype.hasOwnProperty.call(req.body, 'descricao')) {
-            const d = (typeof req.body.descricao === 'string') ? req.body.descricao.trim() : '';
+        // Constelação F3.2/F3.5: merge de descrição/cor/escala no JSONB `dados` (sem clobber de tarot/pos).
+        const tem = (k) => Object.prototype.hasOwnProperty.call(req.body, k);
+        const patch = {};
+        if (tem('descricao')) patch.descricao = (typeof req.body.descricao === 'string') ? req.body.descricao.trim() : '';
+        if (tem('cor')) patch.cor = req.body.cor || null;       // token-key da paleta (ou null = padrão)
+        if (tem('escala')) patch.escala = req.body.escala || null; // multiplicador visual do tamanho
+        if (Object.keys(patch).length) {
             const upd = await pool.query(
-                `UPDATE entidade_nucleos SET dados = COALESCE(dados, '{}'::jsonb) || jsonb_build_object('descricao', $1::text) WHERE id = $2 AND cronica_id = $3 RETURNING *`,
-                [d, nucleoId, cronicaId]
+                `UPDATE entidade_nucleos SET dados = COALESCE(dados, '{}'::jsonb) || $1::jsonb WHERE id = $2 AND cronica_id = $3 RETURNING *`,
+                [JSON.stringify(patch), nucleoId, cronicaId]
             );
             if (upd.rows.length) result = upd;
         }
@@ -790,6 +794,8 @@ exports.listarConstelacao = async (req, res) => {
                 id: n.id,
                 nome: n.nome,
                 descricao: (n.dados && typeof n.dados === 'object' && n.dados.descricao) || '',
+                cor: (n.dados && typeof n.dados === 'object' && n.dados.cor) || null,
+                escala: (n.dados && typeof n.dados === 'object' && n.dados.escala) || null,
                 tarot: (n.dados && typeof n.dados === 'object' && n.dados.tarot) || null,
                 pos: (n.dados && typeof n.dados === 'object' && n.dados.pos) || null,
             })),
