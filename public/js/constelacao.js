@@ -37,6 +37,10 @@
     const wrapOrbes = () => document.getElementById('constelacao-orbes');
     const wrapLinhas = () => document.getElementById('constelacao-linhas');
     const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
+    // O app usa :root{zoom: 1.33}: clientX/getBoundingClientRect vêm em px VISUAIS, mas style/transform
+    // dos filhos é re-escalado pelo navegador. Dividir os deltas de ponteiro por este fator casa os espaços
+    // (igual ao board — posicionarPopover). Sem isto, a conversão "foge" proporcional à distância.
+    const rootZoom = () => parseFloat(getComputedStyle(document.documentElement).zoom) || 1;
     const diametro = (massa) => clamp(40 + (Number(massa) || 1) * 12, 48, 140); // raio ∝ massa
     const diametroOrbe = (o) => diametro(o.massa) * (Number(o.escala) || 1);    // × override visual (F3.5)
     // Paleta de COR por TOKEN (Regra 2.5: nada de cor hardcoded; a cor é uma chave que mapeia p/ var CSS).
@@ -166,7 +170,9 @@
     // tela → mundo (inverso da câmera): usado p/ posicionar o orbe arrastado.
     function paraMundo(clientX, clientY) {
         const r = canvas().getBoundingClientRect();
-        return { x: (clientX - r.left - cam.x) / cam.zoom, y: (clientY - r.top - cam.y) / cam.zoom };
+        const z = rootZoom();
+        const px = (clientX - r.left) / z, py = (clientY - r.top) / z; // visuais → px de layout (CSS)
+        return { x: (px - cam.x) / cam.zoom, y: (py - cam.y) / cam.zoom };
     }
 
     // Liga os ponteiros UMA vez (o canvas persiste entre entradas).
@@ -226,7 +232,8 @@
                 arrastando.vx = 0; arrastando.vy = 0;
                 desenhar();
             } else if (panning) {
-                cam.x += e.clientX - panning.x; cam.y += e.clientY - panning.y;
+                const z = rootZoom();
+                cam.x += (e.clientX - panning.x) / z; cam.y += (e.clientY - panning.y) / z;
                 panning = { x: e.clientX, y: e.clientY };
                 aplicarCamera();
             }
@@ -257,7 +264,8 @@
         c.addEventListener('wheel', (e) => {
             e.preventDefault();
             const r = c.getBoundingClientRect();
-            const cx = e.clientX - r.left, cy = e.clientY - r.top;
+            const z = rootZoom();
+            const cx = (e.clientX - r.left) / z, cy = (e.clientY - r.top) / z; // px de layout (CSS)
             const novoZoom = clamp(cam.zoom * (e.deltaY < 0 ? 1.1 : 1 / 1.1), 0.3, 3);
             cam.x = cx - (cx - cam.x) * (novoZoom / cam.zoom);
             cam.y = cy - (cy - cam.y) * (novoZoom / cam.zoom);
@@ -299,10 +307,11 @@
         removerGhost();
         const c = canvas(); if (!c) return;
         const r = c.getBoundingClientRect();
+        const z = rootZoom();
         ghostEl = document.createElement('div');
         ghostEl.className = 'constelacao-ghost';
-        ghostEl.style.left = (clientX - r.left) + 'px';
-        ghostEl.style.top = (clientY - r.top) + 'px';
+        ghostEl.style.left = ((clientX - r.left) / z) + 'px'; // px de layout (CSS), igual ao resto
+        ghostEl.style.top = ((clientY - r.top) / z) + 'px';
         c.appendChild(ghostEl);
     }
     function removerGhost() { if (ghostEl) { ghostEl.remove(); ghostEl = null; } }
