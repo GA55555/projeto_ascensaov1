@@ -22,6 +22,9 @@
     let catalogoTarot = null;                // catálogo dos arcanos (carregado sob demanda em /data/tarot.json)
     let focoId = null;                        // núcleo focado (sistema solar) — null = visão geral
     let entidadesAtual = [];                  // entidades do último snapshot (viram os "planetas" no foco)
+    let diplomaciaAtual = [];                 // diplomacia do último snapshot [{a,b,status}] (base p/ conectar)
+    let conectandoDe = null;                  // orbe-origem de um arrasto de conexão (âncora)
+    let tempLinha = null;                     // linha temporária do arrasto de conexão
     let interacaoPronta = false;
     const HOLD_MS = 600;                     // tempo do clica-segura (decisão E — ajustável)
     const MOVE_TOL = 6;                      // px: acima disso o clica-segura vira pan
@@ -50,6 +53,7 @@
             if (!res.ok) throw new Error('falha');
             const snap = await res.json();
             entidadesAtual = snap.entidades || [];
+            diplomaciaAtual = snap.diplomacia || [];
             forcas = ConstelacaoCalc.calcular(snap);
             criarOrbes(snap, true);
             montar();
@@ -97,7 +101,7 @@
             const selo = o.tarot
                 ? `<span class="constelacao-orbe-tarot" title="Arcano ${o.tarot.carta_num}${o.tarot.orientacao === -1 ? ' (invertido)' : ''}">${ROMANO[o.tarot.carta_num] || o.tarot.carta_num}${o.tarot.orientacao === -1 ? '↡' : ''}</span>`
                 : '';
-            div.innerHTML = `<span class="constelacao-orbe-nome">${escapeHTML(o.nome)}</span>${selo}`;
+            div.innerHTML = `<span class="constelacao-orbe-nome">${escapeHTML(o.nome)}</span>${selo}<span class="constelacao-orbe-ancora" title="Arraste até outro núcleo para definir a diplomacia"></span>`;
             wo.appendChild(div);
             orbeEl.set(o.id, div);
         }
@@ -165,6 +169,14 @@
 
         c.addEventListener('pointerdown', (e) => {
             if (e.target.closest && e.target.closest('.constelacao-controles')) return; // controles não pan/criam
+            // Âncora (borda do orbe): inicia um arrasto de CONEXÃO (→ diplomacia), não move o orbe.
+            const ancora = e.target.closest && e.target.closest('.constelacao-orbe-ancora');
+            if (ancora) {
+                const od = ancora.closest('.constelacao-orbe');
+                const o = od && orbes.find((x) => x.id === od.dataset.id);
+                if (o) { conectandoDe = o; criarTempLinha(); c.setPointerCapture(e.pointerId); }
+                return;
+            }
             const orbeDiv = e.target.closest && e.target.closest('.constelacao-orbe');
             if (orbeDiv) {
                 const o = orbes.find((x) => x.id === orbeDiv.dataset.id);
@@ -196,7 +208,10 @@
                     panning = { x: pressInicio.x, y: pressInicio.y }; // movimento → vira pan
                 }
             }
-            if (arrastando) {
+            if (conectandoDe) {
+                const p = paraMundo(e.clientX, e.clientY);
+                atualizarTempLinha(conectandoDe.x, conectandoDe.y, p.x, p.y);
+            } else if (arrastando) {
                 const p = paraMundo(e.clientX, e.clientY);
                 arrastando.x = p.x + arrastoOffset.dx; arrastando.y = p.y + arrastoOffset.dy;
                 arrastando.vx = 0; arrastando.vy = 0;
@@ -208,6 +223,14 @@
             }
         });
         const soltar = (e) => {
+            if (conectandoDe) { // soltou um arrasto de conexão → sobre outro núcleo? abre o seletor de diplomacia
+                removerTempLinha();
+                const alvo = document.elementFromPoint(e.clientX, e.clientY)?.closest('.constelacao-orbe');
+                const de = conectandoDe; conectandoDe = null;
+                if (alvo && alvo.dataset.id && alvo.dataset.id !== de.id) abrirPickerDiplomacia(de.id, alvo.dataset.id);
+                try { c.releasePointerCapture(e.pointerId); } catch (_) {}
+                return;
+            }
             if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; removerGhost(); } // tap rápido = nada
             if (arrastando) {
                 const div = orbeEl.get(arrastando.id); if (div) div.classList.remove('arrastando');
@@ -254,6 +277,7 @@
             if (!res.ok) return;
             const snap = await res.json();
             entidadesAtual = snap.entidades || [];
+            diplomaciaAtual = snap.diplomacia || [];
             forcas = ConstelacaoCalc.calcular(snap);
             criarOrbes(snap, false); // false = mantém posições/velocidades existentes
             montar();
@@ -519,6 +543,67 @@
             if (ac === 'config') abrirConfigNucleo(focoId);
             else if (ac === 'criar') abrirCriarEntidade(focoId, o.nome);
             else if (ac === 'sair') sairFoco();
+        });
+        if (window.lucide) lucide.createIcons();
+    }
+
+    // ── F3.4b: conectar núcleos (arrastar âncora → diplomacia) ─────────────
+    function criarTempLinha() {
+        removerTempLinha();
+        const wl = wrapLinhas(); if (!wl) return;
+        tempLinha = document.createElementNS(SVGNS, 'line');
+        tempLinha.setAttribute('class', 'constelacao-linha-temp');
+        wl.appendChild(tempLinha);
+    }
+    function atualizarTempLinha(x1, y1, x2, y2) {
+        if (!tempLinha) return;
+        tempLinha.setAttribute('x1', x1); tempLinha.setAttribute('y1', y1);
+        tempLinha.setAttribute('x2', x2); tempLinha.setAttribute('y2', y2);
+    }
+    function removerTempLinha() { if (tempLinha) { tempLinha.remove(); tempLinha = null; } }
+
+    const mesmoPar = (d, aId, bId) =>
+        (String(d.a) === String(aId) && String(d.b) === String(bId)) ||
+        (String(d.a) === String(bId) && String(d.b) === String(aId));
+
+    // Diplomacia é bulk-replace: parte da diplomacia atual, troca/insere/remove o par e re-envia tudo.
+    async function definirDiplomaciaEntre(aId, bId, status) {
+        const base = diplomaciaAtual.filter((d) => !mesmoPar(d, aId, bId)).map((d) => ({ nucleoA: d.a, nucleoB: d.b, status: d.status }));
+        if (status) base.push({ nucleoA: String(aId), nucleoB: String(bId), status });
+        try {
+            const res = await API.fetch(`/cronicas/${cronicaAtual}/diplomacia`, { method: 'PUT', body: JSON.stringify({ relacoes: base }) });
+            if (!res.ok) throw new Error('falha'); // o API.onMutacao recarrega a constelação
+        } catch (_) { if (window.mostrarToast) mostrarToast('Erro ao salvar a diplomacia.', 'erro'); }
+    }
+
+    function abrirPickerDiplomacia(aId, bId) {
+        const a = orbes.find((o) => o.id === String(aId)), b = orbes.find((o) => o.id === String(bId));
+        if (!a || !b) return;
+        const existe = diplomaciaAtual.some((d) => mesmoPar(d, aId, bId));
+        const modal = document.createElement('div');
+        modal.className = 'modal show';
+        modal.innerHTML = `
+            <div class="modal-box">
+                <div class="modal-head">
+                    <h3 class="texto-roxo modal-titulo"><i data-lucide="handshake"></i> Diplomacia</h3>
+                    <button class="btn btn-ghost btn-sm" data-fechar title="Fechar"><i data-lucide="x"></i></button>
+                </div>
+                <p class="dip-par">${escapeHTML(a.nome)} <i data-lucide="arrow-left-right"></i> ${escapeHTML(b.nome)}</p>
+                <div class="dip-opcoes">
+                    <button class="btn btn-outline" data-status="aliado"><i data-lucide="heart"></i> Aliado</button>
+                    <button class="btn btn-outline" data-status="neutro"><i data-lucide="minus"></i> Neutro</button>
+                    <button class="btn btn-outline" data-status="inimigo"><i data-lucide="swords"></i> Inimigo</button>
+                </div>
+                ${existe ? '<button class="btn btn-ghost btn-sm dip-remover" data-status="">Remover laço</button>' : ''}
+            </div>`;
+        document.body.appendChild(modal);
+        const fechar = () => modal.remove();
+        modal.addEventListener('click', async (e) => {
+            if (e.target === modal || (e.target.closest && e.target.closest('[data-fechar]'))) { fechar(); return; }
+            const btn = e.target.closest && e.target.closest('[data-status]');
+            if (!btn) return;
+            await definirDiplomaciaEntre(aId, bId, btn.dataset.status || null);
+            fechar();
         });
         if (window.lucide) lucide.createIcons();
     }

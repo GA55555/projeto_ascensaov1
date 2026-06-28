@@ -3833,6 +3833,17 @@ input[type="radio"] {
 .constelacao-foco-barra .cfb-nome { font-family: 'Cormorant Garamond', serif; font-size: 1.05rem; color: var(--destaque); margin-right: 4px; }
 /* Controles do canvas (Salvar layout) — fixos na tela, fora do world-layer. */
 .constelacao-controles { position: absolute; right: 10px; bottom: 10px; z-index: 5; display: flex; gap: 8px; }
+/* Conectar (F3.4b): âncora na borda do orbe (aparece no hover) + linha temporária do arrasto. */
+.constelacao-orbe-ancora {
+    position: absolute; top: -6px; right: -6px; width: 16px; height: 16px; border-radius: 50%;
+    background: var(--azul-vida); border: 2px solid var(--bg-principal); cursor: crosshair; display: none;
+}
+.constelacao-orbe:hover .constelacao-orbe-ancora { display: block; }
+.constelacao-linha-temp { stroke: var(--azul-vida); stroke-width: 2.5; stroke-dasharray: 6 4; }
+.dip-par { text-align: center; font-size: 1rem; margin: 4px 0 10px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.dip-opcoes { display: flex; gap: 8px; justify-content: center; }
+.dip-opcoes .btn { flex: 1; }
+.dip-remover { display: block; margin: 10px auto 0; }
 .constelacao-orbe-nome { font-weight: 600; overflow: hidden; max-height: 100%; }
 .constelacao-orbe-tarot {
     position: absolute; top: -5px; right: -5px; background: var(--roxo-mago); color: var(--texto-claro);
