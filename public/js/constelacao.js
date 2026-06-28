@@ -132,6 +132,19 @@
     function pararLoop() { if (raf) cancelAnimationFrame(raf); raf = null; }
     function sair() { pararLoop(); }
 
+    // F3.4a: salva o layout (posições de repouso dos núcleos) — manual (Regra 2.7).
+    async function salvarLayout() {
+        if (!cronicaAtual || !orbes.length) return;
+        const posicoes = orbes.map((o) => ({ id: o.id, x: Math.round(o.x), y: Math.round(o.y) }));
+        try {
+            const res = await API.fetch(`/cronicas/${cronicaAtual}/constelacao/posicoes`, { method: 'PUT', body: JSON.stringify({ posicoes }) });
+            if (!res.ok) throw new Error('falha');
+            if (window.mostrarToast) mostrarToast('Layout da constelação salvo.', 'sucesso');
+        } catch (_) {
+            if (window.mostrarToast) mostrarToast('Erro ao salvar o layout.', 'erro');
+        }
+    }
+
     // ── Câmera (pan/zoom) ──────────────────────────────────────────────────
     function aplicarCamera() {
         const m = elMundo();
@@ -151,6 +164,7 @@
         interacaoPronta = true;
 
         c.addEventListener('pointerdown', (e) => {
+            if (e.target.closest && e.target.closest('.constelacao-controles')) return; // controles não pan/criam
             const orbeDiv = e.target.closest && e.target.closest('.constelacao-orbe');
             if (orbeDiv) {
                 const o = orbes.find((x) => x.id === orbeDiv.dataset.id);
@@ -220,11 +234,13 @@
         }, { passive: false });
 
         document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && focoId) sairFoco(); });
+        document.getElementById('constelacao-salvar')?.addEventListener('click', salvarLayout);
 
         // Recálculo ao mudar o mundo (paralelo ao da frescura do Oráculo). Só quando a lente está ativa.
         if (window.API && typeof API.onMutacao === 'function') {
             API.onMutacao((url) => {
                 if (/\/oraculo(\/|$|\?)/.test(url) || url.includes('/perfil/oraculo')) return;
+                if (url.includes('/constelacao/posicoes')) return; // salvar layout NÃO deve recarregar (anti-jump)
                 const cv = canvas();
                 if (cv && !cv.hidden && cronicaAtual) recarregar();
             });

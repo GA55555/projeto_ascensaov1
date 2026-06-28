@@ -18,7 +18,8 @@ const {
     criarBoardSchema, atualizarBoardSchema, boardIdParamsSchema,
     salvarDiplomaciaSchema,
     sincronizarOraculoSchema, consultarOraculoSchema,
-    salvarTarotNodeSchema, salvarTarotNucleoSchema
+    salvarTarotNodeSchema, salvarTarotNucleoSchema,
+    salvarPosicoesSchema
 } = require('../validators/mundoValidator');
 
 // Middleware apenas narrador
@@ -62,6 +63,8 @@ router.put('/nodes/:nodeId/tarot', verificarToken, checarAcessoCronica, apenasNa
 router.get('/links', verificarToken, checarAcessoCronica, MundoController.listarLinksCronica);
 // Snapshot da Constelação (Motor de Constelação, F2.1): núcleos+tarot+pos, entidade→núcleo, links+Reta, diplomacia.
 router.get('/constelacao', verificarToken, checarAcessoCronica, MundoController.listarConstelacao);
+// Salvar layout da Constelação (posições de repouso dos núcleos) — manual, F3.4a (Regra 2.7).
+router.put('/constelacao/posicoes', verificarToken, checarAcessoCronica, apenasNarrador, validate(salvarPosicoesSchema), MundoController.salvarPosicoesConstelacao);
 router.get('/nodes/:nodeId/links', verificarToken, checarAcessoCronica, validate(listarLinksSchema), MundoController.listarLinks);
 router.post('/nodes/:nodeId/links', verificarToken, checarAcessoCronica, apenasNarrador, validate(criarLinkSchema), MundoController.criarLink);
 router.delete('/nodes/:nodeId/links/:linkId', verificarToken, checarAcessoCronica, apenasNarrador, validate(deletarLinkSchema), MundoController.deletarLink);

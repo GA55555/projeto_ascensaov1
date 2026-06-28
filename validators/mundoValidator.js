@@ -177,6 +177,17 @@ const salvarTarotNucleoSchema = z.object({
     params: z.object({ cronicaId: z.string().uuid('cronicaId inválido.'), nucleoId: z.string().uuid('nucleoId inválido.') }),
     body: tarotBodySchema
 });
+// Constelação F3.4a: salvar em lote as posições de repouso dos núcleos (dados.pos) — salvamento MANUAL (Regra 2.7).
+const salvarPosicoesSchema = z.object({
+    params: z.object({ cronicaId: z.string().uuid('cronicaId inválido.') }),
+    body: z.object({
+        posicoes: z.array(z.object({
+            id: z.string().uuid(),
+            x: z.number(),
+            y: z.number()
+        })).max(2000)
+    })
+});
 
 // ── TABULEIROS DE CAMPANHA (FASE 13): world_boards ──
 // `dados` JSONB do Infinite Canvas. Cores são TOKENS de paleta (mapeados p/ vars
@@ -350,5 +361,6 @@ module.exports = {
     listarLinksSchema, criarLinkSchema, deletarLinkSchema, atualizarLinkSchema,
     criarBoardSchema, atualizarBoardSchema, boardIdParamsSchema,
     salvarDiplomaciaSchema,
-    salvarTarotNodeSchema, salvarTarotNucleoSchema
+    salvarTarotNodeSchema, salvarTarotNucleoSchema,
+    salvarPosicoesSchema
 };

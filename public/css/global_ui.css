@@ -3831,6 +3831,8 @@ input[type="radio"] {
     background: var(--bg-card); border: 1px solid var(--borda); border-radius: 8px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
 }
 .constelacao-foco-barra .cfb-nome { font-family: 'Cormorant Garamond', serif; font-size: 1.05rem; color: var(--destaque); margin-right: 4px; }
+/* Controles do canvas (Salvar layout) — fixos na tela, fora do world-layer. */
+.constelacao-controles { position: absolute; right: 10px; bottom: 10px; z-index: 5; display: flex; gap: 8px; }
 .constelacao-orbe-nome { font-weight: 600; overflow: hidden; max-height: 100%; }
 .constelacao-orbe-tarot {
     position: absolute; top: -5px; right: -5px; background: var(--roxo-mago); color: var(--texto-claro);

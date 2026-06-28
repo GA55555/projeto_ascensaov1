@@ -807,6 +807,34 @@ exports.listarConstelacao = async (req, res) => {
     }
 };
 
+// Salva em LOTE as posições de repouso dos núcleos no JSONB `dados.pos` (Constelação F3.4a). Salvamento
+// MANUAL (Regra 2.7 — botão dedicado, nada de auto-save por drag). Anti-IDOR: cada UPDATE amarrado a
+// `id AND cronica_id` (3.3.1/6.2). Merge sem clobber (tarot/descrição preservados).
+exports.salvarPosicoesConstelacao = async (req, res) => {
+    const { cronicaId } = req.params;
+    const posicoes = req.body.posicoes || [];
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        for (const p of posicoes) {
+            await client.query(
+                `UPDATE entidade_nucleos
+                    SET dados = COALESCE(dados, '{}'::jsonb) || jsonb_build_object('pos', jsonb_build_object('x', $1::numeric, 'y', $2::numeric))
+                  WHERE id = $3 AND cronica_id = $4`,
+                [Math.round(p.x), Math.round(p.y), p.id, cronicaId]
+            );
+        }
+        await client.query('COMMIT');
+        res.json({ mensagem: 'Layout da constelação salvo.', total: posicoes.length });
+    } catch (err) {
+        await client.query('ROLLBACK').catch(() => {});
+        console.error('Erro ao salvar posições da constelação:', err);
+        res.status(500).json({ erro: 'Erro ao salvar o layout.' });
+    } finally {
+        client.release();
+    }
+};
+
 exports.listarLinks = async (req, res) => {
     const { cronicaId, nodeId } = req.params;
     try {
