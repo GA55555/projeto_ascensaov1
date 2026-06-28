@@ -60,6 +60,8 @@ router.put('/nodes/:nodeId/tarot', verificarToken, checarAcessoCronica, apenasNa
 // Sinapses (links bidirecionais entre entidades) — world_links. Params validados (Regra 4.3).
 // Cronica-level: todos os links da crônica numa só query (otimização do Tabuleiro — evita N+1).
 router.get('/links', verificarToken, checarAcessoCronica, MundoController.listarLinksCronica);
+// Snapshot da Constelação (Motor de Constelação, F2.1): núcleos+tarot+pos, entidade→núcleo, links+Reta, diplomacia.
+router.get('/constelacao', verificarToken, checarAcessoCronica, MundoController.listarConstelacao);
 router.get('/nodes/:nodeId/links', verificarToken, checarAcessoCronica, validate(listarLinksSchema), MundoController.listarLinks);
 router.post('/nodes/:nodeId/links', verificarToken, checarAcessoCronica, apenasNarrador, validate(criarLinkSchema), MundoController.criarLink);
 router.delete('/nodes/:nodeId/links/:linkId', verificarToken, checarAcessoCronica, apenasNarrador, validate(deletarLinkSchema), MundoController.deletarLink);

@@ -5,6 +5,7 @@ const oraculoClient = require('../services/oraculoClient'); // F2: sincronizaç�
 const oraculoCripto = require('../utils/oraculoCripto'); // F4: decifra a chave BYOK do Narrador p/ a consulta
 const oraculoTexto = require('../services/oraculoTexto'); // texto rico (relações/flags/diplomacia) p/ o RAG
 const oraculoSync = require('../services/oraculoSync'); // Regra 4.2: re-indexação fire-and-forget (describer + conector)
+const escala = require('../services/relacaoEscala'); // reta -10..+10 da relação → tensão da constelação (F2)
 const fs = require('fs/promises');
 const path = require('path');
 
@@ -732,6 +733,44 @@ exports.listarLinksCronica = async (req, res) => {
     } catch (err) {
         console.error('Erro ao listar sinapses da crônica:', err);
         res.status(500).json({ erro: 'Erro ao buscar vínculos da crônica.' });
+    }
+};
+
+// =======================================================
+// CONSTELAÇÃO (Motor de Constelação — F2.1): SNAPSHOT de leitura.
+// Devolve, numa só chamada (escopada por cronica_id — Regra 3.3.1/6.2), tudo que a FÍSICA precisa e que
+// os endpoints de lista não traziam: núcleos (tarot/pos), mapeamento entidade→núcleo, links com a
+// INTENSIDADE da Reta de Relação (-10..+10, via relacaoEscala) e a diplomacia. A FÓRMULA (massa/tensão/
+// magnetismo) é computada no front (public/js/constelacaoCalc.js) sobre este snapshot.
+// =======================================================
+exports.listarConstelacao = async (req, res) => {
+    const { cronicaId } = req.params;
+    try {
+        const [nucleosQ, entidadesQ, linksQ, dipQ] = await Promise.all([
+            pool.query("SELECT id, nome, dados FROM entidade_nucleos WHERE cronica_id = $1 AND tipo = 'entidade'", [cronicaId]),
+            pool.query('SELECT id, nucleo_id FROM world_nodes WHERE cronica_id = $1 AND nucleo_id IS NOT NULL', [cronicaId]),
+            pool.query('SELECT origem_node_id, destino_node_id, tipo_vinculo, dados FROM world_links WHERE cronica_id = $1', [cronicaId]),
+            pool.query('SELECT nucleo_a_id, nucleo_b_id, status FROM nucleo_diplomacia WHERE cronica_id = $1', [cronicaId]),
+        ]);
+
+        res.json({
+            nucleos: nucleosQ.rows.map((n) => ({
+                id: n.id,
+                nome: n.nome,
+                tarot: (n.dados && typeof n.dados === 'object' && n.dados.tarot) || null,
+                pos: (n.dados && typeof n.dados === 'object' && n.dados.pos) || null,
+            })),
+            entidades: entidadesQ.rows.map((e) => ({ id: e.id, nucleo_id: e.nucleo_id })),
+            links: linksQ.rows.map((l) => ({
+                origem: l.origem_node_id,
+                destino: l.destino_node_id,
+                reta: escala.lerRelacao(l.dados, l.tipo_vinculo).posicao, // -10..+10 (assinado)
+            })),
+            diplomacia: dipQ.rows.map((d) => ({ a: d.nucleo_a_id, b: d.nucleo_b_id, status: d.status })),
+        });
+    } catch (err) {
+        console.error('Erro ao montar a constelação:', err);
+        res.status(500).json({ erro: 'Erro ao carregar a constelação.' });
     }
 };
 
