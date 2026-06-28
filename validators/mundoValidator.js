@@ -66,10 +66,11 @@ const criarNucleoSchema = z.object({
     })
 });
 
-const renomearNucleoSchema = z.object({ // nome + brasão opcional (Fatia 2)
+const renomearNucleoSchema = z.object({ // nome + brasão opcional (Fatia 2) + descrição (Constelação F3.2)
     body: z.object({
         nome: z.string().min(1, 'Nome do núcleo é obrigatório.'),
-        avatar_url: avatarNucleoSchema.optional()
+        avatar_url: avatarNucleoSchema.optional(),
+        descricao: z.string().trim().max(2000).optional()
     })
 });
 

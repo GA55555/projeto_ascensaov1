@@ -433,7 +433,16 @@ exports.renomearNucleoEntidade = async (req, res) => {
         }
         if (result.rows.length === 0) return res.status(404).json({ erro: 'Núcleo não encontrado.' });
         if (temAvatar && urlAntiga && urlAntiga !== (result.rows[0]?.avatar_url || null)) await apagarUploadOrfao(urlAntiga, ['nucleos']);
-        oraculoSync.reindexarNucleo(cronicaId, nucleoId); // Regra 4.2: nome da facção mudou
+        // Constelação F3.2: merge da descrição no JSONB `dados` (sem clobber de tarot/pos), se enviada.
+        if (Object.prototype.hasOwnProperty.call(req.body, 'descricao')) {
+            const d = (typeof req.body.descricao === 'string') ? req.body.descricao.trim() : '';
+            const upd = await pool.query(
+                `UPDATE entidade_nucleos SET dados = COALESCE(dados, '{}'::jsonb) || jsonb_build_object('descricao', $1::text) WHERE id = $2 AND cronica_id = $3 RETURNING *`,
+                [d, nucleoId, cronicaId]
+            );
+            if (upd.rows.length) result = upd;
+        }
+        oraculoSync.reindexarNucleo(cronicaId, nucleoId); // Regra 4.2: nome/descrição da facção mudou
         oraculoSync.reindexarMembrosDoNucleo(cronicaId, nucleoId); // Regra 4.2: membros carregam o nome da facção
         res.json(result.rows[0]);
     } catch (err) { res.status(500).json({ erro: 'Erro ao renomear núcleo.' }); }
@@ -763,6 +772,7 @@ exports.listarConstelacao = async (req, res) => {
             nucleos: nucleosQ.rows.map((n) => ({
                 id: n.id,
                 nome: n.nome,
+                descricao: (n.dados && typeof n.dados === 'object' && n.dados.descricao) || '',
                 tarot: (n.dados && typeof n.dados === 'object' && n.dados.tarot) || null,
                 pos: (n.dados && typeof n.dados === 'object' && n.dados.pos) || null,
             })),

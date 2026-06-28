@@ -3805,6 +3805,12 @@ input[type="radio"] {
     from { width: 8px; height: 8px; opacity: 0.35; }
     to   { width: 92px; height: 92px; opacity: 0.9; }
 }
+/* Config do núcleo (F3.2): linha do Tarot (carta + orientação) e significado. */
+.cf-tarot-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 4px 0; }
+.cf-tarot-row #cf-carta { flex: 1; min-width: 180px; }
+.cf-or { display: inline-flex; align-items: center; gap: 5px; font-size: 0.85rem; color: var(--texto-mutado); cursor: pointer; }
+.cf-significado { min-height: 1.2em; margin: 6px 0 2px; font-size: 0.82rem; font-style: italic; }
+.modal-acoes--split { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 .constelacao-orbe-nome { font-weight: 600; overflow: hidden; max-height: 100%; }
 .constelacao-orbe-tarot {
     position: absolute; top: -5px; right: -5px; background: var(--roxo-mago); color: var(--texto-claro);
