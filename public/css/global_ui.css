@@ -3812,6 +3812,7 @@ input[type="radio"] {
 .cf-or { display: inline-flex; align-items: center; gap: 5px; font-size: 0.85rem; color: var(--texto-mutado); cursor: pointer; }
 .cf-significado { min-height: 1.2em; margin: 6px 0 2px; font-size: 0.82rem; font-style: italic; }
 .modal-acoes--split { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.cf-extras { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 4px; }
 .constelacao-orbe-nome { font-weight: 600; overflow: hidden; max-height: 100%; }
 .constelacao-orbe-tarot {
     position: absolute; top: -5px; right: -5px; background: var(--roxo-mago); color: var(--texto-claro);

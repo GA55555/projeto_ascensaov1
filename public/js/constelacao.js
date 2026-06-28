@@ -321,6 +321,10 @@
                     </div>
                     <p id="cf-significado" class="cf-significado texto-mutado"></p>
                 </div>
+                <div class="cf-extras">
+                    <button class="btn btn-outline btn-sm" id="cf-diplo"><i data-lucide="handshake"></i> Diplomacia</button>
+                    <button class="btn btn-outline btn-sm" id="cf-criar-ent"><i data-lucide="user-plus"></i> Criar entidade dentro</button>
+                </div>
                 <div class="modal-acoes modal-acoes--split">
                     <button class="btn btn-danger btn-sm" id="cf-apagar"><i data-lucide="trash-2"></i> Apagar</button>
                     <button class="btn btn-primary" id="cf-salvar"><i data-lucide="check"></i> Salvar</button>
@@ -364,8 +368,60 @@
             try { await API.fetch(`/cronicas/${cronicaAtual}/entidade-nucleos/${id}`, { method: 'DELETE' }); fechar(); }
             catch (_) { if (window.mostrarToast) mostrarToast('Erro ao apagar.', 'erro'); }
         });
+        // F3.2b: reusa o modal de Diplomacia existente, JÁ FOCADO neste núcleo (dip-foco + change).
+        modal.querySelector('#cf-diplo').addEventListener('click', async () => {
+            fechar();
+            if (window.abrirModalDiplomacia) {
+                await window.abrirModalDiplomacia();
+                const f = document.getElementById('dip-foco');
+                if (f) { f.value = String(id); f.dispatchEvent(new Event('change')); }
+            }
+        });
+        // F3.2b: criar entidade JÁ vinculada a este núcleo (POST /nodes com nucleo_id).
+        modal.querySelector('#cf-criar-ent').addEventListener('click', () => { fechar(); abrirCriarEntidade(String(id), o.nome); });
         if (window.lucide) lucide.createIcons();
         modal.querySelector('#cf-nome').focus();
+    }
+
+    function abrirCriarEntidade(nucleoId, nucleoNome) {
+        const modal = document.createElement('div');
+        modal.className = 'modal show';
+        modal.innerHTML = `
+            <div class="modal-box">
+                <div class="modal-head">
+                    <h3 class="texto-roxo modal-titulo"><i data-lucide="user-plus"></i> Nova entidade em ${escapeHTML(nucleoNome)}</h3>
+                    <button class="btn btn-ghost btn-sm" data-fechar title="Fechar"><i data-lucide="x"></i></button>
+                </div>
+                <label class="campo-label">Nome</label>
+                <input type="text" id="ce-nome" class="input-full" maxlength="120" autocomplete="off">
+                <label class="campo-label">Tipo</label>
+                <select id="ce-tipo" class="input-full">
+                    <option value="npc">NPC</option>
+                    <option value="protagonista">Protagonista</option>
+                    <option value="faccao">Facção</option>
+                    <option value="local">Local</option>
+                    <option value="cenario">Cenário</option>
+                </select>
+                <div class="modal-acoes">
+                    <button class="btn btn-primary" id="ce-criar"><i data-lucide="check"></i> Criar entidade</button>
+                </div>
+            </div>`;
+        document.body.appendChild(modal);
+        const fechar = () => modal.remove();
+        modal.addEventListener('click', (e) => { if (e.target === modal || (e.target.closest && e.target.closest('[data-fechar]'))) fechar(); });
+        modal.querySelector('#ce-criar').addEventListener('click', async () => {
+            const nome = modal.querySelector('#ce-nome').value.trim();
+            if (!nome) { if (window.mostrarToast) mostrarToast('Digite um nome.', 'aviso'); return; }
+            const tipo = modal.querySelector('#ce-tipo').value;
+            try {
+                const res = await API.fetch(`/cronicas/${cronicaAtual}/nodes`, { method: 'POST', body: JSON.stringify({ nome, tipo, nucleo_id: nucleoId }) });
+                if (!res.ok) throw new Error('falha');
+                fechar();
+                if (window.mostrarToast) mostrarToast('Entidade criada no núcleo.', 'sucesso');
+            } catch (_) { if (window.mostrarToast) mostrarToast('Erro ao criar entidade.', 'erro'); }
+        });
+        if (window.lucide) lucide.createIcons();
+        modal.querySelector('#ce-nome').focus();
     }
 
     window.Constelacao = { entrar, sair };
