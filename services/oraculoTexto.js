@@ -105,11 +105,13 @@ async function textoDoNode(cronicaId, nodeId) {
 /** Texto rico de um NÚCLEO/FACÇÃO: membros + diplomacia (aliados/inimigos/neutros). */
 async function textoDoNucleo(cronicaId, nucleoId) {
     const nucQ = await pool.query(
-        'SELECT nome FROM entidade_nucleos WHERE id = $1 AND cronica_id = $2',
+        'SELECT nome, dados FROM entidade_nucleos WHERE id = $1 AND cronica_id = $2',
         [nucleoId, cronicaId]
     );
     if (nucQ.rows.length === 0) return null;
     const linhas = [`Facção/Núcleo: ${nucQ.rows[0].nome}`];
+    const arquetipo = descreverTarot(nucQ.rows[0].dados);
+    if (arquetipo) linhas.push(arquetipo);
 
     const membrosQ = await pool.query(
         'SELECT nome, tipo FROM world_nodes WHERE nucleo_id = $1 AND cronica_id = $2 ORDER BY nome',

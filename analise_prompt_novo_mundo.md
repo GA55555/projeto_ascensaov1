@@ -136,8 +136,8 @@ drag&drop por PointerEvents (7.1) ✓ · anti-IDOR por `cronica_id` + posse (3.3
   '{}'::jsonb;` (pequeno, consistente com a DDL do Oráculo; libera tarot+pos de núcleo por DML).
 - **(ii) Sem DDL:** guardar tarot/pos de núcleo no jsonb de outra tabela (ex.: por crônica) — mais
   acoplado e feio.
-> **Estado:** a F1 de **ENTIDADES** já está implementada (`world_nodes.dados` existe ✓). A de **NÚCLEOS**
-> (tarot + futura posição) **aguarda esta decisão**.
+> **Estado:** ✅ **RESOLVIDO (27/jun): DDL (i) aplicada** — `entidade_nucleos.dados jsonb` existe. F1 de
+> ENTIDADES **e** NÚCLEOS (tarot) **implementada**; a coluna também recebe a futura `pos` (F3).
 
 ## 3-bis. ⚙️ Modelo de Física da Constelação (TRAVADO — 27/jun)
 A **posição não é dado de entrada** — é o **resultado** de uma simulação force-directed. O que persiste e o

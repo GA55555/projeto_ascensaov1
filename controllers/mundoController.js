@@ -203,6 +203,29 @@ exports.salvarTarotNode = async (req, res) => {
     }
 };
 
+// Tarot de um NÚCLEO/FACÇÃO (requer a coluna entidade_nucleos.dados — DDL aplicada). Mesmo padrão do
+// nó: MERGE de dados.tarot sem clobber (4.2), anti-IDOR id+cronica_id (3.3.1), re-index do núcleo.
+exports.salvarTarotNucleo = async (req, res) => {
+    const { cronicaId, nucleoId } = req.params;
+    const { carta_num, orientacao } = req.body;
+    try {
+        const result = await pool.query(
+            `UPDATE entidade_nucleos
+                SET dados = COALESCE(dados, '{}'::jsonb) || jsonb_build_object(
+                            'tarot', jsonb_build_object('carta_num', $1::int, 'orientacao', $2::int))
+              WHERE id = $3 AND cronica_id = $4
+              RETURNING *`,
+            [carta_num, orientacao, nucleoId, cronicaId]
+        );
+        if (result.rows.length === 0) return res.status(404).json({ erro: 'Núcleo não encontrado.' });
+        oraculoSync.reindexarNucleo(cronicaId, nucleoId);
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error('Erro ao salvar Tarot do núcleo:', err);
+        res.status(500).json({ erro: 'Erro ao salvar a carta de Tarot.' });
+    }
+};
+
 
 // =======================================================
 // FLAGS (VARIÁVEIS DE MUNDO)

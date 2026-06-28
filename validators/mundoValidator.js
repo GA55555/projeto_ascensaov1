@@ -171,6 +171,10 @@ const salvarTarotNodeSchema = z.object({
     params: z.object({ ...sinapseParamsBase }), // cronicaId + nodeId
     body: tarotBodySchema
 });
+const salvarTarotNucleoSchema = z.object({
+    params: z.object({ cronicaId: z.string().uuid('cronicaId inválido.'), nucleoId: z.string().uuid('nucleoId inválido.') }),
+    body: tarotBodySchema
+});
 
 // ── TABULEIROS DE CAMPANHA (FASE 13): world_boards ──
 // `dados` JSONB do Infinite Canvas. Cores são TOKENS de paleta (mapeados p/ vars
@@ -344,5 +348,5 @@ module.exports = {
     listarLinksSchema, criarLinkSchema, deletarLinkSchema, atualizarLinkSchema,
     criarBoardSchema, atualizarBoardSchema, boardIdParamsSchema,
     salvarDiplomaciaSchema,
-    salvarTarotNodeSchema
+    salvarTarotNodeSchema, salvarTarotNucleoSchema
 };
