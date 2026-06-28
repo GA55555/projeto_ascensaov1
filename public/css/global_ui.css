@@ -3776,8 +3776,11 @@ input[type="radio"] {
 /* ── MOTOR DE CONSTELAÇÃO (F2.3): canvas físico dos núcleos ──
    Orbe = astro REDONDO (escolha do Narrador, exceção autorizada à geometria sóbria). Posição/tamanho são
    data-driven inline (Regra 2.5 barra-fill); cores SEMPRE por token. Linhas SVG por valência. */
-.constelacao-canvas { position: relative; width: 100%; height: 70vh; min-height: 480px; overflow: hidden; background: var(--bg-principal); border: 1px solid var(--borda); border-radius: 8px; }
-.constelacao-linhas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.constelacao-canvas { position: relative; width: 100%; height: 70vh; min-height: 480px; overflow: hidden; background: var(--bg-principal); border: 1px solid var(--borda); border-radius: 8px; cursor: grab; touch-action: none; }
+.constelacao-canvas:active { cursor: grabbing; }
+/* World-layer: recebe o transform da câmera (pan/zoom). transform-origin 0,0 → conversão tela↔mundo simples. */
+.constelacao-mundo { position: absolute; inset: 0; transform-origin: 0 0; will-change: transform; }
+.constelacao-linhas { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
 .constelacao-linha { stroke: var(--texto-mutado); transition: stroke 0.3s ease; }
 .constelacao-linha--aliado  { stroke: var(--link-aliado); }
 .constelacao-linha--inimigo { stroke: var(--link-inimigo); }
@@ -3791,6 +3794,7 @@ input[type="radio"] {
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35); transition: box-shadow var(--transicao-suave);
 }
 .constelacao-orbe:hover { box-shadow: 0 0 14px 2px color-mix(in srgb, var(--destaque) 45%, transparent); }
+.constelacao-orbe.arrastando { cursor: grabbing; box-shadow: 0 0 18px 3px color-mix(in srgb, var(--destaque) 60%, transparent); }
 .constelacao-orbe-nome { font-weight: 600; overflow: hidden; max-height: 100%; }
 .constelacao-orbe-tarot {
     position: absolute; top: -5px; right: -5px; background: var(--roxo-mago); color: var(--texto-claro);
