@@ -14,7 +14,13 @@
     let arrastando = null;                   // orbe sob arrasto (física suspensa)
     let arrastoOffset = { dx: 0, dy: 0 };    // offset (mundo) entre o ponto agarrado e o centro do orbe
     let panning = null;                      // {x,y} do último ponteiro durante o pan
+    let pressTimer = null;                   // clica-segura no vazio → criar núcleo (vira pan se mover antes)
+    let pressInicio = null;                  // {x, y, mundo} do início do clica-segura
+    let ghostEl = null;                      // bolha-fantasma que "cresce" durante o clica-segura
+    let proximaSemente = null;               // {x,y} onde o PRÓXIMO núcleo novo nasce (clique de criação)
     let interacaoPronta = false;
+    const HOLD_MS = 600;                     // tempo do clica-segura (decisão E — ajustável)
+    const MOVE_TOL = 6;                      // px: acima disso o clica-segura vira pan
     const orbeEl = new Map();        // id → elemento da bolha
     let linhaEls = [];               // [{el, a, b}]
 
@@ -57,10 +63,10 @@
             const massa = forcas.massa[id] || 1;
             const ex = !reposicionar && antigos.get(id);
             if (ex) { ex.nome = n.nome; ex.tarot = n.tarot; ex.massa = massa; return ex; } // mantém posição/velocidade
-            const ang = (i / Math.max(1, nucleos.length)) * 2 * Math.PI;
-            const pos = (n.pos && typeof n.pos.x === 'number')
-                ? { x: n.pos.x, y: n.pos.y }
-                : { x: centroMundo.x + Math.cos(ang) * raio, y: centroMundo.y + Math.sin(ang) * raio };
+            let pos;
+            if (proximaSemente) { pos = { x: proximaSemente.x, y: proximaSemente.y }; proximaSemente = null; } // nasce onde o Narrador clicou
+            else if (n.pos && typeof n.pos.x === 'number') { pos = { x: n.pos.x, y: n.pos.y }; }
+            else { const ang = (i / Math.max(1, nucleos.length)) * 2 * Math.PI; pos = { x: centroMundo.x + Math.cos(ang) * raio, y: centroMundo.y + Math.sin(ang) * raio }; }
             return { id, nome: n.nome, tarot: n.tarot, x: pos.x, y: pos.y, vx: 0, vy: 0, massa, fixo: false };
         });
     }
@@ -148,11 +154,23 @@
                     iniciarLoop(); // roda a física durante o arrasto → vizinhos reagem ao vivo (o pego é fixo)
                 }
             } else {
-                panning = { x: e.clientX, y: e.clientY };
+                // Vazio: clica-SEGURA (parado ~600ms) cria núcleo; se MOVER antes, vira pan.
+                pressInicio = { x: e.clientX, y: e.clientY, mundo: paraMundo(e.clientX, e.clientY) };
+                iniciarGhost(e.clientX, e.clientY);
+                pressTimer = setTimeout(() => {
+                    pressTimer = null; removerGhost();
+                    abrirEditorCriarNucleo(pressInicio.mundo);
+                }, HOLD_MS);
             }
             c.setPointerCapture(e.pointerId);
         });
         c.addEventListener('pointermove', (e) => {
+            if (pressTimer && pressInicio) {
+                if (Math.hypot(e.clientX - pressInicio.x, e.clientY - pressInicio.y) > MOVE_TOL) {
+                    clearTimeout(pressTimer); pressTimer = null; removerGhost();
+                    panning = { x: pressInicio.x, y: pressInicio.y }; // movimento → vira pan
+                }
+            }
             if (arrastando) {
                 const p = paraMundo(e.clientX, e.clientY);
                 arrastando.x = p.x + arrastoOffset.dx; arrastando.y = p.y + arrastoOffset.dy;
@@ -165,6 +183,7 @@
             }
         });
         const soltar = (e) => {
+            if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; removerGhost(); } // tap rápido = nada
             if (arrastando) {
                 const div = orbeEl.get(arrastando.id); if (div) div.classList.remove('arrastando');
                 arrastando.fixo = false; arrastando = null; iniciarLoop(); // física reassume organicamente
@@ -207,6 +226,57 @@
             montar();
             iniciarLoop();
         } catch (_) { /* silencioso — a lente segue com o estado atual */ }
+    }
+
+    // ── F3.1: criar núcleo (clica-segura → animação → editor) ──────────────
+    function iniciarGhost(clientX, clientY) {
+        removerGhost();
+        const c = canvas(); if (!c) return;
+        const r = c.getBoundingClientRect();
+        ghostEl = document.createElement('div');
+        ghostEl.className = 'constelacao-ghost';
+        ghostEl.style.left = (clientX - r.left) + 'px';
+        ghostEl.style.top = (clientY - r.top) + 'px';
+        c.appendChild(ghostEl);
+    }
+    function removerGhost() { if (ghostEl) { ghostEl.remove(); ghostEl = null; } }
+
+    function abrirEditorCriarNucleo(mundoPos) {
+        const modal = document.createElement('div');
+        modal.className = 'modal show';
+        modal.innerHTML = `
+            <div class="modal-box">
+                <div class="modal-head">
+                    <h3 class="texto-roxo modal-titulo"><i data-lucide="orbit"></i> Novo Núcleo</h3>
+                    <button class="btn btn-ghost btn-sm" data-fechar title="Fechar"><i data-lucide="x"></i></button>
+                </div>
+                <label class="campo-label">Nome</label>
+                <input type="text" id="cn-nome" class="input-full" maxlength="120" placeholder="Ex: A Igreja de Prata" autocomplete="off">
+                <label class="campo-label">Descrição (contexto para a IA)</label>
+                <textarea id="cn-desc" class="input-full" rows="3" maxlength="2000" placeholder="Breve descrição do núcleo…"></textarea>
+                <div class="modal-acoes">
+                    <button class="btn btn-primary" id="cn-criar"><i data-lucide="check"></i> Criar núcleo</button>
+                </div>
+            </div>`;
+        document.body.appendChild(modal);
+        const fechar = () => modal.remove();
+        modal.addEventListener('click', (e) => { if (e.target === modal || (e.target.closest && e.target.closest('[data-fechar]'))) fechar(); });
+        modal.querySelector('#cn-criar').addEventListener('click', async () => {
+            const nome = modal.querySelector('#cn-nome').value.trim();
+            if (!nome) { if (window.mostrarToast) mostrarToast('Digite um nome.', 'aviso'); return; }
+            const descricao = modal.querySelector('#cn-desc').value.trim();
+            proximaSemente = { x: mundoPos.x, y: mundoPos.y }; // ANTES do POST: o onMutacao recarrega e usa a semente
+            try {
+                const res = await API.fetch(`/cronicas/${cronicaAtual}/entidade-nucleos`, { method: 'POST', body: JSON.stringify({ nome, descricao }) });
+                if (!res.ok) throw new Error('falha');
+                fechar(); // o recálculo via API.onMutacao já posiciona o novo núcleo onde clicou
+            } catch (_) {
+                proximaSemente = null;
+                if (window.mostrarToast) mostrarToast('Erro ao criar núcleo.', 'erro');
+            }
+        });
+        if (window.lucide) lucide.createIcons();
+        modal.querySelector('#cn-nome').focus();
     }
 
     window.Constelacao = { entrar, sair };

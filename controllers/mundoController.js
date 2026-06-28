@@ -400,10 +400,16 @@ exports.listarNucleosEntidade = async (req, res) => {
 
 exports.criarNucleoEntidade = async (req, res) => {
     const { cronicaId } = req.params;
-    const { nome } = req.body;
+    const { nome, descricao } = req.body;
         try {
-        const novo = await pool.query("INSERT INTO entidade_nucleos (cronica_id, nome, tipo) VALUES ($1, $2, 'entidade') RETURNING *", [cronicaId, nome.trim()]);
-        oraculoSync.reindexarNucleo(cronicaId, novo.rows[0].id); // Regra 4.2: indexa a facção nova (nome pesquisável)
+        // F3.1 (Constelação): descrição opcional vai no JSONB `dados` (coluna criada por DDL) p/ a IA.
+        const dados = (typeof descricao === 'string' && descricao.trim())
+            ? JSON.stringify({ descricao: descricao.trim() }) : '{}';
+        const novo = await pool.query(
+            "INSERT INTO entidade_nucleos (cronica_id, nome, tipo, dados) VALUES ($1, $2, 'entidade', $3::jsonb) RETURNING *",
+            [cronicaId, nome.trim(), dados]
+        );
+        oraculoSync.reindexarNucleo(cronicaId, novo.rows[0].id); // Regra 4.2: indexa a facção nova (nome + descrição pesquisáveis)
         res.status(201).json(novo.rows[0]);
     } catch (err) { res.status(500).json({ erro: 'Erro ao criar núcleo.' }); }
 };

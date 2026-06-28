@@ -110,6 +110,8 @@ async function textoDoNucleo(cronicaId, nucleoId) {
     );
     if (nucQ.rows.length === 0) return null;
     const linhas = [`Facção/Núcleo: ${nucQ.rows[0].nome}`];
+    const descNuc = descricaoDoDados(nucQ.rows[0].dados);
+    if (descNuc) linhas.push(`Descrição: ${descNuc}`);
     const arquetipo = descreverTarot(nucQ.rows[0].dados);
     if (arquetipo) linhas.push(arquetipo);
 

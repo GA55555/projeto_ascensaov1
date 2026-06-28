@@ -61,7 +61,8 @@ const renomearFlagSchema = z.object({
 // ---- NÚCLEOS ----
 const criarNucleoSchema = z.object({
     body: z.object({
-        nome: z.string().min(1, 'Nome do núcleo é obrigatório.')
+        nome: z.string().min(1, 'Nome do núcleo é obrigatório.'),
+        descricao: z.string().trim().max(2000).optional() // Constelação F3.1: breve descrição p/ a IA (em dados)
     })
 });
 
