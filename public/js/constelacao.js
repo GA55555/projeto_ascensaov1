@@ -22,6 +22,7 @@
     let catalogoTarot = null;                // catálogo dos arcanos (carregado sob demanda em /data/tarot.json)
     let focoId = null;                        // núcleo focado (sistema solar) — null = visão geral
     let entidadesAtual = [];                  // entidades do último snapshot (viram os "planetas" no foco)
+    let linksAtual = [];                      // links entidade↔entidade [{origem,destino,reta}] (layout solar)
     let diplomaciaAtual = [];                 // diplomacia do último snapshot [{a,b,status}] (base p/ conectar)
     let conectandoDe = null;                  // orbe-origem de um arrasto de conexão (âncora)
     let tempLinha = null;                     // linha temporária do arrasto de conexão
@@ -65,6 +66,7 @@
             if (!res.ok) throw new Error('falha');
             const snap = await res.json();
             entidadesAtual = snap.entidades || [];
+            linksAtual = snap.links || [];
             diplomaciaAtual = snap.diplomacia || [];
             forcas = ConstelacaoCalc.calcular(snap);
             criarOrbes(snap, true);
@@ -121,7 +123,7 @@
             orbeEl.set(o.id, div);
         }
         desenhar();
-        if (focoId) { const sol = orbes.find((o) => o.id === focoId); if (sol) renderPlanetas(sol); else sairFoco(); }
+        if (focoId) { const sol = orbes.find((o) => o.id === focoId); if (sol) { orbeEl.get(focoId)?.classList.add('is-sol'); renderPlanetas(sol); } else sairFoco(); }
     }
 
     function desenhar() {
@@ -296,11 +298,12 @@
             if (!res.ok) return;
             const snap = await res.json();
             entidadesAtual = snap.entidades || [];
+            linksAtual = snap.links || [];
             diplomaciaAtual = snap.diplomacia || [];
             forcas = ConstelacaoCalc.calcular(snap);
             criarOrbes(snap, false); // false = mantém posições/velocidades existentes
             montar();
-            iniciarLoop();
+            if (!focoId) iniciarLoop(); // em foco a visão solar é estática → não reanima o fundo (poupa CPU)
         } catch (_) { /* silencioso — a lente segue com o estado atual */ }
     }
 
@@ -532,14 +535,17 @@
         if (!o) return;
         focoId = String(id);
         o.fixo = true;                          // o sol fica parado durante o foco
+        pararLoop();                            // visão solar é ESTÁTICA (assentamento único já congelado) → sem RAF
+        orbeEl.get(focoId)?.classList.add('is-sol'); // sol fica aceso; os outros núcleos esmaecem (CSS .em-foco)
         canvas().classList.add('em-foco');
-        centrarCamera(o, 1.6);
+        centrarCamera(o, 1.8);                   // aproximação (zoom-in) com transição .animando
         renderPlanetas(o);
         mostrarBarraFoco(o);
     }
 
     function sairFoco() {
         if (!focoId) return;
+        orbeEl.get(focoId)?.classList.remove('is-sol');
         const o = orbes.find((x) => x.id === focoId);
         if (o) o.fixo = false;
         focoId = null;
@@ -549,17 +555,65 @@
     }
 
     function removerPlanetas() { (wrapOrbes()?.querySelectorAll('.constelacao-planeta') || []).forEach((el) => el.remove()); }
+
+    // ASSENTAMENTO ÚNICO (decisão do Narrador): roda uma física BREVE uma vez na entrada e devolve as
+    // posições JÁ assentadas — sem requestAnimationFrame (a visão solar fica estática → 0% CPU depois).
+    // Laços INTRA-núcleo dirigem o lugar: reta+ (aliadas) aproxima, reta− (inimigas) afasta; repulsão
+    // evita sobreposição; mola radial mantém o anel ao redor do sol. Posições efêmeras (não persistem).
+    const SOLAR_ITER = 120;
+    function calcularLayoutSolar(sol, ents) {
+        const R = diametroOrbe(sol) * 0.6 + 100;          // raio-alvo do anel
+        const P = ents.map((e, i) => {
+            const ang = (i / Math.max(1, ents.length)) * 2 * Math.PI - Math.PI / 2; // seed determinístico (anel)
+            return { ent: e, id: String(e.id), x: sol.x + Math.cos(ang) * R, y: sol.y + Math.sin(ang) * R, vx: 0, vy: 0 };
+        });
+        if (P.length <= 1) return P;
+        const byId = new Map(P.map((p) => [p.id, p]));
+        const lacos = linksAtual.filter((l) => byId.has(String(l.origem)) && byId.has(String(l.destino))); // só intra-núcleo
+        const K_MOLA = 0.015, K_REP = 2600, K_RADIAL = 0.05, ATRITO = 0.8, VMAX = 9, REP_RAIO = 220;
+        for (let it = 0; it < SOLAR_ITER; it++) {
+            // Molas dos laços: distância-alvo varia com a reta (+10 → ~0.6R, −10 → ~1.4R).
+            for (const l of lacos) {
+                const a = byId.get(String(l.origem)), b = byId.get(String(l.destino));
+                const dx = b.x - a.x, dy = b.y - a.y, dist = Math.max(1, Math.hypot(dx, dy));
+                const ideal = R * (1 - 0.04 * (Number(l.reta) || 0));
+                const f = (dist - ideal) * K_MOLA, ux = dx / dist, uy = dy / dist;
+                a.vx += ux * f; a.vy += uy * f; b.vx -= ux * f; b.vy -= uy * f;
+            }
+            // Repulsão (anti-sobreposição) — só pares próximos (curto alcance, barato).
+            for (let i = 0; i < P.length; i++) for (let j = i + 1; j < P.length; j++) {
+                const a = P[i], b = P[j];
+                const dx = b.x - a.x, dy = b.y - a.y, dist = Math.max(1, Math.hypot(dx, dy));
+                if (dist > REP_RAIO) continue;
+                const f = K_REP / (dist * dist), ux = dx / dist, uy = dy / dist;
+                a.vx -= ux * f; a.vy -= uy * f; b.vx += ux * f; b.vy += uy * f;
+            }
+            // Mola radial: mantém cada entidade perto do anel R (não colapsa no sol, não foge).
+            for (const p of P) {
+                const dx = p.x - sol.x, dy = p.y - sol.y, d = Math.max(1, Math.hypot(dx, dy));
+                const f = (d - R) * K_RADIAL, ux = dx / d, uy = dy / d;
+                p.vx -= ux * f; p.vy -= uy * f;
+            }
+            // Integra (Euler + atrito + clamp).
+            for (const p of P) {
+                p.vx = Math.max(-VMAX, Math.min(VMAX, p.vx * ATRITO));
+                p.vy = Math.max(-VMAX, Math.min(VMAX, p.vy * ATRITO));
+                p.x += p.vx; p.y += p.vy;
+            }
+        }
+        return P;
+    }
+
     function renderPlanetas(sol) {
         removerPlanetas();
         const wrap = wrapOrbes(); if (!wrap) return;
         const ents = entidadesAtual.filter((e) => String(e.nucleo_id) === focoId);
-        const raio = diametroOrbe(sol) * 0.6 + 100;
-        ents.forEach((e, i) => {
-            const ang = (i / Math.max(1, ents.length)) * 2 * Math.PI - Math.PI / 2;
-            const px = sol.x + Math.cos(ang) * raio, py = sol.y + Math.sin(ang) * raio;
+        if (!ents.length) return;
+        calcularLayoutSolar(sol, ents).forEach((p) => {
+            const e = p.ent;
             const div = document.createElement('div');
             div.className = 'constelacao-planeta';
-            div.style.left = (px - 28) + 'px'; div.style.top = (py - 28) + 'px';
+            div.style.left = (p.x - 28) + 'px'; div.style.top = (p.y - 28) + 'px';
             div.title = `${e.nome} (${e.tipo})`;
             // Mesmas camadas arcanas do núcleo (planeta = mini-orbe). Nome só no hover (sob demanda).
             div.innerHTML = `<span class="orbe-esfera"><span class="orbe-plasma"></span><span class="orbe-nucleo"></span><span class="orbe-vidro"></span></span><span class="constelacao-planeta-nome">${escapeHTML(e.nome)}</span>`;

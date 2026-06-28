@@ -3832,6 +3832,11 @@ input[type="radio"] {
 /* Sistema solar (F3.3): foco num núcleo → entidades como planetas + barra de foco. */
 .constelacao-mundo.animando { transition: transform 0.42s ease; }
 .constelacao-canvas.em-foco .constelacao-linhas { opacity: 0.1; }
+/* Em foco (sistema solar): o exterior recua — os OUTROS núcleos esmaecem; o sol focado fica aceso
+   e ganha um halo mais forte, ocupando o centro da atenção. Transição p/ entrar/sair suave. */
+.constelacao-canvas.em-foco .constelacao-orbe { opacity: 0.12; transition: opacity var(--transicao-suave); }
+.constelacao-canvas.em-foco .constelacao-orbe.is-sol { opacity: 1; }
+.constelacao-orbe.is-sol .orbe-esfera { filter: drop-shadow(0 0 22px color-mix(in srgb, var(--cor-orbe) 78%, transparent)); }
 /* Planeta (entidade no sistema solar) = mini-orbe arcano (reusa .orbe-esfera/-plasma/-nucleo/-vidro;
    a forma redonda vem do clip-path da esfera — à prova do reset de border-radius do tema). */
 .constelacao-planeta {
