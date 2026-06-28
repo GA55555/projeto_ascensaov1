@@ -12,6 +12,7 @@
     let centroMundo = { x: 400, y: 300 };   // ponto fixo de gravidade (capturado ao entrar)
     let cam = { x: 0, y: 0, zoom: 1 };       // câmera: translate + scale do world-layer
     let arrastando = null;                   // orbe sob arrasto (física suspensa)
+    let arrastoOffset = { dx: 0, dy: 0 };    // offset (mundo) entre o ponto agarrado e o centro do orbe
     let panning = null;                      // {x,y} do último ponteiro durante o pan
     let interacaoPronta = false;
     const orbeEl = new Map();        // id → elemento da bolha
@@ -140,7 +141,12 @@
             const orbeDiv = e.target.closest && e.target.closest('.constelacao-orbe');
             if (orbeDiv) {
                 const o = orbes.find((x) => x.id === orbeDiv.dataset.id);
-                if (o) { arrastando = o; o.fixo = true; orbeDiv.classList.add('arrastando'); }
+                if (o) {
+                    arrastando = o; o.fixo = true; orbeDiv.classList.add('arrastando');
+                    const p = paraMundo(e.clientX, e.clientY);   // mantém o ponto agarrado sob o cursor
+                    arrastoOffset = { dx: o.x - p.x, dy: o.y - p.y };
+                    iniciarLoop(); // roda a física durante o arrasto → vizinhos reagem ao vivo (o pego é fixo)
+                }
             } else {
                 panning = { x: e.clientX, y: e.clientY };
             }
@@ -149,7 +155,8 @@
         c.addEventListener('pointermove', (e) => {
             if (arrastando) {
                 const p = paraMundo(e.clientX, e.clientY);
-                arrastando.x = p.x; arrastando.y = p.y; arrastando.vx = 0; arrastando.vy = 0;
+                arrastando.x = p.x + arrastoOffset.dx; arrastando.y = p.y + arrastoOffset.dy;
+                arrastando.vx = 0; arrastando.vy = 0;
                 desenhar();
             } else if (panning) {
                 cam.x += e.clientX - panning.x; cam.y += e.clientY - panning.y;
