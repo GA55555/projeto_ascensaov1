@@ -179,6 +179,30 @@ exports.atualizarNucleoNode = async (req, res) => {
     }
 };
 
+// Tarot (arquétipo da Jornada do Herói) — Motor de Constelação, Fatia 1.
+// MERGE de `dados.tarot` no JSONB (não clobbera avatar_url/outras chaves — Regra 4.2). Anti-IDOR:
+// amarrado a `id AND cronica_id` (Regra 3.3.1). Re-indexa o nó p/ o arquétipo entrar no texto da IA (4.2).
+exports.salvarTarotNode = async (req, res) => {
+    const { cronicaId, nodeId } = req.params;
+    const { carta_num, orientacao } = req.body;
+    try {
+        const result = await pool.query(
+            `UPDATE world_nodes
+                SET dados = COALESCE(dados, '{}'::jsonb) || jsonb_build_object(
+                            'tarot', jsonb_build_object('carta_num', $1::int, 'orientacao', $2::int))
+              WHERE id = $3 AND cronica_id = $4
+              RETURNING *`,
+            [carta_num, orientacao, nodeId, cronicaId]
+        );
+        if (result.rows.length === 0) return res.status(404).json({ erro: 'Entidade não encontrada.' });
+        oraculoSync.reindexarNode(cronicaId, nodeId, result.rows[0].tipo);
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error('Erro ao salvar Tarot da entidade:', err);
+        res.status(500).json({ erro: 'Erro ao salvar a carta de Tarot.' });
+    }
+};
+
 
 // =======================================================
 // FLAGS (VARIÁVEIS DE MUNDO)

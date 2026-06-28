@@ -160,6 +160,18 @@ const atualizarLinkSchema = z.object({
     body: z.object({ dados: dadosLinkSchema })
 });
 
+// ---- TAROT (arquétipo da Jornada do Herói — Motor de Constelação) ----
+// Guardado no JSONB `dados.tarot` da entidade/núcleo = {carta_num, orientacao}. Nome/significado vêm do
+// catálogo (constante), não do payload. orientacao: 1 = em pé (+), -1 = invertida (−).
+const tarotBodySchema = z.object({
+    carta_num: z.number().int().min(0, 'Arcano deve ser 0–21.').max(21, 'Arcano deve ser 0–21.'),
+    orientacao: z.union([z.literal(1), z.literal(-1)], { errorMap: () => ({ message: 'Orientação deve ser 1 (em pé) ou -1 (invertida).' }) })
+});
+const salvarTarotNodeSchema = z.object({
+    params: z.object({ ...sinapseParamsBase }), // cronicaId + nodeId
+    body: tarotBodySchema
+});
+
 // ── TABULEIROS DE CAMPANHA (FASE 13): world_boards ──
 // `dados` JSONB do Infinite Canvas. Cores são TOKENS de paleta (mapeados p/ vars
 // CSS no front), nunca hex — coerência com a Regra 2.5. Chaves desconhecidas são
@@ -331,5 +343,6 @@ module.exports = {
     atualizarNucleoNodeSchema,
     listarLinksSchema, criarLinkSchema, deletarLinkSchema, atualizarLinkSchema,
     criarBoardSchema, atualizarBoardSchema, boardIdParamsSchema,
-    salvarDiplomaciaSchema
+    salvarDiplomaciaSchema,
+    salvarTarotNodeSchema
 };

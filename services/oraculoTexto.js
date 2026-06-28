@@ -7,8 +7,21 @@
 
 const pool = require('../db');
 const escala = require('./relacaoEscala'); // reta bipolar -10..+10 da relação (fonte única da lógica)
+const tarot = require('./tarotCatalogo');  // catálogo dos 22 arcanos (Jornada do Herói) — contexto p/ a IA
 
 const simNao = (v) => (v ? 'sim' : 'não');
+
+// Arquétipo (Tarot) da entidade/núcleo → contexto narrativo p/ a IA. `dados.tarot = {carta_num,
+// orientacao}`; nome/estágio/significado vêm do catálogo. Defensivo contra jsonb sujo (Regra 4.2).
+function descreverTarot(dados) {
+    const t = (dados && typeof dados === 'object') ? dados.tarot : null;
+    if (!t || typeof t !== 'object') return null;
+    const carta = tarot.cartaPorNum(t.carta_num);
+    if (!carta) return null;
+    const invertida = t.orientacao === -1;
+    const sig = invertida ? carta.sig_invertida : carta.sig_pe;
+    return `Arquétipo (Tarot): ${carta.nome} ${invertida ? 'invertida' : 'em pé'} — estágio "${carta.estagio}"; ${sig}`;
+}
 
 // Lê com segurança um campo de texto do jsonb 'dados' (pode vir nulo/sujo).
 function descricaoDoDados(dados) {
@@ -55,6 +68,8 @@ async function textoDoNode(cronicaId, nodeId) {
     if (n.parent_nome) linhas.push(`Local/Pertence a: ${n.parent_nome} (${n.parent_tipo})`);
     const desc = descricaoDoDados(n.dados);
     if (desc) linhas.push(`Descrição: ${desc}`);
+    const arquetipo = descreverTarot(n.dados);
+    if (arquetipo) linhas.push(arquetipo);
 
     // Flags = estado narrativo (variáveis de mundo).
     const flagsQ = await pool.query(

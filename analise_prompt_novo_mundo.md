@@ -128,6 +128,17 @@ drag&drop por PointerEvents (7.1) ✓ · anti-IDOR por `cronica_id` + posse (3.3
 
 ---
 
+**L. ⚠️ DDL para NÚCLEOS — ACHADO NA F1 (decisão sua, como DBA).** `entidade_nucleos` **NÃO tem coluna
+`dados`** (jsonb) — só `id, cronica_id, nome, tipo, avatar_url` (validado: zero referências a
+`entidade_nucleos.dados` no código). A spec assumiu `entidade_nucleos.dados` p/ guardar **tarot** e
+**posição** de núcleo. Como núcleos são o centro do sistema, é **fundacional**. Opções:
+- **(i) DDL — recomendado:** `ALTER TABLE entidade_nucleos ADD COLUMN dados jsonb NOT NULL DEFAULT
+  '{}'::jsonb;` (pequeno, consistente com a DDL do Oráculo; libera tarot+pos de núcleo por DML).
+- **(ii) Sem DDL:** guardar tarot/pos de núcleo no jsonb de outra tabela (ex.: por crônica) — mais
+  acoplado e feio.
+> **Estado:** a F1 de **ENTIDADES** já está implementada (`world_nodes.dados` existe ✓). A de **NÚCLEOS**
+> (tarot + futura posição) **aguarda esta decisão**.
+
 ## 3-bis. ⚙️ Modelo de Física da Constelação (TRAVADO — 27/jun)
 A **posição não é dado de entrada** — é o **resultado** de uma simulação force-directed. O que persiste e o
 que governa:

@@ -17,7 +17,8 @@ const {
     listarLinksSchema, criarLinkSchema, deletarLinkSchema, atualizarLinkSchema,
     criarBoardSchema, atualizarBoardSchema, boardIdParamsSchema,
     salvarDiplomaciaSchema,
-    sincronizarOraculoSchema, consultarOraculoSchema
+    sincronizarOraculoSchema, consultarOraculoSchema,
+    salvarTarotNodeSchema
 } = require('../validators/mundoValidator');
 
 // Middleware apenas narrador
@@ -53,6 +54,8 @@ router.post('/nodes', verificarToken, checarAcessoCronica, apenasNarrador, valid
 router.put('/nodes/:nodeId', verificarToken, checarAcessoCronica, apenasNarrador, validate(editarNodeSchema), MundoController.editarNode);
 router.delete('/nodes/:nodeId', verificarToken, checarAcessoCronica, apenasNarrador, MundoController.deletarNode);
 router.put('/nodes/:nodeId/nucleo', verificarToken, checarAcessoCronica, apenasNarrador, validate(atualizarNucleoNodeSchema), MundoController.atualizarNucleoNode);
+// Tarot (arquétipo da Jornada do Herói) da entidade — Motor de Constelação, Fatia 1.
+router.put('/nodes/:nodeId/tarot', verificarToken, checarAcessoCronica, apenasNarrador, validate(salvarTarotNodeSchema), MundoController.salvarTarotNode);
 
 // Sinapses (links bidirecionais entre entidades) — world_links. Params validados (Regra 4.3).
 // Cronica-level: todos os links da crônica numa só query (otimização do Tabuleiro — evita N+1).
