@@ -73,6 +73,7 @@ router.post('/entidade-nucleos', verificarToken, checarAcessoCronica, apenasNarr
 router.put('/entidade-nucleos/:nucleoId', verificarToken, checarAcessoCronica, apenasNarrador, validate(renomearNucleoSchema), MundoController.renomearNucleoEntidade);
 // Tarot (arquétipo) do núcleo — Motor de Constelação, Fatia 1 (requer coluna entidade_nucleos.dados).
 router.put('/entidade-nucleos/:nucleoId/tarot', verificarToken, checarAcessoCronica, apenasNarrador, validate(salvarTarotNucleoSchema), MundoController.salvarTarotNucleo);
+router.delete('/entidade-nucleos/:nucleoId/tarot', verificarToken, checarAcessoCronica, apenasNarrador, MundoController.removerTarotNucleo);
 router.delete('/entidade-nucleos/:nucleoId', verificarToken, checarAcessoCronica, apenasNarrador, MundoController.excluirNucleoEntidade);
 
 // ==========================================

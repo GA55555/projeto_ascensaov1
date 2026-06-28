@@ -312,13 +312,15 @@
                 <input type="text" id="cf-nome" class="input-full" maxlength="120" value="${escapeHTML(o.nome)}">
                 <label class="campo-label">Descrição (contexto para a IA)</label>
                 <textarea id="cf-desc" class="input-full" rows="3" maxlength="2000">${escapeHTML(o.descricao || '')}</textarea>
-                <label class="campo-label">Arquétipo (Tarot)</label>
-                <div class="cf-tarot-row">
-                    <select id="cf-carta" class="input-full"><option value="">— Sem carta —</option>${opcoes}</select>
-                    <label class="cf-or"><input type="radio" name="cf-or" value="1" ${!t || t.orientacao === 1 ? 'checked' : ''}> Em pé</label>
-                    <label class="cf-or"><input type="radio" name="cf-or" value="-1" ${t && t.orientacao === -1 ? 'checked' : ''}> Invertida</label>
+                <label class="cf-usar"><input type="checkbox" id="cf-usar-tarot" ${t ? 'checked' : ''}> Usar uma carta de Tarot (arquétipo)</label>
+                <div id="cf-tarot-bloco" class="cf-tarot-bloco" ${t ? '' : 'hidden'}>
+                    <div class="cf-tarot-row">
+                        <select id="cf-carta" class="input-full"><option value="">— Escolha a carta —</option>${opcoes}</select>
+                        <label class="cf-or"><input type="radio" name="cf-or" value="1" ${!t || t.orientacao === 1 ? 'checked' : ''}> Em pé</label>
+                        <label class="cf-or"><input type="radio" name="cf-or" value="-1" ${t && t.orientacao === -1 ? 'checked' : ''}> Invertida</label>
+                    </div>
+                    <p id="cf-significado" class="cf-significado texto-mutado"></p>
                 </div>
-                <p id="cf-significado" class="cf-significado texto-mutado"></p>
                 <div class="modal-acoes modal-acoes--split">
                     <button class="btn btn-danger btn-sm" id="cf-apagar"><i data-lucide="trash-2"></i> Apagar</button>
                     <button class="btn btn-primary" id="cf-salvar"><i data-lucide="check"></i> Salvar</button>
@@ -335,6 +337,8 @@
         };
         modal.querySelector('#cf-carta').addEventListener('change', refSig);
         modal.querySelectorAll('input[name="cf-or"]').forEach((r) => r.addEventListener('change', refSig));
+        const chkTarot = modal.querySelector('#cf-usar-tarot');
+        chkTarot.addEventListener('change', () => { modal.querySelector('#cf-tarot-bloco').hidden = !chkTarot.checked; });
         refSig();
         modal.addEventListener('click', (e) => { if (e.target === modal || (e.target.closest && e.target.closest('[data-fechar]'))) fechar(); });
 
@@ -342,12 +346,15 @@
             const nome = modal.querySelector('#cf-nome').value.trim();
             if (!nome) { if (window.mostrarToast) mostrarToast('Nome obrigatório.', 'aviso'); return; }
             const descricao = modal.querySelector('#cf-desc').value.trim();
+            const usarTarot = modal.querySelector('#cf-usar-tarot').checked;
             const cartaVal = modal.querySelector('#cf-carta').value;
             const or = modal.querySelector('input[name="cf-or"]:checked')?.value === '-1' ? -1 : 1;
             try {
                 await API.fetch(`/cronicas/${cronicaAtual}/entidade-nucleos/${id}`, { method: 'PUT', body: JSON.stringify({ nome, descricao }) });
-                if (cartaVal !== '') {
+                if (usarTarot && cartaVal !== '') {
                     await API.fetch(`/cronicas/${cronicaAtual}/entidade-nucleos/${id}/tarot`, { method: 'PUT', body: JSON.stringify({ carta_num: parseInt(cartaVal, 10), orientacao: or }) });
+                } else if (!usarTarot && t) { // desmarcou o Tarot que existia → remove
+                    await API.fetch(`/cronicas/${cronicaAtual}/entidade-nucleos/${id}/tarot`, { method: 'DELETE' });
                 }
                 fechar(); // API.onMutacao recarrega a constelação
             } catch (_) { if (window.mostrarToast) mostrarToast('Erro ao salvar.', 'erro'); }

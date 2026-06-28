@@ -227,6 +227,23 @@ exports.salvarTarotNucleo = async (req, res) => {
     }
 };
 
+// Remove o Tarot do núcleo (Tarot é opcional — F3.2): apaga a chave `tarot` do JSONB (sem clobber do resto).
+exports.removerTarotNucleo = async (req, res) => {
+    const { cronicaId, nucleoId } = req.params;
+    try {
+        const result = await pool.query(
+            `UPDATE entidade_nucleos SET dados = COALESCE(dados, '{}'::jsonb) - 'tarot' WHERE id = $1 AND cronica_id = $2 RETURNING *`,
+            [nucleoId, cronicaId]
+        );
+        if (result.rows.length === 0) return res.status(404).json({ erro: 'Núcleo não encontrado.' });
+        oraculoSync.reindexarNucleo(cronicaId, nucleoId);
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error('Erro ao remover Tarot do núcleo:', err);
+        res.status(500).json({ erro: 'Erro ao remover a carta de Tarot.' });
+    }
+};
+
 
 // =======================================================
 // FLAGS (VARIÁVEIS DE MUNDO)
