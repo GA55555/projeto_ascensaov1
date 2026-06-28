@@ -84,3 +84,52 @@ Commits: `a9af862f` (remoção do Tabuleiro + estética fatia 1) · `e8a5d59d` (
   "quadrado girando" diagnosticado (reset de `border-radius` do tema Neovim) e curado com `clip-path`;
   visão solar com zoom/obscurecer/sol-central + **assentamento único** dirigido por laços intra-núcleo.
   Tudo no `sandbox` (commits §2). Falta o feixe holográfico + menu (§4.1) e o cross-núcleo (§4.2).
+- **Sessão 2 (análise + decisões; SEM código ainda):** avaliado o prompt do "Motor de Constelação 3D"
+  (astrolábio CSS). Veredito + plano abaixo (§6). **Pausado antes de implementar.**
+
+---
+
+## 6. PIVÔ: Astrolábio 3D (PRÓXIMA BUILD — decidido, não implementado)
+
+> Veredito da análise do prompt do Narrador: conceito coerente e compatível em espírito (vanilla + CSS 3D
+> `perspective`/`preserve-3d`, zero libs = Regra 1/Paradigma 4). MAS o CSS do prompt, como veio, **seria
+> rejeitado** por violar o contrato — exige adaptações OBRIGATÓRIAS. Boa parte já existe (visão solar:
+> raio ∝ Reta = Hooke, núcleo central, entidades orbitando); o que o 3D agrega é a **perspectiva inclinada**.
+
+### Decisões travadas (aprovadas)
+6. **Escopo: SÓ a visão solar (foco).** O astrolábio 3D substitui a visão solar ao CLICAR num núcleo.
+   A visão geral 2D (vários núcleos, criar por clica-segura, arrastar âncora→diplomacia, pan/zoom) **fica
+   como está**. Evita reescrever a interação e a armadilha `:root{zoom:1.33}` [[project-zoom-double-scaling]].
+7. **Movimento: girar LENTO + pausável.** Rotação contínua via CSS `transform` (GPU-composited), MUITO
+   lenta (~120s/volta, raio interno mais rápido), com **auto-pausa** (aba/lente oculta → `display:none`
+   já congela; `visibilitychange` → `animation-play-state: paused`) e **`@media (prefers-reduced-motion)`**.
+   (Substitui, só no foco, o "assentar e congelar 0% CPU" da decisão 4 — troca consciente: vida sutil.)
+
+### Adaptações OBRIGATÓRIAS ao CSS do prompt (senão viola o contrato)
+- **Cores → tokens (Regra 2.5).** O prompt traz hardcoded (`#d4af37`, `#1a1a24`, `rgba(212,175,55…)`,
+  `rgba(220,53,69…)`). Mapear: ouro→`var(--dourado)`(#eab308), vermelho→`var(--erro)`/`--link-inimigo`,
+  fundos→`var(--bg-principal)`/`--bg-afundado`, brilho→`color-mix(... var(--dourado) …)`.
+- **Forma redonda → `clip-path: circle(50%)`, NUNCA `border-radius`.** O tema Neovim zera radius
+  (`global_ui.css:86`) → era o bug do quadrado. Para os ANÉIS de órbita (que são `border`), `clip-path`
+  não recorta border: usar **anel via `radial-gradient(circle closest-side, …)`** (à prova de tema), com
+  cor `arcana`=dourado / `repulsao`=vermelho. Halo via `filter: drop-shadow`.
+- **Premissa "Tarot na relação" é FALSA.** Tarot vive no núcleo/nó (`dados.tarot`), não na relação. O que
+  dá força/polaridade é a **Reta** (`snap.links[].reta` −10..+10). Raio ∝ Reta agregada da entidade
+  (score = Σ reta dos laços intra-núcleo): score+ → órbita interna `arcana` (dourado); score− → externa
+  `repulsao` (vermelho); 0/sem laço → anel neutro. Velocidade: interno mais rápido.
+- **Sem avatar no snapshot** (`entidades:{id,nucleo_id,nome,tipo}`): o "avatar" reusa o **orbe arcano**
+  (`.orbe-esfera` + camadas). Se um dia houver `avatar_url`, sanitizar a URL ao injetar em `style` (6.1).
+- **Arquivo:** manter o CSS em `global_ui.css` (fonte única, Regra 2.5) — NÃO criar `constelacao.css`.
+
+### Plano de implementação (overlay no foco)
+- `focar(id)` → além do atual, monta um overlay `.astrolabio-viewport` (position:absolute, cobre o canvas,
+  `perspective`) com `.astrolabio-3d` (`rotateX(~62deg) rotateZ(var(--rot-z))`, arrastável p/ girar).
+- `construirAstrolabio(sol, ents)`: núcleo central (orbe arcano, `--cor-sol`); por entidade calcula
+  `{raio (do score da Reta), angulo (spread), velocidade (∝ raio), classe arcana|repulsao|neutro}`;
+  cria anel (radial-gradient) + braço girando (`@keyframes astro-girar`) + entidade com **contra-rotação**
+  (`astro-contra`) p/ manter o avatar de pé e encarando a câmera (`rotateX(-62deg)`), reusando `.orbe-esfera`.
+- `sairFoco` → `removerAstrolabio()`. Reduced-motion/`astro-pausado` desligam as animações.
+- Reaproveitar: substitui `renderPlanetas`/`calcularLayoutSolar` (2D) no caminho do foco; manter a
+  `mostrarBarraFoco` (Configurar/Entidade/Sair). `linksAtual` já capturado.
+- **Débito: smoke ao vivo é crítico aqui** (CSS 3D às cegas no dev — sem browser). Constantes a afinar:
+  `tilt` (62deg), período (~120s), raioBase/escala do score, perspective (1200px).
