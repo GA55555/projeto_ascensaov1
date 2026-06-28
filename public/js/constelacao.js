@@ -116,7 +116,7 @@
                 : '';
             // Orbe arcano: camadas decorativas (plasma girando + núcleo pulsando + vidro esférico fixo)
             // são pointer-events:none → o clique/arrasto continua caindo no .constelacao-orbe. Nome só no hover.
-            div.innerHTML = `<span class="orbe-plasma"></span><span class="orbe-nucleo"></span><span class="orbe-vidro"></span>${selo}<span class="constelacao-orbe-ancora" title="Arraste até outro núcleo para definir a diplomacia"></span><span class="constelacao-orbe-nome">${escapeHTML(o.nome)}</span>`;
+            div.innerHTML = `<span class="orbe-esfera"><span class="orbe-plasma"></span><span class="orbe-nucleo"></span><span class="orbe-vidro"></span></span>${selo}<span class="constelacao-orbe-ancora" title="Arraste até outro núcleo para definir a diplomacia"></span><span class="constelacao-orbe-nome">${escapeHTML(o.nome)}</span>`;
             wo.appendChild(div);
             orbeEl.set(o.id, div);
         }
@@ -562,7 +562,7 @@
             div.style.left = (px - 28) + 'px'; div.style.top = (py - 28) + 'px';
             div.title = `${e.nome} (${e.tipo})`;
             // Mesmas camadas arcanas do núcleo (planeta = mini-orbe). Nome só no hover (sob demanda).
-            div.innerHTML = `<span class="orbe-plasma"></span><span class="orbe-nucleo"></span><span class="orbe-vidro"></span><span class="constelacao-planeta-nome">${escapeHTML(e.nome)}</span>`;
+            div.innerHTML = `<span class="orbe-esfera"><span class="orbe-plasma"></span><span class="orbe-nucleo"></span><span class="orbe-vidro"></span></span><span class="constelacao-planeta-nome">${escapeHTML(e.nome)}</span>`;
             wrap.appendChild(div);
         });
     }

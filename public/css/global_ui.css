@@ -3757,26 +3757,33 @@ input[type="radio"] {
 .constelacao-linha--neutro  { stroke: var(--borda); }
 .constelacao-orbes { position: absolute; inset: 0; }
 /* ORBE ARCANO (núcleo): esfera de energia que GIRA + PULSA, brilho na cor do token. O nome
-   aparece sob demanda (hover). Montado em camadas: base radial + plasma (conic girando) +
-   núcleo (pulsa) + vidro (esfericidade fixa). Vanilla/zero-libs (Regra 1), cores por token (2.5). */
+   aparece sob demanda (hover). A forma redonda é esculpida por clip-path: circle() no .orbe-esfera
+   — NÃO por border-radius (o tema Neovim zera border-radius de tudo com !important). O clip-path
+   também recorta os descendentes (plasma/núcleo/vidro), à prova do mix-blend-mode. Halo redondo
+   via filter: drop-shadow (segue o clip; box-shadow viraria quadrado). Vanilla (Regra 1), tokens (2.5). */
 .constelacao-orbe {
-    position: absolute; box-sizing: border-box; cursor: grab; user-select: none; border-radius: 50%; overflow: visible; isolation: isolate;
+    position: absolute; box-sizing: border-box; cursor: grab; user-select: none; overflow: visible; isolation: isolate;
     --cor-orbe: var(--cor-nucleo, var(--destaque));
+    transition: transform var(--transicao-suave);
+}
+.constelacao-orbe:hover { transform: scale(1.05); }
+.constelacao-orbe.arrastando { cursor: grabbing; }
+/* A esfera: única responsável pela forma redonda (clip-path) + base + glow. */
+.orbe-esfera {
+    position: absolute; inset: 0; clip-path: circle(50%); overflow: hidden; pointer-events: none;
     background: radial-gradient(circle at 50% 50%,
         color-mix(in srgb, var(--cor-orbe) 42%, var(--bg-principal)) 0%,
-        color-mix(in srgb, var(--cor-orbe) 16%, var(--bg-principal)) 62%,
-        var(--bg-principal) 100%);
-    box-shadow:
-        0 0 20px 3px color-mix(in srgb, var(--cor-orbe) 42%, transparent),
-        inset 0 0 16px 2px color-mix(in srgb, var(--cor-orbe) 26%, transparent);
-    transition: box-shadow var(--transicao-suave), transform var(--transicao-suave);
+        color-mix(in srgb, var(--cor-orbe) 16%, var(--bg-principal)) 62%, var(--bg-principal) 100%);
+    box-shadow: inset 0 0 16px 2px color-mix(in srgb, var(--cor-orbe) 28%, transparent);
+    filter: drop-shadow(0 0 9px color-mix(in srgb, var(--cor-orbe) 50%, transparent));
+    transition: filter var(--transicao-suave);
 }
-.constelacao-orbe:hover { transform: scale(1.05); box-shadow: 0 0 28px 6px color-mix(in srgb, var(--cor-orbe) 60%, transparent), inset 0 0 16px 2px color-mix(in srgb, var(--cor-orbe) 32%, transparent); }
-.constelacao-orbe.arrastando { cursor: grabbing; box-shadow: 0 0 34px 8px color-mix(in srgb, var(--cor-orbe) 72%, transparent), inset 0 0 16px 2px color-mix(in srgb, var(--cor-orbe) 36%, transparent); }
-/* Camadas (decorativas → pointer-events:none, o clique cai no orbe). Reusadas pelo planeta. */
-.orbe-plasma, .orbe-nucleo, .orbe-vidro { position: absolute; inset: 0; border-radius: 50%; pointer-events: none; }
+.constelacao-orbe:hover .orbe-esfera { filter: drop-shadow(0 0 14px color-mix(in srgb, var(--cor-orbe) 65%, transparent)); }
+.constelacao-orbe.arrastando .orbe-esfera { filter: drop-shadow(0 0 18px color-mix(in srgb, var(--cor-orbe) 78%, transparent)); }
+/* Camadas internas (decorativas). O clip-path do pai já as recorta em círculo. */
+.orbe-plasma, .orbe-nucleo, .orbe-vidro { position: absolute; inset: 0; pointer-events: none; }
 .orbe-plasma {
-    overflow: hidden; mix-blend-mode: screen; opacity: 0.85;
+    mix-blend-mode: screen; opacity: 0.85;
     background: conic-gradient(from 0deg,
         transparent 0deg, color-mix(in srgb, var(--cor-orbe) 75%, transparent) 55deg,
         transparent 130deg, color-mix(in srgb, var(--cor-orbe) 55%, transparent) 210deg,
@@ -3825,17 +3832,14 @@ input[type="radio"] {
 /* Sistema solar (F3.3): foco num núcleo → entidades como planetas + barra de foco. */
 .constelacao-mundo.animando { transition: transform 0.42s ease; }
 .constelacao-canvas.em-foco .constelacao-linhas { opacity: 0.1; }
-/* Planeta (entidade no sistema solar) = mini-orbe arcano (reusa .orbe-plasma/-nucleo/-vidro). */
+/* Planeta (entidade no sistema solar) = mini-orbe arcano (reusa .orbe-esfera/-plasma/-nucleo/-vidro;
+   a forma redonda vem do clip-path da esfera — à prova do reset de border-radius do tema). */
 .constelacao-planeta {
-    position: absolute; width: 56px; height: 56px; box-sizing: border-box; border-radius: 50%; cursor: pointer; isolation: isolate;
+    position: absolute; width: 56px; height: 56px; box-sizing: border-box; cursor: pointer; isolation: isolate;
     --cor-orbe: var(--azul-vida);
-    background: radial-gradient(circle at 50% 50%,
-        color-mix(in srgb, var(--cor-orbe) 40%, var(--bg-principal)) 0%,
-        color-mix(in srgb, var(--cor-orbe) 14%, var(--bg-principal)) 64%, var(--bg-principal) 100%);
-    box-shadow: 0 0 12px 1px color-mix(in srgb, var(--cor-orbe) 40%, transparent), inset 0 0 10px 1px color-mix(in srgb, var(--cor-orbe) 24%, transparent);
-    animation: constelacao-planeta-surge 0.3s ease-out; transition: transform var(--transicao-suave), box-shadow var(--transicao-suave);
+    animation: constelacao-planeta-surge 0.3s ease-out; transition: transform var(--transicao-suave);
 }
-.constelacao-planeta:hover { transform: scale(1.08); box-shadow: 0 0 18px 3px color-mix(in srgb, var(--cor-orbe) 55%, transparent), inset 0 0 10px 1px color-mix(in srgb, var(--cor-orbe) 28%, transparent); }
+.constelacao-planeta:hover { transform: scale(1.08); }
 .constelacao-planeta-nome {
     position: absolute; top: calc(100% + 5px); left: 50%; transform: translate(-50%, 3px); white-space: nowrap;
     font-family: 'Manrope', sans-serif; font-weight: 600; font-size: 0.72rem; color: var(--texto-claro);
