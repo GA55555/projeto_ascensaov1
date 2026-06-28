@@ -2616,8 +2616,23 @@ function inicializarViewToggle() {
         btn.addEventListener('click', () => {
             const view = btn.dataset.view;
             if (view === mundoCurrentView) return;
+            const eraConstelacao = mundoCurrentView === 'constelacao';
             mundoCurrentView = view;
             toggle.querySelectorAll('button[data-view]').forEach(b => b.classList.toggle('active', b === btn));
+            // Constelação (F2.3): alterna o CANVAS pelo container de listas POR INTEIRO (não toca o grid).
+            const listas = document.getElementById('mundo-view-container');
+            const canvas = document.getElementById('constelacao-canvas');
+            if (view === 'constelacao') {
+                if (listas) listas.hidden = true;
+                if (canvas) canvas.hidden = false;
+                if (window.Constelacao) Constelacao.entrar(cronicaId);
+                return;
+            }
+            if (eraConstelacao) {
+                if (window.Constelacao) Constelacao.sair();
+                if (canvas) canvas.hidden = true;
+                if (listas) listas.hidden = false;
+            }
             renderizarMundo(); // re-render da lista atual na nova visualização
         });
     });

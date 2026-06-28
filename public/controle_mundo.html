@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Controle de Mundo & Eventos</title>
 
-    <link rel="stylesheet" href="/css/global_ui.css?v=5">
+    <link rel="stylesheet" href="/css/global_ui.css?v=6">
 </head>
 <body>
     <div class="page-container">
@@ -35,6 +35,7 @@
         <div class="toolbar-acoes">
             <div class="btn-group view-toggle">
                 <button class="btn btn-sm active" data-view="grid"><i data-lucide="layout-grid"></i> Grelha</button>
+                <button class="btn btn-sm" data-view="constelacao"><i data-lucide="orbit"></i> Constelação</button>
                 <button class="btn btn-sm" data-view="cena"><i data-lucide="clapperboard"></i> Direção de Cena</button>
             </div>
             <select id="filtro-nucleo-entidade" onchange="aplicarFiltrosMundo()">
@@ -49,6 +50,12 @@
     <!-- Container mestre da Lente Tática: recebe a Grelha clássica OU as colunas Kanban -->
     <div id="mundo-view-container">
         <div id="grid-mundo" class="grid-2"></div>
+    </div>
+    <!-- Lente Constelação (Motor de Constelação, F2.3): canvas físico dos núcleos. Irmão do container de
+         listas (alterna por inteiro — não toca o grid). -->
+    <div id="constelacao-canvas" class="constelacao-canvas" hidden>
+        <svg id="constelacao-linhas" class="constelacao-linhas"></svg>
+        <div id="constelacao-orbes" class="constelacao-orbes"></div>
     </div>
 </div>
 
@@ -399,6 +406,9 @@
 <script src="/js/api.js?v=2"></script>
 <script src="/js/utils.js"></script>
 <script src="/js/relacaoEscala.js"></script>
+<script src="/js/constelacaoCalc.js"></script>
+<script src="/js/constelacaoFisica.js"></script>
+<script src="/js/constelacao.js"></script>
 <script src="/js/mundo/mundoUtils.js"></script>
 <script src="/js/mundo/edicaoInline.js"></script>
 <script src="/js/api/mundoApi.js"></script>
@@ -406,7 +416,7 @@
 <script src="/js/api/automacoesApi.js"></script>
 <script src="/js/api/sessoesApi.js"></script>
 <script src="/js/api/oraculoApi.js"></script>
-<script src="/js/controle_mundo.js?v=7"></script>
+<script src="/js/controle_mundo.js?v=8"></script>
 <script>lucide.createIcons();</script>
 
 </body>
