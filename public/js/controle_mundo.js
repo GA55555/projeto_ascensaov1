@@ -2842,13 +2842,6 @@ let boardNomeAtual = '';
 let boardState = boardVazio();
 let hoveredNodeId = null; // card sob o cursor → re-aplica .linha-destaque a cada redraw (persiste no arrasto)
 let boardNodesCache = []; // todos os world_nodes (id → nome/tipo para render)
-// Modo Constelação (Fase 14): lente force-directed transitória dos núcleos (read-only).
-let modoConstelacao = false;
-let constelacaoSnapshot = [];   // layout original das células p/ restaurar ao sair
-let constelacaoSnapshotNodes = null; // clone dos nodes (membros) p/ restaurar — anti-espalhamento
-let constelacaoRAF = null;      // id do requestAnimationFrame do loop de física
-let constelacaoFisica = null;   // velocidades {id:{vx,vy}} — vivem só durante o modo (não tocam boardState)
-let celulaArrastandoId = null;  // célula em arrasto ativo → "massa infinita" na física
 let boardPan = null;      // estado do pan em curso
 
 const elBoardCanvas = () => document.getElementById('board-canvas');
@@ -2942,7 +2935,6 @@ window.abrirBoard = async function(boardId) {
 
 window.salvarBoard = async function() {
     if (!boardAtualId) return mostrarToast('Selecione ou crie um tabuleiro primeiro.', 'aviso');
-    if (modoConstelacao) return mostrarToast('Saia do modo Constelação antes de salvar (layout transitório).', 'aviso');
     try {
         await MundoApi.atualizarBoard(cronicaId, boardAtualId, { dados: boardState });
         mostrarToast('Tabuleiro salvo.', 'sucesso');
@@ -3269,10 +3261,9 @@ window.toggleMapaCalor = function() {
     if (!world) return;
     mapaCalor = !mapaCalor;
     if (mapaCalor) {
-        // Lentes não se sobrepõem na v1: sai da Lente de Destaque e da Constelação.
+        // Lentes não se sobrepõem na v1: sai da Lente de Destaque.
         const bf = document.getElementById('board-busca-foco'); if (bf) bf.value = '';
         focoTermo = ''; focoSet = null; world.classList.remove('modo-foco');
-        if (modoConstelacao) toggleConstelacao(); // restaura layout + desliga a Constelação
         world.classList.add('modo-calor');
         document.getElementById('btn-mapa-calor')?.classList.add('ativo');
         pintarCalorBoard();
@@ -3848,127 +3839,6 @@ window.removerCelulaBoard = function(id) {
     atualizarLinksBoard(); // recalcula linhas (cards removidos)
 };
 
-// ============================================
-// MODO CONSTELAÇÃO (FASE 14) — lente force-directed dos núcleos (Regra 7: só apresentação,
-// TRANSITÓRIA; o layout salvo é preservado via snapshot). Física hand-rolled (Regra 1 — sem
-// libs). Read-only: nada persiste; sair restaura o snapshot.
-// ============================================
-const FIS_DIST_IDEAL  = 350;   // distância-alvo das molas de diplomacia
-const FIS_REP_DIST    = 600;   // raio de repulsão (magnético, longo alcance)
-const FIS_REP_FORCA   = 4000;  // intensidade da repulsão (inverse-linear: forca/max(dist,10))
-const FIS_MOLA        = 0.015; // rigidez da mola (neutro/inimigo)
-const FIS_MOLA_ALIADO = 0.03;  // aliados puxam mais (distância menor)
-const FIS_GRAV        = 0.01;  // gravidade ao centro (anti-fuga)
-const FIS_ATRITO      = 0.55;  // amortecimento pesado → assenta em <2s (perde 45%/frame)
-const FIS_VMAX        = 12;    // teto de velocidade por frame (estabilidade)
-const FIS_PARADA      = 2.5;   // sleep threshold (energia média/célula): "dorme" cedo (<2s)
-
-window.toggleConstelacao = function() {
-    if (!boardAtualId) return mostrarToast('Abra um tabuleiro primeiro.', 'aviso');
-    modoConstelacao = !modoConstelacao;
-    elBoardWorld()?.classList.toggle('modo-constelacao', modoConstelacao); // orbes via CSS
-    const btn = document.getElementById('btn-constelacao');
-    if (modoConstelacao) {
-        // Lentes não se sobrepõem na v1: sai da Lente de Destaque e do Mapa de Calor.
-        const bf = document.getElementById('board-busca-foco'); if (bf) bf.value = '';
-        focoTermo = ''; focoSet = null; elBoardWorld()?.classList.remove('modo-foco');
-        desligarMapaCalor();
-        eventosInvocados = {}; // a Constelação esconde os cards: dispensa os painéis de evento (anti-órfão)
-        // Snapshot do layout original (read-only): células E nodes (membros) p/ restaurar 100%.
-        constelacaoSnapshot = (boardState.celulas || []).map(c => ({ id: c.id, x: c.x, y: c.y, w: c.w, h: c.h, minimizada: !!c.minimizada }));
-        constelacaoSnapshotNodes = JSON.parse(JSON.stringify(boardState.nodes)); // clone profundo
-        (boardState.celulas || []).forEach(c => { c.minimizada = true; });
-        btn && btn.classList.add('ativo');
-        renderBoard();                // re-render minimizado (membros somem)
-        iniciarFisicaConstelacao();
-    } else {
-        pararFisicaConstelacao();
-        const snap = {}; constelacaoSnapshot.forEach(s => { snap[String(s.id)] = s; });
-        (boardState.celulas || []).forEach(c => {
-            const s = snap[String(c.id)]; if (!s) return;
-            c.x = s.x; c.y = s.y; c.w = s.w; c.h = s.h; c.minimizada = s.minimizada; // restaura célula
-        });
-        if (constelacaoSnapshotNodes) boardState.nodes = constelacaoSnapshotNodes; // restaura membros
-        constelacaoSnapshot = []; constelacaoSnapshotNodes = null;
-        btn && btn.classList.remove('ativo');
-        renderBoard();
-    }
-};
-
-function iniciarFisicaConstelacao() {
-    constelacaoFisica = {}; // velocidades por id — vivem SÓ aqui (não poluem boardState)
-    if (constelacaoRAF) cancelAnimationFrame(constelacaoRAF);
-    constelacaoRAF = requestAnimationFrame(tickFisica);
-}
-function pararFisicaConstelacao() {
-    if (constelacaoRAF) cancelAnimationFrame(constelacaoRAF);
-    constelacaoRAF = null;
-    constelacaoFisica = null;
-}
-
-// Um frame: molas (diplomacia) + repulsão (Coulomb) + gravidade → integra velocidade →
-// escreve DIRETO no DOM (sem renderBoard) + redesenha linhas. Para quando assenta.
-function tickFisica() {
-    constelacaoRAF = null; // este frame já disparou; rearma no fim se ainda houver energia
-    if (!modoConstelacao) return;
-    const cels = boardState.celulas || [];
-    if (!cels.length) return;
-    const centro = centroMundo();
-    const F = {};
-    cels.forEach(c => { F[c.id] = { x: 0, y: 0 }; });
-
-    // Atração — molas de diplomacia (só pares com célula no tabuleiro).
-    (diplomaciaCache || []).forEach(rel => {
-        const a = cels.find(c => String(c.nucleo_id) === String(rel.nucleoA));
-        const b = cels.find(c => String(c.nucleo_id) === String(rel.nucleoB));
-        if (!a || !b) return;
-        const dx = b.x - a.x, dy = b.y - a.y;
-        const dist = Math.max(1, Math.hypot(dx, dy));
-        const k = rel.status === 'aliado' ? FIS_MOLA_ALIADO : FIS_MOLA;
-        const f = (dist - FIS_DIST_IDEAL) * k;       // >0 aproxima, <0 afasta
-        const ux = dx / dist, uy = dy / dist;
-        F[a.id].x += ux * f; F[a.id].y += uy * f;
-        F[b.id].x -= ux * f; F[b.id].y -= uy * f;
-    });
-
-    // Repulsão (Coulomb) entre todos os pares dentro do raio.
-    for (let i = 0; i < cels.length; i++) {
-        for (let j = i + 1; j < cels.length; j++) {
-            const a = cels[i], b = cels[j];
-            const dx = b.x - a.x, dy = b.y - a.y;
-            const dist = Math.max(1, Math.hypot(dx, dy));
-            if (dist >= FIS_REP_DIST) continue;
-            const f = FIS_REP_FORCA / Math.max(dist, 40); // soft-clamp: piso 40 evita pico de força (jitter) a curta distância
-            const ux = dx / dist, uy = dy / dist;
-            F[a.id].x -= ux * f; F[a.id].y -= uy * f;
-            F[b.id].x += ux * f; F[b.id].y += uy * f;
-        }
-    }
-
-    // Gravidade ao centro da viewport (anti-fuga ao infinito).
-    cels.forEach(c => { F[c.id].x += (centro.x - c.x) * FIS_GRAV; F[c.id].y += (centro.y - c.y) * FIS_GRAV; });
-
-    // Integração (Euler + atrito) + escrita direta no DOM. Célula arrastada = massa infinita.
-    const world = elBoardWorld();
-    let energia = 0;
-    cels.forEach(c => {
-        const v = constelacaoFisica[c.id] || (constelacaoFisica[c.id] = { vx: 0, vy: 0 });
-        if (String(c.id) === String(celulaArrastandoId)) { v.vx = 0; v.vy = 0; return; }
-        v.vx = Math.max(-FIS_VMAX, Math.min(FIS_VMAX, (v.vx + F[c.id].x) * FIS_ATRITO));
-        v.vy = Math.max(-FIS_VMAX, Math.min(FIS_VMAX, (v.vy + F[c.id].y) * FIS_ATRITO));
-        c.x = Math.round(c.x + v.vx);
-        c.y = Math.round(c.y + v.vy);
-        energia += Math.abs(v.vx) + Math.abs(v.vy);
-        const el = world && world.querySelector(`.board-celula[data-celula="${cssEscape(c.id)}"]`);
-        if (el) { el.style.left = c.x + 'px'; el.style.top = c.y + 'px'; }
-    });
-    desenharLinhasBoard(); // linhas de diplomacia seguem organicamente a 60fps
-
-    // Assenta: para o loop quando a energia média é baixa e ninguém está arrastando.
-    if (energia / cels.length < FIS_PARADA && !celulaArrastandoId) return;
-    constelacaoRAF = requestAnimationFrame(tickFisica);
-}
-
 // Arrasto em bando: arrastar a célula move a célula + todos os cards do seu núcleo.
 function ativarArrastoCelulas() {
     const world = elBoardWorld();
@@ -3990,23 +3860,18 @@ function ativarArrastoCelulas() {
             const membros = membrosDaCelula(c.nucleo_id).map(n => ({ node: n, el: cardEls[String(n.id)], ox: n.x, oy: n.y }));
             el.setPointerCapture(e.pointerId);
             el.classList.add('arrastando-grupo');
-            celulaArrastandoId = c.id; // massa infinita no modo Constelação (a física não a move)
-            if (modoConstelacao && !constelacaoRAF) constelacaoRAF = requestAnimationFrame(tickFisica); // reanima ao arrastar
             membros.forEach(m => m.el && m.el.classList.add('arrastando-grupo'));
             const mv = (ev) => {
                 const dx = (ev.clientX - sx) / z, dy = (ev.clientY - sy) / z;
                 c.x = Math.round(ox + dx); c.y = Math.round(oy + dy);
                 el.style.left = c.x + 'px'; el.style.top = c.y + 'px';
-                if (!modoConstelacao) { // na Constelação arrasta SÓ a célula (membros ficam no lugar p/ o snapshot)
-                    for (const m of membros) {
-                        m.node.x = Math.round(m.ox + dx); m.node.y = Math.round(m.oy + dy);
-                        if (m.el) { m.el.style.left = m.node.x + 'px'; m.el.style.top = m.node.y + 'px'; }
-                    }
+                for (const m of membros) { // arrasta a célula + todos os membros do núcleo em bando
+                    m.node.x = Math.round(m.ox + dx); m.node.y = Math.round(m.oy + dy);
+                    if (m.el) { m.el.style.left = m.node.x + 'px'; m.el.style.top = m.node.y + 'px'; }
                 }
                 desenharLinhasBoard();   // linhas seguem (paridade c/ o arrasto de card)
             };
             const up = () => {
-                celulaArrastandoId = null; // solta a "massa infinita"
                 el.classList.remove('arrastando-grupo');
                 membros.forEach(m => m.el && m.el.classList.remove('arrastando-grupo'));
                 el.removeEventListener('pointermove', mv);

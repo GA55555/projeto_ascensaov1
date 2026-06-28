@@ -114,7 +114,9 @@
             const selo = o.tarot
                 ? `<span class="constelacao-orbe-tarot" title="Arcano ${o.tarot.carta_num}${o.tarot.orientacao === -1 ? ' (invertido)' : ''}">${ROMANO[o.tarot.carta_num] || o.tarot.carta_num}${o.tarot.orientacao === -1 ? '↡' : ''}</span>`
                 : '';
-            div.innerHTML = `<span class="constelacao-orbe-nome">${escapeHTML(o.nome)}</span>${selo}<span class="constelacao-orbe-ancora" title="Arraste até outro núcleo para definir a diplomacia"></span>`;
+            // Orbe arcano: camadas decorativas (plasma girando + núcleo pulsando + vidro esférico fixo)
+            // são pointer-events:none → o clique/arrasto continua caindo no .constelacao-orbe. Nome só no hover.
+            div.innerHTML = `<span class="orbe-plasma"></span><span class="orbe-nucleo"></span><span class="orbe-vidro"></span>${selo}<span class="constelacao-orbe-ancora" title="Arraste até outro núcleo para definir a diplomacia"></span><span class="constelacao-orbe-nome">${escapeHTML(o.nome)}</span>`;
             wo.appendChild(div);
             orbeEl.set(o.id, div);
         }
@@ -559,7 +561,8 @@
             div.className = 'constelacao-planeta';
             div.style.left = (px - 28) + 'px'; div.style.top = (py - 28) + 'px';
             div.title = `${e.nome} (${e.tipo})`;
-            div.innerHTML = `<span class="constelacao-planeta-nome">${escapeHTML(e.nome)}</span>`;
+            // Mesmas camadas arcanas do núcleo (planeta = mini-orbe). Nome só no hover (sob demanda).
+            div.innerHTML = `<span class="orbe-plasma"></span><span class="orbe-nucleo"></span><span class="orbe-vidro"></span><span class="constelacao-planeta-nome">${escapeHTML(e.nome)}</span>`;
             wrap.appendChild(div);
         });
     }

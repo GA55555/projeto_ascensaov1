@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Controle de Mundo & Eventos</title>
 
-    <link rel="stylesheet" href="/css/global_ui.css?v=17">
+    <link rel="stylesheet" href="/css/global_ui.css?v=19">
 </head>
 <body>
     <div class="page-container">
@@ -153,7 +153,6 @@
             <button class="btn btn-secondary btn-sm" onclick="adicionarTexto()"><i data-lucide="type"></i> Texto</button>
             <button class="btn btn-secondary btn-sm" onclick="abrirSeletorSimbolo()"><i data-lucide="shapes"></i> Símbolo</button>
             <button class="btn btn-secondary btn-sm" onclick="abrirSeletorNucleoBoard()"><i data-lucide="users"></i> Importar Núcleo</button>
-            <button class="btn btn-secondary btn-sm" id="btn-constelacao" onclick="toggleConstelacao()" title="Modo Constelação (vista force-directed dos núcleos)"><i data-lucide="network"></i> Constelação</button>
             <button class="btn btn-secondary btn-sm" id="btn-mapa-calor" onclick="toggleMapaCalor()" title="Mapa de Calor: dimensiona cada entidade pela sua influência (conexões + diplomacia)"><i data-lucide="flame"></i> Calor</button>
             <input type="text" id="board-busca-foco" class="input-busca" placeholder="Farol: focar por nome…" oninput="aplicarFocoBoard(this.value)" title="Lente de Destaque: escurece o resto e realça quem casa o nome + suas conexões">
             <select id="board-fundo-select" class="btn btn-secondary btn-sm" onchange="mudarFundoBoard(this.value)" title="Plano de Fundo da Mesa"><option value="dots">Pontilhado</option><option value="grid">Grade</option><option value="none">Liso</option></select>
@@ -413,7 +412,7 @@
 <script src="/js/relacaoEscala.js"></script>
 <script src="/js/constelacaoCalc.js"></script>
 <script src="/js/constelacaoFisica.js"></script>
-<script src="/js/constelacao.js?v=13"></script>
+<script src="/js/constelacao.js?v=14"></script>
 <script src="/js/mundo/mundoUtils.js"></script>
 <script src="/js/mundo/edicaoInline.js"></script>
 <script src="/js/api/mundoApi.js"></script>
@@ -421,7 +420,7 @@
 <script src="/js/api/automacoesApi.js"></script>
 <script src="/js/api/sessoesApi.js"></script>
 <script src="/js/api/oraculoApi.js"></script>
-<script src="/js/controle_mundo.js?v=9"></script>
+<script src="/js/controle_mundo.js?v=10"></script>
 <script>lucide.createIcons();</script>
 
 </body>

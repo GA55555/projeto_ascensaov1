@@ -3007,7 +3007,6 @@ input[type="radio"] {
 /* Brasão na célula de núcleo (2c). Em modo-constelação some junto com o ícone (lente política limpa). */
 .board-celula-thumb { position: relative; overflow: hidden; flex-shrink: 0; width: 16px; height: 16px; border-radius: 4px; display: flex; align-items: center; justify-content: center; }
 .board-celula-avatar { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.modo-constelacao .board-celula-thumb { display: none !important; }
 .board-card-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
 .board-card-nome { font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .board-card-tipo {
@@ -3152,7 +3151,6 @@ input[type="radio"] {
 }
 .card-badge-evento:hover { background: color-mix(in srgb, var(--dourado) 78%, var(--texto-claro)); }
 .card-badge-evento i { width: 13px; height: 13px; stroke: currentColor; } /* herda color escura (Regra 2.6) */
-.modo-constelacao .card-badge-evento { display: none; } /* na Constelação os cards somem → sem crachá */
 
 /* Painel flutuante do evento invocado (efêmero). Glass + sombra em camadas (Regra 2.5), acento
    dourado, radius ≤8px. z-index acima dos cards (3), abaixo do popover (10). */
@@ -3544,39 +3542,6 @@ input[type="radio"] {
 .board-celula.arrastando-grupo,
 .board-card.arrastando-grupo { opacity: 0.6; }
 
-/* ── MODO CONSTELAÇÃO: a Célula vira um "orbe" mágico (círculo) ──────────────
-   Só o nome, borda + brilho na cor da facção (--board-accent). Esconde ícone e
-   botões do cabeçalho. !important sobrepõe a largura inline (data-driven). */
-.modo-constelacao .board-celula {
-    width: 140px !important;
-    height: 140px !important;
-    border-radius: 50% !important;
-    padding: 10px;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-    border: 3px solid var(--board-accent) !important;
-    background: var(--bg-principal) !important;
-    box-shadow: 0 0 15px var(--board-accent);
-}
-.modo-constelacao .board-celula-header {
-    width: 100%;
-    height: auto;
-    padding: 0;
-    background: transparent;
-}
-.modo-constelacao .board-celula-icone,
-.modo-constelacao .board-celula-btn { display: none !important; }
-.modo-constelacao .board-celula-nome { white-space: normal; font-size: 14px; }
-/* Lente puramente política: some tudo que não é núcleo nem diplomacia.
-   (.board-card inclui entidades soltas — os membros já somem ao minimizar.) */
-.modo-constelacao .board-shape,
-.modo-constelacao .board-text,
-.modo-constelacao .board-prop,
-.modo-constelacao .board-card { display: none !important; }
-.modo-constelacao .board-line:not(.board-line-diplomacia) { display: none !important; }
-.modo-constelacao .board-line-hit { display: none !important; }
-
 /* Coerência 16-bit: bordas retas + numerais pixelados. */
 .tema-pixel-16bit .board-toolbar,
 .tema-pixel-16bit .board-canvas,
@@ -3778,8 +3743,11 @@ input[type="radio"] {
 /* ── MOTOR DE CONSTELAÇÃO (F2.3): canvas físico dos núcleos ──
    Orbe = astro REDONDO (escolha do Narrador, exceção autorizada à geometria sóbria). Posição/tamanho são
    data-driven inline (Regra 2.5 barra-fill); cores SEMPRE por token. Linhas SVG por valência. */
-.constelacao-canvas { position: relative; width: 100%; height: 70vh; min-height: 480px; overflow: hidden; background: var(--bg-principal); border: 1px solid var(--borda); border-radius: 8px; cursor: grab; touch-action: none; }
+.constelacao-canvas { position: relative; width: 100%; height: 70vh; min-height: 480px; overflow: hidden; border: 1px solid var(--borda); border-radius: 8px; cursor: grab; touch-action: none; transition: box-shadow var(--transicao-suave);
+    background: radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--roxo-mago) 10%, var(--bg-principal)) 0%, var(--bg-principal) 60%), var(--bg-principal); }
 .constelacao-canvas:active { cursor: grabbing; }
+/* Em foco (sistema solar): vinheta escurece as bordas e centra o olhar no núcleo focado. */
+.constelacao-canvas.em-foco { box-shadow: inset 0 0 140px 50px rgba(0, 0, 0, 0.55); }
 /* World-layer: recebe o transform da câmera (pan/zoom). transform-origin 0,0 → conversão tela↔mundo simples. */
 .constelacao-mundo { position: absolute; inset: 0; transform-origin: 0 0; will-change: transform; }
 .constelacao-linhas { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
@@ -3788,16 +3756,47 @@ input[type="radio"] {
 .constelacao-linha--inimigo { stroke: var(--link-inimigo); }
 .constelacao-linha--neutro  { stroke: var(--borda); }
 .constelacao-orbes { position: absolute; inset: 0; }
+/* ORBE ARCANO (núcleo): esfera de energia que GIRA + PULSA, brilho na cor do token. O nome
+   aparece sob demanda (hover). Montado em camadas: base radial + plasma (conic girando) +
+   núcleo (pulsa) + vidro (esfericidade fixa). Vanilla/zero-libs (Regra 1), cores por token (2.5). */
 .constelacao-orbe {
-    position: absolute; display: flex; align-items: center; justify-content: center; text-align: center;
-    border-radius: 50%; padding: 6px; box-sizing: border-box; cursor: grab; user-select: none;
-    background: color-mix(in srgb, var(--cor-nucleo, transparent) 22%, var(--bg-card));
-    border: 2px solid var(--cor-nucleo, var(--destaque)); color: var(--texto-claro);
-    font-family: 'Manrope', sans-serif; font-size: 0.78rem; line-height: 1.1;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35); transition: box-shadow var(--transicao-suave);
+    position: absolute; box-sizing: border-box; cursor: grab; user-select: none; border-radius: 50%; overflow: visible; isolation: isolate;
+    --cor-orbe: var(--cor-nucleo, var(--destaque));
+    background: radial-gradient(circle at 50% 50%,
+        color-mix(in srgb, var(--cor-orbe) 42%, var(--bg-principal)) 0%,
+        color-mix(in srgb, var(--cor-orbe) 16%, var(--bg-principal)) 62%,
+        var(--bg-principal) 100%);
+    box-shadow:
+        0 0 20px 3px color-mix(in srgb, var(--cor-orbe) 42%, transparent),
+        inset 0 0 16px 2px color-mix(in srgb, var(--cor-orbe) 26%, transparent);
+    transition: box-shadow var(--transicao-suave), transform var(--transicao-suave);
 }
-.constelacao-orbe:hover { box-shadow: 0 0 14px 2px color-mix(in srgb, var(--destaque) 45%, transparent); }
-.constelacao-orbe.arrastando { cursor: grabbing; box-shadow: 0 0 18px 3px color-mix(in srgb, var(--destaque) 60%, transparent); }
+.constelacao-orbe:hover { transform: scale(1.05); box-shadow: 0 0 28px 6px color-mix(in srgb, var(--cor-orbe) 60%, transparent), inset 0 0 16px 2px color-mix(in srgb, var(--cor-orbe) 32%, transparent); }
+.constelacao-orbe.arrastando { cursor: grabbing; box-shadow: 0 0 34px 8px color-mix(in srgb, var(--cor-orbe) 72%, transparent), inset 0 0 16px 2px color-mix(in srgb, var(--cor-orbe) 36%, transparent); }
+/* Camadas (decorativas → pointer-events:none, o clique cai no orbe). Reusadas pelo planeta. */
+.orbe-plasma, .orbe-nucleo, .orbe-vidro { position: absolute; inset: 0; border-radius: 50%; pointer-events: none; }
+.orbe-plasma {
+    overflow: hidden; mix-blend-mode: screen; opacity: 0.85;
+    background: conic-gradient(from 0deg,
+        transparent 0deg, color-mix(in srgb, var(--cor-orbe) 75%, transparent) 55deg,
+        transparent 130deg, color-mix(in srgb, var(--cor-orbe) 55%, transparent) 210deg,
+        transparent 285deg, color-mix(in srgb, var(--cor-orbe) 65%, transparent) 340deg, transparent 360deg);
+    animation: orbe-girar 9s linear infinite;
+}
+.orbe-nucleo {
+    inset: 16%;
+    background: radial-gradient(circle at 50% 50%,
+        color-mix(in srgb, var(--cor-orbe) 85%, var(--texto-claro)) 0%,
+        color-mix(in srgb, var(--cor-orbe) 55%, transparent) 52%, transparent 74%);
+    animation: orbe-pulsar 3.4s ease-in-out infinite;
+}
+.orbe-vidro {
+    background:
+        radial-gradient(circle at 32% 26%, color-mix(in srgb, var(--texto-claro) 55%, transparent) 0%, color-mix(in srgb, var(--texto-claro) 10%, transparent) 16%, transparent 40%),
+        radial-gradient(circle at 50% 52%, transparent 54%, rgba(0, 0, 0, 0.5) 100%);
+}
+@keyframes orbe-girar { to { transform: rotate(360deg); } }
+@keyframes orbe-pulsar { 0%, 100% { transform: scale(0.9); opacity: 0.7; } 50% { transform: scale(1.05); opacity: 1; } }
 /* Bolha-fantasma do clica-segura: "cresce" durante o hold (~600ms) antes de abrir o editor. */
 .constelacao-ghost {
     position: absolute; transform: translate(-50%, -50%); border-radius: 50%; pointer-events: none;
@@ -3826,14 +3825,26 @@ input[type="radio"] {
 /* Sistema solar (F3.3): foco num núcleo → entidades como planetas + barra de foco. */
 .constelacao-mundo.animando { transition: transform 0.42s ease; }
 .constelacao-canvas.em-foco .constelacao-linhas { opacity: 0.1; }
+/* Planeta (entidade no sistema solar) = mini-orbe arcano (reusa .orbe-plasma/-nucleo/-vidro). */
 .constelacao-planeta {
-    position: absolute; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center;
-    text-align: center; box-sizing: border-box; padding: 4px; border-radius: 50%; pointer-events: none;
-    background: var(--bg-secundario); border: 1px solid var(--azul-vida); color: var(--texto-claro);
-    font-size: 0.66rem; line-height: 1.05; box-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
-    animation: constelacao-planeta-surge 0.3s ease-out;
+    position: absolute; width: 56px; height: 56px; box-sizing: border-box; border-radius: 50%; cursor: pointer; isolation: isolate;
+    --cor-orbe: var(--azul-vida);
+    background: radial-gradient(circle at 50% 50%,
+        color-mix(in srgb, var(--cor-orbe) 40%, var(--bg-principal)) 0%,
+        color-mix(in srgb, var(--cor-orbe) 14%, var(--bg-principal)) 64%, var(--bg-principal) 100%);
+    box-shadow: 0 0 12px 1px color-mix(in srgb, var(--cor-orbe) 40%, transparent), inset 0 0 10px 1px color-mix(in srgb, var(--cor-orbe) 24%, transparent);
+    animation: constelacao-planeta-surge 0.3s ease-out; transition: transform var(--transicao-suave), box-shadow var(--transicao-suave);
 }
-.constelacao-planeta-nome { overflow: hidden; max-height: 100%; }
+.constelacao-planeta:hover { transform: scale(1.08); box-shadow: 0 0 18px 3px color-mix(in srgb, var(--cor-orbe) 55%, transparent), inset 0 0 10px 1px color-mix(in srgb, var(--cor-orbe) 28%, transparent); }
+.constelacao-planeta-nome {
+    position: absolute; top: calc(100% + 5px); left: 50%; transform: translate(-50%, 3px); white-space: nowrap;
+    font-family: 'Manrope', sans-serif; font-weight: 600; font-size: 0.72rem; color: var(--texto-claro);
+    padding: 1px 7px; border-radius: 4px; pointer-events: none;
+    background: color-mix(in srgb, var(--bg-card) 82%, transparent); backdrop-filter: blur(5px);
+    border: 1px solid color-mix(in srgb, var(--cor-orbe) 50%, var(--borda)); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    opacity: 0; transition: opacity var(--transicao-suave), transform var(--transicao-suave);
+}
+.constelacao-planeta:hover .constelacao-planeta-nome { opacity: 1; transform: translate(-50%, 0); }
 @keyframes constelacao-planeta-surge { from { transform: scale(0.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 .constelacao-foco-barra {
     position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 5;
@@ -3854,7 +3865,16 @@ input[type="radio"] {
 .dip-opcoes { display: flex; gap: 8px; justify-content: center; }
 .dip-opcoes .btn { flex: 1; }
 .dip-remover { display: block; margin: 10px auto 0; }
-.constelacao-orbe-nome { font-weight: 600; overflow: hidden; max-height: 100%; }
+/* Nome sob demanda: plaqueta glass que surge abaixo do orbe no hover (repouso = só a esfera). */
+.constelacao-orbe-nome {
+    position: absolute; top: calc(100% + 7px); left: 50%; transform: translate(-50%, 4px); white-space: nowrap;
+    font-family: 'Manrope', sans-serif; font-weight: 600; font-size: 0.8rem; color: var(--texto-claro);
+    padding: 2px 9px; border-radius: 4px; pointer-events: none;
+    background: color-mix(in srgb, var(--bg-card) 82%, transparent); backdrop-filter: blur(6px);
+    border: 1px solid color-mix(in srgb, var(--cor-orbe) 55%, var(--borda)); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+    opacity: 0; transition: opacity var(--transicao-suave), transform var(--transicao-suave);
+}
+.constelacao-orbe:hover .constelacao-orbe-nome { opacity: 1; transform: translate(-50%, 0); }
 .constelacao-orbe-tarot {
     position: absolute; top: -5px; right: -5px; background: var(--roxo-mago); color: var(--texto-claro);
     font-family: 'Fira Code', monospace; font-size: 0.6rem; padding: 1px 5px; border-radius: 8px;
