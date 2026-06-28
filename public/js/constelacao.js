@@ -61,7 +61,7 @@
         cam = { x: 0, y: 0, zoom: 1 }; aplicarCamera();
         garantirInteracao();
         try {
-            const res = await API.fetch(`/cronicas/${cronicaId}/constelacao`);
+            const res = await API.fetch(`/cronicas/${cronicaId}/constelacao?_=${Date.now()}`); // anti-cache (frescura)
             if (!res.ok) throw new Error('falha');
             const snap = await res.json();
             entidadesAtual = snap.entidades || [];
@@ -109,7 +109,7 @@
             div.className = 'constelacao-orbe';
             const dia = diametroOrbe(o);
             div.style.width = dia + 'px'; div.style.height = dia + 'px';
-            if (o.cor) div.style.borderColor = `var(${corVar(o.cor)})`; // cor por token (Regra 2.5)
+            if (o.cor) div.style.setProperty('--cor-nucleo', `var(${corVar(o.cor)})`); // cor por token → tint+borda (CSS)
             div.dataset.id = o.id;
             const selo = o.tarot
                 ? `<span class="constelacao-orbe-tarot" title="Arcano ${o.tarot.carta_num}${o.tarot.orientacao === -1 ? ' (invertido)' : ''}">${ROMANO[o.tarot.carta_num] || o.tarot.carta_num}${o.tarot.orientacao === -1 ? '↡' : ''}</span>`
@@ -290,7 +290,7 @@
     // Re-busca o snapshot e reconcilia (preserva posições dos orbes existentes; adiciona novos; some os removidos).
     async function recarregar() {
         try {
-            const res = await API.fetch(`/cronicas/${cronicaAtual}/constelacao`);
+            const res = await API.fetch(`/cronicas/${cronicaAtual}/constelacao?_=${Date.now()}`); // anti-cache: pega o estado FRESCO
             if (!res.ok) return;
             const snap = await res.json();
             entidadesAtual = snap.entidades || [];
