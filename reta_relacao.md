@@ -144,3 +144,28 @@ links"/reputação de RPG): guarda-se o log de eventos assinados e deriva-se a p
     sendo lidas via inferência por `tipo_vinculo` até serem tocadas.
 - **Feature COMPLETA (Fatias 1–3).** Resta só o **smoke ao vivo do Narrador** (modal da reta, Aproxima/
   Afasta movendo a agulha, badge, e RAG após o Sincronizar/Big Bang).
+
+### 🍕 Fatia 4 — Reta visível no Tabuleiro (✅ feito, validado estaticamente)
+> Evolução pós-feature (aprovada pelo Narrador): a ação central — Aproxima/Afasta — era **invisível no
+> mapa**. A sinapse entre entidades no Tabuleiro era colorida só por `tipo_vinculo` estático e ignorava a
+> posição −10..+10. Agora a linha **reflete a reta** (mesma fonte: `RelacaoEscala`, espelho browser).
+- **`controle_mundo.js` → `atualizarLinksBoard`:** passa a carregar `l.dados` no cache `boardLinks` (antes
+  descartava; só `tipo`).
+- **`controle_mundo.js` → `desenharLinhasBoard` (bloco world_links):** `RelacaoEscala.lerRelacao(lk.dados,
+  lk.tipo)` deriva **posição/tier**; **COR** pela valência (`tier.lado` → `corLinhaVar`, tokens
+  `--link-aliado/--link-inimigo/--texto-mutado`), **ESPESSURA** `1..5px ∝ |posição|` (espelha a fórmula
+  `espessura` da constelação). **Override manual de cor (`ov.cor`) ainda vence**; tracejado/label intactos.
+- **`global_ui.css`:** largura via custom prop `--reta-w` (data-driven, como a `barra-fill`) com fallback
+  `2.5` — para **não** quebrar o `.board-line.linha-destaque` do hover, que agora engrossa relativo
+  (`calc(var(--reta-w,2.5) + 1px)`). Linhas sem reta (locais/diplomacia/evento) caem no fallback (intactas).
+- **Cache-buster:** `controle_mundo.js?v=9`, `global_ui.css?v=17`.
+- **Sem fiação de refresh:** a reta só é editável pela lista (badge → `abrirContratoRelacao`); a linha do
+  board chama `editarLinha` (override manual), não o contrato. `atualizarLinksBoard` re-busca a cada entrada
+  no Tabuleiro → sempre fresco.
+- **Conformidade:** Regra 2.5 (cor por token; largura é mecânica dinâmica de layout, exceção da barra-fill),
+  consistência visual com a constelação, fonte única `RelacaoEscala` (Node↔browser em sync). node --check ok.
+- **Ressalva conhecida:** no tema `board-tema-investigacao` a regra `.board-tema-investigacao .board-line`
+  (specificity maior) achata a espessura em `2.4px` de propósito — a reta-cor continua, a largura uniformiza.
+- **Smoke ao vivo PENDENTE (Narrador):** abrir Tabuleiro com ≥1 sinapse; Aproxima/Afasta na lista → voltar
+  ao board e ver **cor por lado + linha mais grossa quanto mais extrema**; hover ainda engrossa; override
+  manual de cor ainda manda.

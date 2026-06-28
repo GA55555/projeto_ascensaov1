@@ -4570,7 +4570,8 @@ async function atualizarLinksBoard() {
         const a = String(l.origem_node_id), b = String(l.destino_node_id);
         if (!ids.has(a) || !ids.has(b)) return; // só liga nós presentes no board
         const id = String(l.id);
-        if (!vistos.has(id)) vistos.set(id, { id, a, b, tipo: l.tipo_vinculo });
+        // `dados` (tags assinadas) viaja junto: a linha do Tabuleiro deriva dele a Reta de Relação.
+        if (!vistos.has(id)) vistos.set(id, { id, a, b, tipo: l.tipo_vinculo, dados: l.dados });
     });
     boardLinks = [...vistos.values()];
     desenharLinhasBoard();
@@ -4656,8 +4657,16 @@ function desenharLinhasBoard() {
         const ov = boardState.overrides_linhas[key] || {};
         const dash = ov.stroke === 'dashed' ? '7 6' : '';
         const ea = escapeHTML(String(lk.a)), eb = escapeHTML(String(lk.b)); // data p/ hover-destaque
+        // Reta de Relação no Tabuleiro: a sinapse reflete a posição -10..+10 derivada das tags
+        // assinadas (RelacaoEscala = fonte única, mesmo do modal/lista). COR pela valência atual
+        // (tier.lado), ESPESSURA pela intensidade (1..5px ∝ |posição|, espelhando a constelação).
+        // Override manual de cor (ov.cor) ainda vence. A largura viaja por --reta-w (data-driven,
+        // como a barra-fill) para NÃO sobrescrever o stroke-width do .linha-destaque no hover.
+        const rel = window.RelacaoEscala ? RelacaoEscala.lerRelacao(lk.dados || {}, lk.tipo) : null;
+        const cor = corLinhaVar(ov.cor, rel ? rel.tier.lado : lk.tipo);
+        const wReta = rel ? ` --reta-w: ${(1 + Math.abs(rel.posicao) / 10 * 4).toFixed(1)}px;` : '';
         paths += `<path class="board-line-hit" onclick="editarLinha('${escapeHTML(key)}', event)" d="${d}"></path>`;
-        paths += `<path class="board-line" data-a="${ea}" data-b="${eb}" d="${d}" style="stroke: ${corLinhaVar(ov.cor, lk.tipo)}; stroke-dasharray: ${dash};"></path>`;
+        paths += `<path class="board-line" data-a="${ea}" data-b="${eb}" d="${d}" style="stroke: ${cor};${wReta} stroke-dasharray: ${dash};"></path>`;
         paths += rotulo(mx, my, ov.label);
     });
 
