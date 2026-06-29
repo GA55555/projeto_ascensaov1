@@ -28,6 +28,7 @@
     let tempLinha = null;                     // linha temporária do arrasto de conexão
     let interacaoPronta = false;
     let astroViewport = null;                 // overlay do astrolábio 3D (visão solar no foco); null = sem foco
+    let feixeEl = null;                       // painel-projeção (feixe holográfico) aberto sobre um orbe; null = fechado
     const HOLD_MS = 600;                     // tempo do clica-segura (decisão E — ajustável)
     const MOVE_TOL = 6;                      // px: acima disso o clica-segura vira pan
     const CLICK_TOL = 5;                     // px: arrasto abaixo disso conta como CLIQUE (abre config)
@@ -278,7 +279,11 @@
             aplicarCamera();
         }, { passive: false });
 
-        document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && focoId) sairFoco(); });
+        document.addEventListener('keydown', (e) => {
+            if (e.key !== 'Escape') return;
+            if (feixeEl) { fecharFeixe(); return; }   // Esc fecha o feixe primeiro; só depois sai do foco
+            if (focoId) sairFoco();
+        });
         // Auto-pausa do astrolábio (decisão 7): aba/lente oculta → congela a rotação CSS (sem custo de GPU).
         document.addEventListener('visibilitychange', () => { astroViewport?.classList.toggle('astro-pausado', document.hidden); });
         document.getElementById('constelacao-salvar')?.addEventListener('click', salvarLayout);
@@ -553,7 +558,7 @@
         const o = orbes.find((x) => x.id === focoId);
         if (o) o.fixo = false;
         focoId = null;
-        removerAstrolabio(); removerBarraFoco();
+        fecharFeixe(); removerAstrolabio(); removerBarraFoco();
         const c = canvas(); if (c) c.classList.remove('em-foco', 'astro-on');
         iniciarLoop();
     }
@@ -563,13 +568,20 @@
     // com o sol no centro e as entidades orbitando em anéis cujo RAIO ∝ Reta agregada da entidade
     // (afinidade+ → órbita interna dourada "arcana"; afinidade− → externa vermelha "repulsão"). A rotação
     // é CSS puro (GPU-composited), lenta, com auto-pausa (aba oculta) e respeito a prefers-reduced-motion.
-    const ASTRO_TILT = 62;          // graus de inclinação do plano (perspectiva do astrolábio)
-    const ASTRO_PERIODO = 120;      // s — volta completa da órbita MAIS EXTERNA (a interna é mais rápida)
-    const ASTRO_R_MIN = 92;         // px — raio da órbita mais interna (afinidade máxima +)
-    const ASTRO_R_MAX = 300;        // px — raio da órbita mais externa (repulsão máxima −)
-    const ASTRO_SCORE_SAT = 12;     // |score| de saturação: além disso o raio satura no extremo
-    const astroSat = (n) => clamp(Number(n) || 0, -ASTRO_SCORE_SAT, ASTRO_SCORE_SAT);
-    // Reta agregada da entidade = Σ reta dos laços INTRA-núcleo (ambas as pontas no núcleo focado).
+    const ASTRO_PERIODO = 120;      // s — volta da órbita MAIS EXTERNA (a interna, mais relevante, é mais rápida)
+    const ASTRO_R_MIN = 92;         // px — raio da órbita mais interna (entidade MAIS relevante)
+    const ASTRO_R_MAX = 300;        // px — raio da órbita mais externa (menos relevante)
+    const BONUS_TIPO = { protagonista: 3, faccao: 2, npc: 1, local: 0, cenario: 0 }; // peso de papel narrativo
+    // RELEVÂNCIA (decisão: híbrido grau + papel) → dita o RAIO (mais relevante = órbita mais interna).
+    // grau = nº de sinapses incidentes na entidade (centralidade na teia, conta intra E cross-núcleo).
+    function grauDe(entId) {
+        const id = String(entId);
+        let g = 0;
+        for (const l of linksAtual) if (String(l.origem) === id || String(l.destino) === id) g++;
+        return g;
+    }
+    const relevancia = (e) => grauDe(e.id) + (BONUS_TIPO[e.tipo] ?? 1); // tipo desconhecido = peso de npc (1)
+    // AFINIDADE (Reta agregada dos laços INTRA-núcleo) → dita a COR do anel/orbe, independente do raio.
     function scoreReta(entId, intraSet) {
         let s = 0;
         for (const l of linksAtual) {
@@ -579,34 +591,39 @@
         }
         return s;
     }
-    const astroRaio = (score) => {                                     // score+ → interno; score− → externo
-        const mid = (ASTRO_R_MIN + ASTRO_R_MAX) / 2, amp = (ASTRO_R_MAX - ASTRO_R_MIN) / 2;
-        return Math.round(mid - (astroSat(score) / ASTRO_SCORE_SAT) * amp);
-    };
-    const astroClasse = (score) => 'astro-orbita ' + (score > 1 ? 'astro--arcana' : score < -1 ? 'astro--repulsao' : 'astro--neutro');
+    const astroValencia = (score) => (score > 1 ? 'astro--arcana' : score < -1 ? 'astro--repulsao' : 'astro--neutro');
     const ORBE_CAMADAS = '<span class="orbe-esfera"><span class="orbe-plasma"></span><span class="orbe-nucleo"></span><span class="orbe-vidro"></span></span>';
 
     function montarAstrolabio() {
         const sol = orbes.find((o) => o.id === focoId);
-        removerAstrolabio();
+        removerAstrolabio(); fecharFeixe();   // rebuild (entrada/mutação) → fecha feixe antigo (orbe pode ter mudado/sumido)
         if (!sol) return;
         const ents = entidadesAtual.filter((e) => String(e.nucleo_id) === focoId);
         const intraSet = new Set(ents.map((e) => String(e.id)));
         const corSol = sol.cor ? `var(${corVar(sol.cor)})` : 'var(--destaque)';
 
+        // Cada entidade ganha a SUA órbita: ordena por relevância (mais relevante → mais interna) e
+        // distribui em raios distintos R_MIN..R_MAX. Empate desfeito por |afinidade| e nome (determinístico).
+        const ordenadas = ents
+            .map((e) => ({ e, score: scoreReta(e.id, intraSet), relev: relevancia(e) }))
+            .sort((a, b) => b.relev - a.relev || Math.abs(b.score) - Math.abs(a.score) || String(a.e.nome).localeCompare(String(b.e.nome)));
+        const n = ordenadas.length;
+        const passo = n > 1 ? (ASTRO_R_MAX - ASTRO_R_MIN) / (n - 1) : 0;
+
         const vp = document.createElement('div');
         vp.className = 'astrolabio-viewport';
-        const corpos = ents.map((e, i) => {
-            const score = scoreReta(e.id, intraSet);
-            const raio = astroRaio(score);
-            const dur = Math.max(28, Math.round(ASTRO_PERIODO * raio / ASTRO_R_MAX)); // interno mais rápido
-            const atraso = -(i / Math.max(1, ents.length)) * dur;                     // espalha as fases (spread)
-            const anel = `<span class="astro-anel ${astroClasse(score).split(' ')[1]}" style="width:${raio * 2}px;height:${raio * 2}px"></span>`;
-            const corpo = `<span class="${astroClasse(score)}" style="--raio:${raio}px;animation-duration:${dur}s;animation-delay:${atraso}s">
+        const corpos = ordenadas.map(({ e, score, relev }, i) => {
+            const raio = Math.round(ASTRO_R_MIN + i * passo);                          // rank 0 (top) = mais interno
+            const val = astroValencia(score);                                          // afinidade → cor (anel + orbe)
+            const dur = Math.max(28, Math.round(ASTRO_PERIODO * raio / ASTRO_R_MAX));   // interno mais rápido
+            const atraso = -(i / Math.max(1, n)) * dur;                                // espalha as fases (spread angular)
+            const dados = `data-ent-id="${escapeHTML(String(e.id))}" data-rank="${i + 1}" data-total="${n}" data-score="${score}" data-relev="${relev}"`;
+            const anel = `<span class="astro-anel ${val}" style="width:${raio * 2}px;height:${raio * 2}px"></span>`;
+            const corpo = `<span class="astro-orbita ${val}" style="--raio:${raio}px;animation-duration:${dur}s;animation-delay:${atraso}s">
                 <span class="astro-corpo">
                     <span class="astro-encara" style="animation-duration:${dur}s;animation-delay:${atraso}s">
                         <span class="astro-levanta">
-                            <span class="astro-orbe" title="${escapeHTML(e.nome)} (${escapeHTML(e.tipo || '')})">${ORBE_CAMADAS}<span class="constelacao-planeta-nome">${escapeHTML(e.nome)}</span></span>
+                            <span class="astro-orbe" ${dados} title="${escapeHTML(e.nome)} (${escapeHTML(e.tipo || '')})">${ORBE_CAMADAS}<span class="constelacao-planeta-nome">${escapeHTML(e.nome)}</span></span>
                         </span>
                     </span>
                 </span>
@@ -628,23 +645,151 @@
         else canvas()?.querySelectorAll('.astrolabio-viewport').forEach((el) => el.remove());
     }
 
-    // Arrastar o disco gira o plano no eixo Z (--rot-z) — explora o astrolábio sem mover a câmera do fundo.
+    // Interação no astrolábio: arrastar gira o disco (--rot-z); clique LIMPO num orbe abre o feixe holográfico.
     function ligarAstroDrag(vp) {
         const plano = vp.querySelector('.astrolabio-3d');
-        let arr = null, rot0 = 0;
+        let arr = null, rot0 = 0, sx = 0, sy = 0, moveu = false, alvo = null;
         vp.addEventListener('pointerdown', (e) => {
             e.stopPropagation();                                     // não vira pan do canvas
             arr = e.clientX; rot0 = parseFloat(plano.style.getPropertyValue('--rot-z')) || 0;
+            sx = e.clientX; sy = e.clientY; moveu = false;
+            alvo = e.target.closest && e.target.closest('.astro-orbe');
             try { vp.setPointerCapture(e.pointerId); } catch (_) {}
         });
         vp.addEventListener('pointermove', (e) => {
             if (arr === null) return;
+            if (Math.hypot(e.clientX - sx, e.clientY - sy) > 5) moveu = true; // virou arrasto (gira), não clique
             const z = rootZoom();
             plano.style.setProperty('--rot-z', (rot0 + (e.clientX - arr) / z * 0.4) + 'deg'); // 0.4°/px
         });
-        const fim = (e) => { arr = null; try { vp.releasePointerCapture(e.pointerId); } catch (_) {} };
+        const fim = (e) => {
+            if (arr !== null && !moveu && alvo) abrirFeixe(alvo);     // clique limpo num orbe → feixe holográfico
+            arr = null; alvo = null;
+            try { vp.releasePointerCapture(e.pointerId); } catch (_) {}
+        };
         vp.addEventListener('pointerup', fim);
         vp.addEventListener('pointercancel', fim);
+    }
+
+    // ── §4.1: Feixe holográfico ───────────────────────────────────────────────────────────────────
+    // Clique no orbe → painel-projeção que sai por um FEIXE da borda do orbe, hospedando o menu da entidade
+    // (Sinapses + Editar/Mudar núcleo/Deletar). Congela o disco enquanto aberto p/ o feixe ficar ancorado.
+    // As mutações passam pelo `API.onMutacao` → `recarregar` → `montarAstrolabio` → `fecharFeixe` (auto).
+    function fecharFeixe() {
+        if (feixeEl) { feixeEl.remove(); feixeEl = null; }
+        astroViewport?.classList.remove('astro-congelado');
+    }
+
+    function abrirFeixe(orbeDiv) {
+        const id = orbeDiv.dataset.entId;
+        const ent = entidadesAtual.find((e) => String(e.id) === String(id));
+        if (!ent) return;
+        fecharFeixe();
+        astroViewport?.classList.add('astro-congelado');             // congela a rotação → orbe parado p/ ancorar o feixe
+        const c = canvas(); if (!c) return;
+        const z = rootZoom(), cr = c.getBoundingClientRect(), orb = orbeDiv.getBoundingClientRect();
+        const ax = (orb.left + orb.width / 2 - cr.left) / z, ay = (orb.top + orb.height / 2 - cr.top) / z; // centro do orbe (px layout)
+        const PW = 232, larg = c.clientWidth, alt = c.clientHeight;
+        const dir = ax + 76 + PW < larg;                             // painel à direita se couber, senão à esquerda
+        const px = dir ? Math.min(ax + 76, larg - PW - 10) : Math.max(10, ax - 76 - PW);
+        const py = clamp(ay - 60, 10, Math.max(10, alt - 240));
+
+        const score = Number(orbeDiv.dataset.score) || 0;
+        const afin = score > 1 ? { t: 'Aliado interno', cls: 'feixe--aliado', ic: 'heart' }
+            : score < -1 ? { t: 'Inimigo interno', cls: 'feixe--inimigo', ic: 'swords' }
+                : { t: 'Neutro', cls: 'feixe--neutro', ic: 'minus' };
+        const alvoX = px + (dir ? 6 : PW - 6), alvoY = py + 22;       // ponto do painel onde o feixe encosta
+        const dx = alvoX - ax, dy = alvoY - ay, len = Math.hypot(dx, dy), ang = Math.atan2(dy, dx) * 180 / Math.PI;
+
+        const wrap = document.createElement('div');
+        wrap.className = 'feixe-wrap';
+        wrap.innerHTML = `
+            <span class="feixe-raio ${afin.cls}" style="left:${ax}px;top:${ay}px;width:${len}px;transform:rotate(${ang}deg)"></span>
+            <div class="feixe-painel ${afin.cls}" style="left:${px}px;top:${py}px;width:${PW}px">
+                <div class="feixe-head">
+                    <span class="feixe-nome">${escapeHTML(ent.nome)}</span>
+                    <button class="btn btn-ghost btn-sm" data-fx="fechar" title="Fechar"><i data-lucide="x"></i></button>
+                </div>
+                <div class="feixe-tipo">${escapeHTML(ent.tipo || '—')}</div>
+                <div class="feixe-leitura">
+                    <span class="feixe-chip"><i data-lucide="gem"></i> Relevância ${escapeHTML(orbeDiv.dataset.rank)}/${escapeHTML(orbeDiv.dataset.total)}</span>
+                    <span class="feixe-chip feixe-chip--afin"><i data-lucide="${afin.ic}"></i> ${afin.t} (${score > 0 ? '+' : ''}${score})</span>
+                </div>
+                <div class="feixe-acoes">
+                    <button class="btn btn-outline btn-sm" data-fx="sinapses"><i data-lucide="share-2"></i> Sinapses</button>
+                    <button class="btn btn-outline btn-sm" data-fx="editar"><i data-lucide="edit"></i> Editar nome</button>
+                    <button class="btn btn-outline btn-sm" data-fx="mover"><i data-lucide="map-pin"></i> Mudar núcleo</button>
+                    <button class="btn btn-outline btn-sm btn-del" data-fx="deletar"><i data-lucide="trash"></i> Deletar</button>
+                </div>
+                <div class="feixe-sub"></div>
+            </div>`;
+        c.appendChild(wrap);
+        feixeEl = wrap;
+        wrap.addEventListener('pointerdown', (e) => e.stopPropagation()); // mexer no painel não pan/gira o disco
+        wrap.addEventListener('click', (e) => {
+            const fx = e.target.closest('[data-fx]') && e.target.closest('[data-fx]').dataset.fx;
+            if (!fx) return;
+            if (fx === 'fechar') fecharFeixe();
+            else if (fx === 'sinapses') { if (window.abrirModalSinapses) window.abrirModalSinapses(id); }
+            else if (fx === 'editar') feixeEditarNome(wrap, id, ent.nome);
+            else if (fx === 'mover') feixeMoverNucleo(wrap, id);
+            else if (fx === 'deletar') feixeDeletar(e.target.closest('[data-fx]'), id, ent.nome);
+        });
+        if (window.lucide) lucide.createIcons();
+    }
+
+    // Sub-formulários inline no painel (editar/mover/confirmar). Mutações → API.onMutacao refaz + fecha o feixe.
+    function feixeEditarNome(wrap, id, nomeAtual) {
+        const sub = wrap.querySelector('.feixe-sub'); if (!sub) return;
+        sub.innerHTML = `<input type="text" class="input-sm input-full feixe-input" maxlength="120" value="${escapeHTML(nomeAtual)}">
+            <button class="btn btn-primary btn-sm" data-go="nome"><i data-lucide="check"></i> Salvar</button>`;
+        const input = sub.querySelector('.feixe-input');
+        const salvar = async () => {
+            const nome = input.value.trim(); if (!nome) return;
+            try {
+                const res = await API.fetch(`/cronicas/${cronicaAtual}/nodes/${id}`, { method: 'PUT', body: JSON.stringify({ nome }) });
+                if (!res.ok) throw new Error('falha'); // onMutacao → recarregar → montarAstrolabio → fecharFeixe
+            } catch (_) { if (window.mostrarToast) mostrarToast('Erro ao renomear.', 'erro'); }
+        };
+        sub.querySelector('[data-go="nome"]').addEventListener('click', salvar);
+        input.addEventListener('keydown', (e) => { if (e.key === 'Enter') salvar(); });
+        if (window.lucide) lucide.createIcons();
+        input.focus(); input.select();
+    }
+
+    function feixeMoverNucleo(wrap, id) {
+        const sub = wrap.querySelector('.feixe-sub'); if (!sub) return;
+        const opcoes = orbes.filter((o) => o.id !== focoId)
+            .map((o) => `<option value="${escapeHTML(o.id)}">${escapeHTML(o.nome)}</option>`).join('');
+        sub.innerHTML = `<select class="input-sm input-full feixe-sel"><option value="">— Sem núcleo —</option>${opcoes}</select>
+            <button class="btn btn-primary btn-sm" data-go="mover"><i data-lucide="check"></i> Mover</button>`;
+        sub.querySelector('[data-go="mover"]').addEventListener('click', async () => {
+            const nucleo_id = sub.querySelector('.feixe-sel').value || null;
+            try {
+                const res = await API.fetch(`/cronicas/${cronicaAtual}/nodes/${id}/nucleo`, { method: 'PUT', body: JSON.stringify({ nucleo_id }) });
+                if (!res.ok) throw new Error('falha'); // onMutacao refaz; saindo do núcleo focado, some do astrolábio
+            } catch (_) { if (window.mostrarToast) mostrarToast('Erro ao mover entidade.', 'erro'); }
+        });
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function feixeDeletar(btn, id, nome) {
+        if (btn.dataset.armado === '1') {                            // 2º clique confirma (sem confirm() nativo)
+            (async () => {
+                try {
+                    const res = await API.fetch(`/cronicas/${cronicaAtual}/nodes/${id}`, { method: 'DELETE' });
+                    if (!res.ok) throw new Error('falha'); // onMutacao → recarregar → fecharFeixe
+                    if (window.mostrarToast) mostrarToast(`"${nome}" apagada.`, 'sucesso');
+                } catch (_) { if (window.mostrarToast) mostrarToast('Erro ao apagar.', 'erro'); }
+            })();
+            return;
+        }
+        btn.dataset.armado = '1';
+        btn.innerHTML = '<i data-lucide="alert-triangle"></i> Confirmar?';
+        if (window.lucide) lucide.createIcons();
+        setTimeout(() => {
+            if (btn.isConnected && btn.dataset.armado === '1') { btn.dataset.armado = '0'; btn.innerHTML = '<i data-lucide="trash"></i> Deletar'; if (window.lucide) lucide.createIcons(); }
+        }, 3000);
     }
 
     function removerBarraFoco() { document.getElementById('constelacao-foco-barra')?.remove(); }

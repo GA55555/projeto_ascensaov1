@@ -3844,14 +3844,17 @@ input[type="radio"] {
    redonda vem do clip-path do .orbe-esfera e os ANÉIS de radial-gradient (border viraria quadrado
    sob o reset de border-radius do tema Neovim). Rotação CSS GPU-composited, lenta, auto-pausável. */
 .astrolabio-viewport {
+    /* --astro-tilt: inclinação do disco; --astro-persp grande = quase ORTOGRÁFICO (vista "meio isométrica",
+       sem encolher o lado distante da órbita). Ambos afináveis no smoke. */
+    --astro-tilt: 58deg; --astro-persp: 2400px;
     position: absolute; inset: 0; z-index: 4; overflow: hidden; cursor: grab; touch-action: none;
-    perspective: 1200px; perspective-origin: 50% 42%;
+    perspective: var(--astro-persp); perspective-origin: 50% 44%;
     background: radial-gradient(circle at 50% 46%, transparent 0%, color-mix(in srgb, var(--bg-principal) 65%, transparent) 80%);
 }
 .astrolabio-viewport:active { cursor: grabbing; }
 .astrolabio-3d {
     position: absolute; left: 50%; top: 50%; width: 0; height: 0; transform-style: preserve-3d;
-    transform: translate(-50%, -50%) rotateX(62deg) rotateZ(var(--rot-z, 0deg));
+    transform: translate(-50%, -50%) rotateX(var(--astro-tilt)) rotateZ(var(--rot-z, 0deg));
 }
 /* Anel da órbita: traçado fino via radial-gradient (border viraria quadrado/sumiria sob o tema). */
 .astro-anel {
@@ -3867,24 +3870,64 @@ input[type="radio"] {
 .astro-corpo { position: absolute; left: 0; top: 0; transform: translateX(var(--raio, 0)); transform-style: preserve-3d; }
 /* Contra-rotação SINCRONIZADA (mesma duração/atraso, sentido inverso) + levanta(-tilt): corpo de pé encarando a câmera. */
 .astro-encara { position: absolute; left: 0; top: 0; transform-style: preserve-3d; animation: astro-contra 120s linear infinite; }
-.astro-levanta { position: absolute; left: 0; top: 0; transform: rotateX(-62deg); transform-style: preserve-3d; }
+.astro-levanta { position: absolute; left: 0; top: 0; transform: rotateX(calc(-1 * var(--astro-tilt, 58deg))); transform-style: preserve-3d; }
 /* Avatar/sol = orbe arcano (reusa .orbe-esfera/-plasma/-nucleo/-vidro). Centrado no ponto da órbita. */
 .astro-orbe, .astro-centro {
     position: absolute; left: 0; top: 0; width: 56px; height: 56px; box-sizing: border-box;
     transform: translate(-50%, -50%); cursor: pointer; isolation: isolate; --cor-orbe: var(--azul-vida);
 }
-.astro-centro { width: 78px; height: 78px; transform: translate(-50%, -50%) rotateX(-62deg); } /* sol de pé no centro */
+.astro-centro { width: 78px; height: 78px; transform: translate(-50%, -50%) rotateX(calc(-1 * var(--astro-tilt, 58deg))); } /* sol de pé no centro */
+/* Afinidade (Reta) tinge o orbe da entidade, ecoando a cor do anel (dourado=aliado / vermelho=inimigo). */
+.astro-orbita.astro--arcana   .astro-orbe { --cor-orbe: var(--dourado); }
+.astro-orbita.astro--repulsao .astro-orbe { --cor-orbe: var(--link-inimigo); }
+.astro-orbita.astro--neutro   .astro-orbe { --cor-orbe: var(--azul-vida); }
 .astro-orbe:hover { z-index: 2; }
 .astro-orbe:hover .orbe-esfera, .astro-centro:hover .orbe-esfera { filter: drop-shadow(0 0 16px color-mix(in srgb, var(--cor-orbe) 70%, transparent)); }
 .astro-orbe:hover .constelacao-planeta-nome { opacity: 1; transform: translate(-50%, 0); }
 @keyframes astro-girar  { to { transform: rotateZ(360deg); } }
 @keyframes astro-contra { to { transform: rotateZ(-360deg); } }
-/* Auto-pausa (aba/lente oculta, decisão 7) + acessibilidade: congela a rotação sem custo de GPU. */
+/* Auto-pausa (aba/lente oculta, decisão 7) + congelar com o feixe aberto + acessibilidade: para a rotação. */
 .astrolabio-viewport.astro-pausado .astro-orbita,
-.astrolabio-viewport.astro-pausado .astro-encara { animation-play-state: paused; }
+.astrolabio-viewport.astro-pausado .astro-encara,
+.astrolabio-viewport.astro-congelado .astro-orbita,
+.astrolabio-viewport.astro-congelado .astro-encara { animation-play-state: paused; }
 @media (prefers-reduced-motion: reduce) { .astro-orbita, .astro-encara { animation-play-state: paused; } }
 /* Esconde o world-layer 2D enquanto o astrolábio cobre o canvas (evita o orbe gigante atrás do overlay). */
 .constelacao-canvas.astro-on .constelacao-mundo { opacity: 0; pointer-events: none; }
+/* ── §4.1: Feixe holográfico — painel-projeção que sai por um feixe luminoso da borda do orbe (clique). ──
+   Cor por afinidade (token), geometria sóbria, glass + halo. Wrap cobre o canvas mas é pass-through; só o
+   raio e o painel capturam ponteiro. Posição/ângulo do raio são data-driven inline (exceção barra-fill). */
+.feixe-wrap { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
+.feixe-raio {
+    position: absolute; height: 2px; transform-origin: 0 50%; pointer-events: none; border-radius: 2px;
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--feixe-cor, var(--azul-vida)) 80%, transparent));
+    box-shadow: 0 0 9px color-mix(in srgb, var(--feixe-cor, var(--azul-vida)) 60%, transparent);
+    animation: feixe-surge 0.26s ease-out;
+}
+.feixe--aliado  { --feixe-cor: var(--dourado); }
+.feixe--inimigo { --feixe-cor: var(--link-inimigo); }
+.feixe--neutro  { --feixe-cor: var(--azul-vida); }
+.feixe-painel {
+    position: absolute; box-sizing: border-box; pointer-events: auto; display: flex; flex-direction: column; gap: 8px;
+    padding: 10px 12px; border-radius: 6px;
+    background: color-mix(in srgb, var(--bg-card) 86%, transparent); backdrop-filter: blur(10px);
+    border: 1px solid color-mix(in srgb, var(--feixe-cor, var(--azul-vida)) 50%, var(--borda));
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5), 0 0 18px color-mix(in srgb, var(--feixe-cor, var(--azul-vida)) 22%, transparent);
+    animation: feixe-painel-surge 0.28s ease-out;
+}
+@keyframes feixe-surge { from { opacity: 0; } }
+@keyframes feixe-painel-surge { from { opacity: 0; transform: translateY(6px) scale(0.96); } }
+.feixe-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.feixe-nome { font-family: 'Cormorant Garamond', serif; font-size: 1.1rem; font-weight: 600; color: var(--texto-claro); line-height: 1.15; }
+.feixe-tipo { font-size: 0.72rem; text-transform: capitalize; color: var(--texto-mutado); margin-top: -6px; }
+.feixe-leitura { display: flex; flex-wrap: wrap; gap: 6px; }
+.feixe-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 0.7rem; color: var(--texto-mutado); padding: 2px 7px; border: 1px solid var(--borda); border-radius: 4px; }
+.feixe-chip--afin { color: var(--feixe-cor, var(--azul-vida)); border-color: color-mix(in srgb, var(--feixe-cor) 45%, var(--borda)); }
+.feixe-chip i { width: 12px; height: 12px; }
+.feixe-acoes { display: flex; flex-direction: column; gap: 5px; }
+.feixe-acoes .btn { justify-content: flex-start; }
+.feixe-sub { display: flex; flex-direction: column; gap: 6px; }
+.feixe-sub:empty { display: none; }
 /* Nome sob demanda do planeta (reusado pelo avatar do astrolábio). */
 .constelacao-planeta-nome {
     position: absolute; top: calc(100% + 5px); left: 50%; transform: translate(-50%, 3px); white-space: nowrap;

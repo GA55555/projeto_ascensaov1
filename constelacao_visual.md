@@ -70,9 +70,8 @@ Commits: `a9af862f` (remoção do Tabuleiro + estética fatia 1) · `e8a5d59d` (
 ---
 
 ## 4. Próximos passos (visual NÃO terminado)
-1. **Feixe holográfico + menu da entidade (a parte "útil"):** clique no orbe/planeta → painel-projeção
-   que **sai por um feixe** da borda do planeta e hospeda o **conteúdo do menu da entidade** (decisão 2,
-   "clique"). Precisa de JS novo (geometria do feixe + render do menu) — fatia dedicada.
+1. ~~**Feixe holográfico + menu da entidade.**~~ ✅ **FEITO (Sessão 4)** — clique no orbe → painel-projeção
+   por um feixe da borda, com Sinapses + Editar/Mudar núcleo/Deletar. Ver diário §5.
 2. **Cross-núcleo no layout solar** (decisão 5 adiada): laço externo orienta a entidade à borda.
 3. **Afinações pendentes de smoke:** velocidade da rotação (`orbe-girar` 9s), intensidade do
    `drop-shadow`, raio do anel, zoom de aproximação (1.8), `SOLAR_ITER`/constantes de mola.
@@ -110,6 +109,37 @@ Commits: `a9af862f` (remoção do Tabuleiro + estética fatia 1) · `e8a5d59d` (
     trocar de aba pausa; Sair/Esc fecha. **Constantes a afinar no smoke:** `ASTRO_TILT` (62), `ASTRO_PERIODO`
     (120s), `ASTRO_R_MIN/MAX` (92/300), `ASTRO_SCORE_SAT` (12), `perspective` (1200px), sensibilidade do
     drag (0.4°/px). Se a contra-rotação dessincronizar (avatar deitando), é o ponto nº1 a investigar.
+- **Sessão 3b (refino pós-teste do Narrador — ✅ feito, validado estaticamente):** dois ajustes do feedback.
+  - **Raio = RELEVÂNCIA (não mais afinidade).** Decisão 8: cada entidade ganha a SUA órbita; ordenadas por
+    **relevância híbrida = grau (nº de sinapses incidentes, intra+cross) + bônus de papel** (`BONUS_TIPO`:
+    protagonista +3, facção +2, npc +1, local/cenário +0), atribuídas a raios distintos R_MIN..R_MAX por
+    **rank** (mais relevante → mais interna, gira mais rápido). Empate: |afinidade| e nome (determinístico).
+  - **Cor do anel/orbe = AFINIDADE (Reta agregada intra-núcleo).** `astroValencia` (`astro--arcana` dourado /
+    `astro--repulsao` vermelho / `astro--neutro`) tinge o anel E o `--cor-orbe` do avatar. Raio e cor viram
+    **dois sinais independentes** (relevância × afinidade).
+  - **Vista "meio isométrica".** Decisão 9: `perspective` grande (`--astro-persp: 2400px`, quase ortográfico —
+    o lado distante da órbita não encolhe) + tilt parametrizado (`--astro-tilt: 58deg`); `.astro-3d`/`-levanta`/
+    `-centro` leem o mesmo var (sincronia do encarar). Ambos afináveis no smoke.
+  - `scoreReta` (afinidade) mantida; `astroRaio`/`astroSat`/`ASTRO_SCORE_SAT`/`ASTRO_TILT` removidos (grep limpo).
+    Cache: `constelacao.js?v=18`, `global_ui.css?v=23`. node --check ok. **Smoke segue pendente.**
+- **Sessão 4 (Feixe holográfico — ✅ feito, validado estaticamente):** o §4.1 saiu do papel.
+  - `public/js/constelacao.js` — `abrirFeixe(orbeDiv)`/`fecharFeixe`: clique LIMPO num orbe (distinguido do
+    arrasto-que-gira em `ligarAstroDrag` por tolerância de 5px) **congela o disco** (`.astro-congelado`) e
+    projeta um `.feixe-wrap` (anexado ao `canvas`, pass-through; só raio+painel capturam ponteiro). O **raio**
+    é um div rotacionado (geometria inline: `getBoundingClientRect` do orbe ÷ rootZoom → centro em px de
+    layout; `atan2`/`hypot` p/ ângulo/comprimento até o painel; painel à direita se couber, senão à esquerda,
+    clampado). Painel = **menu da entidade**: leitura (Relevância rank/total + Afinidade pela `dataset.score`)
+    + ações **Sinapses** (reusa `window.abrirModalSinapses`, auto-contido), **Editar nome**/**Mudar núcleo**
+    (sub-forms inline → `PUT /nodes/:id` e `/nodes/:id/nucleo`; seletor de núcleo vem de `orbes`), **Deletar**
+    (2 passos, sem `confirm()`). Mutações passam pelo `API.onMutacao` → `recarregar` → `montarAstrolabio` →
+    `fecharFeixe` (auto). Esc fecha o feixe antes de sair do foco; `sairFoco`/`montarAstrolabio` limpam.
+    Orbes ganharam `data-ent-id/-rank/-total/-score/-relev` p/ o feixe ler.
+  - `public/css/global_ui.css` — bloco `.feixe-*`: raio com `linear-gradient`+`box-shadow` na cor da afinidade
+    (token), painel glass (`backdrop-filter`+halo), cor por `.feixe--aliado|inimigo|neutro` (`--dourado`/
+    `--link-inimigo`/`--azul-vida`); botões reusam `.btn-outline`/`.btn-del`/`.input-sm` (Regra 2.5/DRY).
+    `.astro-congelado` adicionado à regra de `animation-play-state: paused`.
+  - Cache: `constelacao.js?v=19`, `global_ui.css?v=24`. node --check ok. **Smoke ao vivo pendente** (Narrador):
+    posição/ângulo do raio, painel não vazar do canvas, congelar/descongelar, e as 4 ações + refresh.
 
 ---
 
@@ -128,6 +158,14 @@ Commits: `a9af862f` (remoção do Tabuleiro + estética fatia 1) · `e8a5d59d` (
    lenta (~120s/volta, raio interno mais rápido), com **auto-pausa** (aba/lente oculta → `display:none`
    já congela; `visibilitychange` → `animation-play-state: paused`) e **`@media (prefers-reduced-motion)`**.
    (Substitui, só no foco, o "assentar e congelar 0% CPU" da decisão 4 — troca consciente: vida sutil.)
+8. **Raio = RELEVÂNCIA; cor = AFINIDADE (refino Sessão 3b, aprovado).** Supera a decisão original "raio ∝ Reta".
+   O RAIO codifica **relevância híbrida = grau (nº de sinapses) + bônus de papel** (protagonista +3, facção +2,
+   npc +1, local/cenário +0): cada entidade na SUA órbita, mais relevante → mais interna (por rank). A COR do
+   anel/orbe codifica a **afinidade** (Reta agregada intra-núcleo: dourado aliado / vermelho inimigo / neutro).
+   Dois sinais independentes. Empate de relevância: |afinidade| e nome.
+9. **Vista "meio isométrica" (refino Sessão 3b, aprovado).** `perspective` grande (`--astro-persp: 2400px`,
+   quase ortográfico) + tilt parametrizado (`--astro-tilt: 58deg`) — o lado distante da órbita não encolhe.
+   Afináveis no smoke.
 
 ### Adaptações OBRIGATÓRIAS ao CSS do prompt (senão viola o contrato)
 - **Cores → tokens (Regra 2.5).** O prompt traz hardcoded (`#d4af37`, `#1a1a24`, `rgba(212,175,55…)`,
