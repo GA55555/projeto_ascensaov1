@@ -6,6 +6,31 @@
 
 ---
 
+## 🔖 Retomada rápida (próxima sessão)
+
+> **Onde paramos (código COMMITADO em `dbd0665a`, branch `sandbox`; só esta nota de retomada está por commitar):**
+> - **Reputação — COMPLETA (F1–F4)** (guia `reputacao.md`): ledger no feixe, RAG, aura no orbe, amplifica a
+>   facção. Só falta **smoke ao vivo + calibrar** constantes (`REP_FATOR=0.6`, `--rep-blur/-bright`, tiers).
+> - **Constelação Soberana — F1 parcial:** **selos de marco no orbe + toggle** prontos (§7). O orbe agora tem
+>   4 camadas: raio=relevância · anel=afinidade · aura=reputação · **selos=marcos**.
+>
+> **Aguardando do Narrador (smoke da F1):** (1) os selos leem bem (aceso/apagado)? (2) dá pra clicar num selo
+> com o orbe girando devagar? (3) como fica com 10+ marcos? → as respostas calibram a F1b.
+>
+> **Próximos passos, em ordem:**
+> 1. **Soberana F1b** — adicionar/renomear/apagar marco *no-code* pelo orbe (popover ancorado + congelar o
+>    disco enquanto edita). Depende do smoke da F1.
+> 2. **Soberana F2** — wiring marco→evento no feixe (`event_flag_weights`; vincular/pesar gatilhos).
+> 3. **Soberana F3** — migrar foto/avatar + **busca que foca a entidade** (não haverá lista) e **remover a
+>    Grelha** (`renderizarGridMundo`/`cardMundoHTML`/botão `data-view="grid"`); Constelação vira o padrão.
+> 4. **Reputação** — fechar o smoke ao vivo + calibração (paralelo, quando o Narrador testar).
+>
+> **Decisões abertas a resolver no início das fatias:** densidade de selos (2ª fileira?); ergonomia do clique
+> em orbe que orbita; busca sem lista; avatar no feixe; UI do peso de eventos no painel estreito (§5).
+> **Deploy:** `git pull` + `pm2 restart` (Node `mochila`, Python `oraculo`).
+
+---
+
 ## 0. Visão
 
 A aba **Mundo** tem hoje 3 lentes (`view-toggle` em `controle_mundo.html`): **Grelha** (cards), **Constelação**
