@@ -3950,9 +3950,10 @@ input[type="radio"] {
 .holo--aliado  { --holo-cor: var(--dourado); }
 .holo--inimigo { --holo-cor: var(--link-inimigo); }
 .holo-linha {
-    position: absolute; height: 1px; transform-origin: 0 50%; pointer-events: none;
-    background: linear-gradient(90deg, color-mix(in srgb, var(--holo-cor) 65%, transparent), transparent);
-    opacity: 0.55; animation: holo-fade 0.2s ease-out both;
+    position: absolute; height: 1.5px; transform-origin: 0 50%; pointer-events: none;
+    background: linear-gradient(90deg, var(--holo-cor), color-mix(in srgb, var(--holo-cor) 30%, transparent) 70%, transparent);
+    box-shadow: 0 0 6px color-mix(in srgb, var(--holo-cor) 55%, transparent);
+    opacity: 0.72; animation: holo-fade 0.2s ease-out both;
 }
 .holo-nucleo {
     position: absolute; transform: translate(-50%, -50%); box-sizing: border-box; width: 150px; padding: 9px 11px; text-align: center;

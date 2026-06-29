@@ -862,18 +862,16 @@
         // Anel 360° edge-aware: cabe folga em todos os lados → círculo completo (do topo); senão → ARCO de
         // 220° voltado para o centro do canvas (o lado com mais espaço).
         const folga = Math.min(ax, W - ax, ay, H - ay);
-        const cheio = folga >= R + 44;
+        const cheio = folga >= 168;   // raio efetivo (edge-based) é bem maior que R → arco já com menos folga
         const ca = Math.atan2(H / 2 - ay, W / 2 - ax), span = (220 * Math.PI) / 180;
         const pos = acoes.map((_, k) => {
             const a = cheio ? (-Math.PI / 2 + (k / n) * 2 * Math.PI)
                             : (ca - span / 2 + (n > 1 ? k / (n - 1) : 0.5) * span);
-            return { x: ax + Math.cos(a) * R, y: ay + Math.sin(a) * R, a };
+            return { x: ax + Math.cos(a) * R, y: ay + Math.sin(a) * R, a }; // provisório; arrumarAnel reposiciona por aresta
         });
 
-        const linhas = pos.map((p) => {
-            const dx = p.x - ax, dy = p.y - ay, len = Math.hypot(dx, dy), deg = Math.atan2(dy, dx) * 180 / Math.PI;
-            return `<span class="holo-linha ${afin.cls}" style="left:${ax}px;top:${ay}px;width:${len}px;transform:rotate(${deg}deg)"></span>`;
-        }).join('');
+        // Geometria das linhas é definida em arrumarAnel (pós-render) p/ saírem da ARESTA do núcleo.
+        const linhas = pos.map(() => `<span class="holo-linha ${afin.cls}"></span>`).join('');
         const sats = acoes.map((ao, k) => `<button class="holo-satelite${ao.del ? ' holo-sat--del' : ''}" data-fx="${ao.fx}" data-tipo="${ao.tipo}" style="left:${pos[k].x}px;top:${pos[k].y}px" title="${ao.label}"><i data-lucide="${ao.ic}"></i><span class="holo-sat-label">${ao.label}</span></button>`).join('');
 
         const wrap = document.createElement('div');
@@ -901,6 +899,31 @@
         let fxAtivo = null, pinned = false, hoverT = null, closeT = null;
         const limparT = () => { if (hoverT) { clearTimeout(hoverT); hoverT = null; } if (closeT) { clearTimeout(closeT); closeT = null; } };
 
+        // Arruma o anel por ARESTA (feedback do Narrador): cada satélite fica FORA do retângulo do núcleo com
+        // um GAP de "flutuação"; a linha de neon sai da aresta do núcleo até a aresta interna do satélite
+        // (projeção de tela). Medido pós-render (offsetWidth/Height já com os ícones Lucide expandidos).
+        function arrumarAnel() {
+            const nuc = wrap.querySelector('.holo-nucleo');
+            const halfW = (nuc.offsetWidth || NW) / 2, halfH = (nuc.offsetHeight || 72) / 2, GAP = 52;
+            const els = wrap.querySelectorAll('.holo-satelite'), lns = wrap.querySelectorAll('.holo-linha');
+            els.forEach((el, k) => {
+                const a = pos[k].a, ca2 = Math.cos(a), sa2 = Math.sin(a);
+                const dCore = Math.min(halfW / Math.max(Math.abs(ca2), 1e-3), halfH / Math.max(Math.abs(sa2), 1e-3)); // centro→aresta do núcleo
+                const sW = (el.offsetWidth || 90) / 2, sH = (el.offsetHeight || 30) / 2;
+                const satReach = sW * Math.abs(ca2) + sH * Math.abs(sa2);   // meia-extensão do satélite na direção radial
+                const Rc = dCore + GAP + satReach;
+                let x = ax + ca2 * Rc, y = ay + sa2 * Rc;
+                x = clamp(x, PAD + sW, Math.max(PAD + sW, W - PAD - sW));    // mantém o satélite inteiro na tela
+                y = clamp(y, PAD + sH, Math.max(PAD + sH, H - PAD - sH));
+                el.style.left = x + 'px'; el.style.top = y + 'px';
+                pos[k].x = x; pos[k].y = y;                                 // atualiza p/ ancorar o conteúdo depois
+                const ex = ax + ca2 * dCore, ey = ay + sa2 * dCore;         // origem da linha: aresta do núcleo
+                const ix = x - ca2 * satReach, iy = y - sa2 * satReach;     // fim da linha: aresta interna do satélite
+                const lx = ix - ex, ly = iy - ey, len = Math.max(0, Math.hypot(lx, ly)), deg = Math.atan2(ly, lx) * 180 / Math.PI;
+                const ln = lns[k];
+                if (ln) { ln.style.left = ex + 'px'; ln.style.top = ey + 'px'; ln.style.width = len + 'px'; ln.style.transform = `rotate(${deg}deg)`; }
+            });
+        }
         function posicionarConteudo(p) {
             const cw = conteudo.offsetWidth || 248, ch = conteudo.offsetHeight || 200;
             const left = Math.cos(p.a) < 0 ? p.x - 18 - cw : p.x + 18;
@@ -966,6 +989,7 @@
             abrirConteudo(fx, true);                                        // novo: clique abre e já fixa (pin) p/ editar sem colapsar
         });
         if (window.lucide) lucide.createIcons();
+        arrumarAnel();   // pós-render: reposiciona por aresta + desenha as linhas de neon (síncrono → sem flash)
     }
 
     // História/biografia: lazy GET ao abrir (Regra 2.3), textarea, PUT salva em dados.historia. O save NÃO

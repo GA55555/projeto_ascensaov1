@@ -193,4 +193,13 @@ clique fixa (pin)** · **anel 360° edge-aware**.
   `prefers-reduced-motion`). CSS do feixe antigo ficou órfão (inócuo) — remover na limpeza da F3.
 - **Versões:** `constelacao.js?v=26`, `global_ui.css?v=29`. `node --check` ✓ · CSS balanceado (894/894) ✓ ·
   sem emoji/inline-estético novos ✓.
-- **Smoke ao vivo PENDENTE** (Narrador testa agora — ver as 5 perguntas da F1c na Retomada).
+- **Smoke da F1c — testado pelo Narrador:** (1) anel funcionou, mas satélites entravam no núcleo → ajustar
+  por ARESTA; (2) hover/pin aprovado; (3) "barulho" sumiu; (4) aumentar a distância das caixas; (5) 7
+  satélites OK. Pedido de UX: linha de neon saindo da aresta do núcleo (projeção de tela), satélites
+  flutuando ao redor — **mesma paleta/estilo, só o arranjo**.
+- **Ajuste aplicado (`arrumarAnel`, pós-render):** posiciona cada satélite por ARESTA — `dCore` (centro→aresta
+  do núcleo via interseção raio×retângulo) + `GAP=52` de flutuação + `satReach` (meia-extensão do satélite na
+  direção radial, função-suporte da caixa) → satélites ficam FORA do núcleo, sem sobreposição. As linhas de
+  neon saem da **aresta do núcleo** até a **aresta interna do satélite** (mais brilho/glow, cor `--holo-cor`).
+  Limiar `cheio` do arco subiu p/ 168 (raio efetivo maior). Versões → `constelacao.js?v=27`, `global_ui.css?v=30`.
+- **Smoke ao vivo do ajuste PENDENTE** (Narrador revê a distância/projeção).
