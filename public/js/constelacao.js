@@ -878,9 +878,11 @@
     function holoTipSolHTML() {
         const m = metricasNucleo(); if (!m) return '';
         const repTxt = m.repMedia > 0 ? `+${m.repMedia} (fama)` : (m.repMedia < 0 ? `${m.repMedia} (infâmia)` : 'neutra');
+        const t = m.sol.tarot;  // {carta_num, orientacao} → rótulo do arcano (igual ao selo do orbe)
+        const tarotTxt = t && t.carta_num ? `Arcano ${ROMANO[t.carta_num] || t.carta_num}${t.orientacao === -1 ? ' (invertido)' : ''}` : '';
         return `
             <div class="holo-tip-titulo">${escapeHTML(m.sol.nome)}</div>
-            ${m.sol.tarot ? `<div class="holo-tip-sub">${escapeHTML(m.sol.tarot)}</div>` : ''}
+            ${tarotTxt ? `<div class="holo-tip-sub">${escapeHTML(tarotTxt)}</div>` : ''}
             <div class="holo-tip-linha holo-tip-peso"><i data-lucide="scale"></i> Peso do núcleo <b>${m.peso}</b></div>
             <div class="holo-tip-linha"><i data-lucide="users"></i> ${m.n} entidade${m.n === 1 ? '' : 's'} · ${m.sinapses} sinapse${m.sinapses === 1 ? '' : 's'}</div>
             <div class="holo-tip-linha"><i data-lucide="venetian-mask"></i> ${m.aliados} aliados · ${m.neutros} neutros · ${m.inimigos} inimigos</div>
