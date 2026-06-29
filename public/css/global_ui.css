@@ -3942,6 +3942,64 @@ input[type="radio"] {
 .feixe-chip i { width: 12px; height: 12px; }
 .feixe-acoes { display: flex; flex-direction: column; gap: 5px; }
 .feixe-acoes .btn { justify-content: flex-start; }
+/* §F1c: Núcleo Holográfico Radial (substitui o feixe retangular). Núcleo + satélites (ações) num anel; hover
+   abre o holograma de conteúdo, clique fixa (pin). Repouso limpo (Regra 7.2). Só tokens (2.5); cor por afinidade. */
+.holo-wrap { position: absolute; inset: 0; z-index: 6; pointer-events: none; }
+.holo-wrap > *:not(.holo-linha) { pointer-events: auto; }
+.holo--neutro  { --holo-cor: var(--destaque); }
+.holo--aliado  { --holo-cor: var(--dourado); }
+.holo--inimigo { --holo-cor: var(--link-inimigo); }
+.holo-linha {
+    position: absolute; height: 1px; transform-origin: 0 50%; pointer-events: none;
+    background: linear-gradient(90deg, color-mix(in srgb, var(--holo-cor) 65%, transparent), transparent);
+    opacity: 0.55; animation: holo-fade 0.2s ease-out both;
+}
+.holo-nucleo {
+    position: absolute; transform: translate(-50%, -50%); box-sizing: border-box; width: 150px; padding: 9px 11px; text-align: center;
+    background: var(--bg-card-glass); backdrop-filter: blur(9px);
+    border: 1px solid color-mix(in srgb, var(--holo-cor) 48%, var(--borda)); border-radius: 8px;
+    box-shadow: 0 0 24px color-mix(in srgb, var(--holo-cor) 22%, transparent), 0 6px 20px rgba(0, 0, 0, 0.5);
+    animation: holo-surge 0.2s ease-out both;
+}
+.holo-fechar { position: absolute; top: 2px; right: 2px; padding: 2px; background: transparent; border: 0; color: var(--texto-mutado); cursor: pointer; }
+.holo-fechar:hover { color: var(--texto-claro); }
+.holo-fechar i { width: 13px; height: 13px; }
+.holo-nucleo-nome { font-family: 'Cormorant Garamond', serif; font-size: 1.05rem; font-weight: 600; color: var(--texto-claro); line-height: 1.15; }
+.holo-nucleo-tipo { font-size: 0.7rem; text-transform: capitalize; color: var(--texto-mutado); margin-top: 1px; }
+.holo-nucleo-chips { display: flex; gap: 5px; justify-content: center; flex-wrap: wrap; margin-top: 6px; }
+.holo-chip { display: inline-flex; align-items: center; gap: 3px; font-family: 'Fira Code', monospace; font-size: 0.66rem; color: var(--texto-mutado); padding: 1px 5px; border: 1px solid var(--borda); border-radius: 4px; }
+.holo-chip i { width: 11px; height: 11px; }
+.holo-satelite {
+    position: absolute; transform: translate(-50%, -50%); display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; cursor: pointer;
+    padding: 5px 9px 5px 7px; color: var(--texto-mutado);
+    background: var(--bg-card-glass); backdrop-filter: blur(7px);
+    border: 1px solid var(--borda); border-radius: 6px; box-shadow: 0 3px 12px rgba(0, 0, 0, 0.45);
+    transition: color var(--transicao-suave), border-color var(--transicao-suave), box-shadow var(--transicao-suave);
+    animation: holo-surge 0.2s ease-out both;
+}
+.holo-satelite i { width: 15px; height: 15px; }
+.holo-sat-label { font-family: 'Manrope', sans-serif; font-size: 0.74rem; }
+.holo-satelite:hover, .holo-satelite.ativo {
+    color: var(--texto-claro); border-color: color-mix(in srgb, var(--holo-cor, var(--destaque)) 60%, var(--borda));
+    box-shadow: 0 0 16px color-mix(in srgb, var(--holo-cor, var(--destaque)) 30%, transparent), 0 3px 12px rgba(0, 0, 0, 0.45);
+}
+.holo-sat--del:hover, .holo-sat--del.ativo { color: var(--erro); border-color: color-mix(in srgb, var(--erro) 60%, var(--borda)); box-shadow: 0 0 16px color-mix(in srgb, var(--erro) 30%, transparent), 0 3px 12px rgba(0, 0, 0, 0.45); }
+.holo-conteudo {
+    position: absolute; box-sizing: border-box; width: 248px; display: flex; flex-direction: column; gap: 6px; padding: 9px 10px;
+    background: var(--bg-card-glass); backdrop-filter: blur(10px);
+    border: 1px solid color-mix(in srgb, var(--holo-cor) 42%, var(--borda)); border-radius: 8px;
+    box-shadow: 0 0 26px color-mix(in srgb, var(--holo-cor) 18%, transparent), 0 8px 26px rgba(0, 0, 0, 0.55);
+    animation: holo-fade 0.16s ease-out both;
+}
+.holo-conteudo[hidden] { display: none; }
+.holo-conteudo-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.holo-conteudo-titulo { font-family: 'Cormorant Garamond', serif; font-size: 1rem; color: var(--holo-cor, var(--destaque)); }
+.holo-pin { display: none; color: var(--holo-cor, var(--destaque)); }
+.holo-pin i { width: 13px; height: 13px; }
+.holo-conteudo--pin .holo-pin { display: inline-flex; }
+@keyframes holo-surge { from { opacity: 0; transform: translate(-50%, -50%) scale(0.86); } }
+@keyframes holo-fade { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .holo-nucleo, .holo-satelite, .holo-linha, .holo-conteudo { animation: none; } }
 .feixe-sub { display: flex; flex-direction: column; gap: 6px; }
 .feixe-sub:empty { display: none; }
 /* Reputação no feixe (Fatia 2) — reusa .reta-barra/.reta-*/.tag/.tag-lista; só adiciona os tokens de

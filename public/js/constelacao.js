@@ -281,7 +281,7 @@
 
         document.addEventListener('keydown', (e) => {
             if (e.key !== 'Escape') return;
-            if (feixeEl) { fecharFeixe(); return; }   // Esc fecha o feixe primeiro; só depois sai do foco
+            if (feixeEl) { if (feixeEl._fecharConteudo && feixeEl._fecharConteudo()) return; fecharFeixe(); return; } // Esc: 1º fecha o holograma de conteúdo, depois o feixe
             if (focoId) sairFoco();
         });
         // Auto-pausa do astrolábio (decisão 7): aba/lente oculta → congela a rotação CSS (sem custo de GPU).
@@ -681,9 +681,9 @@
             sx = e.clientX; sy = e.clientY; moveu = false; lpFired = false;
             alvoSeal = e.target.closest && e.target.closest('.astro-marco-seal'); // selo de marco (prioridade)
             alvo = e.target.closest && e.target.closest('.astro-orbe');
-            if (alvoSeal) {                                          // segurar o selo (380ms) → popover renomear/apagar
+            if (alvoSeal) {                                          // segurar o selo (320ms) → popover renomear/apagar
                 const seal = alvoSeal;
-                lpTimer = setTimeout(() => { lpTimer = null; if (!moveu) { lpFired = true; arr = null; abrirSeloPopover(seal); } }, 380);
+                lpTimer = setTimeout(() => { lpTimer = null; if (!moveu) { lpFired = true; arr = null; abrirSeloPopover(seal); } }, 320);
             }
             try { vp.setPointerCapture(e.pointerId); } catch (_) {}
         });
@@ -697,7 +697,8 @@
             limparLP();
             if (arr !== null && !moveu && !lpFired) {
                 if (alvoSeal) toggleMarcoSeal(alvoSeal);             // clique curto no selo → alterna o marco
-                else if (alvo) abrirFeixe(alvo);                     // clique limpo no orbe → feixe holográfico
+                else if (alvo) abrirFeixe(alvo);                     // clique limpo no orbe → núcleo holográfico
+                else if (feixeEl) fecharFeixe();                     // clique limpo no vazio → fecha o holograma aberto
             }
             arr = null; alvo = null; alvoSeal = null;
             try { vp.releasePointerCapture(e.pointerId); } catch (_) {}
@@ -797,6 +798,7 @@
             </div>`;
         c.appendChild(pop); seloPop = pop;
         pop.addEventListener('pointerdown', (e) => e.stopPropagation());  // mexer no popover não gira o disco
+        pop.addEventListener('wheel', (e) => e.stopPropagation());        // não dá zoom no canvas ao interagir
         const inp = pop.querySelector('.selo-pop-input'); inp.focus(); inp.select();
         const doRename = async () => {
             const novo = inp.value.trim(); if (!novo) { fecharSeloPop(); return; }
@@ -815,10 +817,11 @@
         if (window.lucide) lucide.createIcons();
     }
 
-    // ── §4.1: Feixe holográfico ───────────────────────────────────────────────────────────────────
-    // Clique no orbe → painel-projeção que sai por um FEIXE da borda do orbe, hospedando o menu da entidade
-    // (Sinapses + Editar/Mudar núcleo/Deletar). Congela o disco enquanto aberto p/ o feixe ficar ancorado.
-    // As mutações passam pelo `API.onMutacao` → `recarregar` → `montarAstrolabio` → `fecharFeixe` (auto).
+    // ── §F1c: Núcleo Holográfico Radial ───────────────────────────────────────────────────────────
+    // Clique no orbe → congela o disco e materializa um NÚCLEO central (identidade da entidade) com SATÉLITES
+    // (ações) num anel ao redor (Regra 7.2 — repouso limpo, conteúdo on-demand). Hover num satélite abre o
+    // holograma de conteúdo (reusa feixeHistoria/Reputacao/Marcos/…); clique FIXA (pin) p/ editar sem colapsar.
+    // Esc/clicar fora fecha. Mutações → `API.onMutacao` → `recarregar` → `montarAstrolabio` → `fecharFeixe`.
     function fecharFeixe() {
         if (seloPop) fecharSeloPop();                // popover do selo e feixe são mutuamente exclusivos
         if (feixeEl) { feixeEl.remove(); feixeEl = null; }
@@ -830,61 +833,137 @@
         const ent = entidadesAtual.find((e) => String(e.id) === String(id));
         if (!ent) return;
         fecharFeixe();
-        astroViewport?.classList.add('astro-congelado');             // congela a rotação → orbe parado p/ ancorar o feixe
+        astroViewport?.classList.add('astro-congelado');             // congela a rotação → orbe parado p/ ancorar o núcleo
         const c = canvas(); if (!c) return;
         const z = rootZoom(), cr = c.getBoundingClientRect(), orb = orbeDiv.getBoundingClientRect();
-        const ax = (orb.left + orb.width / 2 - cr.left) / z, ay = (orb.top + orb.height / 2 - cr.top) / z; // centro do orbe (px layout)
-        const PW = 232, larg = c.clientWidth, alt = c.clientHeight;
-        const dir = ax + 76 + PW < larg;                             // painel à direita se couber, senão à esquerda
-        const px = dir ? Math.min(ax + 76, larg - PW - 10) : Math.max(10, ax - 76 - PW);
-        const py = clamp(ay - 60, 10, Math.max(10, alt - 240));
+        const W = c.clientWidth, H = c.clientHeight, PAD = 12, R = 96, NW = 150;
+        let ax = (orb.left + orb.width / 2 - cr.left) / z, ay = (orb.top + orb.height / 2 - cr.top) / z; // centro do orbe (px layout)
 
         const score = Number(orbeDiv.dataset.score) || 0;
-        const afin = score > 1 ? { t: 'Aliado interno', cls: 'feixe--aliado', ic: 'heart' }
-            : score < -1 ? { t: 'Inimigo interno', cls: 'feixe--inimigo', ic: 'swords' }
-                : { t: 'Neutro', cls: 'feixe--neutro', ic: 'minus' };
-        const alvoX = px + (dir ? 6 : PW - 6), alvoY = py + 22;       // ponto do painel onde o feixe encosta
-        const dx = alvoX - ax, dy = alvoY - ay, len = Math.hypot(dx, dy), ang = Math.atan2(dy, dx) * 180 / Math.PI;
+        const afin = score > 1 ? { t: 'Aliado interno', cls: 'holo--aliado', ic: 'heart' }
+            : score < -1 ? { t: 'Inimigo interno', cls: 'holo--inimigo', ic: 'swords' }
+                : { t: 'Neutro', cls: 'holo--neutro', ic: 'minus' };
+
+        const acoes = [
+            { fx: 'historia',  ic: 'scroll-text', label: 'História',     tipo: 'holo' },
+            { fx: 'reputacao', ic: 'gem',         label: 'Reputação',    tipo: 'holo' },
+            { fx: 'marcos',    ic: 'flag',        label: 'Marcos',       tipo: 'holo' },
+            { fx: 'sinapses',  ic: 'share-2',     label: 'Sinapses',     tipo: 'acao' },   // abre modal externo (só clique)
+            { fx: 'editar',    ic: 'edit',        label: 'Editar nome',  tipo: 'holo' },
+            { fx: 'mover',     ic: 'map-pin',     label: 'Mudar núcleo', tipo: 'holo' },
+            { fx: 'deletar',   ic: 'trash',       label: 'Deletar',      tipo: 'holo', del: true },
+        ];
+        const n = acoes.length;
+
+        // Núcleo clampado p/ o anel caber na tela (mantém a ancoragem perto do orbe quando há espaço).
+        ax = clamp(ax, R + PAD + NW / 2, Math.max(R + PAD + NW / 2, W - R - PAD - NW / 2));
+        ay = clamp(ay, R + PAD + 34, Math.max(R + PAD + 34, H - R - PAD - 34));
+
+        // Anel 360° edge-aware: cabe folga em todos os lados → círculo completo (do topo); senão → ARCO de
+        // 220° voltado para o centro do canvas (o lado com mais espaço).
+        const folga = Math.min(ax, W - ax, ay, H - ay);
+        const cheio = folga >= R + 44;
+        const ca = Math.atan2(H / 2 - ay, W / 2 - ax), span = (220 * Math.PI) / 180;
+        const pos = acoes.map((_, k) => {
+            const a = cheio ? (-Math.PI / 2 + (k / n) * 2 * Math.PI)
+                            : (ca - span / 2 + (n > 1 ? k / (n - 1) : 0.5) * span);
+            return { x: ax + Math.cos(a) * R, y: ay + Math.sin(a) * R, a };
+        });
+
+        const linhas = pos.map((p) => {
+            const dx = p.x - ax, dy = p.y - ay, len = Math.hypot(dx, dy), deg = Math.atan2(dy, dx) * 180 / Math.PI;
+            return `<span class="holo-linha ${afin.cls}" style="left:${ax}px;top:${ay}px;width:${len}px;transform:rotate(${deg}deg)"></span>`;
+        }).join('');
+        const sats = acoes.map((ao, k) => `<button class="holo-satelite${ao.del ? ' holo-sat--del' : ''}" data-fx="${ao.fx}" data-tipo="${ao.tipo}" style="left:${pos[k].x}px;top:${pos[k].y}px" title="${ao.label}"><i data-lucide="${ao.ic}"></i><span class="holo-sat-label">${ao.label}</span></button>`).join('');
 
         const wrap = document.createElement('div');
-        wrap.className = 'feixe-wrap';
+        wrap.className = 'holo-wrap';
         wrap.innerHTML = `
-            <span class="feixe-raio ${afin.cls}" style="left:${ax}px;top:${ay}px;width:${len}px;transform:rotate(${ang}deg)"></span>
-            <div class="feixe-painel ${afin.cls}" style="left:${px}px;top:${py}px;width:${PW}px">
-                <div class="feixe-head">
-                    <span class="feixe-nome">${escapeHTML(ent.nome)}</span>
-                    <button class="btn btn-ghost btn-sm" data-fx="fechar" title="Fechar"><i data-lucide="x"></i></button>
+            ${linhas}
+            <div class="holo-nucleo ${afin.cls}" style="left:${ax}px;top:${ay}px">
+                <button class="holo-fechar" data-fx="fechar" title="Fechar (Esc)"><i data-lucide="x"></i></button>
+                <div class="holo-nucleo-nome">${escapeHTML(ent.nome)}</div>
+                <div class="holo-nucleo-tipo">${escapeHTML(ent.tipo || '—')}</div>
+                <div class="holo-nucleo-chips">
+                    <span class="holo-chip"><i data-lucide="gem"></i> ${escapeHTML(orbeDiv.dataset.rank)}/${escapeHTML(orbeDiv.dataset.total)}</span>
+                    <span class="holo-chip"><i data-lucide="${afin.ic}"></i> ${score > 0 ? '+' : ''}${score}</span>
                 </div>
-                <div class="feixe-tipo">${escapeHTML(ent.tipo || '—')}</div>
-                <div class="feixe-leitura">
-                    <span class="feixe-chip"><i data-lucide="gem"></i> Relevância ${escapeHTML(orbeDiv.dataset.rank)}/${escapeHTML(orbeDiv.dataset.total)}</span>
-                    <span class="feixe-chip feixe-chip--afin"><i data-lucide="${afin.ic}"></i> ${afin.t} (${score > 0 ? '+' : ''}${score})</span>
-                </div>
-                <div class="feixe-acoes">
-                    <button class="btn btn-outline btn-sm" data-fx="historia"><i data-lucide="scroll-text"></i> História</button>
-                    <button class="btn btn-outline btn-sm" data-fx="reputacao"><i data-lucide="gem"></i> Reputação</button>
-                    <button class="btn btn-outline btn-sm" data-fx="sinapses"><i data-lucide="share-2"></i> Sinapses</button>
-                    <button class="btn btn-outline btn-sm" data-fx="marcos"><i data-lucide="flag"></i> Marcos</button>
-                    <button class="btn btn-outline btn-sm" data-fx="editar"><i data-lucide="edit"></i> Editar nome</button>
-                    <button class="btn btn-outline btn-sm" data-fx="mover"><i data-lucide="map-pin"></i> Mudar núcleo</button>
-                    <button class="btn btn-outline btn-sm btn-del" data-fx="deletar"><i data-lucide="trash"></i> Deletar</button>
-                </div>
+            </div>
+            ${sats}
+            <div class="holo-conteudo ${afin.cls}" hidden>
+                <div class="holo-conteudo-head"><span class="holo-conteudo-titulo"></span><span class="holo-pin" title="Fixado — clique no satélite p/ soltar"><i data-lucide="pin"></i></span></div>
                 <div class="feixe-sub"></div>
             </div>`;
         c.appendChild(wrap);
         feixeEl = wrap;
-        wrap.addEventListener('pointerdown', (e) => e.stopPropagation()); // mexer no painel não pan/gira o disco
+
+        const conteudo = wrap.querySelector('.holo-conteudo'), tituloEl = wrap.querySelector('.holo-conteudo-titulo');
+        let fxAtivo = null, pinned = false, hoverT = null, closeT = null;
+        const limparT = () => { if (hoverT) { clearTimeout(hoverT); hoverT = null; } if (closeT) { clearTimeout(closeT); closeT = null; } };
+
+        function posicionarConteudo(p) {
+            const cw = conteudo.offsetWidth || 248, ch = conteudo.offsetHeight || 200;
+            const left = Math.cos(p.a) < 0 ? p.x - 18 - cw : p.x + 18;
+            const top = Math.sin(p.a) < 0 ? p.y - 18 - ch : p.y - 24;
+            conteudo.style.left = clamp(left, PAD, Math.max(PAD, W - cw - PAD)) + 'px';
+            conteudo.style.top = clamp(top, PAD, Math.max(PAD, H - ch - PAD)) + 'px';
+        }
+        function abrirConteudo(fx, fixar) {
+            const k = acoes.findIndex((a) => a.fx === fx); if (k < 0) return;
+            const ao = acoes[k];
+            if (ao.tipo === 'acao') { if (fx === 'sinapses' && window.abrirModalSinapses) window.abrirModalSinapses(id); return; }
+            fxAtivo = fx; pinned = !!fixar;
+            tituloEl.textContent = ao.label;
+            conteudo.hidden = false; conteudo.classList.toggle('holo-conteudo--pin', pinned);
+            const sub = conteudo.querySelector('.feixe-sub'); sub.innerHTML = '';
+            if (fx === 'historia') feixeHistoria(conteudo, id);
+            else if (fx === 'reputacao') feixeReputacao(conteudo, id);
+            else if (fx === 'marcos') feixeMarcos(conteudo, id);
+            else if (fx === 'editar') feixeEditarNome(conteudo, id, ent.nome);
+            else if (fx === 'mover') feixeMoverNucleo(conteudo, id);
+            else if (fx === 'deletar') {
+                sub.innerHTML = '<button class="btn btn-outline btn-sm btn-del" data-go="del"><i data-lucide="trash"></i> Deletar entidade</button>';
+                sub.querySelector('[data-go="del"]').addEventListener('click', (e) => feixeDeletar(e.currentTarget, id, ent.nome));
+                if (window.lucide) lucide.createIcons();
+            }
+            wrap.querySelectorAll('.holo-satelite').forEach((s) => s.classList.toggle('ativo', s.dataset.fx === fx));
+            requestAnimationFrame(() => posicionarConteudo(pos[k]));
+        }
+        function fecharConteudo() {
+            if (fxAtivo === null) return false;
+            fxAtivo = null; pinned = false;
+            conteudo.hidden = true; conteudo.classList.remove('holo-conteudo--pin');
+            wrap.querySelectorAll('.holo-satelite.ativo').forEach((s) => s.classList.remove('ativo'));
+            return true;
+        }
+        wrap._fecharConteudo = fecharConteudo;       // o Esc global fecha o conteúdo antes do feixe inteiro
+
+        wrap.addEventListener('pointerdown', (e) => e.stopPropagation()); // clique nos elementos do holo não pan/gira o disco
+        wrap.addEventListener('wheel', (e) => e.stopPropagation());       // roda rola a lista interna, não dá zoom no canvas
+        wrap.addEventListener('pointerover', (e) => {
+            if (closeT) { clearTimeout(closeT); closeT = null; }     // entrou em qualquer parte do holo (satélite OU conteúdo) → cancela o fecho
+            const sat = e.target.closest('.holo-satelite'); if (!sat) return;
+            if (hoverT) { clearTimeout(hoverT); hoverT = null; }
+            if (sat.dataset.tipo !== 'holo' || pinned || fxAtivo === sat.dataset.fx) return; // 'acao'=só clique; fixado não troca por hover
+            hoverT = setTimeout(() => { hoverT = null; if (wrap.isConnected) abrirConteudo(sat.dataset.fx, false); }, 110);
+        });
+        wrap.addEventListener('pointerout', (e) => {
+            if (e.relatedTarget && wrap.contains(e.relatedTarget)) return; // ainda dentro do holo (satélite↔conteúdo)
+            if (pinned) return;
+            limparT();
+            closeT = setTimeout(() => { closeT = null; if (wrap.isConnected && !pinned) fecharConteudo(); }, 200);
+        });
         wrap.addEventListener('click', (e) => {
-            const fx = e.target.closest('[data-fx]') && e.target.closest('[data-fx]').dataset.fx;
-            if (!fx) return;
-            if (fx === 'fechar') fecharFeixe();
-            else if (fx === 'historia') feixeHistoria(wrap, id);
-            else if (fx === 'reputacao') feixeReputacao(wrap, id);
-            else if (fx === 'sinapses') { if (window.abrirModalSinapses) window.abrirModalSinapses(id); }
-            else if (fx === 'marcos') feixeMarcos(wrap, id);
-            else if (fx === 'editar') feixeEditarNome(wrap, id, ent.nome);
-            else if (fx === 'mover') feixeMoverNucleo(wrap, id);
-            else if (fx === 'deletar') feixeDeletar(e.target.closest('[data-fx]'), id, ent.nome);
+            const alvo = e.target.closest('[data-fx]'); if (!alvo) return;
+            const fx = alvo.dataset.fx; limparT();
+            if (fx === 'fechar') return fecharFeixe();
+            const ao = acoes.find((a) => a.fx === fx);
+            if (ao && ao.tipo === 'acao') return abrirConteudo(fx, true);  // sinapses → modal
+            if (fxAtivo === fx) {                                          // já aberto: fixa/solta SEM re-render (preserva edição)
+                if (pinned) return fecharConteudo();                       // clicar de novo no fixado → solta/fecha
+                pinned = true; conteudo.classList.add('holo-conteudo--pin'); return; // hover→pin sem recarregar conteúdo
+            }
+            abrirConteudo(fx, true);                                        // novo: clique abre e já fixa (pin) p/ editar sem colapsar
         });
         if (window.lucide) lucide.createIcons();
     }
@@ -979,6 +1058,15 @@
             }
         });
         box.addEventListener('keydown', async (e) => {
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {       // navegação por teclado entre os marcos (item 4)
+                const linhas = Array.from(box.querySelectorAll('.fx-marco')); if (!linhas.length) return;
+                e.preventDefault();
+                const atual = e.target.closest && e.target.closest('.fx-marco');
+                let i = atual ? linhas.indexOf(atual) : (e.key === 'ArrowDown' ? -1 : linhas.length);
+                i = e.key === 'ArrowDown' ? Math.min(linhas.length - 1, i + 1) : Math.max(0, i - 1);
+                const t = linhas[i].querySelector('.fx-marco-toggle'); t && t.focus();
+                return;
+            }
             if (e.key !== 'Enter' || !e.target.classList || !e.target.classList.contains('fx-marco-novo')) return;
             e.preventDefault();
             const nome = e.target.value.trim(); if (!nome) return;

@@ -11,14 +11,18 @@
 > **Onde paramos (código COMMITADO em `dbd0665a`, branch `sandbox`; F1b + esta nota estão por commitar):**
 > - **Reputação — COMPLETA (F1–F4)** (guia `reputacao.md`): ledger no feixe, RAG, aura no orbe, amplifica a
 >   facção. Só falta **smoke ao vivo + calibrar** constantes (`REP_FATOR=0.6`, `--rep-blur/-bright`, tiers).
-> - **Constelação Soberana — F1 + F1b FEITAS (estático):** selos de marco no orbe + toggle (F1) e agora a
->   **gestão no-code completa** (F1b, §7): sub-painel "Marcos" no feixe (add/toggle/renomear/apagar) +
->   popover de long-press no selo (renomear/apagar inline, disco congelado). O orbe tem 4 camadas:
->   raio=relevância · anel=afinidade · aura=reputação · **selos=marcos**.
+> - **Constelação Soberana — F1 + F1b + F1c FEITAS (estático):** selos de marco no orbe + toggle (F1); gestão
+>   no-code completa (F1b: sub-painel "Marcos" + popover de long-press); e o **Núcleo Holográfico Radial**
+>   (F1c, §7) que **substitui o feixe retangular** — núcleo central + satélites (ações) num anel 360°
+>   edge-aware; hover abre o holograma de conteúdo, clique fixa (pin). Resolve o "barulho" do painel antigo.
+>   O orbe tem 4 camadas: raio=relevância · anel=afinidade · aura=reputação · **selos=marcos**.
+> - **Ajustes do smoke da F1b aplicados:** long-press 380→**320ms**; **roda do mouse rola a lista** (antes
+>   dava zoom no canvas); **setas ↑/↓ navegam os marcos** no sub-painel.
 >
-> **Aguardando do Narrador (smoke da F1b):** (1) o botão "Marcos" no feixe lista/cria/renomeia/apaga bem?
-> (2) o long-press no selo (~380ms) abre o popover e congela o disco como esperado? (3) o clique curto no
-> selo ainda só alterna (sem abrir popover por engano)? (4) densidade com 10+ marcos no sub-painel/anel?
+> **Aguardando do Narrador (smoke da F1c — o Núcleo Holográfico):** (1) o anel de satélites fica legível e
+> bem posicionado (inclusive perto das bordas → vira arco)? (2) o hover abre o holograma certo e o clique
+> fixa (pin) sem colapsar ao editar? (3) o "barulho" sumiu / está mais limpo? (4) clicar fora e Esc fecham
+> como esperado? (5) densidade dos 7 satélites no anel está boa ou prefere reduzir/reagrupar?
 >
 > **Próximos passos, em ordem:**
 > 1. **Soberana F2** — wiring marco→evento no feixe (`event_flag_weights`; vincular/pesar gatilhos). Próxima fatia.
@@ -165,4 +169,28 @@ Decisão do Narrador: **as duas superfícies** (sub-painel no feixe + popover no
 - **CSS (`global_ui.css`):** `.fx-marco*` (sub-painel) e `.selo-pop*` (popover) só com tokens (Regra 2.5);
   delete confirmado reusa `.btn-del-marco-confirmar` (DRY). Versões: `constelacao.js?v=24`, `global_ui.css?v=28`.
   `node --check` ✓ · CSS balanceado (861/861) ✓ · sem emojis/inline-estético novos ✓.
-- **Smoke ao vivo PENDENTE** (Narrador testa agora — ver as 4 perguntas na Retomada).
+- **Smoke da F1b — testado pelo Narrador:** (1) sub-painel OK, mas com ajustes de usabilidade; (2) long-press
+  OK, reduzir p/ **320ms**; (3) clique curto no selo aprovado; (4) lista precisa rolar pela **roda** e navegar
+  por **teclado**. → ajustes aplicados (320ms · `wheel` `stopPropagation` no feixe/popover · setas ↑/↓ no box).
+
+### 🍕 Fatia 1c — Núcleo Holográfico Radial (✅ feito, validado estaticamente)
+Feedback do Narrador: o feixe retangular fazia "barulho"; pediu uma visão sci-fi com **um holograma principal
+e satélites de menu abrindo ao redor** por hover. Decisões travadas: **clique abre+congela** · **hover abre +
+clique fixa (pin)** · **anel 360° edge-aware**.
+- **`abrirFeixe` reescrito (`constelacao.js`):** substitui `.feixe-wrap/painel/raio` por um `.holo-wrap` com
+  **núcleo central** (nome, tipo, chips relevância/afinidade) + **satélites** (7 ações) num **anel** ligado por
+  linhas de luz. Layout dos satélites (inline): anel completo do topo se couber folga em todos os lados;
+  senão **arco de 220°** voltado ao centro do canvas (edge-aware). Núcleo clampado p/ caber na tela.
+- **Interação:** `pointerover`/`pointerout` com `relatedTarget` (cancela fecho ao entrar em satélite OU
+  conteúdo) → hover abre o holograma de conteúdo após 110ms; `pointerout` p/ fora agenda fecho em 200ms (se
+  não fixado). **Clique fixa (pin)**; clicar já-aberto só alterna o pin **sem re-render** (preserva edição de
+  História/Marcos). `Esc` fecha conteúdo→feixe; **clique no vazio** fecha (em `ligarAstroDrag.fim`).
+- **Reuso (DRY):** o conteúdo de cada satélite é hospedado num `.feixe-sub` dentro do `.holo-conteudo` e
+  delega às funções existentes (`feixeHistoria`/`feixeReputacao`/`feixeMarcos`/`feixeEditarNome`/
+  `feixeMoverNucleo`/`feixeDeletar`); `sinapses` permanece **só-clique** (abre o modal externo).
+- **CSS (`global_ui.css`):** `.holo-*` com cor por afinidade (`--holo-cor`: neutro=destaque, aliado=dourado,
+  inimigo=vermelho), glassmorphism + glow (Regra 2.5/2.6), `holo-surge`/`holo-fade` (respeitam
+  `prefers-reduced-motion`). CSS do feixe antigo ficou órfão (inócuo) — remover na limpeza da F3.
+- **Versões:** `constelacao.js?v=26`, `global_ui.css?v=29`. `node --check` ✓ · CSS balanceado (894/894) ✓ ·
+  sem emoji/inline-estético novos ✓.
+- **Smoke ao vivo PENDENTE** (Narrador testa agora — ver as 5 perguntas da F1c na Retomada).
