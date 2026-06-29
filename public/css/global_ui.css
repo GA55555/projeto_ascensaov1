@@ -4077,6 +4077,33 @@ input[type="radio"] {
 .selo-pop-nome { font-family: 'Cormorant Garamond', serif; font-size: 0.98rem; color: var(--destaque); }
 .selo-pop-acoes { display: flex; gap: 6px; }
 .selo-pop-acoes .btn-primary { flex: 1; }
+/* §F2: Eventos no feixe — acordeão por marco + lista (pool · vincular · stepper de peso). Só tokens (2.5). */
+.fx-ev-box { display: flex; flex-direction: column; gap: 3px; max-height: 232px; overflow-y: auto; }
+.fx-ev-marco { border: 1px solid var(--borda); border-radius: 4px; overflow: hidden; }
+.fx-ev-marco.aberto { border-color: color-mix(in srgb, var(--destaque) 40%, var(--borda)); }
+.fx-ev-head { display: flex; align-items: center; gap: 6px; width: 100%; padding: 5px 7px; background: transparent; border: 0; cursor: pointer; font-family: 'Manrope', sans-serif; }
+.fx-ev-head:hover { background: var(--bg-afundado); }
+.fx-ev-head > i { width: 14px; height: 14px; color: var(--texto-mutado); flex-shrink: 0; }
+.fx-ev-mk { flex: 1; text-align: left; font-size: 0.82rem; color: var(--texto-mutado); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fx-ev-mk.on { color: var(--destaque); }
+.fx-ev-cont { font-family: 'Fira Code', monospace; font-size: 0.62rem; color: var(--dourado); padding: 0 5px; border: 1px solid color-mix(in srgb, var(--dourado) 45%, var(--borda)); border-radius: 9px; }
+.fx-ev-lista { display: flex; flex-direction: column; gap: 1px; padding: 2px 4px 4px; }
+.fx-ev-linha { display: flex; align-items: center; gap: 5px; padding: 3px 4px; border-radius: 4px; }
+.fx-ev-linha:hover { background: var(--bg-afundado); }
+.fx-ev-linha.lig { background: color-mix(in srgb, var(--dourado) 9%, transparent); }
+.fx-ev-nome { flex: 1; min-width: 0; font-size: 0.76rem; color: var(--texto-claro); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fx-ev-pool { font-family: 'Fira Code', monospace; font-size: 0.66rem; color: var(--texto-mutado); flex-shrink: 0; }
+.fx-ev-peso { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.fx-ev-peso b { font-family: 'Fira Code', monospace; font-size: 0.72rem; color: var(--dourado); min-width: 10px; text-align: center; }
+.fx-ev-step { display: inline-flex; padding: 1px; background: transparent; border: 1px solid var(--borda); border-radius: 3px; color: var(--texto-claro); cursor: pointer; }
+.fx-ev-step:hover { border-color: var(--destaque); color: var(--destaque); }
+.fx-ev-step i { width: 11px; height: 11px; }
+.fx-ev-link, .fx-ev-unlink { padding: 2px; flex-shrink: 0; }
+.fx-ev-link { color: var(--destaque); opacity: 0.85; }
+.fx-ev-link:hover { opacity: 1; }
+.fx-ev-unlink { color: var(--texto-mutado); }
+.fx-ev-unlink:hover { color: var(--erro); }
+.fx-ev-link i, .fx-ev-unlink i { width: 13px; height: 13px; }
 /* Nome sob demanda do planeta (reusado pelo avatar do astrolábio). */
 .constelacao-planeta-nome {
     position: absolute; top: calc(100% + 5px); left: 50%; transform: translate(-50%, 3px); white-space: nowrap;

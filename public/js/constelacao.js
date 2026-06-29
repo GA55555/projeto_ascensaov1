@@ -825,27 +825,36 @@
     // GET /eventos (mesma técnica da Grelha). Hover na lua = nome+estado+eventos(peso/pool/resumo); selos
     // com evento ganham realce. Hover no sol = peso do núcleo + entidades/sinapses/afinidade/reputação/diplomacia.
     let mapaMarcoEventos = {};                 // `${nodeId}_${flagKey}` → [{nome,resumo,peso,pool_atual,pool_maxima}]
+    let eventosCache = [];                      // lista completa de eventos (com gatilhos normalizados) p/ o wiring F2
     let mapaMarcoFoco = null;                  // foco p/ o qual o mapa foi carregado (evita refetch)
     const chaveMarcoEv = (nodeId, key) => `${nodeId}_${String(key).toLowerCase().trim().replace(/\s+/g, '_')}`;
+    const gatilhoDoMarco = (ev, nodeId, key) => (ev.gatilhos || []).find((x) => String(x.node_id) === String(nodeId) && marcoNorm(x.flag_key) === key);
 
-    async function carregarMapaMarcoEventos() {
-        if (mapaMarcoFoco === focoId) return;  // já carregado p/ este foco
-        mapaMarcoFoco = focoId; mapaMarcoEventos = {};
+    // Busca /eventos, normaliza gatilhos, reconstrói o reverse-lookup e realça os selos. Usado no 1º load
+    // do foco E após cada mutação de vínculo (o backend recalcula pool/status → refetch garante coerência).
+    async function recarregarEventos() {
         try {
             const res = await API.fetch(`/cronicas/${cronicaAtual}/eventos`);
             if (!res.ok) return;
-            (await res.json() || []).forEach((ev) => {
-                let g = ev.gatilhos; if (typeof g === 'string') { try { g = JSON.parse(g); } catch (_) { g = []; } }
-                if (!Array.isArray(g)) return;
-                g.forEach((x) => {
-                    if (!x || !x.node_id || !x.flag_key) return;
-                    (mapaMarcoEventos[chaveMarcoEv(x.node_id, x.flag_key)] ||= []).push({
-                        nome: ev.nome, resumo: ev.descricao || '', peso: x.peso, pool_atual: ev.pool_atual, pool_maxima: ev.pool_maxima,
-                    });
+            eventosCache = (await res.json()) || [];
+        } catch (_) { return; }
+        mapaMarcoEventos = {};
+        eventosCache.forEach((ev) => {
+            let g = ev.gatilhos; if (typeof g === 'string') { try { g = JSON.parse(g); } catch (_) { g = []; } }
+            ev.gatilhos = Array.isArray(g) ? g : [];
+            ev.gatilhos.forEach((x) => {
+                if (!x || !x.node_id || !x.flag_key) return;
+                (mapaMarcoEventos[chaveMarcoEv(x.node_id, x.flag_key)] ||= []).push({
+                    nome: ev.nome, resumo: ev.descricao || '', peso: x.peso, pool_atual: ev.pool_atual, pool_maxima: ev.pool_maxima,
                 });
             });
-        } catch (_) {}
+        });
         aplicarRealceMarcos();
+    }
+    async function carregarMapaMarcoEventos() {
+        if (mapaMarcoFoco === focoId) return;  // já carregado p/ este foco
+        mapaMarcoFoco = focoId;
+        await recarregarEventos();
     }
 
     function aplicarRealceMarcos() {
@@ -988,6 +997,7 @@
             { fx: 'historia',  ic: 'scroll-text', label: 'História',     tipo: 'holo' },
             { fx: 'reputacao', ic: 'gem',         label: 'Reputação',    tipo: 'holo' },
             { fx: 'marcos',    ic: 'flag',        label: 'Marcos',       tipo: 'holo' },
+            { fx: 'eventos',   ic: 'zap',         label: 'Eventos',      tipo: 'holo' },   // F2: wiring marco→evento
             { fx: 'sinapses',  ic: 'share-2',     label: 'Sinapses',     tipo: 'acao' },   // abre modal externo (só clique)
             { fx: 'editar',    ic: 'edit',        label: 'Editar nome',  tipo: 'holo' },
             { fx: 'mover',     ic: 'map-pin',     label: 'Mudar núcleo', tipo: 'holo' },
@@ -1082,6 +1092,7 @@
             if (fx === 'historia') feixeHistoria(conteudo, id);
             else if (fx === 'reputacao') feixeReputacao(conteudo, id);
             else if (fx === 'marcos') feixeMarcos(conteudo, id);
+            else if (fx === 'eventos') feixeEventos(conteudo, id);
             else if (fx === 'editar') feixeEditarNome(conteudo, id, ent.nome);
             else if (fx === 'mover') feixeMoverNucleo(conteudo, id);
             else if (fx === 'deletar') {
@@ -1237,6 +1248,74 @@
             e.target.value = '';
             try { await criarMarco(id, nome); desenhar(); box.querySelector('.fx-marco-novo') && box.querySelector('.fx-marco-novo').focus(); }
             catch (err) { e.target.value = nome; if (window.mostrarToast) mostrarToast(err.message || 'Erro ao criar marco.', 'erro'); }
+        });
+    }
+
+    // ── §F2: Eventos no feixe — wiring marco→evento no-code (vincular/desvincular/pesar) ─────────────
+    // Holograma da entidade: acordeão por marco; expandir lista TODOS os eventos do mundo com pool, toggle
+    // (vincular/desvincular) e stepper de peso. Reusa POST/DELETE /eventos/:id/pesos (upsert no peso);
+    // o backend recalcula a pool → refetch (recarregarEventos) após cada mutação mantém tudo coerente.
+    function feixeEventos(wrap, id) {
+        const sub = wrap.querySelector('.feixe-sub'); if (!sub) return;
+        sub.innerHTML = '';
+        const box = document.createElement('div'); box.className = 'fx-ev-box';
+        sub.appendChild(box);
+        let expandido = null;   // marco (key) expandido no acordeão
+
+        const flagsDaEnt = () => (((entidadesAtual.find((x) => String(x.id) === String(id)) || {}).flags) || []).filter((f) => f && f.key);
+        const nLigados = (key) => eventosCache.filter((ev) => gatilhoDoMarco(ev, id, key)).length;
+
+        function linhaEventoHTML(marcoKey, ev) {
+            const g = gatilhoDoMarco(ev, id, marcoKey), lig = !!g, peso = g ? g.peso : 1;
+            const acao = lig
+                ? `<span class="fx-ev-peso"><button type="button" class="fx-ev-step" data-step="-1" title="Menos peso"><i data-lucide="minus"></i></button><b>${escapeHTML(String(peso))}</b><button type="button" class="fx-ev-step" data-step="1" title="Mais peso"><i data-lucide="plus"></i></button></span><button type="button" class="btn-ghost fx-ev-unlink" data-unlink title="Desvincular"><i data-lucide="x"></i></button>`
+                : `<button type="button" class="btn-ghost fx-ev-link" data-link title="Vincular"><i data-lucide="plus"></i></button>`;
+            return `<div class="fx-ev-linha${lig ? ' lig' : ''}" data-ev="${escapeHTML(String(ev.id))}">
+                <span class="fx-ev-nome" title="${escapeHTML(ev.nome)}">${escapeHTML(ev.nome)}</span>
+                <span class="fx-ev-pool" title="Pool do evento">${escapeHTML(String(ev.pool_atual ?? 0))}/${escapeHTML(String(ev.pool_maxima ?? 0))}</span>
+                ${acao}</div>`;
+        }
+
+        const desenhar = () => {
+            const fs = flagsDaEnt();
+            if (mapaMarcoFoco !== focoId) { box.innerHTML = '<p class="feixe-tipo">A carregar eventos…</p>'; return; }
+            if (!fs.length) { box.innerHTML = '<p class="feixe-tipo">Sem marcos nesta entidade. Crie em <b>Marcos</b>.</p>'; return; }
+            box.innerHTML = fs.map((f) => {
+                const aberto = expandido === f.key, nl = nLigados(f.key);
+                const corpo = aberto
+                    ? `<div class="fx-ev-lista">${eventosCache.length ? eventosCache.map((ev) => linhaEventoHTML(f.key, ev)).join('') : '<p class="feixe-tipo">Nenhum evento criado ainda (aba Eventos).</p>'}</div>`
+                    : '';
+                return `<div class="fx-ev-marco${aberto ? ' aberto' : ''}" data-key="${escapeHTML(f.key)}">
+                    <button type="button" class="fx-ev-head" data-head>
+                        <i data-lucide="${aberto ? 'chevron-down' : 'chevron-right'}"></i>
+                        <span class="fx-ev-mk${f.value ? ' on' : ''}">${escapeHTML(humanizarFlag(f.key))}</span>
+                        ${nl ? `<span class="fx-ev-cont">${nl}</span>` : ''}
+                    </button>${corpo}</div>`;
+            }).join('');
+            if (window.lucide) lucide.createIcons();
+        };
+        desenhar();
+
+        async function mutar(metodo, evId, marcoKey, peso) {
+            const body = metodo === 'POST' ? { node_id: id, flag_key: marcoKey, peso } : { node_id: id, flag_key: marcoKey };
+            try {
+                const res = await API.fetch(`/cronicas/${cronicaAtual}/eventos/${evId}/pesos`, { method: metodo, body: JSON.stringify(body) });
+                if (!res.ok) throw new Error('falha');
+                await recarregarEventos();   // backend recalculou pool/status → refetch mantém coerente
+                desenhar();
+            } catch (_) { if (window.mostrarToast) mostrarToast('Erro ao atualizar o vínculo do evento.', 'erro'); }
+        }
+
+        box.addEventListener('click', (e) => {
+            const head = e.target.closest('[data-head]');
+            if (head) { const k = head.closest('.fx-ev-marco').dataset.key; expandido = expandido === k ? null : k; desenhar(); return; }
+            const linha = e.target.closest('.fx-ev-linha'); if (!linha) return;
+            const marcoKey = linha.closest('.fx-ev-marco').dataset.key, evId = linha.dataset.ev;
+            const ev = eventosCache.find((x) => String(x.id) === String(evId)); if (!ev) return;
+            if (e.target.closest('[data-link]')) return mutar('POST', evId, marcoKey, 1);
+            if (e.target.closest('[data-unlink]')) return mutar('DELETE', evId, marcoKey);
+            const step = e.target.closest('[data-step]');
+            if (step) { const g = gatilhoDoMarco(ev, id, marcoKey); if (g) mutar('POST', evId, marcoKey, Math.max(1, (g.peso || 1) + parseInt(step.dataset.step, 10))); }
         });
     }
 

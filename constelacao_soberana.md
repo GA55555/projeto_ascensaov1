@@ -97,7 +97,7 @@ Sinapses, Editar nome, Mudar núcleo, Deletar). Esta fase **aposenta a Grelha** 
   apagar por interação no selo. Marcos com **evento atrelado** (do `mapaDependenciasMarcos`) ganham um realce.
 - **Débito:** UX de muitos marcos num orbe pequeno (anel de selos? satélites? overflow?) — §5.
 
-### 🍕 Fatia 2 — Wiring marco→evento no feixe (no-code completo)
+### 🍕 Fatia 2 — Wiring marco→evento no feixe (no-code completo)  ✅ **FEITA (§7 F2)**
 - Seção/painel ao clicar num marco: lista os **eventos** (EventosApi) e os gatilhos atuais daquele marco
   (`event_flag_weights`), permitindo **vincular/desvincular** e **ajustar o peso**. Reusa os endpoints de
   gatilho existentes (Fase 15). Mostra o reverse-lookup (`mapaDependenciasMarcos`) já no orbe (F1).
@@ -223,6 +223,22 @@ selos com evento **realçados**.
   congelar-no-hover é confortável; realce dourado lê bem).
 - **Ajuste pós-smoke:** **diplomacia removida** do tooltip do sol (estava barulhento) — fica só peso, entidades/
   sinapses, contadores de afinidade e reputação média. `metricasNucleo`/CSS limpos. `v=30`/`v=33`.
+- **Fix:** `tarot` é objeto `{carta_num,orientacao}` → renderiza como rótulo do arcano (ROMANO). `v=31`.
+
+### ⚡ Fatia 2 — Wiring marco→evento no-code (✅ feito, validado estaticamente)
+Decisões: **satélite "Eventos"** no menu da entidade (8º satélite) + lista de **todos os eventos** com pool +
+toggle (vincular/desvincular) + **stepper de peso**, em **acordeão por marco** (cabe no holograma estreito).
+- **Dados:** F1d refatorada → `recarregarEventos()` cacheia `eventosCache` (lista completa c/ gatilhos
+  normalizados) e reconstrói o `mapaMarcoEventos` + realce. `gatilhoDoMarco(ev,id,key)` casa por
+  `node_id`+`marcoNorm(flag_key)`.
+- **`feixeEventos(wrap,id)`:** acordeão dos marcos da entidade; expandir lista os eventos com pool atual/máx,
+  link/unlink e stepper (peso≥1). Mutação → `POST`/`DELETE /eventos/:id/pesos` (upsert do peso, anti-IDOR no
+  backend) → **refetch** `recarregarEventos()` (o backend recalcula a pool) → re-render preservando o acordeão.
+  Um único listener delegado no box (Regra 2.9).
+- **CSS:** `.fx-ev-*` (acordeão + linhas + stepper) só com tokens; vinculados ganham fundo dourado tênue.
+  Versões → `constelacao.js?v=32`, `global_ui.css?v=34`. `node --check` ✓ · CSS 938/938 ✓ · sem emoji/inline ✓.
+- **Smoke ao vivo PENDENTE** (Narrador testa: vincular/desvincular reflete na pool; stepper de peso; acordeão
+  confortável; selo realça ao ganhar 1º evento).
 
 ### 🪐 Polimento do Astrolábio 3D — esferas sem distorção + movimento lento (✅ feito)
 Feedback: ao **arrastar** o disco as esferas (orbes 2D) distorciam, e o movimento estava rápido demais.
