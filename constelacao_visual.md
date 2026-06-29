@@ -86,10 +86,34 @@ Commits: `a9af862f` (remoção do Tabuleiro + estética fatia 1) · `e8a5d59d` (
   Tudo no `sandbox` (commits §2). Falta o feixe holográfico + menu (§4.1) e o cross-núcleo (§4.2).
 - **Sessão 2 (análise + decisões; SEM código ainda):** avaliado o prompt do "Motor de Constelação 3D"
   (astrolábio CSS). Veredito + plano abaixo (§6). **Pausado antes de implementar.**
+- **Sessão 3 (Astrolábio 3D — ✅ implementado, validado estaticamente):** o pivô do §6 saiu do papel.
+  - `public/js/constelacao.js` — a visão solar 2D (`renderPlanetas`/`calcularLayoutSolar`/`SOLAR_ITER`)
+    foi **removida** e substituída por `montarAstrolabio()`/`construirAstrolabio` no caminho do foco:
+    overlay `.astrolabio-viewport` (anexado ao `canvas`, não ao world-layer) com `.astrolabio-3d`
+    (`rotateX(62deg) rotateZ(var(--rot-z))`). Raio ∝ **Reta agregada** da entidade (`scoreReta` = Σ reta dos
+    laços **intra-núcleo**, ambas as pontas no foco) via `astroRaio` (score+ → interno; score− → externo);
+    classe `astro--arcana|repulsao|neutro`. Período ∝ raio (interno mais rápido); fases espalhadas por
+    `animation-delay`. `focar` agora adiciona `astro-on` (esconde o world-layer 2D sob o overlay) e mantém
+    `centrarCamera`/`em-foco`/`mostrarBarraFoco`; `sairFoco`/`montar` reconciliam via `montarAstrolabio`/
+    `removerAstrolabio`. Drag do disco gira `--rot-z` (`ligarAstroDrag`, ÷rootZoom). Auto-pausa por
+    `visibilitychange` → classe `astro-pausado`.
+  - `public/css/global_ui.css` — bloco `.astrolabio-*`/`.astro-*` novo: anéis por **radial-gradient**
+    (não `border` — tema Neovim), avatar/sol reusando `.orbe-esfera` arcano, contra-rotação sincronizada
+    (`astro-girar`/`astro-contra` mesma duração/atraso, sentidos opostos) + `astro-levanta` (rotateX(-62))
+    p/ o corpo encarar a câmera; `prefers-reduced-motion` + `.astro-pausado` congelam. Cores por token
+    (`--dourado`/`--link-inimigo`/`--borda`). `.constelacao-planeta*` 2D removido (mantido só
+    `.constelacao-planeta-nome`, reusado pelo avatar). Grep limpo de órfãos; `node --check` ok.
+  - Cache-busters: `constelacao.js?v=17`, `global_ui.css?v=22`.
+  - **Débito CRÍTICO — smoke ao vivo do Narrador** (CSS 3D escrito às cegas, sem browser no dev): clicar
+    num núcleo deve abrir o astrolábio inclinado, sol ao centro, entidades em anéis (interno dourado quanto
+    mais aliadas, externo vermelho quanto mais inimigas), girando lento e de pé; arrastar gira o disco;
+    trocar de aba pausa; Sair/Esc fecha. **Constantes a afinar no smoke:** `ASTRO_TILT` (62), `ASTRO_PERIODO`
+    (120s), `ASTRO_R_MIN/MAX` (92/300), `ASTRO_SCORE_SAT` (12), `perspective` (1200px), sensibilidade do
+    drag (0.4°/px). Se a contra-rotação dessincronizar (avatar deitando), é o ponto nº1 a investigar.
 
 ---
 
-## 6. PIVÔ: Astrolábio 3D (PRÓXIMA BUILD — decidido, não implementado)
+## 6. PIVÔ: Astrolábio 3D (✅ IMPLEMENTADO na Sessão 3 — ver diário §5; smoke pendente)
 
 > Veredito da análise do prompt do Narrador: conceito coerente e compatível em espírito (vanilla + CSS 3D
 > `perspective`/`preserve-3d`, zero libs = Regra 1/Paradigma 4). MAS o CSS do prompt, como veio, **seria

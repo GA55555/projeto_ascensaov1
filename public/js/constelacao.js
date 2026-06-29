@@ -27,6 +27,7 @@
     let conectandoDe = null;                  // orbe-origem de um arrasto de conexão (âncora)
     let tempLinha = null;                     // linha temporária do arrasto de conexão
     let interacaoPronta = false;
+    let astroViewport = null;                 // overlay do astrolábio 3D (visão solar no foco); null = sem foco
     const HOLD_MS = 600;                     // tempo do clica-segura (decisão E — ajustável)
     const MOVE_TOL = 6;                      // px: acima disso o clica-segura vira pan
     const CLICK_TOL = 5;                     // px: arrasto abaixo disso conta como CLIQUE (abre config)
@@ -123,7 +124,7 @@
             orbeEl.set(o.id, div);
         }
         desenhar();
-        if (focoId) { const sol = orbes.find((o) => o.id === focoId); if (sol) { orbeEl.get(focoId)?.classList.add('is-sol'); renderPlanetas(sol); } else sairFoco(); }
+        if (focoId) { const sol = orbes.find((o) => o.id === focoId); if (sol) { orbeEl.get(focoId)?.classList.add('is-sol'); canvas()?.classList.add('em-foco', 'astro-on'); montarAstrolabio(); } else sairFoco(); }
     }
 
     function desenhar() {
@@ -278,6 +279,8 @@
         }, { passive: false });
 
         document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && focoId) sairFoco(); });
+        // Auto-pausa do astrolábio (decisão 7): aba/lente oculta → congela a rotação CSS (sem custo de GPU).
+        document.addEventListener('visibilitychange', () => { astroViewport?.classList.toggle('astro-pausado', document.hidden); });
         document.getElementById('constelacao-salvar')?.addEventListener('click', salvarLayout);
 
         // Recálculo ao mudar o mundo (paralelo ao da frescura do Oráculo). Só quando a lente está ativa.
@@ -535,11 +538,12 @@
         if (!o) return;
         focoId = String(id);
         o.fixo = true;                          // o sol fica parado durante o foco
-        pararLoop();                            // visão solar é ESTÁTICA (assentamento único já congelado) → sem RAF
+        pararLoop();                            // o FUNDO 2D congela; o astrolábio anima sozinho via CSS (GPU)
         orbeEl.get(focoId)?.classList.add('is-sol'); // sol fica aceso; os outros núcleos esmaecem (CSS .em-foco)
-        canvas().classList.add('em-foco');
-        centrarCamera(o, 1.8);                   // aproximação (zoom-in) com transição .animando
-        renderPlanetas(o);
+        const c = canvas();
+        c.classList.add('em-foco', 'astro-on');  // astro-on esconde o world-layer 2D sob o overlay
+        centrarCamera(o, 1.8);                   // mantém o enquadramento p/ a saída do foco (fundo escondido pelo overlay)
+        montarAstrolabio();                      // PIVÔ: visão solar 3D (astrolábio) no lugar dos planetas 2D
         mostrarBarraFoco(o);
     }
 
@@ -549,76 +553,98 @@
         const o = orbes.find((x) => x.id === focoId);
         if (o) o.fixo = false;
         focoId = null;
-        removerPlanetas(); removerBarraFoco();
-        const c = canvas(); if (c) c.classList.remove('em-foco');
+        removerAstrolabio(); removerBarraFoco();
+        const c = canvas(); if (c) c.classList.remove('em-foco', 'astro-on');
         iniciarLoop();
     }
 
-    function removerPlanetas() { (wrapOrbes()?.querySelectorAll('.constelacao-planeta') || []).forEach((el) => el.remove()); }
-
-    // ASSENTAMENTO ÚNICO (decisão do Narrador): roda uma física BREVE uma vez na entrada e devolve as
-    // posições JÁ assentadas — sem requestAnimationFrame (a visão solar fica estática → 0% CPU depois).
-    // Laços INTRA-núcleo dirigem o lugar: reta+ (aliadas) aproxima, reta− (inimigas) afasta; repulsão
-    // evita sobreposição; mola radial mantém o anel ao redor do sol. Posições efêmeras (não persistem).
-    const SOLAR_ITER = 120;
-    function calcularLayoutSolar(sol, ents) {
-        const R = diametroOrbe(sol) * 0.6 + 100;          // raio-alvo do anel
-        const P = ents.map((e, i) => {
-            const ang = (i / Math.max(1, ents.length)) * 2 * Math.PI - Math.PI / 2; // seed determinístico (anel)
-            return { ent: e, id: String(e.id), x: sol.x + Math.cos(ang) * R, y: sol.y + Math.sin(ang) * R, vx: 0, vy: 0 };
-        });
-        if (P.length <= 1) return P;
-        const byId = new Map(P.map((p) => [p.id, p]));
-        const lacos = linksAtual.filter((l) => byId.has(String(l.origem)) && byId.has(String(l.destino))); // só intra-núcleo
-        const K_MOLA = 0.015, K_REP = 2600, K_RADIAL = 0.05, ATRITO = 0.8, VMAX = 9, REP_RAIO = 220;
-        for (let it = 0; it < SOLAR_ITER; it++) {
-            // Molas dos laços: distância-alvo varia com a reta (+10 → ~0.6R, −10 → ~1.4R).
-            for (const l of lacos) {
-                const a = byId.get(String(l.origem)), b = byId.get(String(l.destino));
-                const dx = b.x - a.x, dy = b.y - a.y, dist = Math.max(1, Math.hypot(dx, dy));
-                const ideal = R * (1 - 0.04 * (Number(l.reta) || 0));
-                const f = (dist - ideal) * K_MOLA, ux = dx / dist, uy = dy / dist;
-                a.vx += ux * f; a.vy += uy * f; b.vx -= ux * f; b.vy -= uy * f;
-            }
-            // Repulsão (anti-sobreposição) — só pares próximos (curto alcance, barato).
-            for (let i = 0; i < P.length; i++) for (let j = i + 1; j < P.length; j++) {
-                const a = P[i], b = P[j];
-                const dx = b.x - a.x, dy = b.y - a.y, dist = Math.max(1, Math.hypot(dx, dy));
-                if (dist > REP_RAIO) continue;
-                const f = K_REP / (dist * dist), ux = dx / dist, uy = dy / dist;
-                a.vx -= ux * f; a.vy -= uy * f; b.vx += ux * f; b.vy += uy * f;
-            }
-            // Mola radial: mantém cada entidade perto do anel R (não colapsa no sol, não foge).
-            for (const p of P) {
-                const dx = p.x - sol.x, dy = p.y - sol.y, d = Math.max(1, Math.hypot(dx, dy));
-                const f = (d - R) * K_RADIAL, ux = dx / d, uy = dy / d;
-                p.vx -= ux * f; p.vy -= uy * f;
-            }
-            // Integra (Euler + atrito + clamp).
-            for (const p of P) {
-                p.vx = Math.max(-VMAX, Math.min(VMAX, p.vx * ATRITO));
-                p.vy = Math.max(-VMAX, Math.min(VMAX, p.vy * ATRITO));
-                p.x += p.vx; p.y += p.vy;
-            }
+    // ── PIVÔ: Astrolábio 3D (visão solar inclinada, decisão §6 de constelacao_visual.md) ──────────
+    // Substitui a visão solar 2D no foco. Um disco inclinado (CSS 3D perspective/preserve-3d, zero libs)
+    // com o sol no centro e as entidades orbitando em anéis cujo RAIO ∝ Reta agregada da entidade
+    // (afinidade+ → órbita interna dourada "arcana"; afinidade− → externa vermelha "repulsão"). A rotação
+    // é CSS puro (GPU-composited), lenta, com auto-pausa (aba oculta) e respeito a prefers-reduced-motion.
+    const ASTRO_TILT = 62;          // graus de inclinação do plano (perspectiva do astrolábio)
+    const ASTRO_PERIODO = 120;      // s — volta completa da órbita MAIS EXTERNA (a interna é mais rápida)
+    const ASTRO_R_MIN = 92;         // px — raio da órbita mais interna (afinidade máxima +)
+    const ASTRO_R_MAX = 300;        // px — raio da órbita mais externa (repulsão máxima −)
+    const ASTRO_SCORE_SAT = 12;     // |score| de saturação: além disso o raio satura no extremo
+    const astroSat = (n) => clamp(Number(n) || 0, -ASTRO_SCORE_SAT, ASTRO_SCORE_SAT);
+    // Reta agregada da entidade = Σ reta dos laços INTRA-núcleo (ambas as pontas no núcleo focado).
+    function scoreReta(entId, intraSet) {
+        let s = 0;
+        for (const l of linksAtual) {
+            const oo = String(l.origem), dd = String(l.destino);
+            if (!intraSet.has(oo) || !intraSet.has(dd)) continue;     // só laços intra-núcleo
+            if (oo === String(entId) || dd === String(entId)) s += Number(l.reta) || 0;
         }
-        return P;
+        return s;
+    }
+    const astroRaio = (score) => {                                     // score+ → interno; score− → externo
+        const mid = (ASTRO_R_MIN + ASTRO_R_MAX) / 2, amp = (ASTRO_R_MAX - ASTRO_R_MIN) / 2;
+        return Math.round(mid - (astroSat(score) / ASTRO_SCORE_SAT) * amp);
+    };
+    const astroClasse = (score) => 'astro-orbita ' + (score > 1 ? 'astro--arcana' : score < -1 ? 'astro--repulsao' : 'astro--neutro');
+    const ORBE_CAMADAS = '<span class="orbe-esfera"><span class="orbe-plasma"></span><span class="orbe-nucleo"></span><span class="orbe-vidro"></span></span>';
+
+    function montarAstrolabio() {
+        const sol = orbes.find((o) => o.id === focoId);
+        removerAstrolabio();
+        if (!sol) return;
+        const ents = entidadesAtual.filter((e) => String(e.nucleo_id) === focoId);
+        const intraSet = new Set(ents.map((e) => String(e.id)));
+        const corSol = sol.cor ? `var(${corVar(sol.cor)})` : 'var(--destaque)';
+
+        const vp = document.createElement('div');
+        vp.className = 'astrolabio-viewport';
+        const corpos = ents.map((e, i) => {
+            const score = scoreReta(e.id, intraSet);
+            const raio = astroRaio(score);
+            const dur = Math.max(28, Math.round(ASTRO_PERIODO * raio / ASTRO_R_MAX)); // interno mais rápido
+            const atraso = -(i / Math.max(1, ents.length)) * dur;                     // espalha as fases (spread)
+            const anel = `<span class="astro-anel ${astroClasse(score).split(' ')[1]}" style="width:${raio * 2}px;height:${raio * 2}px"></span>`;
+            const corpo = `<span class="${astroClasse(score)}" style="--raio:${raio}px;animation-duration:${dur}s;animation-delay:${atraso}s">
+                <span class="astro-corpo">
+                    <span class="astro-encara" style="animation-duration:${dur}s;animation-delay:${atraso}s">
+                        <span class="astro-levanta">
+                            <span class="astro-orbe" title="${escapeHTML(e.nome)} (${escapeHTML(e.tipo || '')})">${ORBE_CAMADAS}<span class="constelacao-planeta-nome">${escapeHTML(e.nome)}</span></span>
+                        </span>
+                    </span>
+                </span>
+            </span>`;
+            return anel + corpo;
+        }).join('');
+        vp.innerHTML = `<div class="astrolabio-3d" style="--rot-z:0deg">
+            ${corpos}
+            <span class="astro-centro" style="--cor-orbe:${corSol}">${ORBE_CAMADAS}</span>
+        </div>`;
+        canvas().appendChild(vp);
+        astroViewport = vp;
+        if (document.hidden) vp.classList.add('astro-pausado');
+        ligarAstroDrag(vp);
     }
 
-    function renderPlanetas(sol) {
-        removerPlanetas();
-        const wrap = wrapOrbes(); if (!wrap) return;
-        const ents = entidadesAtual.filter((e) => String(e.nucleo_id) === focoId);
-        if (!ents.length) return;
-        calcularLayoutSolar(sol, ents).forEach((p) => {
-            const e = p.ent;
-            const div = document.createElement('div');
-            div.className = 'constelacao-planeta';
-            div.style.left = (p.x - 28) + 'px'; div.style.top = (p.y - 28) + 'px';
-            div.title = `${e.nome} (${e.tipo})`;
-            // Mesmas camadas arcanas do núcleo (planeta = mini-orbe). Nome só no hover (sob demanda).
-            div.innerHTML = `<span class="orbe-esfera"><span class="orbe-plasma"></span><span class="orbe-nucleo"></span><span class="orbe-vidro"></span></span><span class="constelacao-planeta-nome">${escapeHTML(e.nome)}</span>`;
-            wrap.appendChild(div);
+    function removerAstrolabio() {
+        if (astroViewport) { astroViewport.remove(); astroViewport = null; }
+        else canvas()?.querySelectorAll('.astrolabio-viewport').forEach((el) => el.remove());
+    }
+
+    // Arrastar o disco gira o plano no eixo Z (--rot-z) — explora o astrolábio sem mover a câmera do fundo.
+    function ligarAstroDrag(vp) {
+        const plano = vp.querySelector('.astrolabio-3d');
+        let arr = null, rot0 = 0;
+        vp.addEventListener('pointerdown', (e) => {
+            e.stopPropagation();                                     // não vira pan do canvas
+            arr = e.clientX; rot0 = parseFloat(plano.style.getPropertyValue('--rot-z')) || 0;
+            try { vp.setPointerCapture(e.pointerId); } catch (_) {}
         });
+        vp.addEventListener('pointermove', (e) => {
+            if (arr === null) return;
+            const z = rootZoom();
+            plano.style.setProperty('--rot-z', (rot0 + (e.clientX - arr) / z * 0.4) + 'deg'); // 0.4°/px
+        });
+        const fim = (e) => { arr = null; try { vp.releasePointerCapture(e.pointerId); } catch (_) {} };
+        vp.addEventListener('pointerup', fim);
+        vp.addEventListener('pointercancel', fim);
     }
 
     function removerBarraFoco() { document.getElementById('constelacao-foco-barra')?.remove(); }

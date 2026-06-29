@@ -3837,14 +3837,55 @@ input[type="radio"] {
 .constelacao-canvas.em-foco .constelacao-orbe { opacity: 0.12; transition: opacity var(--transicao-suave); }
 .constelacao-canvas.em-foco .constelacao-orbe.is-sol { opacity: 1; }
 .constelacao-orbe.is-sol .orbe-esfera { filter: drop-shadow(0 0 22px color-mix(in srgb, var(--cor-orbe) 78%, transparent)); }
-/* Planeta (entidade no sistema solar) = mini-orbe arcano (reusa .orbe-esfera/-plasma/-nucleo/-vidro;
-   a forma redonda vem do clip-path da esfera — à prova do reset de border-radius do tema). */
-.constelacao-planeta {
-    position: absolute; width: 56px; height: 56px; box-sizing: border-box; cursor: pointer; isolation: isolate;
-    --cor-orbe: var(--azul-vida);
-    animation: constelacao-planeta-surge 0.3s ease-out; transition: transform var(--transicao-suave);
+/* ── PIVÔ: Astrolábio 3D (visão solar inclinada no foco) ─────────────────────────────────
+   Disco em perspectiva (CSS 3D perspective/preserve-3d, zero libs — Paradigma 4). Sol no centro,
+   entidades orbitando em anéis cujo RAIO ∝ Reta agregada (afinidade+ → órbita interna dourada
+   "arcana"; afinidade− → externa vermelha "repulsão"). Cores SEMPRE por token (Regra 2.5); a forma
+   redonda vem do clip-path do .orbe-esfera e os ANÉIS de radial-gradient (border viraria quadrado
+   sob o reset de border-radius do tema Neovim). Rotação CSS GPU-composited, lenta, auto-pausável. */
+.astrolabio-viewport {
+    position: absolute; inset: 0; z-index: 4; overflow: hidden; cursor: grab; touch-action: none;
+    perspective: 1200px; perspective-origin: 50% 42%;
+    background: radial-gradient(circle at 50% 46%, transparent 0%, color-mix(in srgb, var(--bg-principal) 65%, transparent) 80%);
 }
-.constelacao-planeta:hover { transform: scale(1.08); }
+.astrolabio-viewport:active { cursor: grabbing; }
+.astrolabio-3d {
+    position: absolute; left: 50%; top: 50%; width: 0; height: 0; transform-style: preserve-3d;
+    transform: translate(-50%, -50%) rotateX(62deg) rotateZ(var(--rot-z, 0deg));
+}
+/* Anel da órbita: traçado fino via radial-gradient (border viraria quadrado/sumiria sob o tema). */
+.astro-anel {
+    position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); pointer-events: none; border-radius: 50%;
+    background: radial-gradient(circle closest-side, transparent 0 calc(100% - 2px),
+        color-mix(in srgb, var(--anel-cor) 55%, transparent) calc(100% - 2px) 100%, transparent 100%);
+}
+.astro-anel.astro--arcana   { --anel-cor: var(--dourado); }
+.astro-anel.astro--repulsao { --anel-cor: var(--link-inimigo); }
+.astro-anel.astro--neutro   { --anel-cor: var(--borda); }
+/* Braço orbital (0px no centro): gira no eixo Z do plano → o corpo descreve a órbita (elíptica pelo tilt). */
+.astro-orbita { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-style: preserve-3d; animation: astro-girar 120s linear infinite; }
+.astro-corpo { position: absolute; left: 0; top: 0; transform: translateX(var(--raio, 0)); transform-style: preserve-3d; }
+/* Contra-rotação SINCRONIZADA (mesma duração/atraso, sentido inverso) + levanta(-tilt): corpo de pé encarando a câmera. */
+.astro-encara { position: absolute; left: 0; top: 0; transform-style: preserve-3d; animation: astro-contra 120s linear infinite; }
+.astro-levanta { position: absolute; left: 0; top: 0; transform: rotateX(-62deg); transform-style: preserve-3d; }
+/* Avatar/sol = orbe arcano (reusa .orbe-esfera/-plasma/-nucleo/-vidro). Centrado no ponto da órbita. */
+.astro-orbe, .astro-centro {
+    position: absolute; left: 0; top: 0; width: 56px; height: 56px; box-sizing: border-box;
+    transform: translate(-50%, -50%); cursor: pointer; isolation: isolate; --cor-orbe: var(--azul-vida);
+}
+.astro-centro { width: 78px; height: 78px; transform: translate(-50%, -50%) rotateX(-62deg); } /* sol de pé no centro */
+.astro-orbe:hover { z-index: 2; }
+.astro-orbe:hover .orbe-esfera, .astro-centro:hover .orbe-esfera { filter: drop-shadow(0 0 16px color-mix(in srgb, var(--cor-orbe) 70%, transparent)); }
+.astro-orbe:hover .constelacao-planeta-nome { opacity: 1; transform: translate(-50%, 0); }
+@keyframes astro-girar  { to { transform: rotateZ(360deg); } }
+@keyframes astro-contra { to { transform: rotateZ(-360deg); } }
+/* Auto-pausa (aba/lente oculta, decisão 7) + acessibilidade: congela a rotação sem custo de GPU. */
+.astrolabio-viewport.astro-pausado .astro-orbita,
+.astrolabio-viewport.astro-pausado .astro-encara { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) { .astro-orbita, .astro-encara { animation-play-state: paused; } }
+/* Esconde o world-layer 2D enquanto o astrolábio cobre o canvas (evita o orbe gigante atrás do overlay). */
+.constelacao-canvas.astro-on .constelacao-mundo { opacity: 0; pointer-events: none; }
+/* Nome sob demanda do planeta (reusado pelo avatar do astrolábio). */
 .constelacao-planeta-nome {
     position: absolute; top: calc(100% + 5px); left: 50%; transform: translate(-50%, 3px); white-space: nowrap;
     font-family: 'Manrope', sans-serif; font-weight: 600; font-size: 0.72rem; color: var(--texto-claro);
@@ -3853,8 +3894,6 @@ input[type="radio"] {
     border: 1px solid color-mix(in srgb, var(--cor-orbe) 50%, var(--borda)); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
     opacity: 0; transition: opacity var(--transicao-suave), transform var(--transicao-suave);
 }
-.constelacao-planeta:hover .constelacao-planeta-nome { opacity: 1; transform: translate(-50%, 0); }
-@keyframes constelacao-planeta-surge { from { transform: scale(0.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 .constelacao-foco-barra {
     position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 5;
     display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px;
