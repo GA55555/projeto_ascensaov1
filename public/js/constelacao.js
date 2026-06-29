@@ -609,7 +609,7 @@
         const selos = fs.map((f, k) => {
             const a = -Math.PI / 2 + (k / T) * 2 * Math.PI;
             const x = Math.round(cx + Math.cos(a) * R), y = Math.round(cy + Math.sin(a) * R);
-            return `<span class="astro-marco-seal${f.value ? ' aceso' : ''}" data-flag-key="${escapeHTML(f.key)}" data-on="${f.value ? 1 : 0}" style="left:${x}px;top:${y}px" title="${escapeHTML(humanizarFlag(f.key))}"></span>`;
+            return `<span class="astro-marco-seal${f.value ? ' aceso' : ''}" data-flag-key="${escapeHTML(f.key)}" data-on="${f.value ? 1 : 0}" style="left:${x}px;top:${y}px"></span>`;
         }).join('');
         return `<span class="astro-marcos">${selos}</span>`;
     }
@@ -662,6 +662,8 @@
         astroViewport = vp;
         if (document.hidden) vp.classList.add('astro-pausado');
         ligarAstroDrag(vp);
+        ligarHoverInfo(vp);                  // §F1d: hover do sol + luas de marco
+        carregarMapaMarcoEventos();          // lazy (1×/foco) → realça selos com evento + alimenta o tooltip da lua
     }
 
     function removerAstrolabio() {
@@ -723,6 +725,7 @@
         orbe.querySelector('.astro-marcos')?.remove();
         const html = marcosOrbeHTML(ent && ent.flags);
         if (html) orbe.querySelector('.constelacao-planeta-nome')?.insertAdjacentHTML('beforebegin', html);
+        aplicarRealceMarcos();               // §F1d: re-aplica o realce de "tem evento" após re-render dos selos
     }
 
     async function setMarco(id, key, value) {  // toggle (PUT /flags) — também usado pelo selo otimista
@@ -817,6 +820,149 @@
         if (window.lucide) lucide.createIcons();
     }
 
+    // ── §F1d: Hover Previews holográficos (Regra 7.2) — Sol (métricas do núcleo) e Luas de marco ──────
+    // Reverse-lookup marco→eventos, montado UMA vez ao entrar no foco (lazy, Regra 2.3) a partir de
+    // GET /eventos (mesma técnica da Grelha). Hover na lua = nome+estado+eventos(peso/pool/resumo); selos
+    // com evento ganham realce. Hover no sol = peso do núcleo + entidades/sinapses/afinidade/reputação/diplomacia.
+    let mapaMarcoEventos = {};                 // `${nodeId}_${flagKey}` → [{nome,resumo,peso,pool_atual,pool_maxima}]
+    let mapaMarcoFoco = null;                  // foco p/ o qual o mapa foi carregado (evita refetch)
+    const chaveMarcoEv = (nodeId, key) => `${nodeId}_${String(key).toLowerCase().trim().replace(/\s+/g, '_')}`;
+
+    async function carregarMapaMarcoEventos() {
+        if (mapaMarcoFoco === focoId) return;  // já carregado p/ este foco
+        mapaMarcoFoco = focoId; mapaMarcoEventos = {};
+        try {
+            const res = await API.fetch(`/cronicas/${cronicaAtual}/eventos`);
+            if (!res.ok) return;
+            (await res.json() || []).forEach((ev) => {
+                let g = ev.gatilhos; if (typeof g === 'string') { try { g = JSON.parse(g); } catch (_) { g = []; } }
+                if (!Array.isArray(g)) return;
+                g.forEach((x) => {
+                    if (!x || !x.node_id || !x.flag_key) return;
+                    (mapaMarcoEventos[chaveMarcoEv(x.node_id, x.flag_key)] ||= []).push({
+                        nome: ev.nome, resumo: ev.descricao || '', peso: x.peso, pool_atual: ev.pool_atual, pool_maxima: ev.pool_maxima,
+                    });
+                });
+            });
+        } catch (_) {}
+        aplicarRealceMarcos();
+    }
+
+    function aplicarRealceMarcos() {
+        if (!astroViewport) return;
+        astroViewport.querySelectorAll('.astro-orbe').forEach((orbe) => {
+            const id = orbe.dataset.entId;
+            orbe.querySelectorAll('.astro-marco-seal').forEach((s) => {
+                s.classList.toggle('astro-marco-seal--evt', (mapaMarcoEventos[chaveMarcoEv(id, s.dataset.flagKey)] || []).length > 0);
+            });
+        });
+    }
+
+    // Métricas agregadas do núcleo focado (tudo do snapshot client-side → zero fetch).
+    function metricasNucleo() {
+        const sol = orbes.find((o) => o.id === focoId); if (!sol) return null;
+        const ents = entidadesAtual.filter((e) => String(e.nucleo_id) === focoId);
+        const intra = new Set(ents.map((e) => String(e.id)));
+        let peso = 0, aliados = 0, inimigos = 0, neutros = 0, repSoma = 0;
+        ents.forEach((e) => {
+            peso += relevancia(e);
+            const s = scoreReta(e.id, intra);
+            if (s > 1) aliados++; else if (s < -1) inimigos++; else neutros++;
+            repSoma += Number(e.reputacao) || 0;
+        });
+        let sinapses = 0;
+        for (const l of linksAtual) if (intra.has(String(l.origem)) && intra.has(String(l.destino))) sinapses++;
+        const diplo = diplomaciaAtual.filter((d) => String(d.a) === focoId || String(d.b) === focoId).map((d) => {
+            const outro = orbes.find((x) => x.id === String(String(d.a) === focoId ? d.b : d.a));
+            return { nome: outro ? outro.nome : '—', status: d.status };
+        });
+        return { sol, n: ents.length, peso, aliados, inimigos, neutros, repMedia: ents.length ? Math.round(repSoma / ents.length) : 0, sinapses, diplo };
+    }
+    const statusDiplo = (s) => ({ aliado: 'aliança', rival: 'rivalidade', guerra: 'guerra', neutro: 'neutro' }[s] || s || '—');
+
+    function holoTipSolHTML() {
+        const m = metricasNucleo(); if (!m) return '';
+        const repTxt = m.repMedia > 0 ? `+${m.repMedia} (fama)` : (m.repMedia < 0 ? `${m.repMedia} (infâmia)` : 'neutra');
+        const diploTxt = m.diplo.length
+            ? m.diplo.map((d) => `<span class="holo-tip-rel">${escapeHTML(d.nome)} · ${escapeHTML(statusDiplo(d.status))}</span>`).join('')
+            : '<span class="holo-tip-mut">sem relações</span>';
+        return `
+            <div class="holo-tip-titulo">${escapeHTML(m.sol.nome)}</div>
+            ${m.sol.tarot ? `<div class="holo-tip-sub">${escapeHTML(m.sol.tarot)}</div>` : ''}
+            <div class="holo-tip-linha holo-tip-peso"><i data-lucide="scale"></i> Peso do núcleo <b>${m.peso}</b></div>
+            <div class="holo-tip-linha"><i data-lucide="users"></i> ${m.n} entidade${m.n === 1 ? '' : 's'} · ${m.sinapses} sinapse${m.sinapses === 1 ? '' : 's'}</div>
+            <div class="holo-tip-linha"><i data-lucide="venetian-mask"></i> ${m.aliados} aliados · ${m.neutros} neutros · ${m.inimigos} inimigos</div>
+            <div class="holo-tip-linha"><i data-lucide="gem"></i> Reputação média: ${escapeHTML(repTxt)}</div>
+            <div class="holo-tip-linha holo-tip-rels"><i data-lucide="handshake"></i> ${diploTxt}</div>`;
+    }
+
+    function holoTipMarcoHTML(nodeId, key, aceso) {
+        const evs = mapaMarcoEventos[chaveMarcoEv(nodeId, key)] || [];
+        const head = `<div class="holo-tip-titulo">${escapeHTML(humanizarFlag(key))} <span class="holo-tip-estado holo-tip-estado--${aceso ? 'on' : 'off'}">${aceso ? 'aceso' : 'apagado'}</span></div>`;
+        if (mapaMarcoFoco !== focoId) return head + '<div class="holo-tip-mut">A carregar eventos…</div>';
+        if (!evs.length) return head + '<div class="holo-tip-mut">Sem evento atrelado.</div>';
+        const lista = evs.map((ev) => {
+            const res = (ev.resumo || '').trim();
+            return `<div class="holo-tip-ev">
+                <div class="holo-tip-ev-top"><i data-lucide="zap"></i> ${escapeHTML(ev.nome)} <span class="holo-tip-peso-tag">peso ${escapeHTML(String(ev.peso))}</span></div>
+                <div class="holo-tip-ev-pool">pool ${escapeHTML(String(ev.pool_atual ?? 0))}/${escapeHTML(String(ev.pool_maxima ?? 0))}</div>
+                ${res ? `<div class="holo-tip-ev-res">${escapeHTML(res.length > 96 ? res.slice(0, 96) + '…' : res)}</div>` : ''}
+            </div>`;
+        }).join('');
+        return head + `<div class="holo-tip-evlbl">Dispara ${evs.length} evento${evs.length === 1 ? '' : 's'}:</div>${lista}`;
+    }
+
+    let holoTip = null;
+    function esconderHoloTip() {
+        if (holoTip) { holoTip.remove(); holoTip = null; }
+        if (!feixeEl && !seloPop) astroViewport?.classList.remove('astro-congelado'); // só descongela se nada mais segura o disco
+    }
+    function mostrarHoloTip(alvoEl, html) {
+        esconderHoloTip();
+        astroViewport?.classList.add('astro-congelado');          // congela → o alvo não escapa do cursor durante a leitura
+        const c = canvas(); if (!c) return;
+        const tip = document.createElement('div');
+        tip.className = 'holo-tip holo--neutro';
+        tip.innerHTML = html;
+        c.appendChild(tip); holoTip = tip;
+        if (window.lucide) lucide.createIcons();
+        const z = rootZoom(), cr = c.getBoundingClientRect(), ar = alvoEl.getBoundingClientRect();
+        const tw = tip.offsetWidth, th = tip.offsetHeight, P = 10;
+        const cx = (ar.left + ar.width / 2 - cr.left) / z, cy = (ar.top + ar.height / 2 - cr.top) / z;
+        let left = cx + 16; if (left + tw + P > c.clientWidth) left = cx - 16 - tw;  // vira pro outro lado se não couber
+        tip.style.left = clamp(left, P, Math.max(P, c.clientWidth - tw - P)) + 'px';
+        tip.style.top = clamp(cy - th / 2, P, Math.max(P, c.clientHeight - th - P)) + 'px';
+    }
+
+    // Wiring do hover no astrolábio (vp): lua de marco OU sol. Intent delay 110ms (não congela em passadas
+    // rápidas); pointer-events:none no tooltip → o cursor fica no alvo (congelado) e o pointerout é fiável.
+    function ligarHoverInfo(vp) {
+        let showT = null, hideT = null, alvoAtual = null;
+        const limpar = () => { if (showT) { clearTimeout(showT); showT = null; } if (hideT) { clearTimeout(hideT); hideT = null; } };
+        vp.addEventListener('pointerover', (e) => {
+            if (feixeEl || seloPop || e.buttons) return;          // menu/popover aberto OU arrastando → sem tooltip
+            const seal = e.target.closest && e.target.closest('.astro-marco-seal');
+            const sun = e.target.closest && e.target.closest('.astro-centro');
+            const alvo = seal || sun; if (!alvo) return;
+            if (alvo === alvoAtual && holoTip) { limpar(); return; }
+            limpar();
+            showT = setTimeout(() => {
+                showT = null; if (feixeEl || seloPop || !vp.isConnected) return;
+                alvoAtual = alvo;
+                if (seal) { const orbe = seal.closest('.astro-orbe'); mostrarHoloTip(seal, holoTipMarcoHTML(orbe && orbe.dataset.entId, seal.dataset.flagKey, seal.dataset.on === '1')); }
+                else mostrarHoloTip(sun, holoTipSolHTML());
+            }, 110);
+        });
+        vp.addEventListener('pointerout', (e) => {
+            const era = e.target.closest && (e.target.closest('.astro-marco-seal') || e.target.closest('.astro-centro'));
+            if (!era) return;
+            const to = e.relatedTarget;
+            if (to && to.closest && (to.closest('.astro-marco-seal') || to.closest('.astro-centro'))) return; // foi p/ outro alvo
+            limpar();
+            hideT = setTimeout(() => { hideT = null; alvoAtual = null; esconderHoloTip(); }, 150);
+        });
+    }
+
     // ── §F1c: Núcleo Holográfico Radial ───────────────────────────────────────────────────────────
     // Clique no orbe → congela o disco e materializa um NÚCLEO central (identidade da entidade) com SATÉLITES
     // (ações) num anel ao redor (Regra 7.2 — repouso limpo, conteúdo on-demand). Hover num satélite abre o
@@ -832,6 +978,7 @@
         const id = orbeDiv.dataset.entId;
         const ent = entidadesAtual.find((e) => String(e.id) === String(id));
         if (!ent) return;
+        esconderHoloTip();                                           // dispensa hover-preview ao abrir o menu
         fecharFeixe();
         astroViewport?.classList.add('astro-congelado');             // congela a rotação → orbe parado p/ ancorar o núcleo
         const c = canvas(); if (!c) return;

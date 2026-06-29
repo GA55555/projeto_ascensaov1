@@ -204,6 +204,24 @@ clique fixa (pin)** · **anel 360° edge-aware**.
   Limiar `cheio` do arco subiu p/ 168 (raio efetivo maior). Versões → `constelacao.js?v=27`, `global_ui.css?v=30`.
 - **Smoke do ajuste — aprovado pelo Narrador** ("design, distância, tudo ficou muito bom").
 
+### 🛰️ Fatia 1d — Hover Previews holográficos: Sol + Luas de marco (✅ feito, validado estaticamente)
+Pedido: infos úteis no hover do **sol** (peso do núcleo + outras) e nas **luas de marco** (nome + evento(s)
+com resumo), no **mesmo padrão holográfico** do menu. Decisões: Sol = todos os blocos · Marco = completo ·
+selos com evento **realçados**.
+- **Dados:** Sol = **zero fetch** (tudo no snapshot client-side via `metricasNucleo`: peso=Σ`relevancia`,
+  nº entidades, sinapses intra, balanço de afinidade por `scoreReta`, reputação média, diplomacia). Marco =
+  reverse-lookup `mapaMarcoEventos` montado **1×/foco** (lazy, Regra 2.3) de `GET /eventos` (gatilhos
+  `event_flag_weights` + `nome/descricao/peso/pool`), mesma técnica da Grelha (`construirMapaDependencias`).
+- **UX (Regra 7.2 Hover Preview):** tooltips `.holo-tip` no mesmo glass/glow do menu, **`pointer-events:none`**
+  (cursor fica no alvo). Hover **congela o disco** (intent delay 110ms → não congela em passadas rápidas; não
+  dispara durante arrasto via `e.buttons`) p/ o alvo não escapar; `pointerout` esconde+descongela (150ms).
+- **Realce do selo:** selos com evento ganham tom **dourado** (`--seal-cor` + `filter` drop-shadow, seguro com
+  `clip-path`); `aplicarRealceMarcos` reaplica após cada re-render dos selos.
+- **Wiring:** `ligarHoverInfo(vp)` + `carregarMapaMarcoEventos()` no `montarAstrolabio`; `esconderHoloTip()` no
+  `abrirFeixe`. Versões → `constelacao.js?v=29`, `global_ui.css?v=32`. `node --check` ✓ · CSS 914/914 ✓.
+- **Smoke ao vivo PENDENTE** (Narrador testa: legibilidade do tooltip do sol; lua mostra evento+resumo; o
+  congelar-no-hover é confortável; realce dourado lê bem).
+
 ### 🪐 Polimento do Astrolábio 3D — esferas sem distorção + movimento lento (✅ feito)
 Feedback: ao **arrastar** o disco as esferas (orbes 2D) distorciam, e o movimento estava rápido demais.
 - **Causa:** o billboard (`astro-levanta` + `astro-encara`) cancelava só o **tilt** e a **órbita**, mas não o

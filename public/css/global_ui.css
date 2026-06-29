@@ -3896,11 +3896,13 @@ input[type="radio"] {
 .astro-marcos { position: absolute; inset: 0; pointer-events: none; }
 .astro-marco-seal {
     position: absolute; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; clip-path: circle(50%);
-    box-sizing: border-box; cursor: pointer; pointer-events: auto;
+    box-sizing: border-box; cursor: pointer; pointer-events: auto; --seal-cor: var(--destaque);
     background: color-mix(in srgb, var(--texto-claro) 24%, transparent);
     transition: transform var(--transicao-suave), background var(--transicao-suave), filter var(--transicao-suave);
 }
-.astro-marco-seal.aceso { background: var(--destaque); filter: drop-shadow(0 0 5px color-mix(in srgb, var(--destaque) 75%, transparent)); }
+/* §F1d: selo com EVENTO atrelado → realce dourado (pista passiva). filter (não box-shadow) p/ sobreviver ao clip-path. */
+.astro-marco-seal--evt { --seal-cor: var(--dourado); background: color-mix(in srgb, var(--dourado) 34%, transparent); filter: drop-shadow(0 0 2px color-mix(in srgb, var(--dourado) 55%, transparent)); }
+.astro-marco-seal.aceso { background: var(--seal-cor); filter: drop-shadow(0 0 5px color-mix(in srgb, var(--seal-cor) 75%, transparent)); }
 .astro-marco-seal:hover { transform: scale(1.5); z-index: 3; }
 @keyframes astro-girar  { to { transform: rotateZ(360deg); } }
 @keyframes astro-contra { to { transform: rotateZ(-360deg); } }
@@ -4000,6 +4002,34 @@ input[type="radio"] {
 .holo-pin { display: none; color: var(--holo-cor, var(--destaque)); }
 .holo-pin i { width: 13px; height: 13px; }
 .holo-conteudo--pin .holo-pin { display: inline-flex; }
+/* §F1d: Hover Previews holográficos (sol = métricas do núcleo · luas de marco = nome+estado+eventos). Mesmo
+   glass/glow do menu; puramente informativos (pointer-events:none → o cursor fica no alvo congelado). */
+.holo-tip {
+    position: absolute; z-index: 7; pointer-events: none; box-sizing: border-box; width: 232px;
+    display: flex; flex-direction: column; gap: 5px; padding: 9px 11px;
+    background: var(--bg-card-glass); backdrop-filter: blur(10px);
+    border: 1px solid color-mix(in srgb, var(--holo-cor, var(--destaque)) 42%, var(--borda)); border-radius: 8px;
+    box-shadow: 0 0 24px color-mix(in srgb, var(--holo-cor, var(--destaque)) 16%, transparent), 0 8px 24px rgba(0, 0, 0, 0.5);
+    animation: holo-fade 0.14s ease-out both;
+}
+.holo-tip-titulo { font-family: 'Cormorant Garamond', serif; font-size: 1.02rem; color: var(--texto-claro); line-height: 1.15; }
+.holo-tip-sub { font-size: 0.7rem; color: var(--texto-mutado); margin-top: -3px; font-style: italic; }
+.holo-tip-linha { display: flex; align-items: center; gap: 6px; font-size: 0.76rem; color: var(--texto-claro); }
+.holo-tip-linha i { width: 13px; height: 13px; color: var(--holo-cor, var(--destaque)); flex-shrink: 0; }
+.holo-tip-peso b { font-family: 'Fira Code', monospace; color: var(--destaque); }
+.holo-tip-mut { font-size: 0.74rem; color: var(--texto-mutado); }
+.holo-tip-rels { flex-wrap: wrap; }
+.holo-tip-rel { font-size: 0.7rem; color: var(--texto-mutado); padding: 1px 6px; border: 1px solid var(--borda); border-radius: 4px; }
+.holo-tip-estado { font-family: 'Fira Code', monospace; font-size: 0.64rem; padding: 1px 6px; border-radius: 4px; vertical-align: middle; }
+.holo-tip-estado--on { color: var(--destaque); border: 1px solid color-mix(in srgb, var(--destaque) 50%, var(--borda)); }
+.holo-tip-estado--off { color: var(--texto-mutado); border: 1px solid var(--borda); }
+.holo-tip-evlbl { font-size: 0.7rem; color: var(--texto-mutado); }
+.holo-tip-ev { display: flex; flex-direction: column; gap: 1px; padding: 4px 6px; background: var(--bg-afundado); border-radius: 4px; }
+.holo-tip-ev-top { display: flex; align-items: center; gap: 5px; font-size: 0.78rem; color: var(--texto-claro); }
+.holo-tip-ev-top i { width: 13px; height: 13px; color: var(--dourado); flex-shrink: 0; }
+.holo-tip-peso-tag { margin-left: auto; font-family: 'Fira Code', monospace; font-size: 0.64rem; color: var(--dourado); }
+.holo-tip-ev-pool { font-family: 'Fira Code', monospace; font-size: 0.66rem; color: var(--texto-mutado); }
+.holo-tip-ev-res { font-size: 0.72rem; color: var(--texto-mutado); font-style: italic; line-height: 1.25; }
 @keyframes holo-surge { from { opacity: 0; transform: translate(-50%, -50%) scale(0.86); } }
 @keyframes holo-fade { from { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .holo-nucleo, .holo-satelite, .holo-linha, .holo-conteudo { animation: none; } }
