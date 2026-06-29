@@ -221,6 +221,8 @@ selos com evento **realçados**.
   `abrirFeixe`. Versões → `constelacao.js?v=29`, `global_ui.css?v=32`. `node --check` ✓ · CSS 914/914 ✓.
 - **Smoke ao vivo PENDENTE** (Narrador testa: legibilidade do tooltip do sol; lua mostra evento+resumo; o
   congelar-no-hover é confortável; realce dourado lê bem).
+- **Ajuste pós-smoke:** **diplomacia removida** do tooltip do sol (estava barulhento) — fica só peso, entidades/
+  sinapses, contadores de afinidade e reputação média. `metricasNucleo`/CSS limpos. `v=30`/`v=33`.
 
 ### 🪐 Polimento do Astrolábio 3D — esferas sem distorção + movimento lento (✅ feito)
 Feedback: ao **arrastar** o disco as esferas (orbes 2D) distorciam, e o movimento estava rápido demais.

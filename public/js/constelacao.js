@@ -872,28 +872,19 @@
         });
         let sinapses = 0;
         for (const l of linksAtual) if (intra.has(String(l.origem)) && intra.has(String(l.destino))) sinapses++;
-        const diplo = diplomaciaAtual.filter((d) => String(d.a) === focoId || String(d.b) === focoId).map((d) => {
-            const outro = orbes.find((x) => x.id === String(String(d.a) === focoId ? d.b : d.a));
-            return { nome: outro ? outro.nome : '—', status: d.status };
-        });
-        return { sol, n: ents.length, peso, aliados, inimigos, neutros, repMedia: ents.length ? Math.round(repSoma / ents.length) : 0, sinapses, diplo };
+        return { sol, n: ents.length, peso, aliados, inimigos, neutros, repMedia: ents.length ? Math.round(repSoma / ents.length) : 0, sinapses };
     }
-    const statusDiplo = (s) => ({ aliado: 'aliança', rival: 'rivalidade', guerra: 'guerra', neutro: 'neutro' }[s] || s || '—');
 
     function holoTipSolHTML() {
         const m = metricasNucleo(); if (!m) return '';
         const repTxt = m.repMedia > 0 ? `+${m.repMedia} (fama)` : (m.repMedia < 0 ? `${m.repMedia} (infâmia)` : 'neutra');
-        const diploTxt = m.diplo.length
-            ? m.diplo.map((d) => `<span class="holo-tip-rel">${escapeHTML(d.nome)} · ${escapeHTML(statusDiplo(d.status))}</span>`).join('')
-            : '<span class="holo-tip-mut">sem relações</span>';
         return `
             <div class="holo-tip-titulo">${escapeHTML(m.sol.nome)}</div>
             ${m.sol.tarot ? `<div class="holo-tip-sub">${escapeHTML(m.sol.tarot)}</div>` : ''}
             <div class="holo-tip-linha holo-tip-peso"><i data-lucide="scale"></i> Peso do núcleo <b>${m.peso}</b></div>
             <div class="holo-tip-linha"><i data-lucide="users"></i> ${m.n} entidade${m.n === 1 ? '' : 's'} · ${m.sinapses} sinapse${m.sinapses === 1 ? '' : 's'}</div>
             <div class="holo-tip-linha"><i data-lucide="venetian-mask"></i> ${m.aliados} aliados · ${m.neutros} neutros · ${m.inimigos} inimigos</div>
-            <div class="holo-tip-linha"><i data-lucide="gem"></i> Reputação média: ${escapeHTML(repTxt)}</div>
-            <div class="holo-tip-linha holo-tip-rels"><i data-lucide="handshake"></i> ${diploTxt}</div>`;
+            <div class="holo-tip-linha"><i data-lucide="gem"></i> Reputação média: ${escapeHTML(repTxt)}</div>`;
     }
 
     function holoTipMarcoHTML(nodeId, key, aceso) {

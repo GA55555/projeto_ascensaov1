@@ -4018,8 +4018,6 @@ input[type="radio"] {
 .holo-tip-linha i { width: 13px; height: 13px; color: var(--holo-cor, var(--destaque)); flex-shrink: 0; }
 .holo-tip-peso b { font-family: 'Fira Code', monospace; color: var(--destaque); }
 .holo-tip-mut { font-size: 0.74rem; color: var(--texto-mutado); }
-.holo-tip-rels { flex-wrap: wrap; }
-.holo-tip-rel { font-size: 0.7rem; color: var(--texto-mutado); padding: 1px 6px; border: 1px solid var(--borda); border-radius: 4px; }
 .holo-tip-estado { font-family: 'Fira Code', monospace; font-size: 0.64rem; padding: 1px 6px; border-radius: 4px; vertical-align: middle; }
 .holo-tip-estado--on { color: var(--destaque); border: 1px solid color-mix(in srgb, var(--destaque) 50%, var(--borda)); }
 .holo-tip-estado--off { color: var(--texto-mutado); border: 1px solid var(--borda); }
