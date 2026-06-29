@@ -571,7 +571,7 @@
     // com o sol no centro e as entidades orbitando em anéis cujo RAIO ∝ Reta agregada da entidade
     // (afinidade+ → órbita interna dourada "arcana"; afinidade− → externa vermelha "repulsão"). A rotação
     // é CSS puro (GPU-composited), lenta, com auto-pausa (aba oculta) e respeito a prefers-reduced-motion.
-    const ASTRO_PERIODO = 120;      // s — volta da órbita MAIS EXTERNA (a interna, mais relevante, é mais rápida)
+    const ASTRO_PERIODO = 240;      // s — volta da órbita MAIS EXTERNA (a interna, mais relevante, é mais rápida); movimento lento
     const ASTRO_R_MIN = 92;         // px — raio da órbita mais interna (entidade MAIS relevante)
     const ASTRO_R_MAX = 300;        // px — raio da órbita mais externa (menos relevante)
     const BONUS_TIPO = { protagonista: 3, faccao: 2, npc: 1, local: 0, cenario: 0 }; // peso de papel narrativo
@@ -635,7 +635,7 @@
         const corpos = ordenadas.map(({ e, score, relev }, i) => {
             const raio = Math.round(ASTRO_R_MIN + i * passo);                          // rank 0 (top) = mais interno
             const val = astroValencia(score);                                          // afinidade → cor (anel + orbe)
-            const dur = Math.max(28, Math.round(ASTRO_PERIODO * raio / ASTRO_R_MAX));   // interno mais rápido
+            const dur = Math.max(60, Math.round(ASTRO_PERIODO * raio / ASTRO_R_MAX));   // interno mais rápido (piso 60s)
             const atraso = -(i / Math.max(1, n)) * dur;                                // espalha as fases (spread angular)
             const dados = `data-ent-id="${escapeHTML(String(e.id))}" data-rank="${i + 1}" data-total="${n}" data-score="${score}" data-relev="${relev}"`;
             // AURA de reputação (Fatia 3): fama → halo dourado + orbe mais radiante; infâmia → halo vermelho

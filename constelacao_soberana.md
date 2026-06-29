@@ -202,4 +202,15 @@ clique fixa (pin)** · **anel 360° edge-aware**.
   direção radial, função-suporte da caixa) → satélites ficam FORA do núcleo, sem sobreposição. As linhas de
   neon saem da **aresta do núcleo** até a **aresta interna do satélite** (mais brilho/glow, cor `--holo-cor`).
   Limiar `cheio` do arco subiu p/ 168 (raio efetivo maior). Versões → `constelacao.js?v=27`, `global_ui.css?v=30`.
-- **Smoke ao vivo do ajuste PENDENTE** (Narrador revê a distância/projeção).
+- **Smoke do ajuste — aprovado pelo Narrador** ("design, distância, tudo ficou muito bom").
+
+### 🪐 Polimento do Astrolábio 3D — esferas sem distorção + movimento lento (✅ feito)
+Feedback: ao **arrastar** o disco as esferas (orbes 2D) distorciam, e o movimento estava rápido demais.
+- **Causa:** o billboard (`astro-levanta` + `astro-encara`) cancelava só o **tilt** e a **órbita**, mas não o
+  `--rot-z` do arrasto → em repouso a esfera é círculo perfeito, ao girar vira elipse.
+- **Correção (billboard completo, `global_ui.css`):** `astro-levanta` e `astro-centro` passam a cancelar também
+  `rotateZ(-1*var(--rot-z))` (o `--rot-z` é **herdado** do `.astrolabio-3d` via custom property, então atualiza
+  ao vivo no arrasto). Net de orientação = identidade em qualquer ângulo → a esfera 2D encara sempre a câmera,
+  sem distorcer. (Esferas reais em CSS são inviáveis; billboard de círculo sombreado é a técnica correta.)
+- **Velocidade:** `ASTRO_PERIODO` 120→**240s**, piso da duração 28→**60s** (encara casa via `animation-duration`
+  inline). CSS default `astro-girar/contra` 120→240s. Versões → `constelacao.js?v=28`, `global_ui.css?v=31`.

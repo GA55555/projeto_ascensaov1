@@ -3866,17 +3866,19 @@ input[type="radio"] {
 .astro-anel.astro--repulsao { --anel-cor: var(--link-inimigo); }
 .astro-anel.astro--neutro   { --anel-cor: var(--borda); }
 /* Braço orbital (0px no centro): gira no eixo Z do plano → o corpo descreve a órbita (elíptica pelo tilt). */
-.astro-orbita { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-style: preserve-3d; animation: astro-girar 120s linear infinite; }
+.astro-orbita { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-style: preserve-3d; animation: astro-girar 240s linear infinite; }
 .astro-corpo { position: absolute; left: 0; top: 0; transform: translateX(var(--raio, 0)); transform-style: preserve-3d; }
-/* Contra-rotação SINCRONIZADA (mesma duração/atraso, sentido inverso) + levanta(-tilt): corpo de pé encarando a câmera. */
-.astro-encara { position: absolute; left: 0; top: 0; transform-style: preserve-3d; animation: astro-contra 120s linear infinite; }
-.astro-levanta { position: absolute; left: 0; top: 0; transform: rotateX(calc(-1 * var(--astro-tilt, 58deg))); transform-style: preserve-3d; }
+/* Contra-rotação SINCRONIZADA (mesma duração/atraso, sentido inverso) + levanta: corpo de pé encarando a câmera.
+   BILLBOARD COMPLETO: além de cancelar a órbita (encara) e o tilt, cancela também o --rot-z do arrasto (herdado
+   do .astrolabio-3d via custom property) → a esfera 2D encara a câmera em QUALQUER ângulo, sem distorcer ao girar. */
+.astro-encara { position: absolute; left: 0; top: 0; transform-style: preserve-3d; animation: astro-contra 240s linear infinite; }
+.astro-levanta { position: absolute; left: 0; top: 0; transform: rotateZ(calc(-1 * var(--rot-z, 0deg))) rotateX(calc(-1 * var(--astro-tilt, 58deg))); transform-style: preserve-3d; }
 /* Avatar/sol = orbe arcano (reusa .orbe-esfera/-plasma/-nucleo/-vidro). Centrado no ponto da órbita. */
 .astro-orbe, .astro-centro {
     position: absolute; left: 0; top: 0; width: 56px; height: 56px; box-sizing: border-box;
     transform: translate(-50%, -50%); cursor: pointer; isolation: isolate; --cor-orbe: var(--azul-vida);
 }
-.astro-centro { width: 78px; height: 78px; transform: translate(-50%, -50%) rotateX(calc(-1 * var(--astro-tilt, 58deg))); } /* sol de pé no centro */
+.astro-centro { width: 78px; height: 78px; transform: translate(-50%, -50%) rotateZ(calc(-1 * var(--rot-z, 0deg))) rotateX(calc(-1 * var(--astro-tilt, 58deg))); } /* sol de pé no centro (billboard completo: encara a câmera mesmo girando) */
 /* Fatia 3: a AFINIDADE vive SÓ no anel; o orbe da entidade fica neutro p/ a AURA de REPUTAÇÃO ler limpa.
    Aura = 2º drop-shadow na cor da fama(--dourado)/infâmia(--link-inimigo) com blur ∝ |posição| (--rep-blur),
    + brightness (fama radiante > 1 / infâmia sombria < 1). Sem reputação → --rep-blur 0 e cor transparente. */
