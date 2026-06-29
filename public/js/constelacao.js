@@ -293,6 +293,7 @@
             API.onMutacao((url) => {
                 if (/\/oraculo(\/|$|\?)/.test(url) || url.includes('/perfil/oraculo')) return;
                 if (url.includes('/constelacao/posicoes')) return; // salvar layout NÃO deve recarregar (anti-jump)
+                if (url.includes('/historia')) return; // história não muda o disco → mantém o feixe aberto
                 const cv = canvas();
                 if (cv && !cv.hidden && cronicaAtual) recarregar();
             });
@@ -716,6 +717,7 @@
                     <span class="feixe-chip feixe-chip--afin"><i data-lucide="${afin.ic}"></i> ${afin.t} (${score > 0 ? '+' : ''}${score})</span>
                 </div>
                 <div class="feixe-acoes">
+                    <button class="btn btn-outline btn-sm" data-fx="historia"><i data-lucide="scroll-text"></i> História</button>
                     <button class="btn btn-outline btn-sm" data-fx="sinapses"><i data-lucide="share-2"></i> Sinapses</button>
                     <button class="btn btn-outline btn-sm" data-fx="editar"><i data-lucide="edit"></i> Editar nome</button>
                     <button class="btn btn-outline btn-sm" data-fx="mover"><i data-lucide="map-pin"></i> Mudar núcleo</button>
@@ -730,10 +732,36 @@
             const fx = e.target.closest('[data-fx]') && e.target.closest('[data-fx]').dataset.fx;
             if (!fx) return;
             if (fx === 'fechar') fecharFeixe();
+            else if (fx === 'historia') feixeHistoria(wrap, id);
             else if (fx === 'sinapses') { if (window.abrirModalSinapses) window.abrirModalSinapses(id); }
             else if (fx === 'editar') feixeEditarNome(wrap, id, ent.nome);
             else if (fx === 'mover') feixeMoverNucleo(wrap, id);
             else if (fx === 'deletar') feixeDeletar(e.target.closest('[data-fx]'), id, ent.nome);
+        });
+        if (window.lucide) lucide.createIcons();
+    }
+
+    // História/biografia: lazy GET ao abrir (Regra 2.3), textarea, PUT salva em dados.historia. O save NÃO
+    // recarrega a constelação (skip /historia no onMutacao) → o feixe fica aberto p/ continuar escrevendo.
+    function feixeHistoria(wrap, id) {
+        const sub = wrap.querySelector('.feixe-sub'); if (!sub) return;
+        sub.innerHTML = `<textarea class="input-sm input-full feixe-historia" rows="6" maxlength="8000" placeholder="A história deste personagem…" disabled>A carregar…</textarea>
+            <button class="btn btn-primary btn-sm" data-go="historia"><i data-lucide="check"></i> Salvar história</button>`;
+        const ta = sub.querySelector('.feixe-historia');
+        (async () => {
+            try {
+                const res = await API.fetch(`/cronicas/${cronicaAtual}/nodes/${id}/historia`);
+                const j = res.ok ? await res.json() : { historia: '' };
+                ta.value = j.historia || '';
+            } catch (_) { ta.value = ''; }
+            ta.disabled = false; ta.focus();
+        })();
+        sub.querySelector('[data-go="historia"]').addEventListener('click', async () => {
+            try {
+                const res = await API.fetch(`/cronicas/${cronicaAtual}/nodes/${id}/historia`, { method: 'PUT', body: JSON.stringify({ historia: ta.value.trim() }) });
+                if (!res.ok) throw new Error('falha');
+                if (window.mostrarToast) mostrarToast('História salva.', 'sucesso');
+            } catch (_) { if (window.mostrarToast) mostrarToast('Erro ao salvar a história.', 'erro'); }
         });
         if (window.lucide) lucide.createIcons();
     }

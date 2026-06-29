@@ -204,6 +204,46 @@ exports.salvarTarotNode = async (req, res) => {
     }
 };
 
+// História/biografia da entidade no JSONB dados.historia (sem DDL, Regra 4.1). MERGE sem clobber (4.2),
+// anti-IDOR id+cronica_id (3.3.1/6.2), re-index do Oráculo (história é material rico de RAG). Vazio limpa a chave.
+exports.salvarHistoriaNode = async (req, res) => {
+    const { cronicaId, nodeId } = req.params;
+    const historia = (req.body.historia || '').trim();
+    try {
+        const result = await pool.query(
+            `UPDATE world_nodes
+                SET dados = CASE WHEN $1::text = ''
+                                 THEN COALESCE(dados, '{}'::jsonb) - 'historia'
+                                 ELSE COALESCE(dados, '{}'::jsonb) || jsonb_build_object('historia', $1::text) END
+              WHERE id = $2 AND cronica_id = $3
+              RETURNING id, tipo`,
+            [historia, nodeId, cronicaId]
+        );
+        if (result.rows.length === 0) return res.status(404).json({ erro: 'Entidade não encontrada.' });
+        oraculoSync.reindexarNode(cronicaId, nodeId, result.rows[0].tipo);
+        res.json({ mensagem: 'História salva.', historia });
+    } catch (err) {
+        console.error('Erro ao salvar a história da entidade:', err);
+        res.status(500).json({ erro: 'Erro ao salvar a história.' });
+    }
+};
+
+// Lazy load (Regra 2.3 — lore só é buscada ao abrir o painel). Anti-IDOR id+cronica_id → 404 se for de outra crônica.
+exports.obterHistoriaNode = async (req, res) => {
+    const { cronicaId, nodeId } = req.params;
+    try {
+        const result = await pool.query(
+            "SELECT dados->>'historia' AS historia FROM world_nodes WHERE id = $1 AND cronica_id = $2",
+            [nodeId, cronicaId]
+        );
+        if (result.rows.length === 0) return res.status(404).json({ erro: 'Entidade não encontrada.' });
+        res.json({ historia: result.rows[0].historia || '' });
+    } catch (err) {
+        console.error('Erro ao buscar a história da entidade:', err);
+        res.status(500).json({ erro: 'Erro ao buscar a história.' });
+    }
+};
+
 // Tarot de um NÚCLEO/FACÇÃO (requer a coluna entidade_nucleos.dados — DDL aplicada). Mesmo padrão do
 // nó: MERGE de dados.tarot sem clobber (4.2), anti-IDOR id+cronica_id (3.3.1), re-index do núcleo.
 exports.salvarTarotNucleo = async (req, res) => {

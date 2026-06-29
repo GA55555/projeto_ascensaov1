@@ -8,7 +8,7 @@ const validate = require('../middlewares/validate');
 const { checarAcessoCronica } = require('../middlewares/permissoes');
 const {
     criarAutomacaoSchema, toggleStatusSchema,
-    criarNodeSchema, editarNodeSchema,
+    criarNodeSchema, editarNodeSchema, salvarHistoriaNodeSchema,
     criarFlagSchema, atualizarFlagSchema, renomearFlagSchema,
     criarNucleoSchema, renomearNucleoSchema,
     criarEventoSchema, criarVinculoSchema,
@@ -57,6 +57,9 @@ router.delete('/nodes/:nodeId', verificarToken, checarAcessoCronica, apenasNarra
 router.put('/nodes/:nodeId/nucleo', verificarToken, checarAcessoCronica, apenasNarrador, validate(atualizarNucleoNodeSchema), MundoController.atualizarNucleoNode);
 // Tarot (arquétipo da Jornada do Herói) da entidade — Motor de Constelação, Fatia 1.
 router.put('/nodes/:nodeId/tarot', verificarToken, checarAcessoCronica, apenasNarrador, validate(salvarTarotNodeSchema), MundoController.salvarTarotNode);
+// História/biografia da entidade (feixe holográfico) — GET lazy (leitura), PUT narrador (em dados.historia).
+router.get('/nodes/:nodeId/historia', verificarToken, checarAcessoCronica, MundoController.obterHistoriaNode);
+router.put('/nodes/:nodeId/historia', verificarToken, checarAcessoCronica, apenasNarrador, validate(salvarHistoriaNodeSchema), MundoController.salvarHistoriaNode);
 
 // Sinapses (links bidirecionais entre entidades) — world_links. Params validados (Regra 4.3).
 // Cronica-level: todos os links da crônica numa só query (otimização do Tabuleiro — evita N+1).

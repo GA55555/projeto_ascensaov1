@@ -30,6 +30,13 @@ function descricaoDoDados(dados) {
     return typeof d === 'string' && d.trim() ? d.trim() : null;
 }
 
+// História/biografia da entidade (feixe holográfico, dados.historia) — contexto narrativo rico p/ a IA.
+function historiaDoDados(dados) {
+    if (!dados || typeof dados !== 'object') return null;
+    const h = dados.historia;
+    return typeof h === 'string' && h.trim() ? h.trim() : null;
+}
+
 // "Contrato de Relação" no RAG: lê a RETA BIPOLAR (-10..+10) da sinapse (reta_relacao.md) e descreve os
 // incidentes/motivos ASSINADOS (+ aproximam, − afastam) e a posição/lado atual — p/ a IA entender a
 // valência e a tendência da relação. Substitui o antigo termômetro de pressão (evolução). `tipoVinculo`
@@ -68,6 +75,8 @@ async function textoDoNode(cronicaId, nodeId) {
     if (n.parent_nome) linhas.push(`Local/Pertence a: ${n.parent_nome} (${n.parent_tipo})`);
     const desc = descricaoDoDados(n.dados);
     if (desc) linhas.push(`Descrição: ${desc}`);
+    const hist = historiaDoDados(n.dados);
+    if (hist) linhas.push(`História: ${hist}`);
     const arquetipo = descreverTarot(n.dados);
     if (arquetipo) linhas.push(arquetipo);
 

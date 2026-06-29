@@ -140,6 +140,17 @@ Commits: `a9af862f` (remoção do Tabuleiro + estética fatia 1) · `e8a5d59d` (
     `.astro-congelado` adicionado à regra de `animation-play-state: paused`.
   - Cache: `constelacao.js?v=19`, `global_ui.css?v=24`. node --check ok. **Smoke ao vivo pendente** (Narrador):
     posição/ângulo do raio, painel não vazar do canvas, congelar/descongelar, e as 4 ações + refresh.
+- **Sessão 4b (História da entidade no feixe — ✅ feito, fatia backend+frontend):** nova ação "História" no
+  painel do feixe → biografia gravada no JSONB `world_nodes.dados.historia` (**sem DDL**, Regra 4.1).
+  - **Backend:** `salvarHistoriaNodeSchema` (Zod, `max(8000)`, vazio limpa a chave) · `obterHistoriaNode` (GET
+    lazy, Regra 2.3) + `salvarHistoriaNode` (PUT, MERGE sem clobber, anti-IDOR `id+cronica_id`, **re-index do
+    Oráculo** — história é RAG rico) · rotas `GET/PUT /nodes/:id/historia` (GET sem `apenasNarrador`).
+  - **Frontend:** `feixeHistoria(wrap,id)` — GET ao abrir → textarea → PUT salva. O save é **excluído do
+    `onMutacao`** (`/historia` no skip) → não recarrega o disco, mantém o feixe aberto pra continuar escrevendo.
+  - Cache: `constelacao.js?v=20`. node --check + boot ok.
+  - **História no RAG (✅ feito):** `services/oraculoTexto.js` → helper `historiaDoDados` + linha "História: …"
+    no `textoDoNode` (ao lado da Descrição/Tarot). O `salvarHistoriaNode` já reindexa; nós antigos pegam no
+    próximo Big Bang/edição. **Pendente:** só o smoke ao vivo.
 
 ---
 

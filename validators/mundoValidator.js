@@ -38,6 +38,13 @@ const editarNodeSchema = z.object({
     })
 });
 
+// Feixe holográfico: história/biografia da entidade no JSONB world_nodes.dados.historia (sem DDL — Regra 4.1).
+const salvarHistoriaNodeSchema = z.object({
+    body: z.object({
+        historia: z.string().trim().max(8000).optional().default('') // string vazia limpa a chave
+    })
+});
+
 // ---- FLAGS ----
 const criarFlagSchema = z.object({
     body: z.object({
@@ -354,7 +361,7 @@ const consultarOraculoSchema = z.object({
 module.exports = {
     criarAutomacaoSchema, toggleStatusSchema,
     sincronizarOraculoSchema, consultarOraculoSchema,
-    criarNodeSchema, editarNodeSchema,
+    criarNodeSchema, editarNodeSchema, salvarHistoriaNodeSchema,
     criarFlagSchema, atualizarFlagSchema, renomearFlagSchema,
     criarNucleoSchema, renomearNucleoSchema,
     criarEventoSchema, criarVinculoSchema,
