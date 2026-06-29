@@ -290,11 +290,12 @@
 
         // Recálculo ao mudar o mundo (paralelo ao da frescura do Oráculo). Só quando a lente está ativa.
         if (window.API && typeof API.onMutacao === 'function') {
-            API.onMutacao((url) => {
+            API.onMutacao((url, metodo) => {
                 if (/\/oraculo(\/|$|\?)/.test(url) || url.includes('/perfil/oraculo')) return;
                 if (url.includes('/constelacao/posicoes')) return; // salvar layout NÃO deve recarregar (anti-jump)
                 if (url.includes('/historia')) return; // história não muda o disco → mantém o feixe aberto
                 if (url.includes('/reputacao')) return; // reputação (F2) não muda o disco ainda → feixe aberto
+                if (url.includes('/flags') && metodo === 'PUT') return; // toggle de marco é otimista (não rebuilda)
                 const cv = canvas();
                 if (cv && !cv.hidden && cronicaAtual) recarregar();
             });
@@ -596,6 +597,22 @@
     const astroValencia = (score) => (score > 1 ? 'astro--arcana' : score < -1 ? 'astro--repulsao' : 'astro--neutro');
     const ORBE_CAMADAS = '<span class="orbe-esfera"><span class="orbe-plasma"></span><span class="orbe-nucleo"></span><span class="orbe-vidro"></span></span>';
 
+    // Marcos (flags) como SELOS num anel ao redor do orbe (Constelação Soberana F1): aceso=ligado /
+    // vazado=desligado. Posição em volta do orbe (56px → centro 28, raio 36). Hover=nome (title); clique
+    // alterna (tratado em ligarAstroDrag). Adicionar/renomear/apagar virão na F1b.
+    const humanizarFlag = (k) => String(k || '').replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
+    function marcosOrbeHTML(flags) {
+        const fs = (flags || []).filter((f) => f && f.key);
+        if (!fs.length) return '';
+        const R = 36, cx = 28, cy = 28, T = fs.length;
+        const selos = fs.map((f, k) => {
+            const a = -Math.PI / 2 + (k / T) * 2 * Math.PI;
+            const x = Math.round(cx + Math.cos(a) * R), y = Math.round(cy + Math.sin(a) * R);
+            return `<span class="astro-marco-seal${f.value ? ' aceso' : ''}" data-flag-key="${escapeHTML(f.key)}" data-on="${f.value ? 1 : 0}" style="left:${x}px;top:${y}px" title="${escapeHTML(humanizarFlag(f.key))}"></span>`;
+        }).join('');
+        return `<span class="astro-marcos">${selos}</span>`;
+    }
+
     function montarAstrolabio() {
         const sol = orbes.find((o) => o.id === focoId);
         removerAstrolabio(); fecharFeixe();   // rebuild (entrada/mutação) → fecha feixe antigo (orbe pode ter mudado/sumido)
@@ -620,12 +637,16 @@
             const dur = Math.max(28, Math.round(ASTRO_PERIODO * raio / ASTRO_R_MAX));   // interno mais rápido
             const atraso = -(i / Math.max(1, n)) * dur;                                // espalha as fases (spread angular)
             const dados = `data-ent-id="${escapeHTML(String(e.id))}" data-rank="${i + 1}" data-total="${n}" data-score="${score}" data-relev="${relev}"`;
+            // AURA de reputação (Fatia 3): fama → halo dourado + orbe mais radiante; infâmia → halo vermelho
+            // + orbe mais sombrio; intensidade ∝ |posição|. A afinidade agora vive SÓ no anel (libera o orbe).
+            const rep = Math.max(-10, Math.min(10, Number(e.reputacao) || 0)), rAbs = Math.abs(rep);
+            const aura = rep === 0 ? '' : `--rep-cor:${rep > 0 ? 'var(--dourado)' : 'var(--link-inimigo)'};--rep-blur:${Math.round(4 + rAbs * 1.8)}px;--rep-bright:${(1 + (rep > 0 ? rAbs * 0.02 : -rAbs * 0.035)).toFixed(2)}`;
             const anel = `<span class="astro-anel ${val}" style="width:${raio * 2}px;height:${raio * 2}px"></span>`;
             const corpo = `<span class="astro-orbita ${val}" style="--raio:${raio}px;animation-duration:${dur}s;animation-delay:${atraso}s">
                 <span class="astro-corpo">
                     <span class="astro-encara" style="animation-duration:${dur}s;animation-delay:${atraso}s">
                         <span class="astro-levanta">
-                            <span class="astro-orbe" ${dados} title="${escapeHTML(e.nome)} (${escapeHTML(e.tipo || '')})">${ORBE_CAMADAS}<span class="constelacao-planeta-nome">${escapeHTML(e.nome)}</span></span>
+                            <span class="astro-orbe" ${dados} style="${aura}" title="${escapeHTML(e.nome)} (${escapeHTML(e.tipo || '')})">${ORBE_CAMADAS}${marcosOrbeHTML(e.flags)}<span class="constelacao-planeta-nome">${escapeHTML(e.nome)}</span></span>
                         </span>
                     </span>
                 </span>
@@ -650,11 +671,12 @@
     // Interação no astrolábio: arrastar gira o disco (--rot-z); clique LIMPO num orbe abre o feixe holográfico.
     function ligarAstroDrag(vp) {
         const plano = vp.querySelector('.astrolabio-3d');
-        let arr = null, rot0 = 0, sx = 0, sy = 0, moveu = false, alvo = null;
+        let arr = null, rot0 = 0, sx = 0, sy = 0, moveu = false, alvo = null, alvoSeal = null;
         vp.addEventListener('pointerdown', (e) => {
             e.stopPropagation();                                     // não vira pan do canvas
             arr = e.clientX; rot0 = parseFloat(plano.style.getPropertyValue('--rot-z')) || 0;
             sx = e.clientX; sy = e.clientY; moveu = false;
+            alvoSeal = e.target.closest && e.target.closest('.astro-marco-seal'); // selo de marco (prioridade)
             alvo = e.target.closest && e.target.closest('.astro-orbe');
             try { vp.setPointerCapture(e.pointerId); } catch (_) {}
         });
@@ -665,12 +687,35 @@
             plano.style.setProperty('--rot-z', (rot0 + (e.clientX - arr) / z * 0.4) + 'deg'); // 0.4°/px
         });
         const fim = (e) => {
-            if (arr !== null && !moveu && alvo) abrirFeixe(alvo);     // clique limpo num orbe → feixe holográfico
-            arr = null; alvo = null;
+            if (arr !== null && !moveu) {
+                if (alvoSeal) toggleMarcoSeal(alvoSeal);             // clique no selo → alterna o marco
+                else if (alvo) abrirFeixe(alvo);                     // clique limpo no orbe → feixe holográfico
+            }
+            arr = null; alvo = null; alvoSeal = null;
             try { vp.releasePointerCapture(e.pointerId); } catch (_) {}
         };
         vp.addEventListener('pointerup', fim);
         vp.addEventListener('pointercancel', fim);
+    }
+
+    // Alterna um marco (flag) pelo selo no orbe (F1). Otimista + reverte no erro; atualiza o cache local
+    // (entidadesAtual) p/ consistência em rebuilds futuros. O PUT /flags é EXCLUÍDO do rebuild (skip no
+    // onMutacao) → o disco não se refaz a cada toggle (suave).
+    async function toggleMarcoSeal(sealEl) {
+        const orbe = sealEl.closest('.astro-orbe');
+        const id = orbe && orbe.dataset.entId;
+        if (!id) return;
+        const key = sealEl.dataset.flagKey, on = sealEl.dataset.on === '1';
+        sealEl.classList.toggle('aceso', !on); sealEl.dataset.on = on ? '0' : '1'; // otimista
+        try {
+            const res = await API.fetch(`/cronicas/${cronicaAtual}/nodes/${id}/flags`, { method: 'PUT', body: JSON.stringify({ flag_key: key, flag_value: !on }) });
+            if (!res.ok) throw new Error('falha');
+            const ent = entidadesAtual.find((x) => String(x.id) === String(id));
+            const fl = ent && (ent.flags || []).find((f) => f.key === key); if (fl) fl.value = !on;
+        } catch (_) {
+            sealEl.classList.toggle('aceso', on); sealEl.dataset.on = on ? '1' : '0'; // reverte
+            if (window.mostrarToast) mostrarToast('Erro ao alternar o marco.', 'erro');
+        }
     }
 
     // ── §4.1: Feixe holográfico ───────────────────────────────────────────────────────────────────

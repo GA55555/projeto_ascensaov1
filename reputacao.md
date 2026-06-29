@@ -97,12 +97,12 @@ A reputação é **do indivíduo, perante o mundo** (não por facção, não do 
   recarrega o disco (igual ao skip de `/historia`) — exceto quando a posição muda o **visual** (Fatia 3),
   aí refrescar é desejável (decidir o gatilho mínimo).
 
-### 🍕 Fatia 3 — Eixo visual no astrolábio (decisão aberta §5)
+### 🍕 Fatia 3 — Eixo visual no astrolábio  ✅ **FEITA** (ver §7) — decisão §5.2 fechada: AURA
 - Reputação vira uma camada no orbe **independente** do raio (relevância) e da cor do anel (afinidade).
   Recomendado: **AURA** — `drop-shadow`/halo cuja intensidade ∝ |posição| e a cor pelo sinal (fama dourada /
   infâmia avermelhada). `listarConstelacao` passa `reputacao` (posição derivada) por entidade.
 
-### 🍕 Fatia 4 — Utilidade (d): intensidade das alianças/inimizades da facção (decisão aberta §5)
+### 🍕 Fatia 4 — Utilidade (d): intensidade das alianças/inimizades da facção  ✅ **FEITA** (ver §7)
 - `constelacaoCalc.js`: agrega a reputação dos membros de cada núcleo → `fatorReputacao(núcleo)` que
   **multiplica a |tensão|** dos laços diplomáticos desse núcleo (alianças mais fortes / inimizades mais
   intensas quando há membros reverenciados/odiados). Mantém clamp em ±10. Precisa do snapshot da Fatia 3.
@@ -112,10 +112,11 @@ A reputação é **do indivíduo, perante o mundo** (não por facção, não do 
 ## 5. Decisões AINDA em aberto (resolver no início de cada fatia)
 1. **Rótulos dos tiers (§1.5):** confirmar o vocabulário (Desconhecido/Conhecido/Respeitado/Reverenciado ↔
    Malvisto/Temido/Odiado) ou ajustar ao tom Dark Fantasy.
-2. **Fatia 3 — canal visual:** AURA (recomendado) vs. um 2º anel vs. crachá/selo no orbe. Não sobrecarregar
-   (já há raio=relevância + cor=afinidade).
-3. **Fatia 4 — fórmula da amplificação:** que membros contam (todos do núcleo? só os extremos?), agregação
-   (soma? média?) e a constante `k` do multiplicador de |tensão|. Risco de feedback visual confuso — calibrar.
+2. ~~**Fatia 3 — canal visual.**~~ ✅ **RESOLVIDO: AURA** (Narrador escolheu). Reputação = halo do orbe
+   (fama dourada radiante / infâmia vermelha sombria, ∝ |posição|); a **afinidade migrou para SÓ o anel**
+   (liberou o orbe, sem colisão de cor).
+3. ~~**Fatia 4 — fórmula da amplificação.**~~ ✅ **RESOLVIDO:** notoriedade = **média da |reputação| de
+   TODOS os membros**; multiplica a |tensão| por `1+REP_FATOR*notorMédia/10` (`REP_FATOR=0.6`). Calibrar no smoke.
 4. **Peso por evento:** ±1 fixo agora (`PESO_REP`), pesos variáveis no futuro.
 
 ---
@@ -159,5 +160,27 @@ A reputação é **do indivíduo, perante o mundo** (não por facção, não do 
   (`--link-inimigo`)** (fills, pills `.tag--fama/--infamia`, botões `.btn-fama/.btn-infamia` com inversão de
   contraste no hover — Regra 2.6); reusa `.reta-barra/.tag/.tag-lista` (DRY, Regra 3).
 - **`controle_mundo.html`:** `reputacaoEscala.js` carregado após `relacaoEscala.js`; cache `constelacao.js?v=21`,
-  `global_ui.css?v=25`. node --check + CSS balanceado ok. **Smoke ao vivo PENDENTE** (Narrador testa agora).
-- **Próximo:** Fatia 3 (eixo visual no orbe — AURA, decisão aberta) e Fatia 4 (amplificação da facção).
+  `global_ui.css?v=25`. node --check + CSS balanceado ok. **Smoke testado ao vivo pelo Narrador: OK.**
+
+### 🍕 Fatia 3 — Eixo visual: AURA no orbe (✅ feito, validado estaticamente)
+- **Backend (`mundoController.listarConstelacao`):** entidades passam a trazer `reputacao` (posição derivada
+  −10..+10), lendo só `dados->'reputacao'` (não infla o snapshot com a história).
+- **Frontend (`constelacao.js montarAstrolabio`):** a partir de `e.reputacao`, inline `--rep-cor`
+  (`--dourado` fama / `--link-inimigo` infâmia), `--rep-blur` (∝ |pos|, 4..22px) e `--rep-bright` (fama >1
+  radiante / infâmia <1 sombria) no `.astro-orbe`. Sem reputação → sem aura.
+- **CSS (`global_ui.css`):** removidas as regras de tint de afinidade no orbe (`.astro-orbita.astro--* .astro-orbe`);
+  **afinidade agora SÓ no anel** (`.astro-anel.astro--*`). Aura = 2º `drop-shadow(--rep-blur --rep-cor)` +
+  `brightness(--rep-bright)` no `.astro-orbe .orbe-esfera` (e no hover, p/ não sumir ao passar o mouse).
+- **3 canais limpos:** raio=relevância · anel=afinidade · aura=reputação. Cache `constelacao.js?v=22`,
+  `global_ui.css?v=26`. node --check + boot + CSS balanceado ok. **Smoke ao vivo PENDENTE** (Narrador).
+
+### 🍕 Fatia 4 — Intensidade da facção pela reputação (✅ feito, validado estaticamente)
+- **`public/js/constelacaoCalc.js`:** `REP_FATOR=0.6` + `notoriedade(núcleo)` = média da |reputação| dos
+  membros (0..10, lê `snapshot.entidades[].reputacao` da F3). A `tensão` de cada par de facções é multiplicada
+  por `1 + REP_FATOR*((notor(a)+notor(b))/2)/10` → facções de membros reverenciados/odiados projetam alianças
+  e inimizades **mais intensas** (×1..×1.6), ainda clampada em ±10.
+- **Decisão §5.3 fechada:** a **magnitude** da reputação (fama OU infâmia) amplifica AMBOS os lados (alinha com
+  "intensidade das alianças e dos inimigos"); agregação = **média** dos membros; `REP_FATOR` calibrável.
+- **Cache:** `constelacaoCalc.js?v=2` (não tinha cache-buster). Unit da fórmula + node --check ok.
+- **REPUTAÇÃO COMPLETA (F1–F4).** Resta só o smoke ao vivo + calibração. **Consonância:** ver
+  `constelacao_soberana.md` (próxima fase — Constelação substitui a Grelha).

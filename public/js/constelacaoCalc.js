@@ -9,6 +9,9 @@
     const PESO_DIP    = 6;     // diplomacia GARANTIDA: aliado = +6, inimigo = -6, neutro = 0 (na escala ±10)
     const RETA_FATOR  = 0.5;   // cada link entre as entidades soma reta(-10..10) * RETA_FATOR ao ajuste fino
     const RETA_TETO   = 4;     // o ajuste por Reta satura em ±4 → a diplomacia (±6) domina, a Reta afina
+    const REP_FATOR   = 0.6;   // reputacao.md F4: a NOTORIEDADE (|reputação| média dos membros) amplifica a
+                               // |tensão| dos laços da facção até ×(1+REP_FATOR). Membros reverenciados/odiados
+                               // → alianças e inimizades mais intensas. (Constante a calibrar no smoke.)
     const TENSAO_MIN = -10, TENSAO_MAX = 10; // tensão final (aliado→perto / inimigo→longe) é clampada aqui
 
     const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
@@ -53,6 +56,17 @@
         const massa = {};
         ids.forEach((id) => { massa[id] = 1 + grau[id] * FATOR_MASSA; });
 
+        // F4 (reputacao.md): NOTORIEDADE de cada núcleo = média da |reputação| dos seus membros (0..10).
+        // Facção de membros muito reverenciados/odiados projeta laços mais intensos. (snapshot.entidades já
+        // traz `reputacao` -10..+10 por entidade — Fatia 3.)
+        const repSoma = {}, repCont = {};
+        ids.forEach((id) => { repSoma[id] = 0; repCont[id] = 0; });
+        entidades.forEach((e) => {
+            const nu = String(e.nucleo_id);
+            if (idSet.has(nu)) { repSoma[nu] += Math.abs(Number(e.reputacao) || 0); repCont[nu]++; }
+        });
+        const notoriedade = (id) => (repCont[id] ? repSoma[id] / repCont[id] : 0); // 0..10
+
         // Molas: um par tem mola se há diplomacia OU pelo menos um link entre suas entidades.
         // tensão > 0 (aliado) → atrai/perto; < 0 (inimigo) → repele/longe; 0 → neutro no meio.
         const molas = [];
@@ -61,7 +75,9 @@
             const [a, b] = k.split('|');
             const dip = dipPar.get(k) || 0;
             const ajusteReta = clamp((retaPar.get(k) || 0) * RETA_FATOR, -RETA_TETO, RETA_TETO);
-            const tensao = clamp(dip + ajusteReta, TENSAO_MIN, TENSAO_MAX);
+            // F4: amplifica a INTENSIDADE pela notoriedade média das duas facções (×1..×(1+REP_FATOR)).
+            const fatorRep = 1 + REP_FATOR * ((notoriedade(a) + notoriedade(b)) / 2) / 10;
+            const tensao = clamp((dip + ajusteReta) * fatorRep, TENSAO_MIN, TENSAO_MAX);
             molas.push({ a, b, tensao });
         });
 

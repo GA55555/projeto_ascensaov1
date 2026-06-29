@@ -3877,13 +3877,29 @@ input[type="radio"] {
     transform: translate(-50%, -50%); cursor: pointer; isolation: isolate; --cor-orbe: var(--azul-vida);
 }
 .astro-centro { width: 78px; height: 78px; transform: translate(-50%, -50%) rotateX(calc(-1 * var(--astro-tilt, 58deg))); } /* sol de pé no centro */
-/* Afinidade (Reta) tinge o orbe da entidade, ecoando a cor do anel (dourado=aliado / vermelho=inimigo). */
-.astro-orbita.astro--arcana   .astro-orbe { --cor-orbe: var(--dourado); }
-.astro-orbita.astro--repulsao .astro-orbe { --cor-orbe: var(--link-inimigo); }
-.astro-orbita.astro--neutro   .astro-orbe { --cor-orbe: var(--azul-vida); }
+/* Fatia 3: a AFINIDADE vive SÓ no anel; o orbe da entidade fica neutro p/ a AURA de REPUTAÇÃO ler limpa.
+   Aura = 2º drop-shadow na cor da fama(--dourado)/infâmia(--link-inimigo) com blur ∝ |posição| (--rep-blur),
+   + brightness (fama radiante > 1 / infâmia sombria < 1). Sem reputação → --rep-blur 0 e cor transparente. */
+.astro-orbe .orbe-esfera {
+    filter: drop-shadow(0 0 9px color-mix(in srgb, var(--cor-orbe) 50%, transparent))
+            drop-shadow(0 0 var(--rep-blur, 0px) var(--rep-cor, transparent))
+            brightness(var(--rep-bright, 1));
+}
 .astro-orbe:hover { z-index: 2; }
-.astro-orbe:hover .orbe-esfera, .astro-centro:hover .orbe-esfera { filter: drop-shadow(0 0 16px color-mix(in srgb, var(--cor-orbe) 70%, transparent)); }
+.astro-orbe:hover .orbe-esfera, .astro-centro:hover .orbe-esfera { filter: drop-shadow(0 0 16px color-mix(in srgb, var(--cor-orbe) 70%, transparent)) drop-shadow(0 0 var(--rep-blur, 0px) var(--rep-cor, transparent)) brightness(var(--rep-bright, 1)); }
 .astro-orbe:hover .constelacao-planeta-nome { opacity: 1; transform: translate(-50%, 0); }
+/* Marcos = selos num anel ao redor do orbe (Constelação Soberana F1). Cor própria (--destaque) p/ não colidir
+   com os canais já usados (anel/aura = ouro/vermelho). REDONDO por clip-path (o tema Neovim zera radius).
+   Aceso = preenchido + glow; desligado = ponto tênue. Hover destaca (nome via title). */
+.astro-marcos { position: absolute; inset: 0; pointer-events: none; }
+.astro-marco-seal {
+    position: absolute; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; clip-path: circle(50%);
+    box-sizing: border-box; cursor: pointer; pointer-events: auto;
+    background: color-mix(in srgb, var(--texto-claro) 24%, transparent);
+    transition: transform var(--transicao-suave), background var(--transicao-suave), filter var(--transicao-suave);
+}
+.astro-marco-seal.aceso { background: var(--destaque); filter: drop-shadow(0 0 5px color-mix(in srgb, var(--destaque) 75%, transparent)); }
+.astro-marco-seal:hover { transform: scale(1.5); z-index: 3; }
 @keyframes astro-girar  { to { transform: rotateZ(360deg); } }
 @keyframes astro-contra { to { transform: rotateZ(-360deg); } }
 /* Auto-pausa (aba/lente oculta, decisão 7) + congelar com o feixe aberto + acessibilidade: para a rotação. */

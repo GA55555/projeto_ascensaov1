@@ -887,7 +887,10 @@ exports.listarConstelacao = async (req, res) => {
     try {
         const [nucleosQ, entidadesQ, linksQ, dipQ] = await Promise.all([
             pool.query("SELECT id, nome, dados FROM entidade_nucleos WHERE cronica_id = $1 AND tipo = 'entidade'", [cronicaId]),
-            pool.query('SELECT id, nucleo_id, nome, tipo FROM world_nodes WHERE cronica_id = $1 AND nucleo_id IS NOT NULL', [cronicaId]),
+            pool.query(`SELECT n.id, n.nucleo_id, n.nome, n.tipo, n.dados->'reputacao' AS rep,
+                            COALESCE((SELECT json_agg(json_build_object('key', f.flag_key, 'value', f.flag_value) ORDER BY f.flag_key)
+                                      FROM world_flags f WHERE f.node_id = n.id), '[]'::json) AS flags
+                          FROM world_nodes n WHERE n.cronica_id = $1 AND n.nucleo_id IS NOT NULL`, [cronicaId]),
             pool.query('SELECT origem_node_id, destino_node_id, tipo_vinculo, dados FROM world_links WHERE cronica_id = $1', [cronicaId]),
             pool.query('SELECT nucleo_a_id, nucleo_b_id, status FROM nucleo_diplomacia WHERE cronica_id = $1', [cronicaId]),
         ]);
@@ -902,7 +905,11 @@ exports.listarConstelacao = async (req, res) => {
                 tarot: (n.dados && typeof n.dados === 'object' && n.dados.tarot) || null,
                 pos: (n.dados && typeof n.dados === 'object' && n.dados.pos) || null,
             })),
-            entidades: entidadesQ.rows.map((e) => ({ id: e.id, nucleo_id: e.nucleo_id, nome: e.nome, tipo: e.tipo })),
+            entidades: entidadesQ.rows.map((e) => ({
+                id: e.id, nucleo_id: e.nucleo_id, nome: e.nome, tipo: e.tipo,
+                reputacao: reputacaoEscala.lerReputacao({ reputacao: e.rep }).posicao, // -10..+10 (aura no astrolábio)
+                flags: e.flags || [], // marcos (selos no orbe) — Constelação Soberana F1
+            })),
             links: linksQ.rows.map((l) => ({
                 origem: l.origem_node_id,
                 destino: l.destino_node_id,
