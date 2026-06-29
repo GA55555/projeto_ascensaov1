@@ -9,6 +9,7 @@ const { checarAcessoCronica } = require('../middlewares/permissoes');
 const {
     criarAutomacaoSchema, toggleStatusSchema,
     criarNodeSchema, editarNodeSchema, salvarHistoriaNodeSchema,
+    adicionarReputacaoSchema, removerReputacaoSchema,
     criarFlagSchema, atualizarFlagSchema, renomearFlagSchema,
     criarNucleoSchema, renomearNucleoSchema,
     criarEventoSchema, criarVinculoSchema,
@@ -60,6 +61,10 @@ router.put('/nodes/:nodeId/tarot', verificarToken, checarAcessoCronica, apenasNa
 // História/biografia da entidade (feixe holográfico) — GET lazy (leitura), PUT narrador (em dados.historia).
 router.get('/nodes/:nodeId/historia', verificarToken, checarAcessoCronica, MundoController.obterHistoriaNode);
 router.put('/nodes/:nodeId/historia', verificarToken, checarAcessoCronica, apenasNarrador, validate(salvarHistoriaNodeSchema), MundoController.salvarHistoriaNode);
+// Reputação (fama/infâmia global) — reputacao.md F1: GET lazy + POST/DELETE evento do ledger (dados.reputacao).
+router.get('/nodes/:nodeId/reputacao', verificarToken, checarAcessoCronica, MundoController.obterReputacaoNode);
+router.post('/nodes/:nodeId/reputacao', verificarToken, checarAcessoCronica, apenasNarrador, validate(adicionarReputacaoSchema), MundoController.adicionarReputacaoNode);
+router.delete('/nodes/:nodeId/reputacao/:eventoId', verificarToken, checarAcessoCronica, apenasNarrador, validate(removerReputacaoSchema), MundoController.removerReputacaoNode);
 
 // Sinapses (links bidirecionais entre entidades) — world_links. Params validados (Regra 4.3).
 // Cronica-level: todos os links da crônica numa só query (otimização do Tabuleiro — evita N+1).

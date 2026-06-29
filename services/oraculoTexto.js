@@ -7,6 +7,7 @@
 
 const pool = require('../db');
 const escala = require('./relacaoEscala'); // reta bipolar -10..+10 da relação (fonte única da lógica)
+const reputacaoEscala = require('./reputacaoEscala'); // fama/infâmia -10..+10 da entidade (reputacao.md F1)
 const tarot = require('./tarotCatalogo');  // catálogo dos 22 arcanos (Jornada do Herói) — contexto p/ a IA
 
 const simNao = (v) => (v ? 'sim' : 'não');
@@ -35,6 +36,21 @@ function historiaDoDados(dados) {
     if (!dados || typeof dados !== 'object') return null;
     const h = dados.historia;
     return typeof h === 'string' && h.trim() ? h.trim() : null;
+}
+
+// Reputação (fama/infâmia GLOBAL, dados.reputacao) → contexto pro RAG: como o mundo vê o personagem.
+// Lista os feitos ASSINADOS (fama +, infâmia −) e a posição/tier atual. Lógica única em reputacaoEscala.
+function descreverReputacao(dados) {
+    const { posicao, tier, eventos, min, max } = reputacaoEscala.lerReputacao(dados);
+    if (!eventos.length) return null;
+    const fama = eventos.filter((e) => e.sinal > 0).map((e) => e.texto);
+    const infamia = eventos.filter((e) => e.sinal < 0).map((e) => e.texto);
+    const partes = [];
+    if (fama.length) partes.push(`feitos de fama: ${fama.join('; ')}`);
+    if (infamia.length) partes.push(`feitos de infâmia: ${infamia.join('; ')}`);
+    const lado = tier.nivel === 'neutro' ? 'reputação neutra' : tier.rotulo;
+    partes.push(`posição ${posicao} (${lado}) numa reta de ${min} (infâmia total) a ${max} (fama total)`);
+    return `Reputação: ${partes.join('; ')}`;
 }
 
 // "Contrato de Relação" no RAG: lê a RETA BIPOLAR (-10..+10) da sinapse (reta_relacao.md) e descreve os
@@ -77,6 +93,8 @@ async function textoDoNode(cronicaId, nodeId) {
     if (desc) linhas.push(`Descrição: ${desc}`);
     const hist = historiaDoDados(n.dados);
     if (hist) linhas.push(`História: ${hist}`);
+    const reput = descreverReputacao(n.dados);
+    if (reput) linhas.push(reput);
     const arquetipo = descreverTarot(n.dados);
     if (arquetipo) linhas.push(arquetipo);
 

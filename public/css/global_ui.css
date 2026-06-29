@@ -3928,6 +3928,25 @@ input[type="radio"] {
 .feixe-acoes .btn { justify-content: flex-start; }
 .feixe-sub { display: flex; flex-direction: column; gap: 6px; }
 .feixe-sub:empty { display: none; }
+/* Reputação no feixe (Fatia 2) — reusa .reta-barra/.reta-*/.tag/.tag-lista; só adiciona os tokens de
+   FAMA (dourado) e INFÂMIA (vermelho), sem hardcode (Regra 2.5). Espelha a estética da Reta (DRY). */
+.reput-box { display: flex; flex-direction: column; gap: 6px; }
+.reput-add { display: flex; gap: 6px; }
+.reput-add .btn { flex: 1; }
+.reput-lista { max-height: 132px; overflow-y: auto; }
+.reput-fill--fama    { background: var(--dourado); }
+.reput-fill--infamia { background: var(--link-inimigo); }
+.reput-pos--fama    { color: var(--dourado); }
+.reput-pos--infamia { color: var(--link-inimigo); }
+.reput-pos--neutro  { color: var(--texto-mutado); }
+.tag--fama    { background: color-mix(in srgb, var(--dourado) 16%, var(--bg-principal)); border-color: var(--dourado); }
+.tag--fama .tag-selo    { color: var(--dourado); }
+.tag--infamia { background: color-mix(in srgb, var(--link-inimigo) 16%, var(--bg-principal)); border-color: var(--link-inimigo); }
+.tag--infamia .tag-selo { color: var(--link-inimigo); }
+.btn-fama    { border: 1px solid var(--dourado); color: var(--dourado); background: transparent; }
+.btn-fama:hover    { background: var(--dourado); color: var(--bg-principal); }
+.btn-infamia { border: 1px solid var(--link-inimigo); color: var(--link-inimigo); background: transparent; }
+.btn-infamia:hover { background: var(--link-inimigo); color: var(--bg-principal); }
 /* Nome sob demanda do planeta (reusado pelo avatar do astrolábio). */
 .constelacao-planeta-nome {
     position: absolute; top: calc(100% + 5px); left: 50%; transform: translate(-50%, 3px); white-space: nowrap;

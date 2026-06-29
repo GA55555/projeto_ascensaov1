@@ -77,7 +77,7 @@ A reputação é **do indivíduo, perante o mundo** (não por facção, não do 
 
 ## 4. Roadmap (fatiado)
 
-### 🍕 Fatia 1 — Modelo + contrato + endpoints + RAG
+### 🍕 Fatia 1 — Modelo + contrato + endpoints + RAG  ✅ **FEITA** (ver §7)
 - `services/reputacaoEscala.js` (novo, fonte única): reusa `relacaoEscala` (clamp/tier/passoDaTag);
   `lerReputacao(dados)` → `{ posicao, tier, rotulo, eventos, min, max }` (posição = Σ `sinal*peso`, clamp ±10);
   `rotuloReputacao(posicao)` (tabela §1.5). Espelho browser `public/js/reputacaoEscala.js`.
@@ -90,7 +90,7 @@ A reputação é **do indivíduo, perante o mundo** (não por facção, não do 
 - `services/oraculoTexto.js`: `descreverReputacao(dados)` → "Reputação: Reverenciado (+9) — fatos: …".
 - **Teste:** estático (`node --check` + boot) + unit do `reputacaoEscala` (soma/clamp/tier/rótulo).
 
-### 🍕 Fatia 2 — Frontend no feixe (o ledger)
+### 🍕 Fatia 2 — Frontend no feixe (o ledger)  ✅ **FEITA** (ver §7)
 - Seção "Reputação" no painel do feixe: **barra divergente + agulha** + tier/rótulo (reusa a estética de
   `barraRetaHTML` da Reta), **lista de eventos** (texto + selo +/− + `×` p/ remover) e form de **adicionar**
   (texto + botões **+Fama / −Infâmia**, Enter = +). Lazy GET ao abrir; mutações fora do `onMutacao` que
@@ -126,3 +126,38 @@ A reputação é **do indivíduo, perante o mundo** (não por facção, não do 
 - **Sobrecarga visual** no orbe (raio + cor + aura) — a Fatia 3 deve ser sóbria.
 - **Sync Node↔browser** do `reputacaoEscala` é manual (sem build).
 - **Smoke ao vivo** (sem Postgres/browser no dev) fica com o Narrador a cada fatia.
+
+---
+
+## 7. 🛠️ Diário de Implementação
+
+### 🍕 Fatia 1 — Modelo + contrato + endpoints + RAG (✅ feito, validado estaticamente)
+- **`services/reputacaoEscala.js` (novo, fonte única):** reusa `relacaoEscala` (`clamp`/`passoDaTag`,
+  POS_MIN/MAX ±10); `tierReputacao` (tabela §1.5 — fama: Conhecido/Respeitado/Reverenciado × infâmia:
+  Malvisto/Temido/Odiado; neutro=Desconhecido); `normalizarEventos` (tolerante a jsonb sujo, `PESO_REP`);
+  `lerReputacao(dados)` → `{posicao, tier, eventos, min, max}` (posição = Σ `sinal*peso`, clamp ±10).
+- **`public/js/reputacaoEscala.js` (espelho browser):** `window.ReputacaoEscala`, reusa `window.RelacaoEscala`
+  (carregado antes). Registrado no `controle_mundo.html` após `relacaoEscala.js`.
+- **`validators/mundoValidator.js`:** `adicionarReputacaoSchema` (`texto≤200`, `sinal: 1|−1`, `peso?` 1–10
+  default 1) + `removerReputacaoSchema` (`params.eventoId` uuid).
+- **`controllers/mundoController.js`:** `obterReputacaoNode` (GET lazy), `adicionarReputacaoNode` (append
+  evento `{id:uuid, texto, sinal, peso}` ao ledger, MERGE sem clobber, anti-IDOR, reindex), `removerReputacaoNode`
+  (filtra por `eventoId`, lossless, anti-IDOR, reindex). Todos devolvem a leitura derivada.
+- **Rotas:** `GET/POST /nodes/:id/reputacao` + `DELETE /nodes/:id/reputacao/:eventoId`.
+- **RAG:** `oraculoTexto.descreverReputacao(dados)` → linha "Reputação: … (tier) posição N" no `textoDoNode`.
+- **Testes:** `node --check` + boot ok; **unit do `reputacaoEscala`** (vazio→Desconhecido, +3→Conhecido,
+  peso, clamp +10→Reverenciado, −9→Odiado, jsonb sujo) — todos passaram. **Smoke ao vivo PENDENTE** (Narrador).
+
+### 🍕 Fatia 2 — Ledger no feixe (✅ feito, validado estaticamente)
+- **`public/js/constelacao.js`:** nova ação "Reputação" no feixe → `feixeReputacao(wrap,id)` (lazy GET) +
+  `renderReputacao(box,data)` + `barraReputHTML(posicao)`. Barra+agulha **reusa** `.reta-barra/.reta-*`;
+  eventos = pills `.tag.tag--fama|infamia` com `×` (remove por `data-rep-del=eventoId`); add via input +
+  botões **+Fama**/**−Infâmia** (`data-rep-act=1|−1`, Enter = +Fama). Listeners DELEGADOS no `box` (sobrevivem
+  ao re-render do innerHTML). Cada add/remove re-renderiza no lugar a partir do **retorno do endpoint** —
+  **sem fechar o feixe** (`/reputacao` adicionado ao SKIP do `onMutacao`, como `/historia`).
+- **`public/css/global_ui.css`:** bloco `.reput-*` — só os tokens de **fama (`--dourado`)** / **infâmia
+  (`--link-inimigo`)** (fills, pills `.tag--fama/--infamia`, botões `.btn-fama/.btn-infamia` com inversão de
+  contraste no hover — Regra 2.6); reusa `.reta-barra/.tag/.tag-lista` (DRY, Regra 3).
+- **`controle_mundo.html`:** `reputacaoEscala.js` carregado após `relacaoEscala.js`; cache `constelacao.js?v=21`,
+  `global_ui.css?v=25`. node --check + CSS balanceado ok. **Smoke ao vivo PENDENTE** (Narrador testa agora).
+- **Próximo:** Fatia 3 (eixo visual no orbe — AURA, decisão aberta) e Fatia 4 (amplificação da facção).

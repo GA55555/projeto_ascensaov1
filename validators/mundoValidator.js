@@ -45,6 +45,18 @@ const salvarHistoriaNodeSchema = z.object({
     })
 });
 
+// Reputação (reputacao.md, Fatia 1): ledger de eventos assinados em dados.reputacao.eventos (sem DDL).
+const adicionarReputacaoSchema = z.object({
+    body: z.object({
+        texto: z.string().trim().min(1, 'Descreva o fato de reputação.').max(200),
+        sinal: z.union([z.literal(1), z.literal(-1)]),          // +1 fama, -1 infâmia
+        peso: z.number().int().min(1).max(10).optional().default(1) // PESO_REP (gancho futuro)
+    })
+});
+const removerReputacaoSchema = z.object({
+    params: z.object({ eventoId: z.string().uuid() })
+});
+
 // ---- FLAGS ----
 const criarFlagSchema = z.object({
     body: z.object({
@@ -362,6 +374,7 @@ module.exports = {
     criarAutomacaoSchema, toggleStatusSchema,
     sincronizarOraculoSchema, consultarOraculoSchema,
     criarNodeSchema, editarNodeSchema, salvarHistoriaNodeSchema,
+    adicionarReputacaoSchema, removerReputacaoSchema,
     criarFlagSchema, atualizarFlagSchema, renomearFlagSchema,
     criarNucleoSchema, renomearNucleoSchema,
     criarEventoSchema, criarVinculoSchema,

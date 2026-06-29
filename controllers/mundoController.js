@@ -6,6 +6,8 @@ const oraculoCripto = require('../utils/oraculoCripto'); // F4: decifra a chave 
 const oraculoTexto = require('../services/oraculoTexto'); // texto rico (relações/flags/diplomacia) p/ o RAG
 const oraculoSync = require('../services/oraculoSync'); // Regra 4.2: re-indexação fire-and-forget (describer + conector)
 const escala = require('../services/relacaoEscala'); // reta -10..+10 da relação → tensão da constelação (F2)
+const reputacaoEscala = require('../services/reputacaoEscala'); // reputação -10..+10 (fama/infâmia) — reputacao.md F1
+const { randomUUID } = require('crypto'); // id estável por evento de reputação (p/ remoção lossless)
 const fs = require('fs/promises');
 const path = require('path');
 
@@ -241,6 +243,67 @@ exports.obterHistoriaNode = async (req, res) => {
     } catch (err) {
         console.error('Erro ao buscar a história da entidade:', err);
         res.status(500).json({ erro: 'Erro ao buscar a história.' });
+    }
+};
+
+// ── Reputação (fama/infâmia GLOBAL da entidade) — reputacao.md Fatia 1 ─────────────────────────────────
+// Ledger event-sourced em world_nodes.dados.reputacao.eventos (sem DDL, Regra 4.1). A posição é DERIVADA
+// (reputacaoEscala). Toda leitura/escrita amarra id+cronica_id (anti-IDOR 3.3.1/6.2). Escritas reindexam o
+// Oráculo (reputação é contexto narrativo). GET é lazy (Regra 2.3 — só ao abrir a seção no feixe).
+exports.obterReputacaoNode = async (req, res) => {
+    const { cronicaId, nodeId } = req.params;
+    try {
+        const r = await pool.query('SELECT dados FROM world_nodes WHERE id = $1 AND cronica_id = $2', [nodeId, cronicaId]);
+        if (r.rows.length === 0) return res.status(404).json({ erro: 'Entidade não encontrada.' });
+        res.json(reputacaoEscala.lerReputacao(r.rows[0].dados));
+    } catch (err) {
+        console.error('Erro ao buscar a reputação:', err);
+        res.status(500).json({ erro: 'Erro ao buscar a reputação.' });
+    }
+};
+
+// Append de um evento assinado ao ledger. Lê os eventos atuais (já no escopo), anexa {id,texto,sinal,peso} e
+// regrava o array (MERGE sem clobber de outras chaves de dados). Devolve a leitura derivada (posição/tier).
+exports.adicionarReputacaoNode = async (req, res) => {
+    const { cronicaId, nodeId } = req.params;
+    const { texto, sinal, peso } = req.body;
+    try {
+        const cur = await pool.query("SELECT dados->'reputacao'->'eventos' AS eventos, tipo FROM world_nodes WHERE id = $1 AND cronica_id = $2", [nodeId, cronicaId]);
+        if (cur.rows.length === 0) return res.status(404).json({ erro: 'Entidade não encontrada.' });
+        const eventos = Array.isArray(cur.rows[0].eventos) ? cur.rows[0].eventos : [];
+        eventos.push({ id: randomUUID(), texto: String(texto).trim(), sinal: sinal === -1 ? -1 : 1, peso: Math.max(parseInt(peso, 10) || 1, 1) });
+        await pool.query(
+            `UPDATE world_nodes
+                SET dados = COALESCE(dados, '{}'::jsonb) || jsonb_build_object('reputacao', jsonb_build_object('eventos', $1::jsonb))
+              WHERE id = $2 AND cronica_id = $3`,
+            [JSON.stringify(eventos), nodeId, cronicaId]
+        );
+        oraculoSync.reindexarNode(cronicaId, nodeId, cur.rows[0].tipo);
+        res.json(reputacaoEscala.lerReputacao({ reputacao: { eventos } }));
+    } catch (err) {
+        console.error('Erro ao adicionar reputação:', err);
+        res.status(500).json({ erro: 'Erro ao adicionar reputação.' });
+    }
+};
+
+// Remove um evento por id (lossless: a agulha recua). Filtra o array e regrava.
+exports.removerReputacaoNode = async (req, res) => {
+    const { cronicaId, nodeId, eventoId } = req.params;
+    try {
+        const cur = await pool.query("SELECT dados->'reputacao'->'eventos' AS eventos, tipo FROM world_nodes WHERE id = $1 AND cronica_id = $2", [nodeId, cronicaId]);
+        if (cur.rows.length === 0) return res.status(404).json({ erro: 'Entidade não encontrada.' });
+        const eventos = (Array.isArray(cur.rows[0].eventos) ? cur.rows[0].eventos : []).filter((e) => e && e.id !== eventoId);
+        await pool.query(
+            `UPDATE world_nodes
+                SET dados = COALESCE(dados, '{}'::jsonb) || jsonb_build_object('reputacao', jsonb_build_object('eventos', $1::jsonb))
+              WHERE id = $2 AND cronica_id = $3`,
+            [JSON.stringify(eventos), nodeId, cronicaId]
+        );
+        oraculoSync.reindexarNode(cronicaId, nodeId, cur.rows[0].tipo);
+        res.json(reputacaoEscala.lerReputacao({ reputacao: { eventos } }));
+    } catch (err) {
+        console.error('Erro ao remover reputação:', err);
+        res.status(500).json({ erro: 'Erro ao remover reputação.' });
     }
 };
 

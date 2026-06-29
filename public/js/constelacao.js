@@ -294,6 +294,7 @@
                 if (/\/oraculo(\/|$|\?)/.test(url) || url.includes('/perfil/oraculo')) return;
                 if (url.includes('/constelacao/posicoes')) return; // salvar layout NÃO deve recarregar (anti-jump)
                 if (url.includes('/historia')) return; // história não muda o disco → mantém o feixe aberto
+                if (url.includes('/reputacao')) return; // reputação (F2) não muda o disco ainda → feixe aberto
                 const cv = canvas();
                 if (cv && !cv.hidden && cronicaAtual) recarregar();
             });
@@ -718,6 +719,7 @@
                 </div>
                 <div class="feixe-acoes">
                     <button class="btn btn-outline btn-sm" data-fx="historia"><i data-lucide="scroll-text"></i> História</button>
+                    <button class="btn btn-outline btn-sm" data-fx="reputacao"><i data-lucide="gem"></i> Reputação</button>
                     <button class="btn btn-outline btn-sm" data-fx="sinapses"><i data-lucide="share-2"></i> Sinapses</button>
                     <button class="btn btn-outline btn-sm" data-fx="editar"><i data-lucide="edit"></i> Editar nome</button>
                     <button class="btn btn-outline btn-sm" data-fx="mover"><i data-lucide="map-pin"></i> Mudar núcleo</button>
@@ -733,6 +735,7 @@
             if (!fx) return;
             if (fx === 'fechar') fecharFeixe();
             else if (fx === 'historia') feixeHistoria(wrap, id);
+            else if (fx === 'reputacao') feixeReputacao(wrap, id);
             else if (fx === 'sinapses') { if (window.abrirModalSinapses) window.abrirModalSinapses(id); }
             else if (fx === 'editar') feixeEditarNome(wrap, id, ent.nome);
             else if (fx === 'mover') feixeMoverNucleo(wrap, id);
@@ -764,6 +767,83 @@
             } catch (_) { if (window.mostrarToast) mostrarToast('Erro ao salvar a história.', 'erro'); }
         });
         if (window.lucide) lucide.createIcons();
+    }
+
+    // ── Reputação no feixe (reputacao.md Fatia 2): ledger de fama/infâmia (-10..+10) com barra+agulha
+    // (reusa a estética da Reta), adicionar (+Fama/−Infâmia) e remover. Mutações /reputacao ficam FORA do
+    // recarregar do disco (skip no onMutacao) → re-render no lugar a partir do retorno do endpoint. ──────────
+    function barraReputHTML(posicao) {
+        const pos = Math.max(-10, Math.min(10, parseInt(posicao, 10) || 0));
+        const metade = (Math.abs(pos) / 10) * 50;
+        const fill = pos > 0 ? 'reput-fill--fama' : (pos < 0 ? 'reput-fill--infamia' : '');
+        const estilo = pos >= 0 ? `left:50%;width:${metade}%;` : `left:${50 - metade}%;width:${metade}%;`;
+        const agulha = 50 + (pos / 10) * 50;
+        return `<span class="reta-barra"><span class="reta-zero"></span><span class="reta-fill ${fill}" style="${estilo}"></span><span class="reta-agulha" style="left:${agulha}%;"></span></span>`;
+    }
+
+    function renderReputacao(box, data) {
+        const { posicao, tier, eventos } = data;
+        const sinalNum = `${posicao > 0 ? '+' : ''}${posicao}`;
+        const ladoCls = tier.lado === 'fama' ? 'reput-pos--fama' : (tier.lado === 'infamia' ? 'reput-pos--infamia' : 'reput-pos--neutro');
+        const lista = (eventos || []).map((ev) => {
+            const cls = ev.sinal > 0 ? 'tag--fama' : 'tag--infamia';
+            const ic = ev.sinal > 0 ? 'plus' : 'minus';
+            return `<span class="tag ${cls}"><i data-lucide="${ic}" class="tag-selo"></i>${escapeHTML(ev.texto)}<i data-lucide="x" class="tag-remover" data-rep-del="${escapeHTML(String(ev.id))}" title="Remover"></i></span>`;
+        }).join('');
+        box.innerHTML = `
+            <input type="text" class="input-sm input-full reput-input" maxlength="200" placeholder="Fato de reputação…">
+            <div class="reput-add">
+                <button type="button" class="btn btn-sm btn-fama" data-rep-act="1"><i data-lucide="plus"></i> Fama</button>
+                <button type="button" class="btn btn-sm btn-infamia" data-rep-act="-1"><i data-lucide="minus"></i> Infâmia</button>
+            </div>
+            ${barraReputHTML(posicao)}
+            <div class="reta-rotulo"><span class="reta-pos ${ladoCls}">${sinalNum}</span><span class="reta-tier">${escapeHTML(tier.nivel === 'neutro' ? 'Desconhecido' : tier.rotulo)}</span></div>
+            <div class="tag-lista reput-lista">${lista}</div>`;
+        if (window.lucide) lucide.createIcons();
+        box.querySelector('.reput-input')?.focus();
+    }
+
+    function feixeReputacao(wrap, id) {
+        const sub = wrap.querySelector('.feixe-sub'); if (!sub) return;
+        sub.innerHTML = '';
+        const box = document.createElement('div');
+        box.className = 'reput-box';
+        box.innerHTML = '<p class="feixe-tipo">A carregar reputação…</p>';
+        sub.appendChild(box);
+        const VAZIO = { posicao: 0, tier: { nivel: 'neutro', rotulo: 'Desconhecido', lado: 'neutro' }, eventos: [] };
+
+        const carregar = async () => {
+            try {
+                const res = await API.fetch(`/cronicas/${cronicaAtual}/nodes/${id}/reputacao`);
+                renderReputacao(box, res.ok ? await res.json() : VAZIO);
+            } catch (_) { box.innerHTML = '<p class="feixe-tipo">Erro ao carregar a reputação.</p>'; }
+        };
+        const adicionar = async (sinal) => {
+            const input = box.querySelector('.reput-input');
+            const texto = (input && input.value || '').trim();
+            if (!texto) { input?.focus(); return; }
+            try {
+                const res = await API.fetch(`/cronicas/${cronicaAtual}/nodes/${id}/reputacao`, { method: 'POST', body: JSON.stringify({ texto, sinal }) });
+                if (!res.ok) throw new Error('falha');
+                renderReputacao(box, await res.json());
+            } catch (_) { if (window.mostrarToast) mostrarToast('Erro ao adicionar reputação.', 'erro'); }
+        };
+        const remover = async (eventoId) => {
+            try {
+                const res = await API.fetch(`/cronicas/${cronicaAtual}/nodes/${id}/reputacao/${eventoId}`, { method: 'DELETE' });
+                if (!res.ok) throw new Error('falha');
+                renderReputacao(box, await res.json());
+            } catch (_) { if (window.mostrarToast) mostrarToast('Erro ao remover.', 'erro'); }
+        };
+        // Listeners delegados no box (sobrevivem ao re-render do innerHTML; o box é recriado a cada abertura).
+        box.addEventListener('click', (e) => {
+            const act = e.target.closest('[data-rep-act]'); if (act) return adicionar(parseInt(act.dataset.repAct, 10));
+            const del = e.target.closest('[data-rep-del]'); if (del) return remover(del.dataset.repDel);
+        });
+        box.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && e.target.classList.contains('reput-input')) { e.preventDefault(); adicionar(1); } // Enter = +Fama
+        });
+        carregar();
     }
 
     // Sub-formulários inline no painel (editar/mover/confirmar). Mutações → API.onMutacao refaz + fecha o feixe.
