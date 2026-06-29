@@ -3963,6 +3963,31 @@ input[type="radio"] {
 .btn-fama:hover    { background: var(--dourado); color: var(--bg-principal); }
 .btn-infamia { border: 1px solid var(--link-inimigo); color: var(--link-inimigo); background: transparent; }
 .btn-infamia:hover { background: var(--link-inimigo); color: var(--bg-principal); }
+/* §F1b: Marcos no feixe (sub-painel soberano: add/toggle/renomear/apagar) — só tokens (Regra 2.5). */
+.fx-marcos-box { display: flex; flex-direction: column; gap: 6px; }
+.fx-marcos-lista { display: flex; flex-direction: column; gap: 2px; max-height: 156px; overflow-y: auto; }
+.fx-marcos-vazio { margin: 2px 0; }
+.fx-marco { display: flex; align-items: center; gap: 6px; padding: 3px 4px; border-radius: 4px; transition: background var(--transicao-suave); }
+.fx-marco:hover { background: var(--bg-afundado); }
+.fx-marco-nome { flex: 1; min-width: 0; font-size: 0.82rem; color: var(--texto-claro); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fx-marco-nome input { width: 100%; }
+.fx-marco-toggle { display: inline-flex; padding: 2px; color: var(--texto-mutado); background: transparent; border: 0; cursor: pointer; transition: color var(--transicao-suave); }
+.fx-marco-toggle.aceso { color: var(--destaque); }
+.fx-marco-toggle i { width: 16px; height: 16px; }
+.fx-marco-edit, .fx-marco-del { padding: 2px; opacity: 0; transition: opacity var(--transicao-suave), color var(--transicao-suave); }
+.fx-marco:hover .fx-marco-edit, .fx-marco:hover .fx-marco-del { opacity: 0.65; }
+.fx-marco-edit:hover { opacity: 1; }
+.fx-marco-del:hover { opacity: 1; color: var(--erro); }
+.fx-marco-edit i, .fx-marco-del i { width: 14px; height: 14px; }
+/* §F1b: Popover do selo (long-press no orbe) — renomear/apagar inline, disco congelado. */
+.selo-pop {
+    position: absolute; z-index: 7; display: flex; flex-direction: column; gap: 6px; padding: 8px;
+    background: var(--bg-card-glass); backdrop-filter: blur(8px);
+    border: 1px solid var(--borda); border-radius: 6px; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+.selo-pop-nome { font-family: 'Cormorant Garamond', serif; font-size: 0.98rem; color: var(--destaque); }
+.selo-pop-acoes { display: flex; gap: 6px; }
+.selo-pop-acoes .btn-primary { flex: 1; }
 /* Nome sob demanda do planeta (reusado pelo avatar do astrolábio). */
 .constelacao-planeta-nome {
     position: absolute; top: calc(100% + 5px); left: 50%; transform: translate(-50%, 3px); white-space: nowrap;

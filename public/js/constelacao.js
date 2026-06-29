@@ -599,7 +599,8 @@
 
     // Marcos (flags) como SELOS num anel ao redor do orbe (Constelação Soberana F1): aceso=ligado /
     // vazado=desligado. Posição em volta do orbe (56px → centro 28, raio 36). Hover=nome (title); clique
-    // alterna (tratado em ligarAstroDrag). Adicionar/renomear/apagar virão na F1b.
+    // curto alterna (ligarAstroDrag→toggleMarcoSeal); segurar abre o popover renomear/apagar (F1b). O
+    // sub-painel "Marcos" do feixe (feixeMarcos) é a superfície soberana p/ adicionar/renomear/apagar.
     const humanizarFlag = (k) => String(k || '').replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
     function marcosOrbeHTML(flags) {
         const fs = (flags || []).filter((f) => f && f.key);
@@ -671,24 +672,31 @@
     // Interação no astrolábio: arrastar gira o disco (--rot-z); clique LIMPO num orbe abre o feixe holográfico.
     function ligarAstroDrag(vp) {
         const plano = vp.querySelector('.astrolabio-3d');
-        let arr = null, rot0 = 0, sx = 0, sy = 0, moveu = false, alvo = null, alvoSeal = null;
+        let arr = null, rot0 = 0, sx = 0, sy = 0, moveu = false, alvo = null, alvoSeal = null, lpTimer = null, lpFired = false;
+        const limparLP = () => { if (lpTimer) { clearTimeout(lpTimer); lpTimer = null; } };
         vp.addEventListener('pointerdown', (e) => {
             e.stopPropagation();                                     // não vira pan do canvas
+            fecharSeloPop();                                         // pressionar fora fecha o popover do selo (o popover faz stopPropagation)
             arr = e.clientX; rot0 = parseFloat(plano.style.getPropertyValue('--rot-z')) || 0;
-            sx = e.clientX; sy = e.clientY; moveu = false;
+            sx = e.clientX; sy = e.clientY; moveu = false; lpFired = false;
             alvoSeal = e.target.closest && e.target.closest('.astro-marco-seal'); // selo de marco (prioridade)
             alvo = e.target.closest && e.target.closest('.astro-orbe');
+            if (alvoSeal) {                                          // segurar o selo (380ms) → popover renomear/apagar
+                const seal = alvoSeal;
+                lpTimer = setTimeout(() => { lpTimer = null; if (!moveu) { lpFired = true; arr = null; abrirSeloPopover(seal); } }, 380);
+            }
             try { vp.setPointerCapture(e.pointerId); } catch (_) {}
         });
         vp.addEventListener('pointermove', (e) => {
             if (arr === null) return;
-            if (Math.hypot(e.clientX - sx, e.clientY - sy) > 5) moveu = true; // virou arrasto (gira), não clique
+            if (Math.hypot(e.clientX - sx, e.clientY - sy) > 5) { moveu = true; limparLP(); } // virou arrasto (gira), não clique/long-press
             const z = rootZoom();
             plano.style.setProperty('--rot-z', (rot0 + (e.clientX - arr) / z * 0.4) + 'deg'); // 0.4°/px
         });
         const fim = (e) => {
-            if (arr !== null && !moveu) {
-                if (alvoSeal) toggleMarcoSeal(alvoSeal);             // clique no selo → alterna o marco
+            limparLP();
+            if (arr !== null && !moveu && !lpFired) {
+                if (alvoSeal) toggleMarcoSeal(alvoSeal);             // clique curto no selo → alterna o marco
                 else if (alvo) abrirFeixe(alvo);                     // clique limpo no orbe → feixe holográfico
             }
             arr = null; alvo = null; alvoSeal = null;
@@ -698,24 +706,113 @@
         vp.addEventListener('pointercancel', fim);
     }
 
-    // Alterna um marco (flag) pelo selo no orbe (F1). Otimista + reverte no erro; atualiza o cache local
-    // (entidadesAtual) p/ consistência em rebuilds futuros. O PUT /flags é EXCLUÍDO do rebuild (skip no
-    // onMutacao) → o disco não se refaz a cada toggle (suave).
+    // ── §F1b: Camada ÚNICA de mutação de Marcos ──────────────────────────────────────────────────────
+    // DRY + Regra 2.9: um só ponto de entrada por operação, reusado pelo selo do orbe (toggle/long-press)
+    // E pelo sub-painel "Marcos" do feixe. Normaliza a chave igual ao backend (mundoController:
+    // trim+lower+'_'), mantém o cache `entidadesAtual` coerente e re-sincroniza os selos do orbe SEM
+    // refazer o disco (os endpoints /flags estão no SKIP do onMutacao → o disco não pisca a cada edição).
+    const marcoNorm = (s) => String(s || '').trim().toLowerCase().replace(/\s+/g, '_');
+    const flagsDe = (id) => { const e = entidadesAtual.find((x) => String(x.id) === String(id)); return e ? (e.flags = e.flags || []) : null; };
+
+    // Re-desenha o anel de selos do orbe a partir do cache (após criar/renomear/apagar/toggle).
+    function ressincronizarSelos(id) {
+        const orbe = astroViewport?.querySelector(`.astro-orbe[data-ent-id="${id}"]`);
+        if (!orbe) return;
+        const ent = entidadesAtual.find((x) => String(x.id) === String(id));
+        orbe.querySelector('.astro-marcos')?.remove();
+        const html = marcosOrbeHTML(ent && ent.flags);
+        if (html) orbe.querySelector('.constelacao-planeta-nome')?.insertAdjacentHTML('beforebegin', html);
+    }
+
+    async function setMarco(id, key, value) {  // toggle (PUT /flags) — também usado pelo selo otimista
+        const res = await API.fetch(`/cronicas/${cronicaAtual}/nodes/${id}/flags`, { method: 'PUT', body: JSON.stringify({ flag_key: key, flag_value: value }) });
+        if (!res.ok) throw new Error('falha');
+        const f = (flagsDe(id) || []).find((x) => x.key === key); if (f) f.value = value;
+    }
+    async function criarMarco(id, nome) {       // POST /flags — o backend grava com flag_value=FALSE
+        const chave = marcoNorm(nome); if (!chave) return null;
+        const fl = flagsDe(id);
+        if (fl && fl.some((f) => f.key === chave)) { if (window.mostrarToast) mostrarToast('Esse marco já existe.', 'aviso'); return null; }
+        const res = await API.fetch(`/cronicas/${cronicaAtual}/nodes/${id}/flags`, { method: 'POST', body: JSON.stringify({ flag_key: nome }) });
+        if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.erro || 'falha'); }
+        if (fl) fl.push({ key: chave, value: false });
+        ressincronizarSelos(id); return chave;
+    }
+    async function renomearMarco(id, key, novoNome) {  // PUT /flags/:key — enviamos a chave JÁ normalizada
+        const novaKey = marcoNorm(novoNome); if (!novaKey || novaKey === key) return key;
+        const fl = flagsDe(id);
+        if (fl && fl.some((f) => f.key === novaKey)) { if (window.mostrarToast) mostrarToast('Já existe um marco com este nome.', 'aviso'); return key; }
+        const res = await API.fetch(`/cronicas/${cronicaAtual}/nodes/${id}/flags/${encodeURIComponent(key)}`, { method: 'PUT', body: JSON.stringify({ novo_nome: novaKey }) });
+        if (!res.ok) throw new Error('falha');
+        const f = fl && fl.find((x) => x.key === key); if (f) f.key = novaKey;
+        ressincronizarSelos(id); return novaKey;
+    }
+    async function apagarMarco(id, key) {       // DELETE /flags/:key — cascateia os gatilhos no backend
+        const res = await API.fetch(`/cronicas/${cronicaAtual}/nodes/${id}/flags/${encodeURIComponent(key)}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('falha');
+        const ent = entidadesAtual.find((x) => String(x.id) === String(id));
+        if (ent && ent.flags) ent.flags = ent.flags.filter((f) => f.key !== key);
+        ressincronizarSelos(id);
+    }
+
+    // Alterna um marco pelo selo no orbe (F1). Otimista + reverte no erro; delega a persistência a setMarco.
     async function toggleMarcoSeal(sealEl) {
         const orbe = sealEl.closest('.astro-orbe');
         const id = orbe && orbe.dataset.entId;
         if (!id) return;
         const key = sealEl.dataset.flagKey, on = sealEl.dataset.on === '1';
         sealEl.classList.toggle('aceso', !on); sealEl.dataset.on = on ? '0' : '1'; // otimista
-        try {
-            const res = await API.fetch(`/cronicas/${cronicaAtual}/nodes/${id}/flags`, { method: 'PUT', body: JSON.stringify({ flag_key: key, flag_value: !on }) });
-            if (!res.ok) throw new Error('falha');
-            const ent = entidadesAtual.find((x) => String(x.id) === String(id));
-            const fl = ent && (ent.flags || []).find((f) => f.key === key); if (fl) fl.value = !on;
-        } catch (_) {
+        try { await setMarco(id, key, !on); }
+        catch (_) {
             sealEl.classList.toggle('aceso', on); sealEl.dataset.on = on ? '1' : '0'; // reverte
             if (window.mostrarToast) mostrarToast('Erro ao alternar o marco.', 'erro');
         }
+    }
+
+    // ── §F1b: Popover do selo (long-press) — superfície inline p/ renomear/apagar um marco no próprio
+    // orbe, com o disco CONGELADO durante a edição (resolve a ergonomia do orbe que orbita). ───────────
+    let seloPop = null;
+    function fecharSeloPop() { if (seloPop) { seloPop.remove(); seloPop = null; astroViewport?.classList.remove('astro-congelado'); } }
+
+    function abrirSeloPopover(sealEl) {
+        const orbe = sealEl.closest('.astro-orbe'); const id = orbe && orbe.dataset.entId; if (!id) return;
+        const key = sealEl.dataset.flagKey;
+        fecharSeloPop(); fecharFeixe();
+        astroViewport?.classList.add('astro-congelado');                 // congela → ancora o popover ao selo
+        const c = canvas(); if (!c) return;
+        const z = rootZoom(), cr = c.getBoundingClientRect(), sr = sealEl.getBoundingClientRect();
+        const sx = (sr.left + sr.width / 2 - cr.left) / z, sy = (sr.top + sr.height / 2 - cr.top) / z;
+        const PW = 196;
+        const px = clamp(sx + 12, 6, Math.max(6, c.clientWidth - PW - 6));
+        const py = clamp(sy - 14, 6, Math.max(6, c.clientHeight - 96));
+        const pop = document.createElement('div');
+        pop.className = 'selo-pop';
+        pop.style.cssText = `left:${px}px;top:${py}px;width:${PW}px`;
+        pop.innerHTML = `
+            <div class="selo-pop-nome">${escapeHTML(humanizarFlag(key))}</div>
+            <input type="text" class="input-sm input-full selo-pop-input" maxlength="60" value="${escapeHTML(humanizarFlag(key))}">
+            <div class="selo-pop-acoes">
+                <button type="button" class="btn btn-primary btn-sm" data-sp="renomear"><i data-lucide="check"></i> Renomear</button>
+                <button type="button" class="btn btn-outline btn-sm btn-del" data-sp="apagar" title="Apagar"><i data-lucide="trash-2"></i></button>
+            </div>`;
+        c.appendChild(pop); seloPop = pop;
+        pop.addEventListener('pointerdown', (e) => e.stopPropagation());  // mexer no popover não gira o disco
+        const inp = pop.querySelector('.selo-pop-input'); inp.focus(); inp.select();
+        const doRename = async () => {
+            const novo = inp.value.trim(); if (!novo) { fecharSeloPop(); return; }
+            try { await renomearMarco(id, key, novo); fecharSeloPop(); }
+            catch (_) { if (window.mostrarToast) mostrarToast('Erro ao renomear marco.', 'erro'); }
+        };
+        inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') doRename(); else if (e.key === 'Escape') fecharSeloPop(); });
+        pop.addEventListener('click', async (e) => {
+            const sp = e.target.closest('[data-sp]') && e.target.closest('[data-sp]').dataset.sp; if (!sp) return;
+            if (sp === 'renomear') { doRename(); return; }
+            const btn = e.target.closest('[data-sp="apagar"]');
+            if (btn.dataset.armado === '1') { try { await apagarMarco(id, key); fecharSeloPop(); } catch (_) { if (window.mostrarToast) mostrarToast('Erro ao apagar marco.', 'erro'); } }
+            else { btn.dataset.armado = '1'; btn.classList.add('btn-del-marco-confirmar'); btn.innerHTML = 'apagar?';
+                   setTimeout(() => { if (btn.isConnected) { btn.dataset.armado = '0'; btn.classList.remove('btn-del-marco-confirmar'); btn.innerHTML = '<i data-lucide="trash-2"></i>'; if (window.lucide) lucide.createIcons(); } }, 3000); }
+        });
+        if (window.lucide) lucide.createIcons();
     }
 
     // ── §4.1: Feixe holográfico ───────────────────────────────────────────────────────────────────
@@ -723,6 +820,7 @@
     // (Sinapses + Editar/Mudar núcleo/Deletar). Congela o disco enquanto aberto p/ o feixe ficar ancorado.
     // As mutações passam pelo `API.onMutacao` → `recarregar` → `montarAstrolabio` → `fecharFeixe` (auto).
     function fecharFeixe() {
+        if (seloPop) fecharSeloPop();                // popover do selo e feixe são mutuamente exclusivos
         if (feixeEl) { feixeEl.remove(); feixeEl = null; }
         astroViewport?.classList.remove('astro-congelado');
     }
@@ -766,6 +864,7 @@
                     <button class="btn btn-outline btn-sm" data-fx="historia"><i data-lucide="scroll-text"></i> História</button>
                     <button class="btn btn-outline btn-sm" data-fx="reputacao"><i data-lucide="gem"></i> Reputação</button>
                     <button class="btn btn-outline btn-sm" data-fx="sinapses"><i data-lucide="share-2"></i> Sinapses</button>
+                    <button class="btn btn-outline btn-sm" data-fx="marcos"><i data-lucide="flag"></i> Marcos</button>
                     <button class="btn btn-outline btn-sm" data-fx="editar"><i data-lucide="edit"></i> Editar nome</button>
                     <button class="btn btn-outline btn-sm" data-fx="mover"><i data-lucide="map-pin"></i> Mudar núcleo</button>
                     <button class="btn btn-outline btn-sm btn-del" data-fx="deletar"><i data-lucide="trash"></i> Deletar</button>
@@ -782,6 +881,7 @@
             else if (fx === 'historia') feixeHistoria(wrap, id);
             else if (fx === 'reputacao') feixeReputacao(wrap, id);
             else if (fx === 'sinapses') { if (window.abrirModalSinapses) window.abrirModalSinapses(id); }
+            else if (fx === 'marcos') feixeMarcos(wrap, id);
             else if (fx === 'editar') feixeEditarNome(wrap, id, ent.nome);
             else if (fx === 'mover') feixeMoverNucleo(wrap, id);
             else if (fx === 'deletar') feixeDeletar(e.target.closest('[data-fx]'), id, ent.nome);
@@ -812,6 +912,80 @@
             } catch (_) { if (window.mostrarToast) mostrarToast('Erro ao salvar a história.', 'erro'); }
         });
         if (window.lucide) lucide.createIcons();
+    }
+
+    // ── §F1b: Marcos no feixe — superfície SOBERANA de gestão no-code (add/toggle/renomear/apagar).
+    // As flags já vêm no snapshot (cache `entidadesAtual`) → render direto, SEM fetch (Regra 2.3).
+    // Reusa a camada única de mutação; um único listener delegado no box (Regra 2.9). ──────────────────
+    function marcoLinhaHTML(f) {
+        return `<div class="fx-marco" data-key="${escapeHTML(f.key)}">
+            <button type="button" class="fx-marco-toggle${f.value ? ' aceso' : ''}" data-mc="toggle" title="${f.value ? 'Ligado — clique p/ desligar' : 'Desligado — clique p/ ligar'}"><i data-lucide="${f.value ? 'check-circle-2' : 'circle'}"></i></button>
+            <span class="fx-marco-nome">${escapeHTML(humanizarFlag(f.key))}</span>
+            <button type="button" class="btn-ghost fx-marco-edit" data-mc="renomear" title="Renomear"><i data-lucide="pencil"></i></button>
+            <button type="button" class="btn-ghost fx-marco-del" data-mc="apagar" title="Apagar"><i data-lucide="x"></i></button>
+        </div>`;
+    }
+
+    function feixeMarcos(wrap, id) {
+        const sub = wrap.querySelector('.feixe-sub'); if (!sub) return;
+        sub.innerHTML = '';
+        const box = document.createElement('div');
+        box.className = 'fx-marcos-box';
+        sub.appendChild(box);
+
+        const desenhar = () => {
+            const ent = entidadesAtual.find((x) => String(x.id) === String(id));
+            const fs = (ent && ent.flags || []).filter((f) => f && f.key);
+            box.innerHTML = `
+                <div class="fx-marcos-lista">${fs.map(marcoLinhaHTML).join('') || '<p class="feixe-tipo fx-marcos-vazio">Sem marcos ainda.</p>'}</div>
+                <input type="text" class="input-sm input-full fx-marco-novo" maxlength="60" placeholder="+ Novo marco (Enter)">`;
+            if (window.lucide) lucide.createIcons();
+        };
+        desenhar();
+
+        // Um único ponto de escuta delegado no box (Regra 2.9) — sobrevive aos re-renders do innerHTML.
+        box.addEventListener('click', async (e) => {
+            const linha = e.target.closest('.fx-marco');
+            const act = e.target.closest('[data-mc]') && e.target.closest('[data-mc]').dataset.mc;
+            if (!linha || !act) return;
+            const key = linha.dataset.key;
+            if (act === 'toggle') {
+                const f = (flagsDe(id) || []).find((x) => x.key === key); if (!f) return;
+                try { await setMarco(id, key, !f.value); ressincronizarSelos(id); desenhar(); }
+                catch (_) { if (window.mostrarToast) mostrarToast('Erro ao alternar o marco.', 'erro'); }
+            } else if (act === 'renomear') {
+                const nomeEl = linha.querySelector('.fx-marco-nome');
+                nomeEl.innerHTML = `<input type="text" class="input-sm fx-marco-rename" maxlength="60" value="${escapeHTML(humanizarFlag(key))}">`;
+                const inp = nomeEl.querySelector('input'); inp.focus(); inp.select();
+                let done = false;
+                const salvar = async () => {
+                    if (done) return; done = true;
+                    const novo = inp.value.trim();
+                    if (!novo || marcoNorm(novo) === key) return desenhar();
+                    try { await renomearMarco(id, key, novo); } catch (_) { if (window.mostrarToast) mostrarToast('Erro ao renomear marco.', 'erro'); }
+                    desenhar();
+                };
+                inp.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') salvar(); else if (ev.key === 'Escape') { done = true; desenhar(); } });
+                inp.addEventListener('blur', salvar);
+            } else if (act === 'apagar') {
+                const btn = e.target.closest('[data-mc="apagar"]');
+                if (btn.dataset.armado === '1') {
+                    try { await apagarMarco(id, key); } catch (_) { if (window.mostrarToast) mostrarToast('Erro ao apagar marco.', 'erro'); }
+                    desenhar();
+                } else {
+                    btn.dataset.armado = '1'; btn.classList.add('btn-del-marco-confirmar'); btn.innerHTML = 'apagar?';
+                    setTimeout(() => { if (btn.isConnected) { btn.dataset.armado = '0'; btn.classList.remove('btn-del-marco-confirmar'); btn.innerHTML = '<i data-lucide="x"></i>'; if (window.lucide) lucide.createIcons(); } }, 3000);
+                }
+            }
+        });
+        box.addEventListener('keydown', async (e) => {
+            if (e.key !== 'Enter' || !e.target.classList || !e.target.classList.contains('fx-marco-novo')) return;
+            e.preventDefault();
+            const nome = e.target.value.trim(); if (!nome) return;
+            e.target.value = '';
+            try { await criarMarco(id, nome); desenhar(); box.querySelector('.fx-marco-novo') && box.querySelector('.fx-marco-novo').focus(); }
+            catch (err) { e.target.value = nome; if (window.mostrarToast) mostrarToast(err.message || 'Erro ao criar marco.', 'erro'); }
+        });
     }
 
     // ── Reputação no feixe (reputacao.md Fatia 2): ledger de fama/infâmia (-10..+10) com barra+agulha

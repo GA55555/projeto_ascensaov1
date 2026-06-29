@@ -8,22 +8,23 @@
 
 ## 🔖 Retomada rápida (próxima sessão)
 
-> **Onde paramos (código COMMITADO em `dbd0665a`, branch `sandbox`; só esta nota de retomada está por commitar):**
+> **Onde paramos (código COMMITADO em `dbd0665a`, branch `sandbox`; F1b + esta nota estão por commitar):**
 > - **Reputação — COMPLETA (F1–F4)** (guia `reputacao.md`): ledger no feixe, RAG, aura no orbe, amplifica a
 >   facção. Só falta **smoke ao vivo + calibrar** constantes (`REP_FATOR=0.6`, `--rep-blur/-bright`, tiers).
-> - **Constelação Soberana — F1 parcial:** **selos de marco no orbe + toggle** prontos (§7). O orbe agora tem
->   4 camadas: raio=relevância · anel=afinidade · aura=reputação · **selos=marcos**.
+> - **Constelação Soberana — F1 + F1b FEITAS (estático):** selos de marco no orbe + toggle (F1) e agora a
+>   **gestão no-code completa** (F1b, §7): sub-painel "Marcos" no feixe (add/toggle/renomear/apagar) +
+>   popover de long-press no selo (renomear/apagar inline, disco congelado). O orbe tem 4 camadas:
+>   raio=relevância · anel=afinidade · aura=reputação · **selos=marcos**.
 >
-> **Aguardando do Narrador (smoke da F1):** (1) os selos leem bem (aceso/apagado)? (2) dá pra clicar num selo
-> com o orbe girando devagar? (3) como fica com 10+ marcos? → as respostas calibram a F1b.
+> **Aguardando do Narrador (smoke da F1b):** (1) o botão "Marcos" no feixe lista/cria/renomeia/apaga bem?
+> (2) o long-press no selo (~380ms) abre o popover e congela o disco como esperado? (3) o clique curto no
+> selo ainda só alterna (sem abrir popover por engano)? (4) densidade com 10+ marcos no sub-painel/anel?
 >
 > **Próximos passos, em ordem:**
-> 1. **Soberana F1b** — adicionar/renomear/apagar marco *no-code* pelo orbe (popover ancorado + congelar o
->    disco enquanto edita). Depende do smoke da F1.
-> 2. **Soberana F2** — wiring marco→evento no feixe (`event_flag_weights`; vincular/pesar gatilhos).
-> 3. **Soberana F3** — migrar foto/avatar + **busca que foca a entidade** (não haverá lista) e **remover a
+> 1. **Soberana F2** — wiring marco→evento no feixe (`event_flag_weights`; vincular/pesar gatilhos). Próxima fatia.
+> 2. **Soberana F3** — migrar foto/avatar + **busca que foca a entidade** (não haverá lista) e **remover a
 >    Grelha** (`renderizarGridMundo`/`cardMundoHTML`/botão `data-view="grid"`); Constelação vira o padrão.
-> 4. **Reputação** — fechar o smoke ao vivo + calibração (paralelo, quando o Narrador testar).
+> 3. **Reputação** — fechar o smoke ao vivo + calibração (paralelo, quando o Narrador testar).
 >
 > **Decisões abertas a resolver no início das fatias:** densidade de selos (2ª fileira?); ergonomia do clique
 > em orbe que orbita; busca sem lista; avatar no feixe; UI do peso de eventos no painel estreito (§5).
@@ -84,7 +85,7 @@ Sinapses, Editar nome, Mudar núcleo, Deletar). Esta fase **aposenta a Grelha** 
 
 ## 4. Roadmap (fatiado — construir os substitutos ANTES de remover a Grelha, Regra 5.2)
 
-### 🍕 Fatia 1 — Marcos como camada visual no orbe (no-code)  ⏳ **selos+toggle FEITOS (§7); add/renomear/apagar = F1b**
+### 🍕 Fatia 1 — Marcos como camada visual no orbe (no-code)  ✅ **F1 (selos+toggle) + F1b (add/renomear/apagar) FEITAS (§7)**
 - **Snapshot:** `listarConstelacao` passa a incluir `flags` por entidade (são leves: `{key,value}`). Alternativa
   lazy: buscar flags ao focar o núcleo. (Decidir em §5.)
 - **Orbe:** render dos marcos como **selos** ao redor do orbe (aceso/apagado). **Hover** = nome do marco
@@ -144,6 +145,24 @@ Sinapses, Editar nome, Mudar núcleo, Deletar). Esta fase **aposenta a Grelha** 
 - **CSS:** `.astro-marco-seal` redondo por **clip-path** (tema Neovim zera radius), cor `--destaque` (não
   colide com ouro/vermelho dos outros canais). Cache `constelacao.js?v=23`, `global_ui.css?v=27`. node --check
   + boot + CSS balanceado ok.
-- **F1b (próxima):** **adicionar/renomear/apagar** marco no-code pelo orbe (popover ancorado, congelar o disco
-  enquanto edita). Aguarda smoke da ergonomia dos selos (clicar em orbe que orbita; densidade com muitos marcos).
-- **Smoke ao vivo PENDENTE** (Narrador testa agora).
+- **Smoke ao vivo da F1 PENDENTE** (validar junto da F1b).
+
+### 🍕 Fatia 1b — Gestão no-code de marcos (✅ feito, validado estaticamente)
+Decisão do Narrador: **as duas superfícies** (sub-painel no feixe + popover no selo), com camada de mutação
+**única** (Regra 2.9 + DRY) chamada por ambas.
+- **Camada única (`constelacao.js`):** `marcoNorm` (espelha o backend: trim+lower+`_`), `flagsDe`,
+  `criarMarco`/`renomearMarco`/`apagarMarco`/`setMarco` — cada uma mantém o cache `entidadesAtual` coerente e
+  chama `ressincronizarSelos(id)` (re-desenha só o anel do orbe, sem refazer o disco). `toggleMarcoSeal`
+  passou a delegar a `setMarco`. **Renomear envia a chave JÁ normalizada** como `novo_nome` (o backend grava
+  cru) → mantém a convenção de underscore que o `humanizarFlag` assume.
+- **Superfície 1 — sub-painel "Marcos" no feixe (soberana):** botão `data-fx="marcos"` → `feixeMarcos`. Lista
+  vinda do cache (flags já no snapshot → **sem fetch**, Regra 2.3): cada linha = toggle (círculo/✓ via Lucide) +
+  nome + renomear (inline) + apagar (2 passos "apagar?" 3s). Input `+ Novo marco (Enter)` encadeia. Um **único**
+  listener delegado no box (Regra 2.9).
+- **Superfície 2 — popover de long-press no selo:** segurar ~380ms no selo (em `ligarAstroDrag`) **congela o
+  disco** e abre `abrirSeloPopover` ancorado ao selo (input renomear + apagar 2 passos). **Clique curto continua
+  só toggle**; mover vira arrasto e cancela o long-press. `fecharFeixe` fecha o popover (mutuamente exclusivos).
+- **CSS (`global_ui.css`):** `.fx-marco*` (sub-painel) e `.selo-pop*` (popover) só com tokens (Regra 2.5);
+  delete confirmado reusa `.btn-del-marco-confirmar` (DRY). Versões: `constelacao.js?v=24`, `global_ui.css?v=28`.
+  `node --check` ✓ · CSS balanceado (861/861) ✓ · sem emojis/inline-estético novos ✓.
+- **Smoke ao vivo PENDENTE** (Narrador testa agora — ver as 4 perguntas na Retomada).
