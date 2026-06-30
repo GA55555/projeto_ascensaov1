@@ -62,6 +62,8 @@ const API = {
     }
 };
 
+window.API = API;
+
 const RPGIcons = {
     cache: new Map(),
     async carregar(nome) {
