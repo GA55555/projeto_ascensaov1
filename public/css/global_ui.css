@@ -1778,6 +1778,19 @@ label {
     min-height: 400px;
 }
 
+.pagina-perfil { max-width: 1200px; margin: 40px auto; padding: 20px; }
+.perfil-nome { margin: 0; color: var(--texto-claro); }
+.perfil-subtitulo { color: var(--texto-mutado); font-size: 14px; margin: 4px 0 8px 0; }
+.coluna-papel-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+.coluna-papel-head h3 { margin: 0; }
+.coluna-papel-titulo--narrador { color: var(--roxo-mago); }
+.coluna-papel-titulo--jogador  { color: var(--destaque); }
+
 .card-item {
     background: var(--bg-principal);
     border: 1px solid var(--borda);
@@ -1800,6 +1813,96 @@ label {
     background: rgba(16, 185, 129, 0.2);
     color: var(--destaque);
 }
+.status-pausada {
+    background: rgba(245, 158, 11, 0.2);
+    color: var(--aviso);
+}
+.status-finalizada {
+    background: rgba(239, 68, 68, 0.2);
+    color: var(--erro);
+}
+
+/* ── HUB DE CRÔNICAS (profile) ─────────────────────────── */
+.cronica-vazio { color: var(--texto-mutado); font-size: 14px; }
+.cronica-info { flex: 1; }
+.cronica-nome { color: var(--texto-claro); }
+.cronica-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+}
+.cronica-sistema {
+    color: var(--texto-mutado);
+    font-size: 12px;
+    margin: 4px 0 0 0;
+}
+.cronica-aviso-exclusao {
+    font-size: 10px;
+    color: var(--erro);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+.cronica-aviso-exclusao i { width: 12px; height: 12px; }
+.cronica-acoes {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+/* Menu de contexto (kebab) do card — ações secundárias/destrutivas escondidas (Regra 7.2) */
+.cronica-menu { position: relative; margin-left: 5px; }
+.cronica-menu-toggle {
+    background: transparent;
+    border: 1px solid var(--borda);
+    color: var(--texto-claro);
+    padding: 3px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    transition: var(--transicao-suave);
+}
+.cronica-menu-toggle:hover {
+    border-color: var(--texto-claro);
+    background: var(--bg-afundado);
+}
+.cronica-menu-toggle i { width: 14px; height: 14px; }
+.cronica-menu-lista {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 4px;
+    background: var(--bg-card);
+    border: 1px solid var(--borda);
+    border-radius: 4px;
+    z-index: 100;
+    min-width: 140px;
+    box-shadow: 0 4px 12px var(--sombra-profunda);
+    overflow: hidden;
+}
+.cronica-menu.aberto .cronica-menu-lista { display: block; }
+.cronica-menu-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--texto-claro);
+    transition: var(--transicao-suave);
+}
+.cronica-menu-item:hover { background: var(--bg-afundado); }
+.cronica-menu-item--ativar    { color: var(--destaque); }
+.cronica-menu-item--pausar    { color: var(--aviso); }
+.cronica-menu-item--finalizar { color: var(--erro); }
+.cronica-menu-item--deletar {
+    color: var(--erro);
+    border-top: 1px solid var(--borda);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.cronica-menu-item--deletar i { width: 13px; height: 13px; }
 
 /* ── CONFIG PERFIL ─────────────────────────────────────── */
 .preview-identidade {
