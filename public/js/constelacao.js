@@ -1235,7 +1235,7 @@
         const ta = sub.querySelector('.feixe-historia');
         (async () => {
             try {
-                const res = await API.fetch(`/cronicas/${cronicaAtual}/nodes/${id}/historia`);
+                const res = await API.fetch(`/cronicas/${cronicaAtual}/nodes/${id}/historia?_=${Date.now()}`); // anti-cache: relê fresco ao reabrir (senão o navegador serve a versão antiga até um F5)
                 const j = res.ok ? await res.json() : { historia: '' };
                 ta.value = j.historia || '';
             } catch (_) { ta.value = ''; }
@@ -1447,7 +1447,7 @@
 
         const carregar = async () => {
             try {
-                const res = await API.fetch(`/cronicas/${cronicaAtual}/nodes/${id}/reputacao`);
+                const res = await API.fetch(`/cronicas/${cronicaAtual}/nodes/${id}/reputacao?_=${Date.now()}`); // anti-cache: relê fresco ao reabrir (mesmo motivo da História)
                 renderReputacao(box, res.ok ? await res.json() : VAZIO);
             } catch (_) { box.innerHTML = '<p class="feixe-tipo">Erro ao carregar a reputação.</p>'; }
         };
