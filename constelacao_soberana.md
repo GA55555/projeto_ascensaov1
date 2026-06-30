@@ -285,6 +285,17 @@ Direção de Cena** (`toggleExpandirAtor` expande os `.ator-card` com os mesmos 
 > **🎉 Fase Constelação Soberana COMPLETA (F1 · F1b · F1c · F1d · F2 · F3).** A Constelação é a superfície
 > soberana de gestão de entidades; a Grelha foi aposentada.
 
+### 🧹 Pós-fase: limpeza da toolbar do Mundo (✅ feito)
+Review (pedido do Narrador) → a Direção de Cena tem toolbar **própria** (`.cena-toolbar`: Nova + filtro de
+elenco) e o Escudo usa IDs `-escudo` separados. Removidos da toolbar do Mundo (só-HTML, baixo risco): **select
+de núcleo**, **busca por nome**, botões **Núcleos / Diplomacia / Forjar Entidade** — todos com equivalente
+nativo na Constelação. Sobra na toolbar só o seletor de lente (Constelação / Direção de Cena).
+- **Mantidos de propósito (NÃO eram órfãos):** `abrirModalDiplomacia`/`modal-diplomacia` (a Constelação reusa
+  no `#cf-diplo` da config do núcleo, `constelacao.js:482`); `gerenciarNucleos` (Eventos/Sessões usam). Leituras
+  de `#filtro-nucleo-entidade`/`#busca-mundo` em mutações usam `?.value` → viram "carregar tudo" (correto).
+- **Inertes restantes (dead, inofensivos):** `aplicarFiltrosMundo` e `modal-forja` ficam sem caller — podem
+  sair numa limpeza futura (com review). `node --check` ✓.
+
 ### 🪐 Polimento do Astrolábio 3D — esferas sem distorção + movimento lento (✅ feito)
 Feedback: ao **arrastar** o disco as esferas (orbes 2D) distorciam, e o movimento estava rápido demais.
 - **Causa:** o billboard (`astro-levanta` + `astro-encara`) cancelava só o **tilt** e a **órbita**, mas não o

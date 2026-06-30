@@ -33,17 +33,13 @@
     <div class="secao-toolbar">
         <h3 class="texto-destaque">Entidades do Mundo</h3>
         <div class="toolbar-acoes">
+            <!-- F3.3+: toolbar enxuta — só o seletor de lente. Criar/gerir núcleo, diplomacia, forjar entidade,
+                 filtro e busca migraram para a própria Constelação (clica-segura, arrasto de âncora, combobox);
+                 a Direção de Cena tem a sua toolbar própria (.cena-toolbar). -->
             <div class="btn-group view-toggle">
                 <button class="btn btn-sm active" data-view="constelacao"><i data-lucide="orbit"></i> Constelação</button>
                 <button class="btn btn-sm" data-view="cena"><i data-lucide="clapperboard"></i> Direção de Cena</button>
             </div>
-            <select id="filtro-nucleo-entidade" onchange="aplicarFiltrosMundo()">
-                <option value="">Todos os núcleos</option>
-            </select>
-            <input type="text" id="busca-mundo" placeholder="Filtrar por nome..." oninput="aplicarFiltrosMundo()" class="input-busca">
-            <button class="btn btn-primary btn-sm" onclick="gerenciarNucleos('entidade')"><i data-lucide="settings"></i> Núcleos</button>
-            <button class="btn btn-primary btn-sm" onclick="abrirModalDiplomacia()"><i data-lucide="handshake"></i> Diplomacia</button>
-            <button class="btn btn-primary" onclick="abrirModal('modal-forja')">+ Forjar Entidade</button>
         </div>
     </div>
     <!-- Container mestre da Lente Tática: recebe a Grelha clássica OU as colunas Kanban -->
