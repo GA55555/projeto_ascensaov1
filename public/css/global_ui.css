@@ -4170,11 +4170,31 @@ input[type="radio"] {
     background: var(--azul-vida); border: 2px solid var(--bg-principal); cursor: crosshair; display: none;
 }
 .constelacao-orbe:hover .constelacao-orbe-ancora { display: block; }
+/* Botão de Diplomacia do núcleo: canto SUPERIOR ESQUERDO (não cobre a carta/tarot no canto direito). */
+.constelacao-orbe-diplo {
+    position: absolute; top: -7px; left: -7px; width: 22px; height: 22px; padding: 0; display: none;
+    align-items: center; justify-content: center; cursor: pointer;
+    background: var(--bg-card); color: var(--texto-claro); border: 1px solid var(--borda); border-radius: 50%;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45); transition: color var(--transicao-suave), border-color var(--transicao-suave);
+}
+.constelacao-orbe:hover .constelacao-orbe-diplo { display: inline-flex; }
+.constelacao-orbe-diplo:hover { color: var(--destaque); border-color: var(--destaque); }
+.constelacao-orbe-diplo i { width: 13px; height: 13px; }
 .constelacao-linha-temp { stroke: var(--azul-vida); stroke-width: 2.5; stroke-dasharray: 6 4; }
 .dip-par { text-align: center; font-size: 1rem; margin: 4px 0 10px; display: flex; align-items: center; justify-content: center; gap: 8px; }
 .dip-opcoes { display: flex; gap: 8px; justify-content: center; }
 .dip-opcoes .btn { flex: 1; }
 .dip-remover { display: block; margin: 10px auto 0; }
+/* §UX: caixa "Diplomacia de [núcleo]" — lista de outros núcleos + status (Aliado/Neutro/Inimigo). */
+.dip-lista { display: flex; flex-direction: column; gap: 2px; max-height: 340px; overflow-y: auto; margin-top: 8px; }
+.dip-linha { display: flex; align-items: center; gap: 10px; justify-content: space-between; padding: 6px 4px; border-bottom: 1px solid var(--borda); }
+.dip-nome { flex: 1; min-width: 0; font-family: 'Cormorant Garamond', serif; font-size: 1.02rem; color: var(--texto-claro); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dip-acoes { display: inline-flex; gap: 4px; flex-shrink: 0; }
+.dip-opt { padding: 4px 8px; }
+.dip-opt i { width: 14px; height: 14px; }
+.dip-opt.sel.dip-aliado { background: var(--dourado); color: var(--bg-principal); border-color: var(--dourado); }
+.dip-opt.sel.dip-inimigo { background: var(--link-inimigo); color: var(--bg-principal); border-color: var(--link-inimigo); }
+.dip-opt.sel.dip-neutro { background: var(--texto-mutado); color: var(--bg-principal); border-color: var(--texto-mutado); }
 /* Nome sob demanda: plaqueta glass que surge abaixo do orbe no hover (repouso = só a esfera). */
 .constelacao-orbe-nome {
     position: absolute; top: calc(100% + 7px); left: 50%; transform: translate(-50%, 4px); white-space: nowrap;

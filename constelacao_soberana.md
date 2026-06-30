@@ -290,6 +290,21 @@ Direção de Cena** (`toggleExpandirAtor` expande os `.ator-card` com os mesmos 
 > **🎉 Fase Constelação Soberana COMPLETA (F1 · F1b · F1c · F1d · F2 · F3).** A Constelação é a superfície
 > soberana de gestão de entidades; a Grelha foi aposentada.
 
+### 🤝 Pós-fase: Diplomacia no-code no mapa macro (✅ feito)
+Problemas do Narrador: (1) a **âncora de conexão** (`--azul-vida`, hover) ficava no **mesmo canto** do selo do
+tarot (sup. direito) → parecia "quadrado verde sobre o número da carta"; (2)/(3) faltava jeito fácil/no-code de
+criar vínculos diplomáticos entre núcleos. Decisões: **botão handshake no hover** (canto sup. esquerdo, livre da
+carta) + **caixa com a lista dos outros núcleos**.
+- **Colisão resolvida:** a âncora de arrasto saiu; cada orbe ganha `.constelacao-orbe-diplo` (botão Lucide
+  `handshake`) no canto **sup. esquerdo** (a carta segue no sup. direito). `montar()` agora chama
+  `lucide.createIcons()`.
+- **Caixa `abrirDiplomaciaNucleo(id)`:** modal "Diplomacia de [núcleo]" lista os outros núcleos, cada um com
+  Aliado/Neutro/Inimigo (atual realçado; clicar no ativo remove o laço). Otimista em `diplomaciaAtual` +
+  persiste via `definirDiplomaciaEntre` (bulk-replace → `onMutacao`/recarregar re-desenha as linhas do mapa).
+- **Gatilho:** clique no botão (no `pointerdown`, fora do drag/foco) — single-clique no orbe segue = foco.
+- **Dead/inofensivo:** o caminho de arrasto-âncora (`conectandoDe`, temp-line, `abrirPickerDiplomacia`) ficou
+  sem gatilho (limpável depois). `node --check` ✓ · CSS 974/974 ✓. `constelacao.js?v=37`, `global_ui.css?v=40`.
+
 ### 🧹 Pós-fase: limpeza da toolbar do Mundo (✅ feito)
 Review (pedido do Narrador) → a Direção de Cena tem toolbar **própria** (`.cena-toolbar`: Nova + filtro de
 elenco) e o Escudo usa IDs `-escudo` separados. Removidos da toolbar do Mundo (só-HTML, baixo risco): **select

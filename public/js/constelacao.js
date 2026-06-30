@@ -120,10 +120,11 @@
                 : '';
             // Orbe arcano: camadas decorativas (plasma girando + núcleo pulsando + vidro esférico fixo)
             // são pointer-events:none → o clique/arrasto continua caindo no .constelacao-orbe. Nome só no hover.
-            div.innerHTML = `<span class="orbe-esfera"><span class="orbe-plasma"></span><span class="orbe-nucleo"></span><span class="orbe-vidro"></span></span>${selo}<span class="constelacao-orbe-ancora" title="Arraste até outro núcleo para definir a diplomacia"></span><span class="constelacao-orbe-nome">${escapeHTML(o.nome)}</span>`;
+            div.innerHTML = `<span class="orbe-esfera"><span class="orbe-plasma"></span><span class="orbe-nucleo"></span><span class="orbe-vidro"></span></span>${selo}<button class="constelacao-orbe-diplo" title="Diplomacia deste núcleo"><i data-lucide="handshake"></i></button><span class="constelacao-orbe-nome">${escapeHTML(o.nome)}</span>`;
             wo.appendChild(div);
             orbeEl.set(o.id, div);
         }
+        if (window.lucide) lucide.createIcons();   // ícone do botão de diplomacia nos orbes
         desenhar();
         if (focoId) { const sol = orbes.find((o) => o.id === focoId); if (sol) { orbeEl.get(focoId)?.classList.add('is-sol'); canvas()?.classList.add('em-foco', 'astro-on'); montarAstrolabio(); } else sairFoco(); }
     }
@@ -190,12 +191,11 @@
 
         c.addEventListener('pointerdown', (e) => {
             if (e.target.closest && e.target.closest('.constelacao-controles')) return; // controles não pan/criam
-            // Âncora (borda do orbe): inicia um arrasto de CONEXÃO (→ diplomacia), não move o orbe.
-            const ancora = e.target.closest && e.target.closest('.constelacao-orbe-ancora');
-            if (ancora) {
-                const od = ancora.closest('.constelacao-orbe');
-                const o = od && orbes.find((x) => x.id === od.dataset.id);
-                if (o) { conectandoDe = o; criarTempLinha(); c.setPointerCapture(e.pointerId); }
+            // Botão de Diplomacia (hover do orbe): abre a caixa de diplomacia do núcleo (não move/foca).
+            const btnDiplo = e.target.closest && e.target.closest('.constelacao-orbe-diplo');
+            if (btnDiplo) {
+                const od = btnDiplo.closest('.constelacao-orbe');
+                if (od && od.dataset.id) abrirDiplomaciaNucleo(od.dataset.id);
                 return;
             }
             const orbeDiv = e.target.closest && e.target.closest('.constelacao-orbe');
@@ -1583,6 +1583,50 @@
             const res = await API.fetch(`/cronicas/${cronicaAtual}/diplomacia`, { method: 'PUT', body: JSON.stringify({ relacoes: base }) });
             if (!res.ok) throw new Error('falha'); // o API.onMutacao recarrega a constelação
         } catch (_) { if (window.mostrarToast) mostrarToast('Erro ao salvar a diplomacia.', 'erro'); }
+    }
+
+    const statusEntre = (aId, bId) => { const d = diplomaciaAtual.find((x) => mesmoPar(x, aId, bId)); return d ? d.status : ''; };
+
+    // §UX: caixa de Diplomacia de UM núcleo (no-code) — lista os outros núcleos, cada um com Aliado/Neutro/
+    // Inimigo (o atual realçado). Clique define/atualiza o laço; clicar no status já ativo remove. Otimista
+    // (diplomaciaAtual) + persiste via definirDiplomaciaEntre (onMutacao → recarregar re-desenha as linhas).
+    function abrirDiplomaciaNucleo(id) {
+        const a = orbes.find((o) => o.id === String(id)); if (!a) return;
+        const modal = document.createElement('div');
+        modal.className = 'modal show';
+        modal.innerHTML = `<div class="modal-box modal-box-md">
+            <div class="modal-head">
+                <h3 class="texto-roxo modal-titulo"><i data-lucide="handshake"></i> Diplomacia de ${escapeHTML(a.nome)}</h3>
+                <button class="btn btn-ghost btn-sm" data-fechar title="Fechar"><i data-lucide="x"></i></button>
+            </div>
+            <div class="dip-lista"></div></div>`;
+        document.body.appendChild(modal);
+        const lista = modal.querySelector('.dip-lista');
+        const opt = (bId, val, ic, lbl, cls, atual) => `<button type="button" class="btn btn-outline btn-sm dip-opt ${cls}${atual === val ? ' sel' : ''}" data-alvo="${escapeHTML(bId)}" data-status="${val}" title="${lbl}"><i data-lucide="${ic}"></i></button>`;
+        const desenhar = () => {
+            const outros = orbes.filter((o) => o.id !== String(id));
+            lista.innerHTML = outros.length ? outros.map((b) => {
+                const st = statusEntre(id, b.id);
+                return `<div class="dip-linha"><span class="dip-nome">${escapeHTML(b.nome)}</span><span class="dip-acoes">
+                    ${opt(b.id, 'aliado', 'heart', 'Aliado', 'dip-aliado', st)}
+                    ${opt(b.id, 'neutro', 'minus', 'Neutro', 'dip-neutro', st)}
+                    ${opt(b.id, 'inimigo', 'swords', 'Inimigo', 'dip-inimigo', st)}
+                </span></div>`;
+            }).join('') : '<p class="feixe-tipo">Não há outros núcleos para relacionar.</p>';
+            if (window.lucide) lucide.createIcons();
+        };
+        desenhar();
+        const fechar = () => modal.remove();
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal || (e.target.closest && e.target.closest('[data-fechar]'))) return fechar();
+            const btn = e.target.closest && e.target.closest('.dip-opt'); if (!btn) return;
+            const alvo = btn.dataset.alvo, status = btn.dataset.status;
+            const novo = (statusEntre(id, alvo) === status) ? null : status;     // toggle: clicar no ativo remove o laço
+            diplomaciaAtual = diplomaciaAtual.filter((d) => !mesmoPar(d, id, alvo));
+            if (novo) diplomaciaAtual.push({ a: String(id), b: String(alvo), status: novo });
+            desenhar();                                                          // feedback otimista imediato
+            definirDiplomaciaEntre(id, alvo, novo);                             // persiste + re-desenha as linhas do mapa
+        });
     }
 
     function abrirPickerDiplomacia(aId, bId) {
