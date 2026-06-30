@@ -4137,26 +4137,21 @@ input[type="radio"] {
 }
 .constelacao-foco-barra .cfb-nome { font-family: 'Cormorant Garamond', serif; font-size: 1.05rem; color: var(--destaque); margin-right: 4px; }
 /* §F3 parte 2: busca que foca a entidade/núcleo (combobox flutuante no topo do canvas). */
-/* Minimizada por padrão (só o ícone); expande no hover/foco — o input vai de 0 → 240px. */
+/* Faixa fixa no TOPO do canvas (full-width) — os orbes ficam abaixo, sem sobreposição. Normal (sem hover). */
 .constelacao-busca {
-    position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 6;
-    display: inline-flex; align-items: center; gap: 0; padding: 6px 8px;
-    background: var(--bg-card); border: 1px solid var(--borda); border-radius: 8px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
-    transition: gap var(--transicao-suave);
+    position: absolute; top: 0; left: 0; right: 0; z-index: 6;
+    display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+    background: var(--bg-card); border-bottom: 1px solid var(--borda); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
 }
-.constelacao-busca:hover, .constelacao-busca:focus-within { gap: 6px; }
-.constelacao-busca > i { width: 17px; height: 17px; color: var(--texto-mutado); flex-shrink: 0; cursor: pointer; transition: color var(--transicao-suave); }
-.constelacao-busca:hover > i, .constelacao-busca:focus-within > i { color: var(--texto-claro); }
+.constelacao-busca > i { width: 16px; height: 16px; color: var(--texto-mutado); flex-shrink: 0; }
 .constelacao-busca-input {
-    width: 0; min-width: 0; opacity: 0; padding: 0; border: 0; background: transparent; outline: none;
-    color: var(--texto-claro); font-family: 'Manrope', sans-serif; font-size: 0.82rem;
-    transition: width var(--transicao-suave), opacity var(--transicao-suave);
+    flex: 1; min-width: 0; max-width: 440px; background: transparent; border: 0; outline: none;
+    color: var(--texto-claro); font-family: 'Manrope', sans-serif; font-size: 0.85rem;
 }
-.constelacao-busca:hover .constelacao-busca-input, .constelacao-busca:focus-within .constelacao-busca-input { width: 240px; max-width: 58vw; opacity: 1; }
 .constelacao-busca-input::placeholder { color: var(--texto-mutado); }
 .constelacao-busca-resultados {
-    position: absolute; top: calc(100% + 4px); left: 0; right: 0; max-height: 244px; overflow-y: auto;
-    display: flex; flex-direction: column; gap: 2px; padding: 4px;
+    position: absolute; top: calc(100% + 4px); left: 12px; right: auto; width: 440px; max-width: calc(100% - 24px);
+    max-height: 244px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; padding: 4px;
     background: var(--bg-card); border: 1px solid var(--borda); border-radius: 8px; box-shadow: 0 8px 22px rgba(0, 0, 0, 0.5);
 }
 .cb-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 5px; cursor: pointer; }

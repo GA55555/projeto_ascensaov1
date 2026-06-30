@@ -587,8 +587,6 @@
         const input = document.getElementById('constelacao-busca-input');
         const box = document.getElementById('constelacao-busca-resultados');
         if (!input || !box) return;
-        // Clicar na barra minimizada (ícone) também abre/foca (cobre clique/touch, não só hover). Resultado não.
-        input.closest('.constelacao-busca')?.addEventListener('click', (e) => { if (!e.target.closest('.constelacao-busca-resultados')) input.focus(); });
         const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
         let itens = [], idx = -1;
 
