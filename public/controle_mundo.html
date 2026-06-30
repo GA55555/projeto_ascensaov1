@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Controle de Mundo & Eventos</title>
 
-    <link rel="stylesheet" href="/css/global_ui.css?v=35">
+    <link rel="stylesheet" href="/css/global_ui.css?v=36">
 </head>
 <body>
     <div class="page-container">
@@ -57,6 +57,11 @@
         <div id="constelacao-mundo" class="constelacao-mundo">
             <svg id="constelacao-linhas" class="constelacao-linhas"></svg>
             <div id="constelacao-orbes" class="constelacao-orbes"></div>
+        </div>
+        <div class="constelacao-busca">
+            <i data-lucide="search"></i>
+            <input type="text" id="constelacao-busca-input" class="constelacao-busca-input" placeholder="Buscar entidade ou núcleo…" autocomplete="off" spellcheck="false">
+            <div id="constelacao-busca-resultados" class="constelacao-busca-resultados" hidden></div>
         </div>
         <div class="constelacao-controles">
             <button class="btn btn-primary btn-sm" id="constelacao-salvar"><i data-lucide="save"></i> Salvar layout</button>
@@ -413,7 +418,7 @@
 <script src="/js/reputacaoEscala.js"></script>
 <script src="/js/constelacaoCalc.js?v=2"></script>
 <script src="/js/constelacaoFisica.js"></script>
-<script src="/js/constelacao.js?v=33"></script>
+<script src="/js/constelacao.js?v=34"></script>
 <script src="/js/mundo/mundoUtils.js"></script>
 <script src="/js/mundo/edicaoInline.js"></script>
 <script src="/js/api/mundoApi.js"></script>

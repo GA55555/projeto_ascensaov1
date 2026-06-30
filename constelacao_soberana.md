@@ -250,7 +250,19 @@ Decisão: **miniatura no núcleo do menu** (orbe segue esfera abstrata) + ação
 - **UI:** `.holo-nucleo-foto` no topo do núcleo (foto recortada ou ícone câmera); hover na foto mostra o
   "tirar" (image-off). Só tokens. Versões → `constelacao.js?v=33`, `global_ui.css?v=35`, `controle_mundo.js?v=11`.
 - **Próximas partes da F3:** (2) busca-que-foca a entidade · (3) aposentar a Grelha + Constelação padrão.
-- **Smoke ao vivo PENDENTE** (enviar/trocar/tirar foto; miniatura aparece e persiste no reload).
+- **Smoke — aprovado pelo Narrador** ("rodou perfeitamente").
+
+### 🔎 Fatia 3 — parte 2/3: Busca que foca (✅ feito, validado estaticamente)
+Decisão: ao escolher, **foca + abre o menu** da entidade; busca encontra **entidades + núcleos**.
+- **UI:** combobox flutuante `.constelacao-busca` no topo do canvas (sempre visível na lente); a `foco-barra`
+  desceu p/ `top:54px` p/ não colidir. Dropdown com nome + sub (núcleo/«núcleo»), ícone user/globe.
+- **Lógica (`ligarBusca`/`irPara`):** filtra `entidadesAtual`/`orbes` por nome **sem acento** (NFD); setas ↑/↓
+  + Enter navegam; clique escolhe. `irPara`: entidade → `sairFoco?`+`focar(núcleo)` (monta o astrolábio,
+  síncrono) → `astro-orbe--achado` (pulso via `filter`) + `abrirFeixe(orbe)`; núcleo → só `focar`. Ligado 1×
+  em `garantirInteracao` (guarda `interacaoPronta`).
+- Versões → `constelacao.js?v=34`, `global_ui.css?v=36`. `node --check` ✓ · CSS 960/960 ✓.
+- **Resta a F3 parte 3:** aposentar a Grelha + Constelação vira o padrão da aba Mundo.
+- **Smoke ao vivo PENDENTE** (buscar entidade foca+pulsa+abre menu; buscar núcleo foca; acento/sem acento).
 
 ### 🪐 Polimento do Astrolábio 3D — esferas sem distorção + movimento lento (✅ feito)
 Feedback: ao **arrastar** o disco as esferas (orbes 2D) distorciam, e o movimento estava rápido demais.

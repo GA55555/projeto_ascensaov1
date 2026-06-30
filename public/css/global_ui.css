@@ -4131,11 +4131,33 @@ input[type="radio"] {
     opacity: 0; transition: opacity var(--transicao-suave), transform var(--transicao-suave);
 }
 .constelacao-foco-barra {
-    position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 5;
+    position: absolute; top: 54px; left: 50%; transform: translateX(-50%); z-index: 5;
     display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px;
     background: var(--bg-card); border: 1px solid var(--borda); border-radius: 8px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
 }
 .constelacao-foco-barra .cfb-nome { font-family: 'Cormorant Garamond', serif; font-size: 1.05rem; color: var(--destaque); margin-right: 4px; }
+/* §F3 parte 2: busca que foca a entidade/núcleo (combobox flutuante no topo do canvas). */
+.constelacao-busca {
+    position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 6; width: 290px; max-width: 72%;
+    display: flex; align-items: center; gap: 6px; padding: 6px 10px;
+    background: var(--bg-card); border: 1px solid var(--borda); border-radius: 8px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+.constelacao-busca > i { width: 15px; height: 15px; color: var(--texto-mutado); flex-shrink: 0; }
+.constelacao-busca-input { flex: 1; min-width: 0; background: transparent; border: 0; outline: none; color: var(--texto-claro); font-family: 'Manrope', sans-serif; font-size: 0.82rem; }
+.constelacao-busca-input::placeholder { color: var(--texto-mutado); }
+.constelacao-busca-resultados {
+    position: absolute; top: calc(100% + 4px); left: 0; right: 0; max-height: 244px; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 2px; padding: 4px;
+    background: var(--bg-card); border: 1px solid var(--borda); border-radius: 8px; box-shadow: 0 8px 22px rgba(0, 0, 0, 0.5);
+}
+.cb-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 5px; cursor: pointer; }
+.cb-item:hover, .cb-item.sel { background: var(--bg-afundado); }
+.cb-item > i { width: 14px; height: 14px; color: var(--texto-mutado); flex-shrink: 0; }
+.cb-nome { flex: 1; min-width: 0; font-size: 0.82rem; color: var(--texto-claro); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cb-sub { font-size: 0.68rem; color: var(--texto-mutado); flex-shrink: 0; }
+/* Pulso de "encontrado" no orbe (busca → foca + acende). filter (não box-shadow) p/ ficar redondo. */
+@keyframes astro-achado { 0%, 100% { filter: drop-shadow(0 0 0 transparent); } 35% { filter: drop-shadow(0 0 11px var(--destaque)); } }
+.astro-orbe--achado .orbe-esfera { animation: astro-achado 0.85s ease-out 2; }
 /* Controles do canvas (Salvar layout) — fixos na tela, fora do world-layer. */
 .constelacao-controles { position: absolute; right: 10px; bottom: 10px; z-index: 5; display: flex; gap: 8px; }
 /* Conectar (F3.4b): âncora na borda do orbe (aparece no hover) + linha temporária do arrasto. */

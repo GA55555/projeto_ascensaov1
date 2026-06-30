@@ -287,6 +287,7 @@
         // Auto-pausa do astrolábio (decisão 7): aba/lente oculta → congela a rotação CSS (sem custo de GPU).
         document.addEventListener('visibilitychange', () => { astroViewport?.classList.toggle('astro-pausado', document.hidden); });
         document.getElementById('constelacao-salvar')?.addEventListener('click', salvarLayout);
+        ligarBusca();   // §F3 parte 2: busca que foca a entidade/núcleo
 
         // Recálculo ao mudar o mundo (paralelo ao da frescura do Oráculo). Só quando a lente está ativa.
         if (window.API && typeof API.onMutacao === 'function') {
@@ -565,6 +566,60 @@
         fecharFeixe(); removerAstrolabio(); removerBarraFoco();
         const c = canvas(); if (c) c.classList.remove('em-foco', 'astro-on');
         iniciarLoop();
+    }
+
+    // ── §F3 parte 2: busca que FOCA a entidade/núcleo (substitui o filtro da Grelha — não há lista) ────
+    // Combobox: filtra entidadesAtual/orbes por nome (sem acento), seta/Enter navegam. Escolher entidade →
+    // foca o núcleo, pulsa o orbe e abre o menu; escolher núcleo → só foca. Acessível só na lente Constelação.
+    function irPara(it) {
+        if (!it) return;
+        const nucId = String(it.nucleo_id);
+        if (focoId !== nucId) { if (focoId) sairFoco(); focar(nucId); }   // entra/troca o foco → monta o astrolábio (síncrono)
+        if (it.tipo === 'nuc') return;
+        const orbe = astroViewport && astroViewport.querySelector(`.astro-orbe[data-ent-id="${it.id}"]`);
+        if (!orbe) return;
+        orbe.classList.add('astro-orbe--achado');
+        setTimeout(() => orbe.classList.remove('astro-orbe--achado'), 1700);
+        abrirFeixe(orbe);                                                  // foca + ABRE o menu da entidade (decisão UX)
+    }
+
+    function ligarBusca() {
+        const input = document.getElementById('constelacao-busca-input');
+        const box = document.getElementById('constelacao-busca-resultados');
+        if (!input || !box) return;
+        const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+        let itens = [], idx = -1;
+
+        const buscar = (q) => {
+            const t = norm(q.trim()); if (!t) return [];
+            const res = [];
+            for (const e of entidadesAtual) if (norm(e.nome).includes(t)) {
+                const nuc = orbes.find((o) => o.id === String(e.nucleo_id));
+                res.push({ tipo: 'ent', id: String(e.id), nucleo_id: String(e.nucleo_id), nome: e.nome, sub: nuc ? nuc.nome : '—' });
+            }
+            for (const o of orbes) if (norm(o.nome).includes(t)) res.push({ tipo: 'nuc', id: String(o.id), nucleo_id: String(o.id), nome: o.nome, sub: 'núcleo' });
+            return res.slice(0, 8);
+        };
+        const render = () => {
+            if (!itens.length) { box.hidden = true; box.innerHTML = ''; return; }
+            box.innerHTML = itens.map((it, i) => `<div class="cb-item${i === idx ? ' sel' : ''}" data-i="${i}">
+                <i data-lucide="${it.tipo === 'nuc' ? 'globe' : 'user'}"></i>
+                <span class="cb-nome">${escapeHTML(it.nome)}</span><span class="cb-sub">${escapeHTML(it.sub)}</span></div>`).join('');
+            box.hidden = false;
+            if (window.lucide) lucide.createIcons();
+        };
+        const fechar = () => { box.hidden = true; box.innerHTML = ''; itens = []; idx = -1; };
+        const escolher = (it) => { if (!it) return; fechar(); input.value = ''; input.blur(); irPara(it); };
+
+        input.addEventListener('input', () => { itens = buscar(input.value); idx = itens.length ? 0 : -1; render(); });
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowDown') { e.preventDefault(); if (itens.length) { idx = (idx + 1) % itens.length; render(); } }
+            else if (e.key === 'ArrowUp') { e.preventDefault(); if (itens.length) { idx = (idx - 1 + itens.length) % itens.length; render(); } }
+            else if (e.key === 'Enter') { e.preventDefault(); escolher(itens[idx] || itens[0]); }
+            else if (e.key === 'Escape') { fechar(); input.value = ''; input.blur(); }
+        });
+        box.addEventListener('mousedown', (e) => { const el = e.target.closest('.cb-item'); if (el) { e.preventDefault(); escolher(itens[parseInt(el.dataset.i, 10)]); } });
+        input.addEventListener('blur', () => setTimeout(fechar, 120)); // some ao perder foco (após permitir o clique)
     }
 
     // ── PIVÔ: Astrolábio 3D (visão solar inclinada, decisão §6 de constelacao_visual.md) ──────────
