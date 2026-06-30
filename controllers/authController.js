@@ -67,13 +67,18 @@ exports.dashboardResumo = async (req, res) => {
     const userId = req.usuario.id;
     try {
         const queryNarrador = await pool.query(
-            'SELECT id, nome, status FROM cronicas WHERE narrador_id = $1 ORDER BY criado_em DESC', 
+            `SELECT c.id, c.nome, c.status, s.nome AS sistema_nome
+               FROM cronicas c
+               LEFT JOIN sistemas s ON s.id = c.sistema_id
+              WHERE c.narrador_id = $1
+              ORDER BY c.criado_em DESC`,
             [userId]
         );
         const queryJogador = await pool.query(`
-            SELECT c.id as cronica_id, c.nome as cronica_nome, c.status
+            SELECT c.id as cronica_id, c.nome as cronica_nome, c.status, s.nome AS sistema_nome
             FROM cronica_jogadores cj
             JOIN cronicas c ON cj.cronica_id = c.id
+            LEFT JOIN sistemas s ON s.id = c.sistema_id
             WHERE cj.usuario_id = $1
             ORDER BY c.criado_em DESC
         `, [userId]);

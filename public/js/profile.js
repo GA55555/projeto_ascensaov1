@@ -113,7 +113,7 @@ async function carregarDashboard() {
                                     </div>
                                 </div>
                             </div>
-                            <p style="color: var(--texto-mutado); font-size: 12px; margin: 4px 0 0 0;">Sistema: Mago M20</p>
+                            <p style="color: var(--texto-mutado); font-size: 12px; margin: 4px 0 0 0;">Sistema: ${escapeHTML(cronica.sistema_nome || 'Não definido')}</p>
                         </div>
                         <div style="display: flex; gap: 12px; align-items: center;">
                             <a href="/painel_narrador.html?id=${cronica.id}" class="btn btn-outline-primary btn-sm"><i data-lucide="layout-dashboard"></i> Gerenciar</a>
@@ -134,7 +134,7 @@ async function carregarDashboard() {
                     <div>
                         <strong style="color: #fff;">${item.cronica_nome}</strong>
                         <span class="tag-status status-ativa">${item.status || 'ativa'}</span>
-                        <p style="color: var(--texto-mutado); font-size: 12px; margin: 4px 0 0 0;">Sistema: Mago M20</p>
+                        <p style="color: var(--texto-mutado); font-size: 12px; margin: 4px 0 0 0;">Sistema: ${escapeHTML(item.sistema_nome || 'Não definido')}</p>
                     </div>
                     <div style="display: flex; gap: 12px; align-items: center;">
                         <a href="/painel_narrador.html?id=${item.cronica_id}" class="btn btn-outline-primary btn-sm"><i data-lucide="layout-dashboard"></i> Acessar Mesa</a>
