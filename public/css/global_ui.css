@@ -4280,7 +4280,7 @@ input[type="radio"] {
 .reput-box { display: flex; flex-direction: column; gap: 6px; }
 .reput-add { display: flex; gap: 6px; }
 .reput-add .btn { flex: 1; }
-.reput-lista { max-height: 132px; overflow-y: auto; }
+.reput-lista { max-height: none; overflow-y: visible; }
 .reput-fill--fama    { background: var(--dourado); }
 .reput-fill--infamia { background: var(--link-inimigo); }
 .reput-pos--fama    { color: var(--dourado); }
@@ -4296,7 +4296,7 @@ input[type="radio"] {
 .btn-infamia:hover { background: var(--link-inimigo); color: var(--bg-principal); }
 /* §F1b: Marcos no feixe (sub-painel soberano: add/toggle/renomear/apagar) — só tokens (Regra 2.5). */
 .fx-marcos-box { display: flex; flex-direction: column; gap: 6px; }
-.fx-marcos-lista { display: flex; flex-direction: column; gap: 2px; max-height: 156px; overflow-y: auto; }
+.fx-marcos-lista { display: flex; flex-direction: column; gap: 2px; max-height: none; overflow-y: visible; }
 .fx-marcos-vazio { margin: 2px 0; }
 .fx-marco { display: flex; align-items: center; gap: 6px; padding: 3px 4px; border-radius: 4px; transition: background var(--transicao-suave); }
 .fx-marco:hover { background: var(--bg-afundado); }
