@@ -4137,12 +4137,12 @@ input[type="radio"] {
 }
 .constelacao-foco-barra .cfb-nome { font-family: 'Cormorant Garamond', serif; font-size: 1.05rem; color: var(--destaque); margin-right: 4px; }
 /* §F3 parte 2: busca que foca a entidade/núcleo (combobox flutuante no topo do canvas). */
-/* Faixa fixa no TOPO do canvas (full-width) — os orbes ficam abaixo, sem sobreposição. Normal (sem hover). */
+/* Faixa de busca ACIMA do canvas (no fluxo da página, fora da área de visualização). */
 .constelacao-busca {
-    position: absolute; top: 0; left: 0; right: 0; z-index: 6;
-    display: flex; align-items: center; gap: 8px; padding: 8px 12px;
-    background: var(--bg-card); border-bottom: 1px solid var(--borda); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+    position: relative; z-index: 6; align-items: center; gap: 8px; margin: 0 0 8px; padding: 8px 12px;
+    background: var(--bg-card); border: 1px solid var(--borda); border-radius: 8px;
 }
+.constelacao-busca:not([hidden]) { display: flex; }
 .constelacao-busca > i { width: 16px; height: 16px; color: var(--texto-mutado); flex-shrink: 0; }
 .constelacao-busca-input {
     flex: 1; min-width: 0; max-width: 440px; background: transparent; border: 0; outline: none;

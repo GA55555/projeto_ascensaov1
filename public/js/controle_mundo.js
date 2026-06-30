@@ -2575,8 +2575,10 @@ function entrarLenteConstelacao() {
     document.querySelectorAll('.view-toggle button[data-view]').forEach(b => b.classList.toggle('active', b.dataset.view === 'constelacao'));
     const listas = document.getElementById('mundo-view-container');
     const canvas = document.getElementById('constelacao-canvas');
+    const busca = document.querySelector('.constelacao-busca');
     if (listas) listas.hidden = true;
     if (canvas) canvas.hidden = false;
+    if (busca) busca.hidden = false;          // faixa de busca acompanha a lente Constelação
     if (window.Constelacao) Constelacao.entrar(cronicaId);
 }
 
@@ -2593,15 +2595,18 @@ function inicializarViewToggle() {
             // Constelação (F2.3): alterna o CANVAS pelo container de listas POR INTEIRO (não toca o grid).
             const listas = document.getElementById('mundo-view-container');
             const canvas = document.getElementById('constelacao-canvas');
+            const busca = document.querySelector('.constelacao-busca');
             if (view === 'constelacao') {
                 if (listas) listas.hidden = true;
                 if (canvas) canvas.hidden = false;
+                if (busca) busca.hidden = false;
                 if (window.Constelacao) Constelacao.entrar(cronicaId);
                 return;
             }
             if (eraConstelacao) {
                 if (window.Constelacao) Constelacao.sair();
                 if (canvas) canvas.hidden = true;
+                if (busca) busca.hidden = true;     // some na Direção de Cena
                 if (listas) listas.hidden = false;
             }
             renderizarMundo(); // re-render da lista atual na nova visualização

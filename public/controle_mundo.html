@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Controle de Mundo & Eventos</title>
 
-    <link rel="stylesheet" href="/css/global_ui.css?v=38">
+    <link rel="stylesheet" href="/css/global_ui.css?v=39">
 </head>
 <body>
     <div class="page-container">
@@ -46,17 +46,18 @@
     <div id="mundo-view-container">
         <div id="grid-mundo" class="grid-2"></div>
     </div>
+    <!-- Busca da Constelação — faixa ACIMA do canvas (fora da área de visualização). Mostrada só na lente Constelação. -->
+    <div class="constelacao-busca" hidden>
+        <i data-lucide="search"></i>
+        <input type="text" id="constelacao-busca-input" class="constelacao-busca-input" placeholder="Buscar entidade ou núcleo…" autocomplete="off" spellcheck="false">
+        <div id="constelacao-busca-resultados" class="constelacao-busca-resultados" hidden></div>
+    </div>
     <!-- Lente Constelação (Motor de Constelação, F2.3): canvas físico dos núcleos. Irmão do container de
          listas (alterna por inteiro — não toca o grid). -->
     <div id="constelacao-canvas" class="constelacao-canvas" hidden>
         <div id="constelacao-mundo" class="constelacao-mundo">
             <svg id="constelacao-linhas" class="constelacao-linhas"></svg>
             <div id="constelacao-orbes" class="constelacao-orbes"></div>
-        </div>
-        <div class="constelacao-busca">
-            <i data-lucide="search"></i>
-            <input type="text" id="constelacao-busca-input" class="constelacao-busca-input" placeholder="Buscar entidade ou núcleo…" autocomplete="off" spellcheck="false">
-            <div id="constelacao-busca-resultados" class="constelacao-busca-resultados" hidden></div>
         </div>
         <div class="constelacao-controles">
             <button class="btn btn-primary btn-sm" id="constelacao-salvar"><i data-lucide="save"></i> Salvar layout</button>
@@ -421,7 +422,7 @@
 <script src="/js/api/automacoesApi.js"></script>
 <script src="/js/api/sessoesApi.js"></script>
 <script src="/js/api/oraculoApi.js"></script>
-<script src="/js/controle_mundo.js?v=12"></script>
+<script src="/js/controle_mundo.js?v=13"></script>
 <script>lucide.createIcons();</script>
 
 </body>

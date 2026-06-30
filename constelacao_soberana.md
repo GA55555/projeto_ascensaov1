@@ -262,9 +262,11 @@ Decisão: ao escolher, **foca + abre o menu** da entidade; busca encontra **enti
   em `garantirInteracao` (guarda `interacaoPronta`).
 - Versões → `constelacao.js?v=34`, `global_ui.css?v=36`. `node --check` ✓ · CSS 960/960 ✓.
 - **Smoke — aprovado pelo Narrador** ("funcionou").
-- **Ajuste UX (pós-fase):** ~~barra minimizada que expandia no hover~~ → revertido. Agora é uma **faixa
-  normal fixa no TOPO do canvas** (full-width, orbes abaixo, sem sobreposição); `foco-barra` em `top:54px`
-  segue abaixo dela. `v=36`/`v=38`.
+- **Ajuste UX (pós-fase):** ~~barra minimizada (hover)~~ → ~~faixa absoluta no topo do canvas~~ (lia como
+  "barra cinza dentro da viz") → **faixa no fluxo da página ACIMA do canvas** (fora da área de visualização),
+  `hidden` por padrão e mostrada/escondida junto da lente (`entrarLenteConstelacao` + toggle; some na Direção
+  de Cena). `.constelacao-busca:not([hidden]){display:flex}` evita o atributo `hidden` ser sobreposto.
+  `controle_mundo.js?v=13`, `global_ui.css?v=39`.
 
 ### 🏁 Fatia 3 — parte 3/3: Grelha aposentada, Constelação é o padrão (✅ feito) — FECHA A FASE SOBERANA
 **Review prévio (pedido do Narrador) achou um landmine:** as funções de marco (`marcoItemHTML`, `toggleFlag`,
