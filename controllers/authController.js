@@ -66,19 +66,26 @@ exports.logout = asyncHandler(async (req, res) => {
 exports.dashboardResumo = async (req, res) => {
     const userId = req.usuario.id;
     try {
+        // O sistema da crônica pode estar na FK moderna (cronicas.sistema_id → sistemas) OU na coluna
+        // legada cronicas.sistema (varchar, normalmente o slug ex.: 'mago_m20'). Resolvemos por ambos
+        // (dois LEFT JOINs separados p/ não duplicar linhas) e caímos no valor cru como último recurso.
         const queryNarrador = await pool.query(
-            `SELECT c.id, c.nome, c.status, s.nome AS sistema_nome
+            `SELECT c.id, c.nome, c.status,
+                    COALESCE(s_id.nome, s_slug.nome, c.sistema) AS sistema_nome
                FROM cronicas c
-               LEFT JOIN sistemas s ON s.id = c.sistema_id
+               LEFT JOIN sistemas s_id   ON s_id.id    = c.sistema_id
+               LEFT JOIN sistemas s_slug ON s_slug.slug = c.sistema
               WHERE c.narrador_id = $1
               ORDER BY c.criado_em DESC`,
             [userId]
         );
         const queryJogador = await pool.query(`
-            SELECT c.id as cronica_id, c.nome as cronica_nome, c.status, s.nome AS sistema_nome
+            SELECT c.id as cronica_id, c.nome as cronica_nome, c.status,
+                   COALESCE(s_id.nome, s_slug.nome, c.sistema) AS sistema_nome
             FROM cronica_jogadores cj
             JOIN cronicas c ON cj.cronica_id = c.id
-            LEFT JOIN sistemas s ON s.id = c.sistema_id
+            LEFT JOIN sistemas s_id   ON s_id.id    = c.sistema_id
+            LEFT JOIN sistemas s_slug ON s_slug.slug = c.sistema
             WHERE cj.usuario_id = $1
             ORDER BY c.criado_em DESC
         `, [userId]);
