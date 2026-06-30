@@ -178,6 +178,13 @@ a:hover { color: var(--roxo-hover); }
     line-height: 1.4;
     white-space: nowrap;
 }
+/* Estado desabilitado (ex.: ações que só fazem sentido com um pré-requisito presente). pointer-events:none
+   bloqueia hover/clique → não dispara a ação nem o restyle de :hover enquanto indisponível. */
+.btn:disabled, .btn[disabled] {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
+}
 
 .btn-primary {
     background: var(--roxo-mago);
@@ -3080,6 +3087,9 @@ input[type="radio"] {
 .board-imagem-fundo.is-editando.arrastando { cursor: grabbing; }
 .board-fundo-resize { position: absolute; right: -2px; bottom: -2px; width: 16px; height: 16px; cursor: nwse-resize; border-right: 3px solid var(--board-accent); border-bottom: 3px solid var(--board-accent); }
 .board-fundo-opacidade { width: 90px; vertical-align: middle; cursor: pointer; }
+/* Zoom/opacidade são contextuais do modo de ajuste: o atributo `hidden` precisa vencer o
+   `display: inline-flex` do .btn (regra de autor ganha do UA stylesheet) — daí o !important. */
+.board-fundo-ctrl[hidden] { display: none !important; }
 
 /* Card de entidade (glass dark-fantasy). Cor-acento via token (.board-cor-*). */
 .board-card {

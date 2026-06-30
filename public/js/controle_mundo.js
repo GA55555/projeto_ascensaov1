@@ -3423,8 +3423,8 @@ window.toggleAjusteFundo = function() {
 function sincronizarControlesFundo() {
     const temImagem = !!boardState.fundoImagem;
     const ativo = ajustandoFundo && temImagem;
-    document.querySelectorAll('.board-fundo-img-ctrl').forEach(el => { el.hidden = !temImagem; }); // ajustar + remover
-    document.querySelectorAll('.board-fundo-ctrl').forEach(el => { el.hidden = !ativo; });          // opacidade + zoom
+    document.querySelectorAll('.board-fundo-img-ctrl').forEach(el => { el.disabled = !temImagem; }); // ajustar + remover: cinza sem imagem
+    document.querySelectorAll('.board-fundo-ctrl').forEach(el => { el.hidden = !ativo; });            // opacidade + zoom: só no modo de ajuste
     const slider = document.getElementById('board-fundo-opacidade');
     if (ativo && slider) slider.value = (typeof boardState.fundoImagem.opacidade === 'number') ? boardState.fundoImagem.opacidade : 1;
 }
