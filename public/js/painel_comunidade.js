@@ -59,7 +59,7 @@ async function carregarComunidade() {
         if (dados.abas && dados.abas.length > 0) {
             const abasHtml = dados.abas.map(aba => {
                 const icone = aba.tipo === 'restrita' ? '<i data-lucide="lock"></i>' : '<i data-lucide="eye"></i>';
-                const btnExcluir = isNarrador ? `<span class="btn-fechar" onclick="event.stopPropagation(); deletarAba('${aba.id}')" style="margin-left: 8px; cursor: pointer; color: #ff5555; float: right;" title="Apagar Aba"><i data-lucide="x" style="width: 14px; height: 14px;"></i></span>` : '';
+                const btnExcluir = isNarrador ? `<span class="btn-fechar comu-aba-excluir" onclick="event.stopPropagation(); deletarAba('${aba.id}')" title="Apagar Aba"><i data-lucide="x"></i></span>` : '';
                 return `
                     <div class="aba-item" onclick="selecionarAba('${aba.id}', this)">
                         ${icone} ${escapeHTML(aba.nome)} ${btnExcluir}
@@ -73,17 +73,15 @@ async function carregarComunidade() {
                 if (primeiraAba) primeiraAba.click();
             }, 100);
         } else {
-            menuAbas.innerHTML = '<p style="color: var(--texto-mutado); padding: 15px; font-size:13px;">Nenhuma aba visível.</p>';
+            menuAbas.innerHTML = '<p class="comu-abas-vazio">Nenhuma aba visível.</p>';
         }
 
         // Links Extras (Apenas Narrador)
         if (isNarrador) {
             menuAbas.innerHTML += `
-                <a href="/controle_mundo.html?id=${cronicaId}" class="aba-item" style="text-decoration: none; display: block;"><i data-lucide="globe"></i> Controle de Mundo</a>
-                <a href="/escudo_narrador.html?id=${cronicaId}" class="aba-item" style="text-decoration: none; display: block;"><i data-lucide="shield"></i> Escudo do Narrador</a>
-                <button onclick="criarNovaAba()" style="width: 90%; margin: 15px auto; display: block; padding: 10px; background: transparent; border: 1px dashed var(--roxo-mago); color: var(--roxo-mago); border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.3s;">
-                    + Nova Aba
-                </button>
+                <a href="/controle_mundo.html?id=${cronicaId}" class="aba-item aba-link"><i data-lucide="globe"></i> Controle de Mundo</a>
+                <a href="/escudo_narrador.html?id=${cronicaId}" class="aba-item aba-link"><i data-lucide="shield"></i> Escudo do Narrador</a>
+                <button onclick="criarNovaAba()" class="comu-nova-aba">+ Nova Aba</button>
             `;
         }
         lucide.createIcons();
@@ -139,17 +137,17 @@ async function carregarPosts() {
         meuIdUsuario = dados.meu_usuario_id;
 
         const nomeAbaAtiva = document.querySelector('.aba-item.ativa')?.innerText || "Aba";
-        const btnPermissoes = (meuPapelNaMesa === 'narrador') 
-            ? `<button onclick="abrirModalPermissoes('${abaAtualId}')" style="background: transparent; border: 1px solid var(--roxo-mago); color: var(--roxo-mago); padding: 5px 15px; border-radius: 4px; cursor: pointer;"><i data-lucide="lock"></i> Permissões</button>`
+        const btnPermissoes = (meuPapelNaMesa === 'narrador')
+            ? `<button onclick="abrirModalPermissoes('${abaAtualId}')" class="btn btn-outline btn-sm"><i data-lucide="lock"></i> Permissões</button>`
             : ``;
 
         divPosts.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--borda); padding-bottom: 10px;">
-                <h3><i data-lucide="file-text"></i> ${nomeAbaAtiva}</h3> ${btnPermissoes}
+            <div class="comu-posts-head">
+                <h3><i data-lucide="file-text"></i> ${escapeHTML(nomeAbaAtiva)}</h3> ${btnPermissoes}
             </div>
-            <div style="display: flex; gap: 20px; height: auto;">
-                <div id="leitura-principal" style="flex: 2.5; background: var(--bg-card); padding: 20px; border-radius: 8px; border: 1px solid var(--borda);"></div>
-                <div id="lista-lateral" style="flex: 1; overflow-y: auto; border-left: 1px dashed var(--borda); padding-left: 15px;"></div>
+            <div class="comu-colunas">
+                <div id="leitura-principal" class="comu-leitura"></div>
+                <div id="lista-lateral" class="comu-lateral"></div>
             </div>
         `;
 
@@ -164,9 +162,9 @@ async function carregarPosts() {
             try { imgs = typeof post.imagens === 'string' ? JSON.parse(post.imagens) : (post.imagens || []); } catch(e) {}
             const capa = (imgs.length > 0) ? imgs[0] : null;
             return `
-                <div onclick="exibirPostCompleto(${index})" style="padding: 10px; cursor: pointer; border-bottom: 1px solid var(--borda);">
-                    ${capa ? `<img src="${capa}" style="width: 100%; height: 60px; object-fit: cover; border-radius:4px;">` : '<i data-lucide="file"></i>'}
-                    <div style="font-size: 12px; margin-top: 5px;">${escapeHTML(post.conteudo.substring(0,20))}...</div>
+                <div onclick="exibirPostCompleto(${index})" class="comu-lateral-item">
+                    ${capa ? `<img src="${escapeHTML(capa)}" class="comu-lateral-capa">` : '<i data-lucide="file"></i>'}
+                    <div class="comu-lateral-resumo">${escapeHTML(post.conteudo.substring(0,20))}...</div>
                 </div>
             `;
         }).join('');
@@ -188,18 +186,18 @@ window.exibirPostCompleto = function(index) {
     const possoComentar = (meuPapelNaMesa === 'narrador' || minhaPermissaoAtual === 'editor' || minhaPermissaoAtual === 'comentar');
     
     const botoesAcaoHtml = possoEditarPost ? `
-        <div style="display: flex; gap: 10px;">
-            <button onclick="editarPost('${post.id}', ${index})" style="background: rgba(255,255,255,0.05); border: 1px solid var(--borda); color: var(--texto-claro); padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px;"><i data-lucide="pen-line"></i> Editar</button>
-            <button onclick="deletarPost('${post.id}')" style="background: rgba(255,85,85,0.1); border: 1px solid #ff5555; color: #ff5555; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px;"><i data-lucide="trash-2"></i> Apagar</button>
+        <div class="comu-post-acoes">
+            <button onclick="editarPost('${post.id}', ${index})" class="btn btn-secondary btn-sm"><i data-lucide="pen-line"></i> Editar</button>
+            <button onclick="deletarPost('${post.id}')" class="btn btn-danger btn-sm"><i data-lucide="trash-2"></i> Apagar</button>
         </div>
     ` : ``;
 
     const areaComentariosHtml = possoComentar ? `
-        <div class="area-comentarios-input" style="display: flex; gap: 10px;">
-            <input type="text" id="input-comentario-${post.id}" placeholder="Escreva e aperte Enter..." style="flex: 1; padding: 10px; background: var(--bg-principal); border: 1px solid var(--borda); color: white; border-radius: 4px;" onkeydown="if(event.key === 'Enter') enviarComentario('${post.id}')">
-            <button onclick="enviarComentario('${post.id}')" style="background: var(--destaque); color: #121214; border: none; padding: 0 20px; border-radius: 4px; font-weight: bold; cursor: pointer;">Enviar</button>
+        <div class="area-comentarios-input comu-coment-input-row">
+            <input type="text" id="input-comentario-${post.id}" class="comu-coment-input" placeholder="Escreva e aperte Enter..." onkeydown="if(event.key === 'Enter') enviarComentario('${post.id}')">
+            <button onclick="enviarComentario('${post.id}')" class="btn btn-success">Enviar</button>
         </div>
-    ` : `<p style="color: var(--texto-mutado); font-size: 13px; font-style: italic;">Você possui apenas permissão de leitura.</p>`;
+    ` : `<p class="comu-leitura-aviso">Você possui apenas permissão de leitura.</p>`;
 
     let arrayImagens = [];
     try { arrayImagens = typeof post.imagens === 'string' ? JSON.parse(post.imagens) : (post.imagens || []); } catch(e) {}
@@ -216,14 +214,11 @@ window.exibirPostCompleto = function(index) {
         const urlsStr = encodeURIComponent(JSON.stringify(urlsAlbum));
 
         conteudoHtml = post.album_itens.map((item, i) => `
-            <div style="margin-bottom: 20px; border-bottom: 1px solid var(--borda); padding-bottom: 15px;">
-                <img src="${item.imagem_url}" 
-                     style="width: 100%; max-height: 400px; object-fit: contain; border-radius: 8px; background: #000; cursor: pointer; transition: 0.2s;" 
-                     onmouseover="this.style.opacity='0.85'" 
-                     onmouseout="this.style.opacity='1'" 
+            <div class="comu-album-item">
+                <img src="${escapeHTML(item.imagem_url)}" class="comu-album-img"
                      onclick="event.stopPropagation(); abrirModalNavegacao('${urlsStr}', ${i})"
                      title="Clique para ampliar">
-                ${item.descricao ? `<p style="color: var(--texto-claro); margin-top: 10px;">${escapeHTML(item.descricao)}</p>` : ''}
+                ${item.descricao ? `<p class="comu-album-desc">${escapeHTML(item.descricao)}</p>` : ''}
             </div>
         `).join('');
         
@@ -231,52 +226,50 @@ window.exibirPostCompleto = function(index) {
         tipoBadge = 'Votação';
         const totalGeral = post.opcoes.reduce((s, o) => s + (o.votos || 0), 0);
         conteudoHtml = `
-        <div style="background: var(--bg-principal); padding: 15px; border-radius: 8px; margin-bottom: 10px;">
-            <p style="font-size: 18px; font-weight: bold; color: var(--destaque); margin-bottom: 15px;">${escapeHTML(post.conteudo)}</p>
+        <div class="comu-votacao-box">
+            <p class="comu-votacao-pergunta">${escapeHTML(post.conteudo)}</p>
             <div>
                 ${post.opcoes.map(op => {
                     const totalVotos = totalGeral || 1;
                     const porcentagem = Math.round(((op.votos || 0) / totalVotos) * 100);
                     return `
-                        <div onclick="votar('${post.id}', '${op.id}')" style="display: flex; align-items: center; gap: 10px; padding: 12px; margin-bottom: 8px; background: rgba(255,255,255,0.03); border-radius: 4px; cursor: pointer; position: relative; overflow: hidden; border: 1px solid var(--borda);">
-                            <div style="position: absolute; left: 0; top: 0; bottom: 0; width: ${porcentagem}%; background: rgba(152, 113, 245, 0.15); z-index: 0;"></div>
-                            <span style="flex: 1; z-index: 1;">${escapeHTML(op.texto)}</span>
-                            <span style="color: var(--texto-mutado); font-size: 12px; z-index: 1; font-weight: bold;">
-                                ${op.votos || 0} voto${op.votos !== 1 ? 's' : ''} (${porcentagem}%)
-                            </span>
+                        <div onclick="votar('${post.id}', '${op.id}')" class="comu-votacao-opcao">
+                            <div class="comu-votacao-barra" style="width: ${porcentagem}%;"></div>
+                            <span class="comu-votacao-texto">${escapeHTML(op.texto)}</span>
+                            <span class="comu-votacao-contagem">${op.votos || 0} voto${op.votos !== 1 ? 's' : ''} (${porcentagem}%)</span>
                         </div>
                     `;
                 }).join('')}
             </div>
-            <p style="font-size: 11px; color: var(--texto-mutado); margin-top: 10px; text-align: center;">Total: ${totalGeral} voto(s)</p>
+            <p class="comu-votacao-total">Total: ${totalGeral} voto(s)</p>
         </div>`;
     } else {
         tipoBadge = post.tipo === 'normal' ? '' : '';
         conteudoHtml = escapeHTML(post.conteudo);
     }
 
-    const avatar = post.autor_avatar 
-        ? `<img src="${post.autor_avatar}" style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid var(--destaque); flex-shrink: 0;">`
-        : `<div style="width: 45px; height: 45px; border-radius: 50%; background: var(--roxo-mago); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 20px; color: white; border: 2px solid var(--destaque); flex-shrink: 0;">${inicial}</div>`;
+    const avatar = post.autor_avatar
+        ? `<img src="${escapeHTML(post.autor_avatar)}" class="comu-avatar">`
+        : `<div class="comu-avatar-fallback">${inicial}</div>`;
 
     leituraPrincipal.innerHTML = `
-        <div style="padding: 20px; background: var(--bg-card); border-bottom: 1px solid var(--borda);">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div style="display: flex; align-items: center; gap: 15px;">
+        <div class="comu-post-head">
+            <div class="comu-post-head-row">
+                <div class="comu-post-autor">
                     ${avatar}
                     <div>
-                        <div style="font-weight: bold; font-size: 18px; color: var(--destaque);">${escapeHTML(post.autor_nome)}</div>
-                        <div style="font-size: 12px; color: var(--texto-mutado);">${dataFormatada}</div>
+                        <div class="comu-autor-nome">${escapeHTML(post.autor_nome)}</div>
+                        <div class="comu-autor-data">${dataFormatada}</div>
                     </div>
                 </div>
                 ${botoesAcaoHtml}
             </div>
             ${post.tipo === 'normal' ? mosaicoImagensHtml : ''}
         </div>
-        <div style="padding: 20px; font-size: 16px; line-height: 1.8; color: var(--texto-claro); white-space: pre-wrap; word-break: break-word;">${conteudoHtml}</div>
-        <div style="margin-top: 40px; border-top: 1px dashed var(--borda); padding: 20px;">
-            <h4 style="margin-top: 0; color: var(--texto-mutado);">Comentários</h4>
-            <div id="lista-comentarios-${post.id}" style="margin-bottom: 15px;"></div>
+        <div class="comu-post-corpo">${conteudoHtml}</div>
+        <div class="comu-coment-area">
+            <h4 class="comu-coment-titulo">Comentários</h4>
+            <div id="lista-comentarios-${post.id}" class="comu-coment-lista"></div>
             ${areaComentariosHtml}
         </div>
     `;
@@ -346,7 +339,7 @@ window.publicarPost = async function() {
         if(document.getElementById('input-imagem')) document.getElementById('input-imagem').value = '';
         if(document.getElementById('album-itens')) document.getElementById('album-itens').innerHTML = '';
         if(document.getElementById('votacao-pergunta')) document.getElementById('votacao-pergunta').value = '';
-        if(document.getElementById('votacao-opcoes')) document.getElementById('votacao-opcoes').innerHTML = `<input type="text" class="opcao-votacao" placeholder="Opção 1" style="width: 100%; padding: 8px; margin-bottom: 5px; background: var(--bg-principal); border: 1px solid var(--borda); color: #fff; border-radius: 4px;"><input type="text" class="opcao-votacao" placeholder="Opção 2" style="width: 100%; padding: 8px; margin-bottom: 5px; background: var(--bg-principal); border: 1px solid var(--borda); color: #fff; border-radius: 4px;">`;
+        if(document.getElementById('votacao-opcoes')) document.getElementById('votacao-opcoes').innerHTML = `<input type="text" class="opcao-votacao comu-campo" placeholder="Opção 1"><input type="text" class="opcao-votacao comu-campo" placeholder="Opção 2">`;
         albumItensCount = 0;
         
         carregarPosts();
@@ -385,14 +378,14 @@ window.votar = async function(postId, opcaoId) {
 // ==========================================
 async function carregarComentarios(postId) {
     const divComentarios = document.getElementById(`lista-comentarios-${postId}`);
-    divComentarios.innerHTML = '<span style="color: var(--texto-mutado); font-size: 13px;">Carregando ecos...</span>';
+    divComentarios.innerHTML = '<span class="comu-aviso-sm">Carregando ecos...</span>';
     
     try {
         const res = await API.fetch(`/cronicas/${cronicaId}/posts/${postId}/comentarios`);
         const comentarios = await res.json();
 
         if (comentarios.length === 0) {
-            divComentarios.innerHTML = '<div style="font-size: 13px; color: var(--texto-mutado);">Ninguém ecoou nesta memória ainda.</div>';
+            divComentarios.innerHTML = '<div class="comu-aviso-sm">Ninguém ecoou nesta memória ainda.</div>';
             return;
         }
 
@@ -401,23 +394,24 @@ async function carregarComentarios(postId) {
             const nomeAutor = c.autor_nome || 'Desconhecido';
             const inicial = nomeAutor.charAt(0).toUpperCase();
 
-            const avatarHtml = c.autor_avatar 
-                ? `<img src="${c.autor_avatar}" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover; border: 1px solid var(--destaque); flex-shrink: 0;">`
-                : `<div style="width: 24px; height: 24px; border-radius: 50%; background: var(--roxo-mago); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: white; flex-shrink: 0;">${inicial}</div>`;
+            const avatarHtml = c.autor_avatar
+                ? `<img src="${escapeHTML(c.autor_avatar)}" class="comu-coment-avatar">`
+                : `<div class="comu-coment-avatar-fallback">${inicial}</div>`;
 
             return `
-            <div style="background: rgba(255,255,255,0.02); padding: 12px; border-radius: 6px; margin-bottom: 8px; border: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column;">
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
-                    ${avatarHtml} <strong style="color: var(--destaque); font-size: 13px;">${escapeHTML(nomeAutor)}</strong> <span style="font-size: 10px; color: var(--texto-mutado);">${dataC}</span>
+            <div class="comu-coment-card">
+                <div class="comu-coment-card-head">
+                    ${avatarHtml} <strong class="comu-coment-autor">${escapeHTML(nomeAutor)}</strong> <span class="comu-coment-data">${dataC}</span>
                 </div>
-                <div id="comentario-texto-${c.id}" style="font-size: 14px; color: var(--texto-claro); white-space: pre-wrap; margin-bottom: 12px;">${escapeHTML(c.conteudo)}</div>
-                <div style="display: flex; justify-content: flex-end; gap: 8px;">
-                    <button onclick="editarComentario('${postId}', '${c.id}')" style="background: #202024; border: 1px solid #8d8d99; color: #e1e1e6; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">Editar</button>
-                    <button onclick="deletarComentario('${postId}', '${c.id}')" style="background: #202024; border: 1px solid #ff5555; color: #ff5555; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold;"><i data-lucide="x"></i></button>
+                <div id="comentario-texto-${c.id}" class="comu-coment-texto">${escapeHTML(c.conteudo)}</div>
+                <div class="comu-coment-acoes">
+                    <button onclick="editarComentario('${postId}', '${c.id}')" class="btn btn-secondary btn-sm">Editar</button>
+                    <button onclick="deletarComentario('${postId}', '${c.id}')" class="btn btn-danger btn-sm"><i data-lucide="x"></i></button>
                 </div>
             </div>`;
         }).join('');
-    } catch (err) { divComentarios.innerHTML = '<div style="color: red; font-size: 13px;">Erro ao ler as tramas.</div>'; }
+        if (window.lucide) lucide.createIcons();
+    } catch (err) { divComentarios.innerHTML = '<div class="comu-aviso-erro">Erro ao ler as tramas.</div>'; }
 }
 
 window.enviarComentario = async function(postId) {
@@ -461,22 +455,24 @@ window.gerarGridImagens = function(imagensUrls) {
     let maxAltura = count === 1 ? '500px' : 'none';
     const urlsStr = encodeURIComponent(JSON.stringify(urlsFormatadas));
 
-    let html = `<div style="display: grid; gap: 5px; margin-top: 15px; border-radius: 8px; overflow: hidden; border: 1px solid var(--borda); grid-template-columns: ${gridCols}; grid-template-rows: ${gridRows}; height: ${alturaGrid}; max-height: ${maxAltura};">`;
+    // grid-template/altura dependem da contagem → layout dinâmico (inline permitido, Regra 2.5).
+    let html = `<div class="comu-grid" style="grid-template-columns: ${gridCols}; grid-template-rows: ${gridRows}; height: ${alturaGrid}; max-height: ${maxAltura};">`;
+
+    const classeImg = count === 1 ? 'comu-grid-img comu-grid-img--contain' : 'comu-grid-img';
+    const classeCelulaSolo = count === 1 ? ' comu-grid-cell--solo' : '';
 
     urlsFormatadas.forEach((url, i) => {
         if (i >= 3) return;
-        let objFit = count === 1 ? 'contain' : 'cover';
-        let bgStyle = count === 1 ? 'background: rgba(0,0,0,0.3);' : '';
-
         if (i === 2 && count > 3) {
             let ocultas = count - 3;
-            html += `<div style="position: relative; width: 100%; height: 100%; cursor: pointer; ${bgStyle}" onclick="event.stopPropagation(); abrirModalNavegacao('${urlsStr}', ${i})">
-                        <img src="${url}" style="width: 100%; height: 100%; object-fit: ${objFit}; display: block;">
-                        <div style="position: absolute; inset: 0; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; font-size: 32px; font-weight: bold; color: white;">+${ocultas}</div>
+            html += `<div class="comu-grid-cell${classeCelulaSolo}" onclick="event.stopPropagation(); abrirModalNavegacao('${urlsStr}', ${i})">
+                        <img src="${escapeHTML(url)}" class="${classeImg}">
+                        <div class="comu-grid-mais">+${ocultas}</div>
                      </div>`;
         } else {
-            html += `<div style="width: 100%; height: 100%; cursor: pointer; ${i === 0 && count >= 3 ? 'grid-row: span 2;' : ''} ${bgStyle}" onclick="event.stopPropagation(); abrirModalNavegacao('${urlsStr}', ${i})">
-                        <img src="${url}" style="width: 100%; height: 100%; object-fit: ${objFit}; display: block; transition: 0.2s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+            const spanStyle = (i === 0 && count >= 3) ? ' style="grid-row: span 2;"' : '';
+            html += `<div class="comu-grid-cell${classeCelulaSolo}"${spanStyle} onclick="event.stopPropagation(); abrirModalNavegacao('${urlsStr}', ${i})">
+                        <img src="${escapeHTML(url)}" class="${classeImg}">
                      </div>`;
         }
     });
@@ -512,45 +508,32 @@ window.mudarImagem = function(direcao) {
 
 window.selecionarTipoPost = function(tipo) {
     tipoPostSelecionado = tipo;
-    
-    // Esconde todos
-    document.getElementById('form-post-normal').style.display = 'none';
-    document.getElementById('form-post-album').style.display = 'none';
-    document.getElementById('form-post-votacao').style.display = 'none';
-    
-    // Reseta botões
+    // Mostra só o form do tipo (hidden) e marca o botão ativo (btn-primary) vs inativos (btn-outline).
     ['normal', 'album', 'votacao'].forEach(t => {
+        const form = document.getElementById(`form-post-${t}`);
+        if (form) form.hidden = (t !== tipo);
         const btn = document.getElementById(`btn-tipo-${t}`);
-        if(btn) {
-            btn.style.background = 'transparent';
-            btn.style.border = '1px solid var(--borda)';
-            btn.style.color = 'var(--texto-claro)';
+        if (btn) {
+            btn.classList.toggle('btn-primary', t === tipo);
+            btn.classList.toggle('btn-outline', t !== tipo);
         }
     });
-    
-    // Mostra o selecionado
-    document.getElementById(`form-post-${tipo}`).style.display = 'block';
-    const btnAtivo = document.getElementById(`btn-tipo-${tipo}`);
-    if(btnAtivo) {
-        btnAtivo.style.background = 'var(--roxo-mago)';
-        btnAtivo.style.color = 'white';
-        btnAtivo.style.border = 'none';
-    }
 }
 
 window.adicionarItemAlbum = function() {
     albumItensCount++;
     const div = document.createElement('div');
     div.id = `album-item-${albumItensCount}`;
-    div.style.cssText = 'display: flex; gap: 10px; margin-bottom: 10px; padding: 10px; background: var(--bg-principal); border-radius: 4px; align-items: start;';
+    div.className = 'comu-album-form-item';
     div.innerHTML = `
-        <div style="flex: 1;">
-            <input type="file" id="album-img-${albumItensCount}" accept="image/*" style="margin-bottom: 5px; color: var(--texto-mutado); font-size: 13px;">
-            <textarea id="album-desc-${albumItensCount}" placeholder="Descrição da imagem..." style="width: 100%; padding: 8px; background: var(--bg-principal); border: 1px solid var(--borda); color: #fff; border-radius: 4px; min-height: 40px; box-sizing: border-box; resize: vertical;"></textarea>
+        <div class="comu-album-form-campos">
+            <input type="file" id="album-img-${albumItensCount}" accept="image/*" class="comu-album-form-file">
+            <textarea id="album-desc-${albumItensCount}" placeholder="Descrição da imagem..." class="comu-album-form-desc"></textarea>
         </div>
-        <button onclick="this.parentElement.remove()" style="background: transparent; border: 1px solid #ff5555; color: #ff5555; padding: 5px 10px; border-radius: 4px; cursor: pointer; flex-shrink: 0;"><i data-lucide="x"></i></button>
+        <button onclick="this.parentElement.remove()" class="btn btn-danger btn-sm"><i data-lucide="x"></i></button>
     `;
     document.getElementById('album-itens').appendChild(div);
+    if (window.lucide) lucide.createIcons();
 }
 
 window.adicionarOpcaoVotacao = function() {
@@ -558,9 +541,8 @@ window.adicionarOpcaoVotacao = function() {
     const count = container.querySelectorAll('.opcao-votacao').length + 1;
     const input = document.createElement('input');
     input.type = 'text';
-    input.className = 'opcao-votacao';
+    input.className = 'opcao-votacao comu-campo';
     input.placeholder = `Opção ${count}`;
-    input.style.cssText = 'width: 100%; padding: 8px; margin-bottom: 5px; background: var(--bg-principal); border: 1px solid var(--borda); color: #fff; border-radius: 4px; box-sizing: border-box;';
     container.appendChild(input);
     input.focus();
 }
@@ -639,12 +621,12 @@ window.abrirModalPermissoes = async function(abaId) {
         dados.jogadores.forEach(j => selectJogadores.innerHTML += `<option value="${escapeHTML(String(j.id))}">${escapeHTML(j.nome_usuario)}</option>`);
 
         listaPermissoes.innerHTML = dados.permissoes.map(p => `
-            <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 8px 10px; margin-bottom: 5px; border-radius: 4px;">
-                <div><strong>${escapeHTML(p.nome_usuario)}</strong> <span style="font-size: 12px; color: var(--texto-mutado); margin-left: 10px;">${escapeHTML(p.nivel_acesso).toUpperCase()}</span></div>
-                <button onclick="revogarPermissao('${abaId}', '${p.jogador_id}')" style="background: transparent; color: #ff5555; border: 1px solid #ff5555; border-radius: 4px; cursor: pointer; padding: 2px 8px; font-size: 12px;">Revogar</button>
+            <div class="comu-perm-row">
+                <div><strong>${escapeHTML(p.nome_usuario)}</strong> <span class="comu-perm-nivel">${escapeHTML(p.nivel_acesso).toUpperCase()}</span></div>
+                <button onclick="revogarPermissao('${abaId}', '${p.jogador_id}')" class="btn btn-danger btn-sm">Revogar</button>
             </div>
         `).join('');
-    } catch (err) { listaPermissoes.innerHTML = '<div style="color: red;">Erro.</div>'; }
+    } catch (err) { listaPermissoes.innerHTML = '<div class="comu-aviso-erro">Erro.</div>'; }
 }
 
 window.fecharModalPermissoes = function() { document.getElementById('modal-permissoes').style.display = 'none'; }

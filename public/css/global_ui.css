@@ -1911,6 +1911,112 @@ label {
 }
 .cronica-menu-item--deletar i { width: 13px; height: 13px; }
 
+/* ── COMUNIDADE (painel_narrador) — F2a: estrutura estática ── */
+.comu-tipo-tabs { display: flex; gap: 10px; margin-bottom: 15px; }
+.comu-btn-full { width: 100%; justify-content: center; }
+.comu-campo { width: 100%; margin-bottom: 10px; }
+.comu-publicar { margin-top: 10px; }
+.comu-aviso-centro { color: var(--texto-mutado); text-align: center; }
+.comu-modal-label { display: block; margin-bottom: 5px; color: var(--texto-mutado); }
+.comu-edit-textarea { width: 100%; height: 250px; resize: vertical; margin-bottom: 20px; }
+.comu-perm-form { display: flex; gap: 10px; margin-bottom: 20px; }
+.comu-perm-form select { flex: 1; min-width: 0; }
+.comu-perm-sub { margin-bottom: 10px; color: var(--texto-mutado); border-bottom: 1px solid var(--borda); padding-bottom: 5px; }
+.comu-perm-lista { max-height: 200px; overflow-y: auto; margin-bottom: 20px; }
+.comu-perm-row { display: flex; justify-content: space-between; align-items: center; background: var(--bg-afundado); padding: 8px 10px; margin-bottom: 5px; border-radius: 4px; }
+.comu-perm-nivel { font-size: 12px; color: var(--texto-mutado); margin-left: 10px; }
+.modal-box-500 { width: 500px; max-width: 90vw; }
+.modal-box-600 { width: 600px; max-width: 90vw; }
+
+/* Lightbox de imagem (galeria) */
+.modal-lightbox { flex-direction: column; }
+.comu-lightbox-fechar { position: absolute; top: 20px; right: 30px; color: var(--texto-claro); font-size: 40px; font-weight: bold; cursor: pointer; z-index: 10001; }
+.comu-lightbox-nav { position: absolute; top: 50%; transform: translateY(-50%); color: var(--texto-claro); font-size: 50px; cursor: pointer; user-select: none; padding: 20px; z-index: 10000; transition: var(--transicao-suave); }
+.comu-lightbox-nav:hover { color: var(--destaque); }
+.comu-lightbox-nav--esq { left: 20px; }
+.comu-lightbox-nav--dir { right: 20px; }
+.comu-lightbox-img { max-width: 90%; max-height: 85%; border-radius: 8px; box-shadow: 0 0 30px var(--sombra-profunda); object-fit: contain; transition: opacity 0.2s; }
+.comu-lightbox-contador { color: var(--texto-mutado); margin-top: 15px; font-size: 16px; font-weight: bold; letter-spacing: 1px; }
+
+/* ── COMUNIDADE — F2b: conteúdo dinâmico (render JS) ────── */
+/* Abas */
+.comu-aba-excluir { margin-left: 8px; cursor: pointer; color: var(--erro); float: right; }
+.comu-aba-excluir i { width: 14px; height: 14px; }
+.comu-abas-vazio { color: var(--texto-mutado); padding: 15px; font-size: 13px; }
+.aba-link { text-decoration: none; display: block; }
+.comu-nova-aba { width: 90%; margin: 15px auto; display: block; padding: 10px; background: transparent; border: 1px dashed var(--roxo-mago); color: var(--roxo-mago); border-radius: 4px; cursor: pointer; font-weight: bold; transition: var(--transicao-suave); }
+.comu-nova-aba:hover { background: var(--roxo-mago); color: var(--texto-claro); }
+
+/* Layout de posts */
+.comu-posts-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--borda); padding-bottom: 10px; }
+.comu-colunas { display: flex; gap: 20px; }
+.comu-leitura { flex: 2.5; background: var(--bg-card); padding: 20px; border-radius: 8px; border: 1px solid var(--borda); }
+.comu-lateral { flex: 1; overflow-y: auto; border-left: 1px dashed var(--borda); padding-left: 15px; }
+.comu-lateral-item { padding: 10px; cursor: pointer; border-bottom: 1px solid var(--borda); }
+.comu-lateral-capa { width: 100%; height: 60px; object-fit: cover; border-radius: 4px; }
+.comu-lateral-resumo { font-size: 12px; margin-top: 5px; }
+
+/* Cabeçalho do post */
+.comu-post-head { padding: 20px; background: var(--bg-card); border-bottom: 1px solid var(--borda); }
+.comu-post-head-row { display: flex; justify-content: space-between; align-items: center; }
+.comu-post-autor { display: flex; align-items: center; gap: 15px; }
+.comu-post-acoes { display: flex; gap: 10px; }
+.comu-avatar { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid var(--destaque); flex-shrink: 0; }
+.comu-avatar-fallback { width: 45px; height: 45px; border-radius: 50%; background: var(--roxo-mago); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 20px; color: var(--texto-claro); border: 2px solid var(--destaque); flex-shrink: 0; }
+.comu-autor-nome { font-weight: bold; font-size: 18px; color: var(--destaque); }
+.comu-autor-data { font-size: 12px; color: var(--texto-mutado); }
+.comu-post-corpo { padding: 20px; font-size: 16px; line-height: 1.8; color: var(--texto-claro); white-space: pre-wrap; word-break: break-word; }
+
+/* Comentários */
+.comu-coment-area { margin-top: 40px; border-top: 1px dashed var(--borda); padding: 20px; }
+.comu-coment-titulo { margin-top: 0; color: var(--texto-mutado); }
+.comu-coment-lista { margin-bottom: 15px; }
+.comu-coment-input-row { display: flex; gap: 10px; }
+.comu-coment-input { flex: 1; padding: 10px; background: var(--bg-principal); border: 1px solid var(--borda); color: var(--texto-claro); border-radius: 4px; }
+.comu-leitura-aviso { color: var(--texto-mutado); font-size: 13px; font-style: italic; }
+.comu-coment-card { background: var(--bg-afundado); padding: 12px; border-radius: 6px; margin-bottom: 8px; border: 1px solid var(--borda-glass); display: flex; flex-direction: column; }
+.comu-coment-card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.comu-coment-avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; border: 1px solid var(--destaque); flex-shrink: 0; }
+.comu-coment-avatar-fallback { width: 24px; height: 24px; border-radius: 50%; background: var(--roxo-mago); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: var(--texto-claro); flex-shrink: 0; }
+.comu-coment-autor { color: var(--destaque); font-size: 13px; }
+.comu-coment-data { font-size: 10px; color: var(--texto-mutado); }
+.comu-coment-texto { font-size: 14px; color: var(--texto-claro); white-space: pre-wrap; margin-bottom: 12px; }
+.comu-coment-acoes { display: flex; justify-content: flex-end; gap: 8px; }
+
+/* Votação */
+.comu-votacao-box { background: var(--bg-principal); padding: 15px; border-radius: 8px; margin-bottom: 10px; }
+.comu-votacao-pergunta { font-size: 18px; font-weight: bold; color: var(--destaque); margin-bottom: 15px; }
+.comu-votacao-opcao { display: flex; align-items: center; gap: 10px; padding: 12px; margin-bottom: 8px; background: var(--bg-afundado); border-radius: 4px; cursor: pointer; position: relative; overflow: hidden; border: 1px solid var(--borda); }
+.comu-votacao-barra { position: absolute; left: 0; top: 0; bottom: 0; background: var(--roxo-mago); opacity: 0.15; z-index: 0; }
+.comu-votacao-texto { flex: 1; z-index: 1; }
+.comu-votacao-contagem { color: var(--texto-mutado); font-size: 12px; z-index: 1; font-weight: bold; }
+.comu-votacao-total { font-size: 11px; color: var(--texto-mutado); margin-top: 10px; text-align: center; }
+
+/* Álbum (leitura) */
+.comu-album-item { margin-bottom: 20px; border-bottom: 1px solid var(--borda); padding-bottom: 15px; }
+.comu-album-img { width: 100%; max-height: 400px; object-fit: contain; border-radius: 8px; background: var(--bg-principal); cursor: pointer; transition: opacity 0.2s; }
+.comu-album-img:hover { opacity: 0.85; }
+.comu-album-desc { color: var(--texto-claro); margin-top: 10px; }
+
+/* Álbum (formulário) */
+.comu-album-form-item { display: flex; gap: 10px; margin-bottom: 10px; padding: 10px; background: var(--bg-principal); border-radius: 4px; align-items: flex-start; }
+.comu-album-form-campos { flex: 1; }
+.comu-album-form-file { margin-bottom: 5px; color: var(--texto-mutado); font-size: 13px; }
+.comu-album-form-desc { width: 100%; min-height: 40px; box-sizing: border-box; resize: vertical; }
+
+/* Grid de imagens (mosaico) */
+.comu-grid { display: grid; gap: 5px; margin-top: 15px; border-radius: 8px; overflow: hidden; border: 1px solid var(--borda); }
+.comu-grid-cell { position: relative; width: 100%; height: 100%; cursor: pointer; }
+.comu-grid-cell--solo { background: var(--bg-afundado); }
+.comu-grid-img { width: 100%; height: 100%; display: block; object-fit: cover; transition: opacity 0.2s; }
+.comu-grid-img--contain { object-fit: contain; }
+.comu-grid-img:hover { opacity: 0.85; }
+.comu-grid-mais { position: absolute; inset: 0; background: var(--sombra-profunda); display: flex; justify-content: center; align-items: center; font-size: 32px; font-weight: bold; color: var(--texto-claro); }
+
+/* Avisos curtos */
+.comu-aviso-sm { color: var(--texto-mutado); font-size: 13px; }
+.comu-aviso-erro { color: var(--erro); font-size: 13px; }
+
 /* ── CONFIG PERFIL ─────────────────────────────────────── */
 .preview-identidade {
     display: flex;
