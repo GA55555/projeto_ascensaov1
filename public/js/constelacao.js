@@ -296,6 +296,7 @@
                 if (url.includes('/historia')) return; // história não muda o disco → mantém o feixe aberto
                 if (url.includes('/reputacao')) return; // reputação (F2) não muda o disco ainda → feixe aberto
                 if (url.includes('/flags') && metodo === 'PUT') return; // toggle de marco é otimista (não rebuilda)
+                if (url.includes('/midia/upload') || url.includes('avatar=1')) return; // foto no feixe (F3): não refaz o disco / mantém o menu aberto
                 const cv = canvas();
                 if (cv && !cv.hidden && cronicaAtual) recarregar();
             });
@@ -976,6 +977,27 @@
         astroViewport?.classList.remove('astro-congelado');
     }
 
+    // ── §F3: Foto da entidade (miniatura no núcleo do feixe). Reusa o uploader da Grelha (window.
+    // selecionarEEnviarImagem). O PUT leva ?avatar=1 (no SKIP do onMutacao) → o disco NÃO se refaz; re-render
+    // do menu no lugar com a nova miniatura. ──────────────────────────────────────────────────────────────
+    async function salvarAvatar(id, url) {
+        const ent = entidadesAtual.find((e) => String(e.id) === String(id)); if (!ent) return;
+        try {
+            const res = await API.fetch(`/cronicas/${cronicaAtual}/nodes/${id}?avatar=1`, { method: 'PUT', body: JSON.stringify({ nome: ent.nome, avatar_url: url }) });
+            if (!res.ok) throw new Error('falha');
+            ent.avatar_url = url;
+            if (window.mostrarToast) mostrarToast(url ? 'Foto atualizada!' : 'Foto removida.', url ? 'sucesso' : 'aviso');
+            const orbe = astroViewport && astroViewport.querySelector(`.astro-orbe[data-ent-id="${id}"]`);
+            if (orbe) abrirFeixe(orbe);              // re-render do menu c/ a nova miniatura (disco intacto)
+        } catch (_) { if (window.mostrarToast) mostrarToast('Erro ao salvar a foto.', 'erro'); }
+    }
+    async function enviarFotoEntidade(id) {
+        if (typeof window.selecionarEEnviarImagem !== 'function') { if (window.mostrarToast) mostrarToast('Uploader indisponível.', 'erro'); return; }
+        const url = await window.selecionarEEnviarImagem('entidades');   // abre seletor → /midia/upload (Sharp→WebP)
+        if (url) await salvarAvatar(id, url);
+    }
+    function removerFotoEntidade(id) { return salvarAvatar(id, null); }
+
     function abrirFeixe(orbeDiv) {
         const id = orbeDiv.dataset.entId;
         const ent = entidadesAtual.find((e) => String(e.id) === String(id));
@@ -1030,6 +1052,10 @@
             ${linhas}
             <div class="holo-nucleo ${afin.cls}" style="left:${ax}px;top:${ay}px">
                 <button class="holo-fechar" data-fx="fechar" title="Fechar (Esc)"><i data-lucide="x"></i></button>
+                <div class="holo-nucleo-foto${ent.avatar_url ? ' tem' : ''}" data-fx="foto" role="button" title="${ent.avatar_url ? 'Trocar foto' : 'Adicionar foto'}">
+                    ${ent.avatar_url ? `<img src="${escapeHTML(ent.avatar_url)}" alt="" draggable="false" onerror="this.style.display='none'">` : '<i data-lucide="camera"></i>'}
+                    ${ent.avatar_url ? `<button class="holo-nucleo-foto-rm" data-fx="foto-rm" title="Tirar foto"><i data-lucide="image-off"></i></button>` : ''}
+                </div>
                 <div class="holo-nucleo-nome">${escapeHTML(ent.nome)}</div>
                 <div class="holo-nucleo-tipo">${escapeHTML(ent.tipo || '—')}</div>
                 <div class="holo-nucleo-chips">
@@ -1131,6 +1157,8 @@
             const alvo = e.target.closest('[data-fx]'); if (!alvo) return;
             const fx = alvo.dataset.fx; limparT();
             if (fx === 'fechar') return fecharFeixe();
+            if (fx === 'foto') return enviarFotoEntidade(id);              // F3: miniatura no núcleo → upload/trocar
+            if (fx === 'foto-rm') return removerFotoEntidade(id);
             const ao = acoes.find((a) => a.fx === fx);
             if (ao && ao.tipo === 'acao') return abrirConteudo(fx, true);  // sinapses → modal
             if (fxAtivo === fx) {                                          // já aberto: fixa/solta SEM re-render (preserva edição)

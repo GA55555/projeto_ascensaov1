@@ -3969,6 +3969,23 @@ input[type="radio"] {
 .holo-fechar { position: absolute; top: 2px; right: 2px; padding: 2px; background: transparent; border: 0; color: var(--texto-mutado); cursor: pointer; }
 .holo-fechar:hover { color: var(--texto-claro); }
 .holo-fechar i { width: 13px; height: 13px; }
+/* §F3: miniatura da foto da entidade no núcleo do menu (upload/trocar/tirar). */
+.holo-nucleo-foto {
+    position: relative; width: 54px; height: 54px; margin: 2px auto 6px; border-radius: 6px; overflow: hidden;
+    display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--texto-mutado);
+    background: var(--bg-afundado); border: 1px solid color-mix(in srgb, var(--holo-cor, var(--destaque)) 40%, var(--borda));
+    transition: border-color var(--transicao-suave);
+}
+.holo-nucleo-foto:hover { border-color: var(--holo-cor, var(--destaque)); }
+.holo-nucleo-foto img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.holo-nucleo-foto > i { width: 20px; height: 20px; }
+.holo-nucleo-foto-rm {
+    position: absolute; top: 2px; right: 2px; display: none; padding: 2px; border: 0; border-radius: 3px; cursor: pointer;
+    background: color-mix(in srgb, var(--bg-principal) 72%, transparent); color: var(--texto-claro);
+}
+.holo-nucleo-foto.tem:hover .holo-nucleo-foto-rm { display: inline-flex; }
+.holo-nucleo-foto-rm:hover { color: var(--erro); }
+.holo-nucleo-foto-rm i { width: 12px; height: 12px; }
 .holo-nucleo-nome { font-family: 'Cormorant Garamond', serif; font-size: 1.05rem; font-weight: 600; color: var(--texto-claro); line-height: 1.15; }
 .holo-nucleo-tipo { font-size: 0.7rem; text-transform: capitalize; color: var(--texto-mutado); margin-top: 1px; }
 .holo-nucleo-chips { display: flex; gap: 5px; justify-content: center; flex-wrap: wrap; margin-top: 6px; }

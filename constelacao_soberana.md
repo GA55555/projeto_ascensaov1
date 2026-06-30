@@ -240,6 +240,18 @@ toggle (vincular/desvincular) + **stepper de peso**, em **acordeão por marco** 
 - **Smoke ao vivo PENDENTE** (Narrador testa: vincular/desvincular reflete na pool; stepper de peso; acordeão
   confortável; selo realça ao ganhar 1º evento).
 
+### 📷 Fatia 3 — parte 1/3: Foto/avatar no feixe (✅ feito, validado estaticamente)
+Decisão: **miniatura no núcleo do menu** (orbe segue esfera abstrata) + ação Foto ali.
+- **Backend:** `listarConstelacao` passa a trazer `avatar_url` por entidade (`n.dados->>'avatar_url'`, leitura).
+- **Reuso:** `selecionarEEnviarImagem` exposto como `window.*` (DRY) → upload `/midia/upload/entidades`
+  (Sharp→WebP, Regra 6.5). `salvarAvatar` faz `PUT /nodes/:id?avatar=1 {nome, avatar_url}`; **`avatar=1` e
+  `/midia/upload` entraram no SKIP do `onMutacao`** → o disco não se refaz e o menu não fecha; re-render do
+  menu no lugar (`abrirFeixe(orbe)`) c/ a nova miniatura.
+- **UI:** `.holo-nucleo-foto` no topo do núcleo (foto recortada ou ícone câmera); hover na foto mostra o
+  "tirar" (image-off). Só tokens. Versões → `constelacao.js?v=33`, `global_ui.css?v=35`, `controle_mundo.js?v=11`.
+- **Próximas partes da F3:** (2) busca-que-foca a entidade · (3) aposentar a Grelha + Constelação padrão.
+- **Smoke ao vivo PENDENTE** (enviar/trocar/tirar foto; miniatura aparece e persiste no reload).
+
 ### 🪐 Polimento do Astrolábio 3D — esferas sem distorção + movimento lento (✅ feito)
 Feedback: ao **arrastar** o disco as esferas (orbes 2D) distorciam, e o movimento estava rápido demais.
 - **Causa:** o billboard (`astro-levanta` + `astro-encara`) cancelava só o **tilt** e a **órbita**, mas não o

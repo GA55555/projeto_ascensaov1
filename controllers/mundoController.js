@@ -887,7 +887,7 @@ exports.listarConstelacao = async (req, res) => {
     try {
         const [nucleosQ, entidadesQ, linksQ, dipQ] = await Promise.all([
             pool.query("SELECT id, nome, dados FROM entidade_nucleos WHERE cronica_id = $1 AND tipo = 'entidade'", [cronicaId]),
-            pool.query(`SELECT n.id, n.nucleo_id, n.nome, n.tipo, n.dados->'reputacao' AS rep,
+            pool.query(`SELECT n.id, n.nucleo_id, n.nome, n.tipo, n.dados->'reputacao' AS rep, n.dados->>'avatar_url' AS avatar_url,
                             COALESCE((SELECT json_agg(json_build_object('key', f.flag_key, 'value', f.flag_value) ORDER BY f.flag_key)
                                       FROM world_flags f WHERE f.node_id = n.id), '[]'::json) AS flags
                           FROM world_nodes n WHERE n.cronica_id = $1 AND n.nucleo_id IS NOT NULL`, [cronicaId]),
@@ -909,6 +909,7 @@ exports.listarConstelacao = async (req, res) => {
                 id: e.id, nucleo_id: e.nucleo_id, nome: e.nome, tipo: e.tipo,
                 reputacao: reputacaoEscala.lerReputacao({ reputacao: e.rep }).posicao, // -10..+10 (aura no astrolábio)
                 flags: e.flags || [], // marcos (selos no orbe) — Constelação Soberana F1
+                avatar_url: e.avatar_url || null, // foto da entidade (miniatura no núcleo do feixe — F3)
             })),
             links: linksQ.rows.map((l) => ({
                 origem: l.origem_node_id,

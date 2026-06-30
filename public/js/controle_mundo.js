@@ -933,6 +933,7 @@ function selecionarEEnviarImagem(pasta) {
         input.click();
     });
 }
+window.selecionarEEnviarImagem = selecionarEEnviarImagem; // reusado pela Constelação (foto no feixe, F3)
 // Foto da entidade (upload → PUT {nome, avatar_url}); o backend faz MERGE no jsonb (2a).
 window.definirAvatarEntidade = async function(nodeId) {
     const node = nodesCache.find(n => String(n.id) === String(nodeId));
