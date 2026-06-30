@@ -261,8 +261,29 @@ Decisão: ao escolher, **foca + abre o menu** da entidade; busca encontra **enti
   síncrono) → `astro-orbe--achado` (pulso via `filter`) + `abrirFeixe(orbe)`; núcleo → só `focar`. Ligado 1×
   em `garantirInteracao` (guarda `interacaoPronta`).
 - Versões → `constelacao.js?v=34`, `global_ui.css?v=36`. `node --check` ✓ · CSS 960/960 ✓.
-- **Resta a F3 parte 3:** aposentar a Grelha + Constelação vira o padrão da aba Mundo.
-- **Smoke ao vivo PENDENTE** (buscar entidade foca+pulsa+abre menu; buscar núcleo foca; acento/sem acento).
+- **Smoke — aprovado pelo Narrador** ("funcionou").
+
+### 🏁 Fatia 3 — parte 3/3: Grelha aposentada, Constelação é o padrão (✅ feito) — FECHA A FASE SOBERANA
+**Review prévio (pedido do Narrador) achou um landmine:** as funções de marco (`marcoItemHTML`, `toggleFlag`,
+`adicionarMarcoInline`, `iniciarEdicaoMarco`, `confirmarDeletarMarco`) e o tooltip
+(`mapaDependenciasMarcos`/`construirMapaDependencias`/`mostrarTooltipMarco`) são **COMPARTILHADOS com a
+Direção de Cena** (`toggleExpandirAtor` expande os `.ator-card` com os mesmos marcos). Idem
+`carregarMundo`/`renderizarMundo`/`nodesCache`. **Removê-los quebraria a Cena** → mantidos.
+- **Removido (exclusivo da Grelha, órfão confirmado por grep):** botão `data-view="grid"`,
+  `renderizarGridMundo`, `cardMundoHTML`. `renderizarMundo` agora só trata `'cena'` (e limpa `cena-painel`
+  fora dela). `escudo_narrador.js` tem `renderizarGridMundoEscudo` próprio — intocado.
+- **Constelação é o padrão:** `mundoCurrentView='constelacao'`; `entrarLenteConstelacao()` (esconde listas,
+  mostra canvas, `Constelacao.entrar`) chamado no arranque e ao reabrir a aba Mundo. Toggle agora é
+  **Constelação / Direção de Cena**.
+- **Intocados (validados):** Direção de Cena, Tabuleiro, Escudo, toolbar (busca/filtros/Núcleos/Diplomacia/
+  Forjar), todo o sistema de marcos/eventos. `#grid-mundo` (vazio) e CSS `.world-card*` ficam inertes (zero
+  risco). Versão → `controle_mundo.js?v=12`.
+- Verificação: `node --check` ✓ · grep órfãos = 0 · controller carrega ✓.
+- **Smoke ao vivo PENDENTE** (aba Mundo abre na Constelação; Direção de Cena ainda funciona incl. marcos no
+  ator-card; Tabuleiro ok).
+
+> **🎉 Fase Constelação Soberana COMPLETA (F1 · F1b · F1c · F1d · F2 · F3).** A Constelação é a superfície
+> soberana de gestão de entidades; a Grelha foi aposentada.
 
 ### 🪐 Polimento do Astrolábio 3D — esferas sem distorção + movimento lento (✅ feito)
 Feedback: ao **arrastar** o disco as esferas (orbes 2D) distorciam, e o movimento estava rápido demais.

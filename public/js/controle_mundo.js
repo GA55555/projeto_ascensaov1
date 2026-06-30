@@ -42,7 +42,7 @@ let diplomaciaUltimoFoco = null;  // detecta troca de facção p/ recolher a lis
 
 // Visualização atual da aba Mundo + cache da lista já filtrada (Toggle re-renderiza
 // sem refetch — troca é só de apresentação). Fase 17: 'kanban' deu lugar a 'cena'.
-let mundoCurrentView = 'grid'; // 'grid' | 'cena'
+let mundoCurrentView = 'constelacao'; // 'constelacao' (padrão, F3.3) | 'cena' — a Grelha foi aposentada
 let mundoListaAtual = [];
 
 // Direção de Cena (Fase 17): layout efêmero em memória (persiste só no "Salvar Cena").
@@ -87,6 +87,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             carregarSessoes()
         ]);
         construirMapaDependencias(); // silencioso: prepara o reverse-lookup do hover
+        entrarLenteConstelacao();    // F3.3: Constelação é a lente padrão da aba Mundo
         
         // Se houver hash de sessão na URL, abre os detalhes
         if (window.location.hash.startsWith('#sessao-')) {
@@ -145,7 +146,7 @@ window.abrirTab = function(tab) {
     if (conteudoTab) conteudoTab.classList.add('ativa');
     
     // Atualiza o conteúdo baseando-se na aba ativa
-    if (tab === 'mundo') { carregarMundo(document.getElementById('filtro-nucleo-entidade')?.value); construirMapaDependencias(); }
+    if (tab === 'mundo') { carregarMundo(document.getElementById('filtro-nucleo-entidade')?.value); construirMapaDependencias(); if (mundoCurrentView === 'constelacao') entrarLenteConstelacao(); }
     else if (tab === 'eventos') {
         carregarNucleos('evento'); 
         carregarEventos(document.getElementById('filtro-nucleo-evento')?.value);
@@ -483,48 +484,16 @@ async function carregarMundo(nucleoFiltro = '', textoFiltro = '') {
 // Dispatcher de visualização: a troca NÃO refaz fetch — opera sobre a mesma lista já
 // em memória. Fase 17: 'cena' (Direção de Cena) substitui o antigo Kanban.
 function renderizarMundo(lista) {
-    if (lista) mundoListaAtual = lista; // guarda p/ re-render no Toggle
+    if (lista) mundoListaAtual = lista; // guarda p/ a Direção de Cena (nodesCache/mundoListaAtual)
     const container = document.getElementById('mundo-view-container');
     if (container) container.classList.toggle('view-cena', mundoCurrentView === 'cena');
-    if (mundoCurrentView === 'cena') {
-        renderizarCena(mundoListaAtual);
-    } else {
-        document.getElementById('cena-painel')?.remove(); // não deixa o painel pendurado
-        renderizarGridMundo(mundoListaAtual);
-    }
+    // Grelha aposentada (F3.3): a Constelação renderiza no seu próprio canvas; aqui só resta a Direção de Cena.
+    if (mundoCurrentView === 'cena') renderizarCena(mundoListaAtual);
+    else document.getElementById('cena-painel')?.remove(); // fora da Cena, não deixa o painel pendurado
 }
 
-// Markup de um card de entidade da Grelha (não-arrastável; o Elenco da Cena usa cards
-// minimalistas próprios). data-node-id mantido para edição/kebab.
-function cardMundoHTML(node) {
-    return `
-        <div class="card world-card" data-node-id="${escapeHTML(String(node.id))}">
-            <div class="world-card__head">
-                ${cardIdentHTML(node)}
-                <div class="world-card__acoes">
-                    <button class="btn btn-secondary btn-sm" data-id="${node.id}" onclick="abrirModalSinapses(this.dataset.id)" title="Conexões (Sinapses)"><i data-lucide="share-2"></i></button>
-                    <i data-lucide="more-vertical" class="kebab-trigger cursor-pointer" title="Mais ações" onclick="abrirMenuKebab(event, '${node.id}')"></i>
-                </div>
-            </div>
-
-            <div class="card-acoes-inline">
-                <button class="btn btn-ghost btn-sm" onclick="iniciarEdicaoNome('${node.id}')"><i data-lucide="edit"></i> Editar</button>
-                <button class="btn btn-ghost btn-sm" onclick="definirAvatarEntidade('${node.id}')"><i data-lucide="image"></i> Foto</button>
-                ${node.avatar_url ? `<button class="btn btn-ghost btn-sm" onclick="removerAvatarEntidade('${node.id}')"><i data-lucide="image-off"></i> Tirar Foto</button>` : ''}
-                <button class="btn btn-ghost btn-sm" onclick="moverNodeNucleo('${node.id}')"><i data-lucide="map-pin"></i> Mudar Núcleo</button>
-                <button class="btn btn-ghost btn-sm btn-del" onclick="confirmarDeletarEntidade(this, '${node.id}')"><i data-lucide="trash"></i> Deletar</button>
-            </div>
-
-            <div class="world-card__marcos-label">Marcos</div>
-            <div id="flags-${node.id}" class="world-card__marcos">
-                ${(node.flags || []).filter(f => f.key).map(f => marcoItemHTML(node.id, f)).join('')}
-                <input type="text" class="input-inline-marco" maxlength="60" placeholder="+ Novo Marco (Enter)" onkeydown="adicionarMarcoInline(event, '${node.id}')">
-            </div>
-
-            ${cardRodapeNucleoHTML(node)}
-        </div>
-    `;
-}
+// (F3.3) cardMundoHTML removido junto com a lente Grelha. marcoItemHTML PERMANECE: é reusado pela
+// Direção de Cena (toggleExpandirAtor expande o .ator-card com os mesmos Marcos).
 
 // Um item de Marco (extraído p/ reuso no card E no add inline otimista — DRY).
 // Nome editável por duplo-clique (inline); apagar via × que só aparece no hover (Regra 7.2).
@@ -545,18 +514,7 @@ function marcoItemHTML(nodeId, f) {
         </div>`;
 }
 
-// Lente GRELHA (renderizador clássico): galeria plana de todas as entidades filtradas.
-function renderizarGridMundo(lista) {
-    const grid = document.getElementById('grid-mundo');
-    if (!grid) return;
-    if (!lista.length) {
-        grid.innerHTML = '<div class="info-block-vazio col-full">Nenhuma entidade encontrada.</div>';
-        lucide.createIcons();
-        return;
-    }
-    grid.innerHTML = lista.map(cardMundoHTML).join('');
-    lucide.createIcons();
-}
+// (F3.3) renderizarGridMundo removido com a lente Grelha — a Constelação é o padrão da aba Mundo.
 
 // ══════════════════════════════════════════════════════════════════════════
 // DIREÇÃO DE CENA (FASE 17) — Elenco (sidebar) + Palco (colunas dinâmicas).
@@ -2610,6 +2568,18 @@ window.aplicarFiltrosMundo = function() {
 
 // Toggle de visualização (Grelha / Direção de Cena): troca só a apresentação,
 // re-renderizando a lista já em memória — sem refetch. Listeners nativos.
+// (F3.3) Ativa a lente Constelação (padrão da aba Mundo): esconde as listas, mostra o canvas e entra.
+// Usada no arranque e ao reabrir a aba Mundo quando a Constelação é a lente corrente.
+function entrarLenteConstelacao() {
+    mundoCurrentView = 'constelacao';
+    document.querySelectorAll('.view-toggle button[data-view]').forEach(b => b.classList.toggle('active', b.dataset.view === 'constelacao'));
+    const listas = document.getElementById('mundo-view-container');
+    const canvas = document.getElementById('constelacao-canvas');
+    if (listas) listas.hidden = true;
+    if (canvas) canvas.hidden = false;
+    if (window.Constelacao) Constelacao.entrar(cronicaId);
+}
+
 function inicializarViewToggle() {
     const toggle = document.querySelector('.view-toggle');
     if (!toggle) return;
