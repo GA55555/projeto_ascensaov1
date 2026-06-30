@@ -2880,7 +2880,7 @@ window.abrirBoard = async function(boardId) {
     ajustandoFundo = false; // sai do modo de ajuste de fundo ao trocar de tabuleiro
     document.getElementById('btn-ajustar-fundo')?.classList.remove('ativo');
     sincronizarControlesFundo();
-    if (!boardId) { boardState = boardVazio(); boardNomeAtual = ''; renderBoard(); return; }
+    if (!boardId) { boardState = boardVazio(); boardNomeAtual = ''; sincronizarControlesFundo(); renderBoard(); return; }
     let resp;
     try { resp = await MundoApi.buscarBoard(cronicaId, boardId); }
     catch (e) { mostrarToast(e.message || 'Erro ao carregar tabuleiro.', 'erro'); return; }
@@ -2905,6 +2905,7 @@ window.abrirBoard = async function(boardId) {
     const sel = document.getElementById('board-select'); if (sel) sel.value = boardAtualId;
     const selFundo = document.getElementById('board-fundo-select'); if (selFundo) selFundo.value = boardState.fundo;
     const selTema = document.getElementById('board-tema-select'); if (selTema) selTema.value = boardState.tema;
+    sincronizarControlesFundo(); // agora com o boardState já carregado: revela Ajustar/Remover só se houver imagem
     renderBoard();
     atualizarLinksBoard(); // busca os world_links reais entre os nós e desenha as linhas
 };
@@ -3390,6 +3391,7 @@ window.onFundoSelecionado = async function(input) {
         const c = centroMundo();
         const w = img.naturalWidth || 800, h = img.naturalHeight || 600;
         boardState.fundoImagem = { url, x: Math.round(c.x - w / 2), y: Math.round(c.y - h / 2), w, h, opacidade: 1 };
+        sincronizarControlesFundo(); // revela Ajustar/Remover agora que existe imagem
         renderBoard();
         mostrarToast('Imagem de fundo aplicada. Use Salvar para persistir.', 'sucesso');
     };
@@ -3416,10 +3418,13 @@ window.toggleAjusteFundo = function() {
     renderBoard();
     if (ajustandoFundo) mostrarToast('Use + / − para aumentar/diminuir (proporcional); arraste para mover; o canto redimensiona livre; o slider muda a opacidade. Clique de novo p/ concluir.', 'sucesso');
 };
-// Mostra/esconde o slider de opacidade conforme o modo de ajuste e reflete o valor atual.
+// Mostra/esconde os controles de fundo conforme o estado. Ajustar/Remover só fazem sentido quando há
+// imagem salva (.board-fundo-img-ctrl); opacidade + zoom só dentro do modo de ajuste (.board-fundo-ctrl).
 function sincronizarControlesFundo() {
-    const ativo = ajustandoFundo && !!boardState.fundoImagem;
-    document.querySelectorAll('.board-fundo-ctrl').forEach(el => { el.hidden = !ativo; }); // opacidade + zoom
+    const temImagem = !!boardState.fundoImagem;
+    const ativo = ajustandoFundo && temImagem;
+    document.querySelectorAll('.board-fundo-img-ctrl').forEach(el => { el.hidden = !temImagem; }); // ajustar + remover
+    document.querySelectorAll('.board-fundo-ctrl').forEach(el => { el.hidden = !ativo; });          // opacidade + zoom
     const slider = document.getElementById('board-fundo-opacidade');
     if (ativo && slider) slider.value = (typeof boardState.fundoImagem.opacidade === 'number') ? boardState.fundoImagem.opacidade : 1;
 }
