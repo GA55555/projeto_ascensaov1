@@ -8,30 +8,38 @@
 
 ## 🔖 Retomada rápida (próxima sessão)
 
-> **Onde paramos (código COMMITADO em `dbd0665a`, branch `sandbox`; F1b + esta nota estão por commitar):**
-> - **Reputação — COMPLETA (F1–F4)** (guia `reputacao.md`): ledger no feixe, RAG, aura no orbe, amplifica a
->   facção. Só falta **smoke ao vivo + calibrar** constantes (`REP_FATOR=0.6`, `--rep-blur/-bright`, tiers).
-> - **Constelação Soberana — F1 + F1b + F1c FEITAS (estático):** selos de marco no orbe + toggle (F1); gestão
->   no-code completa (F1b: sub-painel "Marcos" + popover de long-press); e o **Núcleo Holográfico Radial**
->   (F1c, §7) que **substitui o feixe retangular** — núcleo central + satélites (ações) num anel 360°
->   edge-aware; hover abre o holograma de conteúdo, clique fixa (pin). Resolve o "barulho" do painel antigo.
->   O orbe tem 4 camadas: raio=relevância · anel=afinidade · aura=reputação · **selos=marcos**.
-> - **Ajustes do smoke da F1b aplicados:** long-press 380→**320ms**; **roda do mouse rola a lista** (antes
->   dava zoom no canvas); **setas ↑/↓ navegam os marcos** no sub-painel.
+> **Onde paramos (tudo COMMITADO na branch `sandbox`; HEAD = `20d759ca`):**
+> - **🎉 Fase Constelação Soberana COMPLETA e aprovada no smoke:** F1 (selos de marco) · F1b (gestão no-code:
+>   sub-painel "Marcos" + popover long-press 320ms) · F1c (Núcleo Holográfico Radial: anel edge-aware, hover
+>   abre conteúdo, clique fixa; linhas de neon das arestas) · F1d (hover-previews: sol=métricas, luas=marco→
+>   evento) · F2 (wiring marco→evento: satélite "Eventos", acordeão, stepper de peso) · F3 (avatar no núcleo ·
+>   busca que foca · **Grelha aposentada**, Constelação é o padrão da aba Mundo). Detalhes em §7.
+> - **Polimentos pós-fase (todos aprovados):** astrolábio com billboard completo (esferas não distorcem) +
+>   movimento lento (`ASTRO_PERIODO=240`); toolbar do Mundo enxuta (só o seletor de lente); **busca = faixa
+>   ACIMA do canvas** (fora da viz, some na Direção de Cena); **diplomacia no-code no mapa macro** (botão
+>   handshake no hover → caixa "Diplomacia de [núcleo]" com lista + Aliado/Neutro/Inimigo; corrigiu a colisão
+>   âncora×carta).
 >
-> **Aguardando do Narrador (smoke da F1c — o Núcleo Holográfico):** (1) o anel de satélites fica legível e
-> bem posicionado (inclusive perto das bordas → vira arco)? (2) o hover abre o holograma certo e o clique
-> fixa (pin) sem colapsar ao editar? (3) o "barulho" sumiu / está mais limpo? (4) clicar fora e Esc fecham
-> como esperado? (5) densidade dos 7 satélites no anel está boa ou prefere reduzir/reagrupar?
+> **⏳ ONDE PARAMOS DE FATO — discussão aberta (sem código ainda): INTENSIDADE da diplomacia.** O Narrador
+> perguntou como calcular a "intensidade" de um laço diplomático entre núcleos, usando como base a **relação
+> entre os membros** (laços cruzados) e a **reputação**. Modelo que eu ia propor (validar antes de implementar):
+>   - **Dados disponíveis:** `linksAtual` = todos os `world_links` com `reta` assinada (−10..+10), **incluindo
+>     laços CRUZADOS** entre membros de núcleos diferentes (hoje `scoreReta` filtra só os intra; os cruzados
+>     estão livres pra isto). `entidadesAtual` tem `nucleo_id` + `reputacao` (−10..+10). `relevancia(e)` =
+>     grau de sinapses + papel.
+>   - **Inclinação D(A,B)** = média **ponderada** das `reta` dos laços cruzados A↔B (peso por `relevancia` dos
+>     dois extremos) → sinal = aliança(+)/inimizade(−), magnitude bruta ∈ [−10,+10].
+>   - **Intensidade I(A,B)** = `|D|` escalada pela **densidade** (nº de laços cruzados, saturando: `dens/(dens+k)`)
+>     → exige vários laços alinhados pra ser "intensa".
+>   - **Reputação** (opcional): amplifica a intensidade pelos **membros-ponte** (figuras de muita fama/infâmia
+>     que ligam os núcleos tornam a relação mais intensa), ou enviesa a inclinação.
+>   - **Uso a decidir:** a intensidade (a) só vira **espessura/brilho da linha** mantendo o status manual; (b)
+>     **sugere** o status (Narrador confirma); ou (c) **substitui** (diplomacia 100% emergente).
+>   - **Decisões a alinhar na retomada:** papel (a/b/c) · quais fatores entram (retas cruzadas [base] · relevância
+>     · reputação · densidade) · peso da reputação (amplifica intensidade vs enviesa inclinação).
 >
-> **Próximos passos, em ordem:**
-> 1. **Soberana F2** — wiring marco→evento no feixe (`event_flag_weights`; vincular/pesar gatilhos). Próxima fatia.
-> 2. **Soberana F3** — migrar foto/avatar + **busca que foca a entidade** (não haverá lista) e **remover a
->    Grelha** (`renderizarGridMundo`/`cardMundoHTML`/botão `data-view="grid"`); Constelação vira o padrão.
-> 3. **Reputação** — fechar o smoke ao vivo + calibração (paralelo, quando o Narrador testar).
->
-> **Decisões abertas a resolver no início das fatias:** densidade de selos (2ª fileira?); ergonomia do clique
-> em orbe que orbita; busca sem lista; avatar no feixe; UI do peso de eventos no painel estreito (§5).
+> **Outras pendências menores (limpeza, com review):** código morto do arrasto-âncora antigo (`conectandoDe`,
+> temp-line, `abrirPickerDiplomacia`); `aplicarFiltrosMundo` + `modal-forja` (inertes pós-aposentadoria da Grelha).
 > **Deploy:** `git pull` + `pm2 restart` (Node `mochila`, Python `oraculo`).
 
 ---
