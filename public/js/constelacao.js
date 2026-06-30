@@ -468,7 +468,12 @@
                 } else if (!usarTarot && t) { // desmarcou o Tarot que existia → remove
                     await API.fetch(`/cronicas/${cronicaAtual}/entidade-nucleos/${id}/tarot`, { method: 'DELETE' });
                 }
-                fechar(); // API.onMutacao recarrega a constelação
+                // Sincroniza o orbe local (otimista) com o que acabou de ser salvo: o editor lê `o.descricao`
+                // direto de `orbes`, então o reabrir mostra o estado novo SEM depender do timing do recarregar()
+                // (que só refletia a descrição após um F5). Mesma instância reusada na reconciliação → sem drift.
+                o.nome = nome; o.descricao = descricao; o.cor = cor; o.escala = escala;
+                o.tarot = (usarTarot && cartaVal !== '') ? { carta_num: parseInt(cartaVal, 10), orientacao: or } : null;
+                fechar(); // API.onMutacao recarrega a constelação (reconcilia física/visual)
             } catch (_) { if (window.mostrarToast) mostrarToast('Erro ao salvar.', 'erro'); }
         });
         modal.querySelector('#cf-apagar').addEventListener('click', async () => {
