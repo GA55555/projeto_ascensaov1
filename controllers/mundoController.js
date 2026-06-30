@@ -886,7 +886,7 @@ exports.listarConstelacao = async (req, res) => {
     const { cronicaId } = req.params;
     try {
         const [nucleosQ, entidadesQ, linksQ, dipQ] = await Promise.all([
-            pool.query("SELECT id, nome, dados FROM entidade_nucleos WHERE cronica_id = $1 AND tipo = 'entidade'", [cronicaId]),
+            pool.query("SELECT id, nome, avatar_url, dados FROM entidade_nucleos WHERE cronica_id = $1 AND tipo = 'entidade'", [cronicaId]),
             pool.query(`SELECT n.id, n.nucleo_id, n.nome, n.tipo, n.dados->'reputacao' AS rep, n.dados->>'avatar_url' AS avatar_url,
                             COALESCE((SELECT json_agg(json_build_object('key', f.flag_key, 'value', f.flag_value) ORDER BY f.flag_key)
                                       FROM world_flags f WHERE f.node_id = n.id), '[]'::json) AS flags
@@ -899,6 +899,7 @@ exports.listarConstelacao = async (req, res) => {
             nucleos: nucleosQ.rows.map((n) => ({
                 id: n.id,
                 nome: n.nome,
+                avatar_url: n.avatar_url || null,
                 descricao: (n.dados && typeof n.dados === 'object' && n.dados.descricao) || '',
                 cor: (n.dados && typeof n.dados === 'object' && n.dados.cor) || null,
                 escala: (n.dados && typeof n.dados === 'object' && n.dados.escala) || null,

@@ -4000,7 +4000,13 @@ input[type="radio"] {
 .constelacao-orbe:hover .orbe-esfera { filter: drop-shadow(0 0 14px color-mix(in srgb, var(--cor-orbe) 65%, transparent)); }
 .constelacao-orbe.arrastando .orbe-esfera { filter: drop-shadow(0 0 18px color-mix(in srgb, var(--cor-orbe) 78%, transparent)); }
 /* Camadas internas (decorativas). O clip-path do pai já as recorta em círculo. */
-.orbe-plasma, .orbe-nucleo, .orbe-vidro { position: absolute; inset: 0; pointer-events: none; }
+.orbe-foto, .orbe-plasma, .orbe-nucleo, .orbe-vidro { position: absolute; inset: 0; pointer-events: none; }
+.orbe-foto {
+    background-size: cover;
+    background-position: center;
+    opacity: 0.9;
+    border-radius: 50%;
+}
 .orbe-plasma {
     mix-blend-mode: screen; opacity: 0.85;
     background: conic-gradient(from 0deg,

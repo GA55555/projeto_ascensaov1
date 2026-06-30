@@ -88,12 +88,12 @@
             const id = String(n.id);
             const massa = forcas.massa[id] || 1;
             const ex = !reposicionar && antigos.get(id);
-            if (ex) { ex.nome = n.nome; ex.descricao = n.descricao; ex.tarot = n.tarot; ex.massa = massa; ex.cor = n.cor; ex.escala = n.escala; return ex; } // mantém posição/velocidade
+            if (ex) { ex.nome = n.nome; ex.avatar_url = n.avatar_url; ex.descricao = n.descricao; ex.tarot = n.tarot; ex.massa = massa; ex.cor = n.cor; ex.escala = n.escala; return ex; } // mantém posição/velocidade
             let pos;
             if (proximaSemente) { pos = { x: proximaSemente.x, y: proximaSemente.y }; proximaSemente = null; } // nasce onde o Narrador clicou
             else if (n.pos && typeof n.pos.x === 'number') { pos = { x: n.pos.x, y: n.pos.y }; }
             else { const ang = (i / Math.max(1, nucleos.length)) * 2 * Math.PI; pos = { x: centroMundo.x + Math.cos(ang) * raio, y: centroMundo.y + Math.sin(ang) * raio }; }
-            return { id, nome: n.nome, descricao: n.descricao, cor: n.cor, escala: n.escala, tarot: n.tarot, x: pos.x, y: pos.y, vx: 0, vy: 0, massa, fixo: false };
+            return { id, nome: n.nome, avatar_url: n.avatar_url, descricao: n.descricao, cor: n.cor, escala: n.escala, tarot: n.tarot, x: pos.x, y: pos.y, vx: 0, vy: 0, massa, fixo: false };
         });
     }
 
@@ -120,7 +120,7 @@
                 : '';
             // Orbe arcano: camadas decorativas (plasma girando + núcleo pulsando + vidro esférico fixo)
             // são pointer-events:none → o clique/arrasto continua caindo no .constelacao-orbe. Nome só no hover.
-            div.innerHTML = `<span class="orbe-esfera"><span class="orbe-plasma"></span><span class="orbe-nucleo"></span><span class="orbe-vidro"></span></span>${selo}<button class="constelacao-orbe-diplo" title="Diplomacia deste núcleo"><i data-lucide="handshake"></i></button><span class="constelacao-orbe-nome">${escapeHTML(o.nome)}</span>`;
+            div.innerHTML = `${renderOrbeCamadas(o.avatar_url)}${selo}<button class="constelacao-orbe-diplo" title="Diplomacia deste núcleo"><i data-lucide="handshake"></i></button><span class="constelacao-orbe-nome">${escapeHTML(o.nome)}</span>`;
             wo.appendChild(div);
             orbeEl.set(o.id, div);
         }
@@ -420,6 +420,8 @@
                     </select>
                 </div>
                 <div class="cf-extras">
+                    <button class="btn btn-outline btn-sm" id="cf-brasao" title="Alterar Brasão/Foto"><i data-lucide="image"></i> Brasão</button>
+                    <button class="btn btn-danger btn-sm" id="cf-rem-brasao" title="Remover Brasão" ${o.avatar_url ? '' : 'hidden'}><i data-lucide="image-off"></i></button>
                     <button class="btn btn-outline btn-sm" id="cf-diplo"><i data-lucide="handshake"></i> Diplomacia</button>
                     <button class="btn btn-outline btn-sm" id="cf-criar-ent"><i data-lucide="user-plus"></i> Criar entidade dentro</button>
                 </div>
@@ -480,6 +482,27 @@
             if (!confirm(`Apagar o núcleo "${o.nome}"? As entidades dele ficam sem facção.`)) return;
             try { await API.fetch(`/cronicas/${cronicaAtual}/entidade-nucleos/${id}`, { method: 'DELETE' }); fechar(); }
             catch (_) { if (window.mostrarToast) mostrarToast('Erro ao apagar.', 'erro'); }
+        });
+        modal.querySelector('#cf-brasao').addEventListener('click', async () => {
+            if (!window.selecionarEEnviarImagem) return;
+            const url = await selecionarEEnviarImagem('nucleos');
+            if (!url) return;
+            try {
+                await API.fetch(`/cronicas/${cronicaAtual}/entidade-nucleos/${id}`, { method: 'PUT', body: JSON.stringify({ nome: o.nome, avatar_url: url }) });
+                o.avatar_url = url;
+                modal.querySelector('#cf-rem-brasao').hidden = false;
+                if (window.mostrarToast) mostrarToast('Brasão atualizado!', 'sucesso');
+            } catch { if (window.mostrarToast) mostrarToast('Erro ao salvar brasão.', 'erro'); }
+        });
+        const btnRemBrasao = modal.querySelector('#cf-rem-brasao');
+        if (btnRemBrasao) btnRemBrasao.addEventListener('click', async () => {
+            if (!o.avatar_url) return;
+            try {
+                await API.fetch(`/cronicas/${cronicaAtual}/entidade-nucleos/${id}`, { method: 'PUT', body: JSON.stringify({ nome: o.nome, avatar_url: null }) });
+                o.avatar_url = null;
+                modal.querySelector('#cf-rem-brasao').hidden = true;
+                if (window.mostrarToast) mostrarToast('Brasão removido.', 'aviso');
+            } catch { if (window.mostrarToast) mostrarToast('Erro ao remover brasão.', 'erro'); }
         });
         // F3.2b: reusa o modal de Diplomacia existente, JÁ FOCADO neste núcleo (dip-foco + change).
         modal.querySelector('#cf-diplo').addEventListener('click', async () => {
@@ -656,7 +679,10 @@
         return s;
     }
     const astroValencia = (score) => (score > 1 ? 'astro--arcana' : score < -1 ? 'astro--repulsao' : 'astro--neutro');
-    const ORBE_CAMADAS = '<span class="orbe-esfera"><span class="orbe-plasma"></span><span class="orbe-nucleo"></span><span class="orbe-vidro"></span></span>';
+    const renderOrbeCamadas = (avatarUrl) => {
+        const bg = avatarUrl ? `<span class="orbe-foto" style="background-image: url('${escapeHTML(avatarUrl)}')"></span>` : '';
+        return `<span class="orbe-esfera">${bg}<span class="orbe-plasma"></span><span class="orbe-nucleo"></span><span class="orbe-vidro"></span></span>`;
+    };
 
     // Marcos (flags) como SELOS num anel ao redor do orbe (Constelação Soberana F1): aceso=ligado /
     // vazado=desligado. Posição em volta do orbe (56px → centro 28, raio 36). Hover=nome (title); clique
@@ -708,7 +734,7 @@
                 <span class="astro-corpo">
                     <span class="astro-encara" style="animation-duration:${dur}s;animation-delay:${atraso}s">
                         <span class="astro-levanta">
-                            <span class="astro-orbe" ${dados} style="${aura}" title="${escapeHTML(e.nome)} (${escapeHTML(e.tipo || '')})">${ORBE_CAMADAS}${marcosOrbeHTML(e.flags)}<span class="constelacao-planeta-nome">${escapeHTML(e.nome)}</span></span>
+                            <span class="astro-orbe" ${dados} style="${aura}" title="${escapeHTML(e.nome)} (${escapeHTML(e.tipo || '')})">${renderOrbeCamadas(e.avatar_url)}${marcosOrbeHTML(e.flags)}<span class="constelacao-planeta-nome">${escapeHTML(e.nome)}</span></span>
                         </span>
                     </span>
                 </span>
@@ -717,7 +743,7 @@
         }).join('');
         vp.innerHTML = `<div class="astrolabio-3d" style="--rot-z:0deg">
             ${corpos}
-            <span class="astro-centro" style="--cor-orbe:${corSol}">${ORBE_CAMADAS}</span>
+            <span class="astro-centro" style="--cor-orbe:${corSol}">${renderOrbeCamadas(sol.avatar_url)}</span>
         </div>`;
         canvas().appendChild(vp);
         astroViewport = vp;
