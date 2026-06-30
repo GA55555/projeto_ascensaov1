@@ -262,6 +262,8 @@ Decisão: ao escolher, **foca + abre o menu** da entidade; busca encontra **enti
   em `garantirInteracao` (guarda `interacaoPronta`).
 - Versões → `constelacao.js?v=34`, `global_ui.css?v=36`. `node --check` ✓ · CSS 960/960 ✓.
 - **Smoke — aprovado pelo Narrador** ("funcionou").
+- **Ajuste UX (pós-fase):** barra de busca **minimizada (só o ícone)**, expande no **hover/foco** (input 0→240px
+  via CSS `:hover`/`:focus-within`; clique no ícone também abre p/ touch). `v=35`/`v=37`.
 
 ### 🏁 Fatia 3 — parte 3/3: Grelha aposentada, Constelação é o padrão (✅ feito) — FECHA A FASE SOBERANA
 **Review prévio (pedido do Narrador) achou um landmine:** as funções de marco (`marcoItemHTML`, `toggleFlag`,
