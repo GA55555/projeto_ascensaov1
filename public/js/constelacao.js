@@ -743,7 +743,7 @@
         }).join('');
         vp.innerHTML = `<div class="astrolabio-3d" style="--rot-z:0deg">
             ${corpos}
-            <span class="astro-centro" style="--cor-orbe:${corSol}">${renderOrbeCamadas(sol.avatar_url)}</span>
+            <span class="astro-centro" style="--cor-orbe:${corSol}">${renderOrbeCamadas(sol.avatar_url)}<button type="button" class="btn-tensao-raio" data-acao="tensoes-sol" style="position:absolute; top:100%; left:50%; transform:translate(-50%, 6px); z-index:10; padding:2px 8px; font-size:0.75rem;" title="Revelar tensões e preságios do núcleo"><i data-lucide="zap"></i> ⚡</button></span>
         </div>`;
         canvas().appendChild(vp);
         astroViewport = vp;
@@ -751,6 +751,15 @@
         ligarAstroDrag(vp);
         ligarHoverInfo(vp);                  // §F1d: hover do sol + luas de marco
         carregarMapaMarcoEventos();          // lazy (1×/foco) → realça selos com evento + alimenta o tooltip da lua
+        vp.addEventListener('click', (e) => {
+            if (e.target.closest('[data-acao="tensoes-sol"]')) {
+                e.stopPropagation();
+                if (window.ConstelacaoTensao) {
+                    const t = window.ConstelacaoTensao.detectarTensoesNucleo(focoId, orbes, entidadesAtual, linksAtual, diplomaciaAtual);
+                    window.ConstelacaoTensao.abrirModalTensoes(`Tensões em ${sol.nome}`, t);
+                }
+            }
+        });
     }
 
     function removerAstrolabio() {
@@ -1106,6 +1115,7 @@
             { fx: 'reputacao', ic: 'gem',         label: 'Reputação',    tipo: 'holo' },
             { fx: 'marcos',    ic: 'flag',        label: 'Marcos',       tipo: 'holo' },
             { fx: 'eventos',   ic: 'zap',         label: 'Eventos',      tipo: 'holo' },   // F2: wiring marco→evento
+            { fx: 'tensoes',   ic: 'sparkles',    label: 'Tensões',      tipo: 'acao' },   // Oráculo Matemático (clique abre modal)
             { fx: 'sinapses',  ic: 'share-2',     label: 'Sinapses',     tipo: 'acao' },   // abre modal externo (só clique)
             { fx: 'editar',    ic: 'edit',        label: 'Editar nome',  tipo: 'holo' },
             { fx: 'mover',     ic: 'map-pin',     label: 'Mudar núcleo', tipo: 'holo' },
@@ -1196,7 +1206,14 @@
         function abrirConteudo(fx, fixar) {
             const k = acoes.findIndex((a) => a.fx === fx); if (k < 0) return;
             const ao = acoes[k];
-            if (ao.tipo === 'acao') { if (fx === 'sinapses' && window.abrirModalSinapses) window.abrirModalSinapses(id); return; }
+            if (ao.tipo === 'acao') {
+                if (fx === 'sinapses' && window.abrirModalSinapses) window.abrirModalSinapses(id);
+                else if (fx === 'tensoes' && window.ConstelacaoTensao) {
+                    const t = window.ConstelacaoTensao.detectarTensoesEntidade(id, orbes, entidadesAtual, linksAtual, diplomaciaAtual);
+                    window.ConstelacaoTensao.abrirModalTensoes(`Tensões de ${ent.nome}`, t);
+                }
+                return;
+            }
             fxAtivo = fx; pinned = !!fixar;
             tituloEl.textContent = ao.label;
             conteudo.hidden = false; conteudo.classList.toggle('holo-conteudo--pin', pinned);
@@ -1568,11 +1585,17 @@
     function mostrarBarraFoco(o) {
         removerBarraFoco();
         const c = canvas(); if (!c) return;
+        let numTensoes = 0;
+        if (window.ConstelacaoTensao) {
+            const t = window.ConstelacaoTensao.detectarTensoesNucleo(o.id, orbes, entidadesAtual, linksAtual, diplomaciaAtual);
+            numTensoes = t.length;
+        }
         const bar = document.createElement('div');
         bar.id = 'constelacao-foco-barra';
         bar.className = 'constelacao-foco-barra';
         bar.innerHTML = `
             <span class="cfb-nome">${escapeHTML(o.nome)}</span>
+            <button class="btn btn-sm btn-outline btn-tensao-raio" style="margin-left:8px;" data-acao="tensoes" title="Oráculo Matemático: ver tensões e preságios"><i data-lucide="zap"></i> Tensões (${numTensoes})</button>
             <button class="btn btn-sm btn-outline" data-acao="config"><i data-lucide="settings"></i> Configurar</button>
             <button class="btn btn-sm btn-outline" data-acao="criar"><i data-lucide="user-plus"></i> Entidade</button>
             <button class="btn btn-sm btn-ghost" data-acao="sair"><i data-lucide="x"></i> Sair</button>`;
@@ -1580,7 +1603,11 @@
         bar.addEventListener('pointerdown', (e) => e.stopPropagation()); // não deixa o clique virar pan do canvas
         bar.addEventListener('click', (e) => {
             const ac = e.target.closest('[data-acao]')?.dataset.acao;
-            if (ac === 'config') abrirConfigNucleo(focoId);
+            if (ac === 'tensoes' && window.ConstelacaoTensao) {
+                const t = window.ConstelacaoTensao.detectarTensoesNucleo(o.id, orbes, entidadesAtual, linksAtual, diplomaciaAtual);
+                window.ConstelacaoTensao.abrirModalTensoes(`Tensões em ${o.nome}`, t);
+            }
+            else if (ac === 'config') abrirConfigNucleo(focoId);
             else if (ac === 'criar') abrirCriarEntidade(focoId, o.nome);
             else if (ac === 'sair') sairFoco();
         });

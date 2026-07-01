@@ -4479,3 +4479,31 @@ input[type="radio"] {
 /* F5 — Card de configuração BYOK no perfil (substitui o style inline dos cards irmãos). */
 .oraculo-cfg { margin-top: 20px; }
 .oraculo-cfg-sub { margin: 0 0 12px; font-size: 0.85rem; }
+
+/* F2.3c — Motor Algorítmico de Tensões e Ganchos (Oráculo Matemático sem IA) */
+.btn-tensao-raio {
+    display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 12px;
+    background: color-mix(in srgb, var(--dourado) 15%, var(--bg-card));
+    border: 1px solid var(--dourado); color: var(--dourado); font-size: 0.82rem; font-weight: 600;
+    cursor: pointer; transition: all var(--transicao-suave); box-shadow: 0 0 10px color-mix(in srgb, var(--dourado) 25%, transparent);
+}
+.btn-tensao-raio:hover {
+    background: var(--dourado); color: var(--bg-principal); transform: translateY(-1px);
+    box-shadow: 0 0 16px color-mix(in srgb, var(--dourado) 55%, transparent);
+}
+.btn-tensao-raio i { width: 14px; height: 14px; }
+.tensao-modal-box { max-width: 580px; }
+.tensao-sub { margin-bottom: 14px; font-size: 0.88rem; }
+.tensao-lista { display: flex; flex-direction: column; gap: 10px; max-height: 380px; overflow-y: auto; padding-right: 4px; }
+.tensao-item {
+    display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: 8px;
+    background: color-mix(in srgb, var(--bg-afundado) 65%, transparent);
+    border: 1px solid color-mix(in srgb, var(--borda) 80%, transparent);
+    transition: background var(--transicao-suave);
+}
+.tensao-item:hover { background: var(--bg-afundado); }
+.tensao-icon { display: inline-flex; flex-shrink: 0; margin-top: 2px; }
+.tensao-icon i { width: 18px; height: 18px; }
+.tensao-txt { font-size: 0.9rem; color: var(--texto-claro); line-height: 1.4; flex: 1; }
+.tensao-txt strong { color: var(--destaque); font-weight: 600; }
+.tensao-txt em { color: var(--dourado); font-style: normal; }
