@@ -2482,9 +2482,9 @@ window.abrirModalSessao = async function(id = null, preSelectedNucleoId = null) 
     const divStatus = document.getElementById('sessao-status-pills');
     if (divStatus) {
         const opts = [
-            { val: 'planejada', lbl: '📋 Planejada' },
-            { val: 'em_andamento', lbl: '⚔️ Em Andamento' },
-            { val: 'concluida', lbl: '🏁 Concluída' }
+            { val: 'planejada', lbl: '<i data-lucide="calendar"></i> Planejada' },
+            { val: 'em_andamento', lbl: '<i data-lucide="swords"></i> Em Andamento' },
+            { val: 'concluida', lbl: '<i data-lucide="flag"></i> Concluída' }
         ];
         divStatus.innerHTML = opts.map(o => `<button type="button" class="sessao-pill ${statusAtivo === o.val ? 'sel' : ''}" data-val="${o.val}" onclick="selecionarStatusSessao('${o.val}')">${o.lbl}</button>`).join('');
     }
