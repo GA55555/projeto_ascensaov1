@@ -19,6 +19,7 @@ const {
     criarBoardSchema, atualizarBoardSchema, boardIdParamsSchema,
     salvarDiplomaciaSchema,
     sincronizarOraculoSchema, consultarOraculoSchema,
+    sugerirMarcosIASchema, tecerProfeciaIASchema, confirmarTecelagemMesaSchema,
     salvarTarotNodeSchema, salvarTarotNucleoSchema,
     salvarPosicoesSchema
 } = require('../validators/mundoValidator');
@@ -142,5 +143,10 @@ router.post('/oraculo/sincronizar', verificarToken, checarAcessoCronica, apenasN
 
 // Fatia 4: consulta RAG — só o Narrador pergunta (usa a SUA chave BYOK). Decifra no controller.
 router.post('/oraculo/consultar', verificarToken, checarAcessoCronica, apenasNarrador, validate(consultarOraculoSchema), MundoController.consultarOraculo);
+
+// Gerador de Enredo & Tecelagem de Destinos (Fatia B/E)
+router.post('/oraculo/gerador/pilulas', verificarToken, checarAcessoCronica, apenasNarrador, validate(sugerirMarcosIASchema), MundoController.sugerirMarcosIA);
+router.post('/oraculo/gerador/profecia', verificarToken, checarAcessoCronica, apenasNarrador, validate(tecerProfeciaIASchema), MundoController.tecerProfeciaIA);
+router.post('/oraculo/tecer-mesa', verificarToken, checarAcessoCronica, apenasNarrador, validate(confirmarTecelagemMesaSchema), MundoController.confirmarTecelagemMesa);
 
 module.exports = router;

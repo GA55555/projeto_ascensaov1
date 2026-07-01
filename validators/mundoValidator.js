@@ -370,9 +370,50 @@ const consultarOraculoSchema = z.object({
     })
 });
 
+// ── ORÁCULO (RAG & GERADOR DE ENREDO): Pílulas e Tecelagem (Fatia B/E) ──
+const sugerirMarcosIASchema = z.object({
+    params: z.object({ ...cronicaParamOnly }),
+    body: z.object({
+        entidade_id: z.string().uuid('ID de entidade inválido.'),
+        nome_entidade: z.string().trim().min(1, 'Nome da entidade é obrigatório.'),
+        tipo_entidade: z.string().trim().min(1, 'Tipo da entidade é obrigatório.'),
+        marcos_atuais: z.array(z.string()).optional().default([]),
+        notas_reputacao: z.string().optional().default('')
+    })
+});
+
+const tecerProfeciaIASchema = z.object({
+    params: z.object({ ...cronicaParamOnly }),
+    body: z.object({
+        entidades_foco: z.array(z.string()).optional().default([]),
+        arquetipo: z.string().optional().default('conflito'),
+        escopo: z.string().optional().default('local'),
+        instrucao_narrador: z.string().max(2000, 'Instrução excede o limite.').optional().default('')
+    })
+});
+
+const confirmarTecelagemMesaSchema = z.object({
+    params: z.object({ ...cronicaParamOnly }),
+    body: z.object({
+        evento: z.object({
+            nome: z.string().trim().min(1, 'Nome do evento é obrigatório.').max(255),
+            descricao_curta: z.string().max(5000).optional().default(''),
+            pool_maxima: z.number().int().min(1).max(100).optional().default(15),
+            escopo: z.string().optional().default('local')
+        }),
+        gatilhos: z.array(z.object({
+            node_id: z.string().uuid('ID de nó inválido.'),
+            marco: z.any(),
+            peso_na_pool: z.any().optional().default(2)
+        })).optional().default([]),
+        anexar_sessao_ativa: z.boolean().optional().default(true)
+    })
+});
+
 module.exports = {
     criarAutomacaoSchema, toggleStatusSchema,
     sincronizarOraculoSchema, consultarOraculoSchema,
+    sugerirMarcosIASchema, tecerProfeciaIASchema, confirmarTecelagemMesaSchema,
     criarNodeSchema, editarNodeSchema, salvarHistoriaNodeSchema,
     adicionarReputacaoSchema, removerReputacaoSchema,
     criarFlagSchema, atualizarFlagSchema, renomearFlagSchema,

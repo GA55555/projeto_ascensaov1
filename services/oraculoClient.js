@@ -86,4 +86,32 @@ async function consultarOraculo(dados, timeoutMs = 30000) {
     return resp.json();
 }
 
-module.exports = { enviarParaOraculo, enviarParaOraculoAsync, consultarOraculo, oraculoConfigurado };
+/**
+ * Consulta o gerador de pílulas (marcos em 1 clique) da IA (Fatia A/B).
+ */
+async function sugerirMarcosIA(dados, timeoutMs = 25000) {
+    if (!oraculoConfigurado()) throw new Error('Oráculo não configurado.');
+    const resp = await _postar('gerador/pilulas', dados, timeoutMs);
+    if (!resp.ok) {
+        let detalhe = '';
+        try { const j = await resp.json(); detalhe = j.detail || JSON.stringify(j); } catch { }
+        throw new Error(`Oráculo respondeu ${resp.status}: ${detalhe}`);
+    }
+    return resp.json();
+}
+
+/**
+ * Consulta a tecelagem de destinos e profecia de evento (Fatia A/B).
+ */
+async function tecerProfeciaIA(dados, timeoutMs = 30000) {
+    if (!oraculoConfigurado()) throw new Error('Oráculo não configurado.');
+    const resp = await _postar('gerador/profecia', dados, timeoutMs);
+    if (!resp.ok) {
+        let detalhe = '';
+        try { const j = await resp.json(); detalhe = j.detail || JSON.stringify(j); } catch { }
+        throw new Error(`Oráculo respondeu ${resp.status}: ${detalhe}`);
+    }
+    return resp.json();
+}
+
+module.exports = { enviarParaOraculo, enviarParaOraculoAsync, consultarOraculo, sugerirMarcosIA, tecerProfeciaIA, oraculoConfigurado };

@@ -4645,3 +4645,53 @@ input[type="radio"] {
     align-items: center;
     gap: 4px;
 }
+
+/* ── Gerador de Enredo (Tecelagem de Destinos) ── */
+.card-profecia-ia {
+    background: color-mix(in srgb, var(--bg-card) 85%, var(--dourado) 5%);
+    border: 1px solid color-mix(in srgb, var(--dourado) 40%, var(--borda));
+    border-radius: 12px;
+    padding: 16px;
+    margin-top: 16px;
+    box-shadow: 0 8px 32px color-mix(in srgb, var(--dourado) 12%, transparent);
+    backdrop-filter: blur(8px);
+    transition: all var(--transicao-suave);
+}
+.card-profecia-ia:hover {
+    border-color: var(--dourado);
+    box-shadow: 0 8px 32px color-mix(in srgb, var(--dourado) 20%, transparent);
+}
+.gatilho-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: color-mix(in srgb, var(--bg-input) 60%, transparent);
+    border: 1px solid var(--borda);
+    padding: 6px 10px;
+    border-radius: 6px;
+    margin-bottom: 6px;
+}
+.gatilho-row input[type="text"], .gatilho-row input[type="number"] {
+    background: var(--bg-card);
+    border: 1px solid var(--borda);
+    color: var(--texto-claro);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+}
+.sugestao-card {
+    background: color-mix(in srgb, var(--bg-card) 60%, transparent);
+    border: 1px solid var(--borda-card);
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    transition: all 0.2s;
+}
+.sugestao-card:hover {
+    border-color: var(--dourado);
+    background: color-mix(in srgb, var(--bg-card) 80%, transparent);
+}
+

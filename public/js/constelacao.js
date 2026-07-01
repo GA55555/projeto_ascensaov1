@@ -1323,13 +1323,24 @@
             const fs = (ent && ent.flags || []).filter((f) => f && f.key);
             box.innerHTML = `
                 <div class="fx-marcos-lista">${fs.map(marcoLinhaHTML).join('') || '<p class="feixe-tipo fx-marcos-vazio">Sem marcos ainda.</p>'}</div>
-                <input type="text" class="input-sm input-full fx-marco-novo" maxlength="60" placeholder="+ Novo marco (Enter)">`;
+                <input type="text" class="input-sm input-full fx-marco-novo" maxlength="60" placeholder="+ Novo marco (Enter)">
+                <button type="button" class="btn btn-sm btn-outline btn-sugerir-marcos-ia" style="margin-top:8px; width:100%; display:flex; align-items:center; justify-content:center; gap:6px; color:var(--dourado); border-color:var(--dourado);" title="Sugestões com IA do Oráculo"><i data-lucide="sparkles"></i> ✨ Sugerir Marcos (IA)</button>`;
             if (window.lucide) lucide.createIcons();
         };
         desenhar();
 
         // Um único ponto de escuta delegado no box (Regra 2.9) — sobrevive aos re-renders do innerHTML.
         box.addEventListener('click', async (e) => {
+            const btnIA = e.target.closest('.btn-sugerir-marcos-ia');
+            if (btnIA && window.GeradorEnredo) {
+                const ent = entidadesAtual.find((x) => String(x.id) === String(id));
+                const notas = (ent && ent.historia) || '';
+                window.GeradorEnredo.abrirModalSugerirMarcos(id, ent ? ent.nome : 'Entidade', ent ? ent.tipo : '', ent ? (ent.flags || []) : [], notas, async (novoMarcoNome) => {
+                    await criarMarco(id, novoMarcoNome);
+                    desenhar();
+                });
+                return;
+            }
             const linha = e.target.closest('.fx-marco');
             const act = e.target.closest('[data-mc]') && e.target.closest('[data-mc]').dataset.mc;
             if (!linha || !act) return;
@@ -1422,7 +1433,7 @@
                         <span class="fx-ev-mk${f.value ? ' on' : ''}">${escapeHTML(humanizarFlag(f.key))}</span>
                         ${nl ? `<span class="fx-ev-cont">${nl}</span>` : ''}
                     </button>${corpo}</div>`;
-            }).join('');
+            }).join('') + `<button type="button" class="btn btn-sm btn-outline btn-tecer-evento-ia" style="margin-top:12px; width:100%; display:flex; align-items:center; justify-content:center; gap:6px; color:var(--dourado); border-color:var(--dourado);" title="Tecer Evento de Conflito com IA"><i data-lucide="sparkles"></i> 🔮 Tecer Evento (IA)</button>`;
             if (window.lucide) lucide.createIcons();
         };
         desenhar();
@@ -1438,6 +1449,12 @@
         }
 
         box.addEventListener('click', (e) => {
+            const btnTecer = e.target.closest('.btn-tecer-evento-ia');
+            if (btnTecer && window.GeradorEnredo) {
+                const ent = entidadesAtual.find((x) => String(x.id) === String(id));
+                window.GeradorEnredo.abrirModalTecerProfecia({ focoId: id, focoTitulo: ent ? ent.nome : 'Entidade', callbackConfirmado: () => { recarregarEventos(focoId); } });
+                return;
+            }
             const head = e.target.closest('[data-head]');
             if (head) { const k = head.closest('.fx-ev-marco').dataset.key; expandido = expandido === k ? null : k; desenhar(); return; }
             const linha = e.target.closest('.fx-ev-linha'); if (!linha) return;

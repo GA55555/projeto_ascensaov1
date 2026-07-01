@@ -1426,3 +1426,234 @@ exports.consultarOraculo = async (req, res) => {
         res.status(500).json({ erro: 'Erro ao consultar o Oráculo.' });
     }
 };
+
+// =======================================================
+// FATIA B & E: GERADOR DE ENREDO & TECELAGEM DE DESTINOS
+// =======================================================
+
+exports.sugerirMarcosIA = async (req, res) => {
+    const { cronicaId } = req.params;
+    const { entidade_id, nome_entidade, tipo_entidade, marcos_atuais, notas_reputacao } = req.body;
+    try {
+        if (!oraculoClient.oraculoConfigurado()) {
+            return res.status(503).json({ erro: 'O serviço do Oráculo não está configurado neste servidor.' });
+        }
+        const cron = await pool.query('SELECT oraculo_ativo FROM cronicas WHERE id = $1', [cronicaId]);
+        if (cron.rows.length === 0) return res.status(404).json({ erro: 'Crônica não encontrada.' });
+        if (!cron.rows[0].oraculo_ativo) {
+            return res.status(409).json({ erro: 'O Oráculo está desligado nesta crônica. Ative-o antes de consultar.' });
+        }
+        const u = await pool.query(
+            'SELECT oraculo_gen_key, oraculo_gen_url, oraculo_gen_model FROM usuarios WHERE id = $1',
+            [req.usuario.id]
+        );
+        const conf = u.rows[0] || {};
+        if (!conf.oraculo_gen_key) {
+            return res.status(400).json({ erro: 'Configure a sua chave de IA (BYOK) no perfil antes de consultar.' });
+        }
+        let chave;
+        try {
+            chave = oraculoCripto.decifrar(conf.oraculo_gen_key);
+        } catch (e) {
+            return res.status(500).json({ erro: 'A sua chave de IA está corrompida. Regrave-a no perfil.' });
+        }
+        const resposta = await oraculoClient.sugerirMarcosIA({
+            cronica_id: cronicaId,
+            entidade_id,
+            nome_entidade,
+            tipo_entidade,
+            marcos_atuais: marcos_atuais || [],
+            notas_reputacao: notas_reputacao || '',
+            api_key_llm: chave,
+            base_url_llm: conf.oraculo_gen_url || 'https://api.deepseek.com',
+            model_llm: conf.oraculo_gen_model || 'deepseek-chat',
+        });
+        res.json(resposta);
+    } catch (err) {
+        console.error('Oráculo (sugerirMarcosIA) falhou:', err.message);
+        res.status(502).json({ erro: err.message || 'Falha ao sugerir marcos com a IA.' });
+    }
+};
+
+exports.tecerProfeciaIA = async (req, res) => {
+    const { cronicaId } = req.params;
+    const { entidades_foco, arquetipo, escopo, instrucao_narrador } = req.body;
+    try {
+        if (!oraculoClient.oraculoConfigurado()) {
+            return res.status(503).json({ erro: 'O serviço do Oráculo não está configurado neste servidor.' });
+        }
+        const cron = await pool.query('SELECT oraculo_ativo FROM cronicas WHERE id = $1', [cronicaId]);
+        if (cron.rows.length === 0) return res.status(404).json({ erro: 'Crônica não encontrada.' });
+        if (!cron.rows[0].oraculo_ativo) {
+            return res.status(409).json({ erro: 'O Oráculo está desligado nesta crônica. Ative-o antes de consultar.' });
+        }
+        const u = await pool.query(
+            'SELECT oraculo_gen_key, oraculo_gen_url, oraculo_gen_model FROM usuarios WHERE id = $1',
+            [req.usuario.id]
+        );
+        const conf = u.rows[0] || {};
+        if (!conf.oraculo_gen_key) {
+            return res.status(400).json({ erro: 'Configure a sua chave de IA (BYOK) no perfil antes de consultar.' });
+        }
+        let chave;
+        try {
+            chave = oraculoCripto.decifrar(conf.oraculo_gen_key);
+        } catch (e) {
+            return res.status(500).json({ erro: 'A sua chave de IA está corrompida. Regrave-a no perfil.' });
+        }
+
+        // Grounding em sessões recentes (Fatia B - Regra do Oráculo)
+        const sessoesRes = await pool.query(
+            `SELECT id, titulo, resumo, desfechos, status, data_sessao 
+             FROM sessoes 
+             WHERE cronica_id = $1 AND status IN ('concluída', 'em andamento') 
+             ORDER BY data_sessao DESC NULLS LAST, criado_em DESC LIMIT 3`,
+            [cronicaId]
+        );
+        let sessoes_recentes = sessoesRes.rows;
+        if (sessoes_recentes.length === 0) {
+            const fallbackRes = await pool.query(
+                `SELECT id, titulo, resumo, desfechos, status, data_sessao 
+                 FROM sessoes 
+                 WHERE cronica_id = $1 
+                 ORDER BY data_sessao DESC NULLS LAST, criado_em DESC LIMIT 3`,
+                [cronicaId]
+            );
+            sessoes_recentes = fallbackRes.rows;
+        }
+
+        const resposta = await oraculoClient.tecerProfeciaIA({
+            cronica_id: cronicaId,
+            entidades_foco: entidades_foco || [],
+            arquetipo: arquetipo || 'conflito',
+            escopo: escopo || 'local',
+            instrucao_narrador: instrucao_narrador || '',
+            sessoes_recentes,
+            api_key_llm: chave,
+            base_url_llm: conf.oraculo_gen_url || 'https://api.deepseek.com',
+            model_llm: conf.oraculo_gen_model || 'deepseek-chat',
+        });
+        res.json(resposta);
+    } catch (err) {
+        console.error('Oráculo (tecerProfeciaIA) falhou:', err.message);
+        res.status(502).json({ erro: err.message || 'Falha ao tecer profecia com a IA.' });
+    }
+};
+
+exports.confirmarTecelagemMesa = async (req, res) => {
+    const { cronicaId } = req.params;
+    const { evento, gatilhos, anexar_sessao_ativa } = req.body;
+    
+    if (!evento || !evento.nome) {
+        return res.status(400).json({ erro: 'O nome do evento é obrigatório.' });
+    }
+    const nodeIds = (gatilhos || []).map(g => g.node_id).filter(Boolean);
+    if (nodeIds.length > 0) {
+        const checkNodes = await pool.query(
+            `SELECT COUNT(*)::int AS cnt FROM world_nodes WHERE cronica_id = $1 AND id = ANY($2::uuid[])`,
+            [cronicaId, nodeIds]
+        );
+        if (checkNodes.rows[0].cnt !== new Set(nodeIds).size) {
+            return res.status(404).json({ erro: 'Um ou mais personagens/facções informados não pertencem a esta crônica.' });
+        }
+    }
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        
+        // 1. Cria o evento em world_events
+        const evRes = await client.query(
+            `INSERT INTO world_events (cronica_id, nome, descricao, pool_maxima, pool_atual, status)
+             VALUES ($1, $2, $3, $4, 0, 'monitorando')
+             RETURNING *`,
+            [cronicaId, evento.nome, evento.descricao_curta || '', evento.pool_maxima || 15]
+        );
+        const novoEvento = evRes.rows[0];
+
+        // 2. Associa evento a núcleos dos nós envolvidos
+        if (nodeIds.length > 0) {
+            const nucleosRes = await client.query(
+                `SELECT DISTINCT nucleo_id FROM world_nodes WHERE cronica_id = $1 AND id = ANY($2::uuid[]) AND nucleo_id IS NOT NULL`,
+                [cronicaId, nodeIds]
+            );
+            for (let row of nucleosRes.rows) {
+                await client.query('INSERT INTO event_nucleos (event_id, nucleo_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [novoEvento.id, row.nucleo_id]);
+            }
+        }
+
+        // 3. Insere os marcos em world_flags e amarra os pesos em event_flag_weights
+        const marcosCriados = [];
+        for (const g of (gatilhos || [])) {
+            if (!g.node_id || !g.marco) continue;
+            const labelStr = (typeof g.marco === 'object' ? (g.marco.label || g.marco.key) : g.marco).trim();
+            if (!labelStr) continue;
+            const flagKey = labelStr.toLowerCase().replace(/\s+/g, '_');
+            
+            // Upsert na tabela world_flags
+            await client.query(
+                `INSERT INTO world_flags (node_id, flag_key, flag_value)
+                 VALUES ($1, $2, FALSE)
+                 ON CONFLICT (node_id, flag_key) DO NOTHING`,
+                [g.node_id, flagKey]
+            );
+            marcosCriados.push({ node_id: g.node_id, flag_key: flagKey, label: labelStr });
+
+            // Vincula em event_flag_weights
+            const peso = Math.max(1, Math.min(10, parseInt(g.peso_na_pool, 10) || 2));
+            await client.query(
+                `INSERT INTO event_flag_weights (event_id, node_id, flag_key, peso)
+                 VALUES ($1, $2, $3, $4)
+                 ON CONFLICT (event_id, node_id, flag_key)
+                 DO UPDATE SET peso = EXCLUDED.peso`,
+                [novoEvento.id, g.node_id, flagKey, peso]
+            );
+        }
+
+        // 4. Se anexar_sessao_ativa for true, busca sessão em andamento/planejada e anexa o evento
+        let sessaoVinculada = null;
+        if (anexar_sessao_ativa !== false) {
+            const sessRes = await client.query(
+                `SELECT id, titulo, eventos FROM sessoes 
+                 WHERE cronica_id = $1 AND status IN ('em andamento', 'planejada')
+                 ORDER BY (CASE WHEN status = 'em andamento' THEN 1 ELSE 2 END), data_sessao DESC NULLS LAST, criado_em DESC LIMIT 1`,
+                [cronicaId]
+            );
+            if (sessRes.rows.length > 0) {
+                const sess = sessRes.rows[0];
+                const evs = Array.isArray(sess.eventos) ? sess.eventos : [];
+                if (!evs.includes(novoEvento.id)) {
+                    evs.push(novoEvento.id);
+                    const updateSess = await client.query(
+                        `UPDATE sessoes SET eventos = $1::jsonb WHERE id = $2 RETURNING id, titulo`,
+                        [JSON.stringify(evs), sess.id]
+                    );
+                    sessaoVinculada = updateSess.rows[0];
+                } else {
+                    sessaoVinculada = { id: sess.id, titulo: sess.titulo };
+                }
+            }
+        }
+
+        await client.query('COMMIT');
+
+        // Reindexação assíncrona do Oráculo para manter F2 inalterada
+        oraculoSync.reindexarEvento(cronicaId, novoEvento.id);
+        for (let m of marcosCriados) {
+            oraculoSync.reindexarNode(cronicaId, m.node_id);
+        }
+
+        return res.status(201).json({
+            sucesso: true,
+            evento: novoEvento,
+            marcos_inseridos: marcosCriados.length,
+            sessao_vinculada: sessaoVinculada
+        });
+    } catch (e) {
+        await client.query('ROLLBACK');
+        console.error('Erro ao confirmar tecelagem na mesa (ACID Rollback):', e);
+        return res.status(500).json({ erro: 'Erro interno ao tecer destino no banco de dados.' });
+    } finally {
+        client.release();
+    }
+};

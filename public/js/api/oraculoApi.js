@@ -34,5 +34,39 @@ const OraculoApi = {
         const dados = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(dados.erro || 'Falha ao salvar a configuração do Oráculo.');
         return dados;
+    },
+
+    // Gerador de Enredo: Sugerir Marcos / Pílulas (Fatia B/C)
+    async sugerirMarcos(cronicaId, payload) {
+        const res = await API.fetch(`/cronicas/${cronicaId}/oraculo/gerador/pilulas`, {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        });
+        const dados = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(dados.erro || 'Falha ao gerar sugestões de marcos.');
+        return dados;
+    },
+
+    // Gerador de Enredo: Tecer Profecia IA (Fatia B/C)
+    async tecerProfecia(cronicaId, payload) {
+        const res = await API.fetch(`/cronicas/${cronicaId}/oraculo/gerador/profecia`, {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        });
+        const dados = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(dados.erro || 'Falha ao tecer profecia com a IA.');
+        return dados;
+    },
+
+    // Gerador de Enredo: Confirmar Tecelagem na Mesa (Fatia B/E)
+    async confirmarTecelagem(cronicaId, payload) {
+        const res = await API.fetch(`/cronicas/${cronicaId}/oraculo/tecer-mesa`, {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        });
+        const dados = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(dados.erro || 'Falha ao confirmar tecelagem de destinos na mesa.');
+        return dados;
     }
 };
+

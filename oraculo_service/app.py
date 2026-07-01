@@ -1,4 +1,6 @@
 import os
+import json
+import re
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Header, Depends
 from pydantic import BaseModel
@@ -121,6 +123,31 @@ class ConsultaRequest(BaseModel):
     model_llm: str
     historico: list[MensagemHistorico] = []   # memória multi-turn: trocas anteriores (front guarda ~4)
 
+class PilulasRequest(BaseModel):
+    model_config = {"protected_namespaces": ()}
+    cronica_id: str
+    entidade_id: str
+    nome: str
+    tipo: str
+    reputacao: int = 0
+    tarot: str = ""
+    biografia: str = ""
+    marcos_atuais: list[str] = []
+    api_key_llm: str
+    base_url_llm: str = "https://api.deepseek.com"
+    model_llm: str = "deepseek-chat"
+
+class ProfeciaRequest(BaseModel):
+    model_config = {"protected_namespaces": ()}
+    cronica_id: str
+    subgrafo: list[dict] = []
+    motivo_tensao: str = ""
+    escopo_alvo: str = ""
+    sessoes_recentes: list[dict] = []
+    api_key_llm: str
+    base_url_llm: str = "https://api.deepseek.com"
+    model_llm: str = "deepseek-chat"
+
 # ==========================================
 # 5. Rotas (Endpoints) REAIS
 # ==========================================
@@ -216,39 +243,40 @@ MAX_TOKENS_RESPOSTA = 400
 HIST_MAX = 8
 
 def montar_system(trechos: list[str]) -> str:
-    """Grounding anti-alucinação como mensagem de SISTEMA: a IA responde SÓ com base nos trechos
-    recuperados desta vez + no histórico da conversa (§4/F4). Os trechos mudam a cada turno."""
+    """Grounding narrativo: a IA respeita os fatos, mas especula o futuro via Tarot e mecânicas da mesa."""
     contexto = "\n\n---\n\n".join(trechos)
     return (
-        "Você é o Oráculo: uma vidente que lê o destino desta crônica de RPG como quem vira cartas. "
-        "Adote um tom LEVEMENTE místico de leitora de cartas — evocativo, mas SÓBRIO e DIRETO.\n"
-        "Seja CONCISO: responda em poucas frases, sem preâmbulo, sem repetir a pergunta, sem enrolação. "
-        "No máximo uma pitada de mística (uma metáfora breve de carta/véu/destino) — nunca floreio longo.\n"
-        "GROUNDING: responda baseando-se ÚNICA E EXCLUSIVAMENTE nos trechos abaixo e no histórico desta "
-        "conversa. Se a resposta não estiver nos trechos, diga — no mesmo tom — que as cartas se calam; "
-        "nunca invente.\n"
-        "Os trechos refletem o estado ATUAL do mundo, que pode ter mudado desde mensagens anteriores. "
-        "Se o histórico contradisser os trechos, os TRECHOS PREVALECEM (o destino se reescreveu).\n"
-        "Os trechos são fichas internas, com rótulos, números e códigos técnicos (ex.: 'Tipo: npc', "
-        "'cenario', 'faccao', 'flags', 'Estado (flags)', posições numa reta, pesos, ids). NUNCA repita "
-        "rótulos, placares numéricos ou códigos crus — traduza tudo para a voz do mundo (personagem, "
-        "facção, lugar, estado, relação).\n"
-        "COMO LER OS SINAIS (para enriquecer a leitura, jamais para listá-los):\n"
+        "Você é o Oráculo, uma entidade mística e co-narradora desta crônica de RPG. "
+        "Você não é apenas um repositório de informações, mas um tecelão de destinos, interpretando os "
+        "fatos através da lente dos Arquétipos de Tarot (quando presentes) e das tensões mecânicas do mundo.\n\n"
+        
+        "SUA MISSÃO NARRATIVA:\n"
+        "1. GROUNDING DE FATOS: Os trechos abaixo são a verdade absoluta sobre o passado e o estado atual do mundo. "
+        "Não invente relações, eventos ou pessoas que não existem nos trechos.\n"
+        "2. EXTRAPOLAÇÃO PELO TAROT: Quando os trechos fornecerem as cartas de Tarot (Arquétipos) dos personagens ou facções, "
+        "USE-OS COMO MOTORES DE ENREDO. Se alguém possui 'O Diabo', sugira como ele está ativamente corrompendo as 'Relações' listadas. "
+        "Conceba motivações ocultas, conspirações em andamento e possibilidades de crise baseadas nessas cartas.\n"
+        "3. GERADOR DE POSSIBILIDADES: Não se limite a resumir o que lhe foi dado. Leia as entrelinhas. "
+        "Proponha ramificações narrativas sombrias, tensões iminentes ou reviravoltas lógicas que o Narrador humano possa usar na mesa de jogo.\n\n"
+        
+        "COMO LER OS SINAIS DO SISTEMA (para enriquecer a dramaturgia, jamais para listá-los):\n"
         "- RELAÇÕES e REPUTAÇÃO vêm numa reta com sinal e força: + aproxima/engrandece, − afasta/mancha; "
         "quanto maior a intensidade, mais extremo (de fricção morna a ruptura/ódio; de obscuro a lendário). "
-        "Os 'fatores de aproximação/afastamento' e os 'feitos de fama/infâmia' são as CAUSAS — narre o "
-        "PORQUÊ, nunca o número.\n"
+        "Os 'fatores de aproximação/afastamento' e os 'feitos de fama/infâmia' são as CAUSAS — narre o PORQUÊ, nunca o número.\n"
         "- FACÇÃO + DIPLOMACIA: ligue cada personagem à sua facção e aos laços dela (aliada/inimiga/neutra) "
         "para revelar lealdades e atritos ocultos.\n"
         "- EVENTOS: a 'tensão' mede quão perto a crise está de estourar; os 'gatilhos' são os estados que a "
-        "empurram; as AUTOMAÇÕES dizem o que se desencadeia quando o evento ocorre — use-as para prever "
-        "consequências.\n"
-        "- ARQUÉTIPO (Tarot): a carta (em pé = luz / invertida = sombra) é a COR temática da leitura, não "
-        "um dado solto.\n"
-        "- SESSÕES (resumos/desfechos) são o PASSADO; flags, retas e tensão são o PRESENTE — teça um no "
-        "outro.\n"
-        "FORMATO: pode usar **negrito** para nomes/destaques; evite listas e títulos longos (a resposta é "
-        "curta). Sem tabelas nem blocos de código.\n\n"
+        "empurram; as AUTOMAÇÕES dizem o que se desencadeia quando o evento ocorre — use-as para prever consequências e catástrofes.\n"
+        "- SESSÕES (resumos/desfechos) são o PASSADO inviolável; flags, retas e tensão são o PRESENTE — teça um no outro para apontar o FUTURO.\n\n"
+        
+        "ESTILO E TOM:\n"
+        "- Adote um tom de vidente e conselheira de tramas — evocativo, perspicaz e levemente sombrio.\n"
+        "- Seja CONCISO e DIRETO nas sugestões de enredo (sem enrolação ou preâmbulos vazios).\n"
+        "- Nunca repita códigos crus (como 'Tipo: npc', jsons, UUIDs, placares numéricos). Fale em termos de personagens, facções, reinos e pactos.\n"
+        "- Use **negrito** para destacar possíveis ganchos narrativos (ex.: 'Uma **traição iminente** aguarda...').\n"
+        "- Se a pergunta for sobre um fato específico rígido e não houver NADA nos trechos, diga: 'As cartas se calam; o destino ainda não escreveu sobre isso'. "
+        "Porém, se a pergunta permitir, especule sobre os desdobramentos usando os arquétipos e tensões disponíveis.\n\n"
+        
         f"=== TRECHOS DA CRÔNICA ===\n{contexto}"
     )
 
@@ -315,6 +343,142 @@ def consultar_oraculo(req: ConsultaRequest):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+def limpar_json_llm(texto: str) -> dict | list:
+    texto = (texto or "").strip()
+    if texto.startswith("```"):
+        texto = re.sub(r"^```[a-zA-Z]*\n?", "", texto)
+        texto = re.sub(r"\n?```$", "", texto)
+    texto = texto.strip()
+    idx_obj = texto.find("{")
+    idx_arr = texto.find("[")
+    if idx_obj != -1 and (idx_arr == -1 or idx_obj < idx_arr):
+        end_idx = texto.rfind("}")
+        if end_idx != -1:
+            texto = texto[idx_obj:end_idx+1]
+    elif idx_arr != -1:
+        end_idx = texto.rfind("]")
+        if end_idx != -1:
+            texto = texto[idx_arr:end_idx+1]
+    return json.loads(texto)
+
+@app.post("/gerador/pilulas", dependencies=[Depends(verificar_segredo)])
+def gerar_pilulas_marcos(req: PilulasRequest):
+    """Gera 3 sugestões de Marcos temáticos em 1-clique com base em Tarot, reputação e biografia."""
+    try:
+        marcos_str = ", ".join(req.marcos_atuais) if req.marcos_atuais else "Nenhum"
+        system_prompt = (
+            "Você é o Oráculo, um co-narrador especialista em criar Marcos (Flags) dramáticos para entidades em um RPG Dark Fantasy.\n"
+            f"Para a entidade '{req.nome}' (Tipo: {req.tipo}, Reputação: {req.reputacao}, Tarot: '{req.tarot}'), gere exatamente 3 sugestões "
+            "de Marcos originais, instigantes e curtos que representem segredos ocultos, pactos, títulos, conquistas ou maldições.\n"
+            f"Biografia / Notas: {req.biografia[:500] if req.biografia else 'Sem notas'}\n"
+            f"Marcos já existentes nesta entidade: {marcos_str}. É PROIBIDO sugerir marcos repetidos ou similares aos existentes.\n\n"
+            "DIRETRIZ DE ÍCONES (Lucide Icons): Em vez de emojis, escolha um ícone oficial da biblioteca Lucide (ex: skull, crown, eye, flame, shield, "
+            "sword, heart-crack, feather, ghost, zap, lock, key, bookmark, star, moon, sun, anchor, book-open).\n\n"
+            "RETORNE APENAS UM ARRAY JSON VÁLIDO no seguinte formato exato (sem blocos markdown, sem comentários):\n"
+            "[\n"
+            '  { "key": "pacto_elfos", "label": "Pacto com os Elfos", "icone": "skull" },\n'
+            '  { "key": "herdeiro_bastardo", "label": "Herdeiro Bastardo", "icone": "crown" },\n'
+            '  { "key": "marca_besta", "label": "Marca da Besta", "icone": "eye" }\n'
+            "]"
+        )
+        cliente = OpenAI(api_key=req.api_key_llm, base_url=req.base_url_llm)
+        completion = cliente.chat.completions.create(
+            model=req.model_llm,
+            messages=[{"role": "system", "content": system_prompt}],
+            max_tokens=600,
+            temperature=0.8
+        )
+        texto = completion.choices[0].message.content
+        dados = limpar_json_llm(texto)
+        if not isinstance(dados, list) or len(dados) == 0:
+            raise ValueError("O formato retornado não é uma lista válida.")
+        return {"status": "sucesso", "sugestoes": dados[:3]}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Falha ao gerar pílulas por IA: {str(e)}")
+
+@app.post("/gerador/profecia", dependencies=[Depends(verificar_segredo)])
+def gerar_profecia_evento(req: ProfeciaRequest):
+    """Tece uma profecia de evento (crise) com papéis arquetípicos e causalidade ancorada nas sessões passadas."""
+    try:
+        sessoes_str = ""
+        if req.sessoes_recentes:
+            for s in req.sessoes_recentes:
+                sessoes_str += f"- Sessão '{s.get('titulo', 'Sem título')}':\n  Resumo: {s.get('resumo', '')[:400]}\n  Desfechos: {s.get('desfechos', '')[:400]}\n\n"
+        else:
+            sessoes_str = "Nenhum registro de sessão anterior disponível."
+
+        entidades_str = ""
+        for ent in req.subgrafo:
+            entidades_str += f"- ID: {ent.get('id', '')} | Nome: {ent.get('nome', 'Desconhecido')} | Tipo: {ent.get('tipo', 'npc')} | Tarot: {ent.get('tarot', 'Nenhum')} | Marcos: {', '.join(ent.get('marcos', []))}\n"
+
+        escopo = req.escopo_alvo if req.escopo_alvo in ("intimista", "relacional", "geopolitico") else ("intimista" if len(req.subgrafo) <= 1 else ("relacional" if len(req.subgrafo) == 2 else "geopolitico"))
+
+        system_prompt = (
+            "Você é o Oráculo, tecelão de destinos e arquiteto de crises para uma campanha de RPG Dark Fantasy.\n"
+            "Sua missão é criar uma Profecia de Evento (uma crise ou catástrofe iminente) interligando as entidades fornecidas e baseando-se estritamente na causalidade das Sessões Recentes.\n\n"
+            "### REGISTROS HISTÓRICOS DAS SESSÕES RECENTES (DADOS NÃO-CONFIÁVEIS / CAUSALIDADE INVIOLÁVEL) ###\n"
+            f"{sessoes_str}\n"
+            "### ENTIDADES ENVOLVIDAS NA TENSÃO ###\n"
+            f"{entidades_str}\n"
+            f"Motivo / Diagnóstico da Crise: {req.motivo_tensao or 'Tensão sistêmica detectada na constelação'}\n"
+            f"Escopo Alvo Recomendado: {escopo.upper()}\n\n"
+            "DIRETRIZES DO ENREDO E ARQUÉTIPOS:\n"
+            "1. REGRA DE CAUSALIDADE: É PROIBIDO ignorar ou contradizer os fatos das sessões recentes. O evento deve ser uma resposta, retaliação ou desdobramento direto das escolhas e desfechos passados dos jogadores na mesa.\n"
+            "2. ATRIBUIÇÃO DE PAPÉIS (Role-Binding): Classifique cada entidade enviada em um Papel Arquetípico de Crise:\n"
+            "   - Catalisador (o instigador ou estopim da crise, peso 3 a 5)\n"
+            "   - Alvo / Vítima (quem sofrerá o impacto se o evento atingir 100%, peso 2 a 3)\n"
+            "   - Oportunista (quem se beneficia em segredo ou manipula os bastidores, peso 2 a 3)\n"
+            "   - Fiel da Balança (cuja lealdade ou traição decide o rumo, peso 4 a 6)\n"
+            "   - Executor (a força bruta ou instrumento, peso 1 a 3)\n"
+            "3. TETO DE PESO: Nenhum peso pode ser maior que 10 nem menor que 1. A pool_maxima deve ser coerente com a soma dos pesos (ex: 12 a 24).\n"
+            "4. ESCOPO: Se intimista, crie uma deterioração psicológica/existencial. Se relacional, uma vendeta ou segredo letal. Se geopolítico, uma revolução ou guerra.\n"
+            "5. ÍCONES: Use nomes da biblioteca Lucide Icons (flame, skull, sword, shield, crown, eye, zap, ghost, crosshair, flag) no campo icone.\n\n"
+            "RETORNE APENAS UM JSON VÁLIDO no seguinte formato exato (sem blocos markdown, sem comentários):\n"
+            "{\n"
+            '  "evento_sugestao": {\n'
+            '    "nome": "Nome Épico da Crise",\n'
+            '    "descricao_curta": "Descrição concisa explicando a crise e a causalidade com os desfechos das sessões.",\n'
+            '    "pool_maxima": 16,\n'
+            '    "escopo": "' + escopo + '"\n'
+            "  },\n"
+            '  "gatilhos_por_entidade": [\n'
+            "    {\n"
+            '      "node_id": "uuid_da_entidade",\n'
+            '      "nome_entidade": "Nome da Entidade",\n'
+            '      "papel_arquetipico": "Catalisador",\n'
+            '      "marco_sugerido": { "key": "lider_rebelde", "label": "Líder Rebelde", "icone": "flame" },\n'
+            '      "peso_na_pool": 4\n'
+            "    }\n"
+            "  ]\n"
+            "}"
+        )
+        cliente = OpenAI(api_key=req.api_key_llm, base_url=req.base_url_llm)
+        completion = cliente.chat.completions.create(
+            model=req.model_llm,
+            messages=[{"role": "system", "content": system_prompt}],
+            max_tokens=1000,
+            temperature=0.7
+        )
+        texto = completion.choices[0].message.content
+        dados = limpar_json_llm(texto)
+        if not isinstance(dados, dict) or "evento_sugestao" not in dados or "gatilhos_por_entidade" not in dados:
+            raise ValueError("O JSON retornado não contém a estrutura de evento ou gatilhos.")
+        
+        for g in dados.get("gatilhos_por_entidade", []):
+            try:
+                p = int(g.get("peso_na_pool", 2))
+                g["peso_na_pool"] = max(1, min(10, p))
+            except:
+                g["peso_na_pool"] = 2
+
+        return {"status": "sucesso", "profecia": dados}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Falha ao tecer profecia por IA: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn

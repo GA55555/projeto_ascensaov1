@@ -249,7 +249,8 @@
                 <div class="tensao-lista">
                     ${listaHTML}
                 </div>
-                <div class="modal-foot" style="margin-top:16px; justify-content:flex-end;">
+                <div class="modal-foot" style="margin-top:16px; justify-content:space-between; display:flex; align-items:center;">
+                    <button type="button" class="btn btn-outline btn-sm btn-tecer-ia" style="color:var(--dourado); border-color:var(--dourado); display:flex; align-items:center; gap:6px;" title="Tecer Evento de Conflito com IA"><i data-lucide="sparkles"></i> 🔮 Tecer Evento (IA)</button>
                     <button type="button" class="btn btn-primary" data-fechar>Entendido</button>
                 </div>
             </div>
@@ -260,6 +261,12 @@
 
         const fechar = () => modal.remove();
         modal.addEventListener('click', (e) => {
+            const btnTecer = e.target.closest('.btn-tecer-ia');
+            if (btnTecer && window.GeradorEnredo) {
+                fechar();
+                window.GeradorEnredo.abrirModalTecerProfecia({ focoTitulo: titulo, tensoes });
+                return;
+            }
             if (e.target === modal || (e.target.closest && e.target.closest('[data-fechar]'))) fechar();
         });
         document.addEventListener('keydown', function escListener(e) {
