@@ -1132,7 +1132,9 @@ function corpoContratoHTML() {
     const pills = contratoTags.map((t, i) => {
         const cls = t.sinal > 0 ? 'tag--pos' : (t.sinal < 0 ? 'tag--neg' : 'tag--neutro');
         const icone = t.sinal > 0 ? 'plus' : (t.sinal < 0 ? 'minus' : 'circle');
-        return `<span class="tag ${cls}"><i data-lucide="${icone}" class="tag-selo"></i>${escapeHTML(t.texto)}<i data-lucide="x" class="tag-remover" data-idx="${i}" onclick="removerTagContrato(this.dataset.idx)" title="Remover"></i></span>`;
+        const peso = Math.max(1, parseInt(t.peso, 10) || 1);
+        const badgePeso = `<span class="tag-peso-badge" onclick="alterarPesoTagContrato(${i})" title="Clique para alterar o peso (atual: ${peso})">${t.sinal > 0 ? '+' : (t.sinal < 0 ? '-' : '')}${peso}</span>`;
+        return `<span class="tag ${cls}"><i data-lucide="${icone}" class="tag-selo"></i>${escapeHTML(t.texto)}${badgePeso}<i data-lucide="x" class="tag-remover" data-idx="${i}" onclick="removerTagContrato(this.dataset.idx)" title="Remover"></i></span>`;
     }).join('');
     const sinalNum = `${posicao > 0 ? '+' : ''}${posicao}`;
     const rotulo = tier.nivel === 'neutro' ? 'Neutro' : tier.rotulo;
@@ -1156,9 +1158,9 @@ window.abrirContratoRelacao = function(linkId) {
     const d = l.dados || {};
     contratoLinkId = l.id;
     contratoTipoVinculo = l.tipo_vinculo || 'associado';
-    // Normaliza: tolera tags LEGADAS (string) → {texto, sinal} inferido do tipo_vinculo (decisão 5).
-    // Soft-migration: ao persistir, voltam gravadas como objetos assinados.
-    contratoTags = RelacaoEscala.normalizarTags(d.tags, contratoTipoVinculo).map(t => ({ texto: t.texto, sinal: t.sinal }));
+    // Normaliza: tolera tags LEGADAS (string) → {texto, sinal, peso} inferido do tipo_vinculo (decisão 5).
+    // Soft-migration: ao persistir, voltam gravadas como objetos assinados e com peso.
+    contratoTags = RelacaoEscala.normalizarTags(d.tags, contratoTipoVinculo).map(t => ({ texto: t.texto, sinal: t.sinal, peso: Math.max(1, parseInt(t.peso, 10) || 1) }));
 
     const modal = document.createElement('div');
     modal.className = 'modal show';
@@ -1175,8 +1177,14 @@ window.abrirContratoRelacao = function(linkId) {
                 <span class="badge-link ${classeTipoLink(l.tipo_vinculo)}">${escapeHTML(l.node_conectado_nome)}</span>
             </div>
             <p class="contrato-tipo">Tipo: ${escapeHTML(capitalizar(l.tipo_vinculo))}</p>
-            <label>Incidentes / Motivos</label>
-            <input type="text" id="contrato-tag-input" class="input-sm input-full" placeholder="Descreva o incidente/motivo…" onkeydown="contratoTagKeydown(event)">
+            <label>Incidentes / Motivos & Impacto</label>
+            <div class="contrato-input-row">
+                <input type="text" id="contrato-tag-input" class="input-sm" style="flex:1;" placeholder="Descreva o incidente/motivo…" onkeydown="contratoTagKeydown(event)">
+                <div class="contrato-peso-box" title="Peso / Força do Incidente na Relação (1 a 10)">
+                    <span>Peso:</span>
+                    <input type="number" id="contrato-tag-peso" class="input-sm" value="1" min="1" max="10">
+                </div>
+            </div>
             <div class="contrato-add-acoes">
                 <button type="button" class="btn btn-sm btn-aproxima" onclick="adicionarTagContrato(1)"><i data-lucide="plus"></i> Aproxima</button>
                 <button type="button" class="btn btn-sm btn-afasta" onclick="adicionarTagContrato(-1)"><i data-lucide="minus"></i> Afasta</button>
@@ -1192,14 +1200,17 @@ window.fecharContrato = function() {
     const m = document.getElementById('modal-contrato');
     if (m) m.remove();
 };
-// Adiciona uma tag ASSINADA (+1 aproxima / −1 afasta) e persiste. Um passo move a reta (decisão 4).
+// Adiciona uma tag ASSINADA (+1 aproxima / −1 afasta) com peso (1 a 10) e persiste.
 window.adicionarTagContrato = function(sinal) {
     const input = document.getElementById('contrato-tag-input');
+    const inputPeso = document.getElementById('contrato-tag-peso');
     const val = (input?.value || '').trim();
     if (!val) return;
     if (contratoTags.length >= 50) { mostrarToast('Limite de tags atingido.', 'aviso'); return; }
-    contratoTags.push({ texto: val.slice(0, 120), sinal: sinal < 0 ? -1 : 1 });
+    const pesoVal = Math.max(1, Math.min(10, parseInt(inputPeso?.value, 10) || 1));
+    contratoTags.push({ texto: val.slice(0, 120), sinal: sinal < 0 ? -1 : 1, peso: pesoVal });
     if (input) input.value = '';
+    if (inputPeso) inputPeso.value = '1';
     persistirContrato();
 };
 // Enter no input = atalho p/ "Aproxima" (+); o "Afasta" (−) fica no botão. Único ponto de escuta (Regra 2.9).
@@ -1207,6 +1218,17 @@ window.contratoTagKeydown = function(e) {
     if (e.key !== 'Enter') return;
     e.preventDefault();
     adicionarTagContrato(1);
+};
+window.alterarPesoTagContrato = function(idx) {
+    const t = contratoTags[parseInt(idx, 10)];
+    if (!t) return;
+    const atual = Math.max(1, parseInt(t.peso, 10) || 1);
+    const novoStr = prompt(`Defina o novo peso/impacto para a etiqueta "${t.texto}" (1 a 10):`, atual);
+    if (novoStr === null) return;
+    const novoPeso = Math.max(1, Math.min(10, parseInt(novoStr, 10) || 1));
+    if (novoPeso === atual) return;
+    t.peso = novoPeso;
+    persistirContrato();
 };
 window.removerTagContrato = function(idx) {
     contratoTags.splice(parseInt(idx, 10), 1);

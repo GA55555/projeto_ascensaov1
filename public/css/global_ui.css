@@ -2229,13 +2229,63 @@ label {
     transition: var(--transicao-suave);
 }
 .tag .tag-remover:hover { color: var(--erro); }
+.tag-peso-badge {
+    background: rgba(0, 0, 0, 0.25);
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: bold;
+    margin: 0 4px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    cursor: pointer;
+    transition: var(--transicao-suave);
+}
+.tag-peso-badge:hover {
+    background: var(--roxo-mago);
+    border-color: var(--roxo-claro);
+    color: #fff;
+}
+.contrato-input-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 6px;
+}
+.contrato-peso-box {
+    display: flex;
+    align-items: center;
+    background: var(--bg-afundado);
+    border: 1px solid var(--borda);
+    border-radius: 4px;
+    padding: 0 6px;
+    height: 32px;
+}
+.contrato-peso-box span {
+    font-size: 11px;
+    color: var(--texto-mutado);
+    margin-right: 4px;
+}
+.contrato-peso-box input {
+    width: 42px;
+    border: none;
+    background: transparent;
+    text-align: center;
+    padding: 0;
+    font-weight: bold;
+    color: var(--texto);
+    outline: none;
+}
 
 /* Coerência 16-bit: bordas retas + numerais pixelados (Scope Override, Paradigma 5). */
 .tema-pixel-16bit .reta-barra,
 .tema-pixel-16bit .reta-fill,
-.tema-pixel-16bit .tag { border-radius: 0 !important; }
+.tema-pixel-16bit .tag,
+.tema-pixel-16bit .tag-peso-badge,
+.tema-pixel-16bit .contrato-peso-box { border-radius: 0 !important; }
 .tema-pixel-16bit .reta-rotulo .reta-pos,
-.tema-pixel-16bit .reta-badge-num { font-family: 'VT323', monospace !important; }
+.tema-pixel-16bit .reta-badge-num,
+.tema-pixel-16bit .tag-peso-badge,
+.tema-pixel-16bit .contrato-peso-box input { font-family: 'VT323', monospace !important; }
 
 /* ── MAPA DE SINAPSES (VISÃO RELACIONAL EM TEIA) ───────── */
 .mapa-sinapses-box {
