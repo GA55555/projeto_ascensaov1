@@ -68,6 +68,7 @@
             if (!res.ok) throw new Error('falha');
             const snap = await res.json();
             entidadesAtual = snap.entidades || [];
+            window.entidadesAtual = entidadesAtual;
             linksAtual = snap.links || [];
             diplomaciaAtual = snap.diplomacia || [];
             forcas = ConstelacaoCalc.calcular(snap);
@@ -311,6 +312,7 @@
             if (!res.ok) return;
             const snap = await res.json();
             entidadesAtual = snap.entidades || [];
+            window.entidadesAtual = entidadesAtual;
             linksAtual = snap.links || [];
             diplomaciaAtual = snap.diplomacia || [];
             forcas = ConstelacaoCalc.calcular(snap);
@@ -575,6 +577,7 @@
         const o = orbes.find((x) => x.id === String(id));
         if (!o) return;
         focoId = String(id);
+        window.focoAtualId = focoId;
         o.fixo = true;                          // o sol fica parado durante o foco
         pararLoop();                            // o FUNDO 2D congela; o astrolábio anima sozinho via CSS (GPU)
         orbeEl.get(focoId)?.classList.add('is-sol'); // sol fica aceso; os outros núcleos esmaecem (CSS .em-foco)
@@ -591,6 +594,7 @@
         const o = orbes.find((x) => x.id === focoId);
         if (o) o.fixo = false;
         focoId = null;
+        window.focoAtualId = null;
         fecharFeixe(); removerAstrolabio(); removerBarraFoco();
         const c = canvas(); if (c) c.classList.remove('em-foco', 'astro-on');
         iniciarLoop();

@@ -150,7 +150,7 @@
         },
 
         // ── Tecer Profecia / Evento de Conflito com IA ─────────────────────────────────
-        abrirModalTecerProfecia(opcoes = {}) {
+        async abrirModalTecerProfecia(opcoes = {}) {
             const cronicaId = getCronicaId();
             if (!cronicaId) {
                 if (window.mostrarToast) mostrarToast('ID da crônica não encontrado.', 'erro');
@@ -160,8 +160,17 @@
             const existente = document.getElementById('modal-tecer-profecia-oraculo');
             if (existente) existente.remove();
 
-            const entidades = window.entidadesAtual || [];
-            const focoId = opcoes.focoId || '';
+            if ((!opcoes.entidades || opcoes.entidades.length === 0) && (!window.entidadesAtual || window.entidadesAtual.length === 0)) {
+                try {
+                    const res = await API.fetch(`/cronicas/${cronicaId}/constelacao`);
+                    if (res.ok) {
+                        const snap = await res.json();
+                        window.entidadesAtual = snap.entidades || [];
+                    }
+                } catch (e) { console.error('Erro ao buscar entidades p/ profecia:', e); }
+            }
+            const entidades = opcoes.entidades || window.entidadesAtual || [];
+            const focoId = opcoes.focoId || window.focoAtualId || '';
             const focoTitulo = opcoes.focoTitulo || 'Sistema Geral';
 
             const modal = document.createElement('div');
@@ -378,6 +387,7 @@
                                             pool_maxima: parseInt(document.getElementById('prof-pool')?.value, 10) || 15
                                         },
                                         gatilhos: gatilhosEditados,
+                                        nucleo_foco_id: focoId || null,
                                         anexar_sessao_ativa: document.getElementById('chk-anexar-sessao')?.checked || false
                                     };
 

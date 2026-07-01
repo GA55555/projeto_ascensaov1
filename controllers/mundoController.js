@@ -1583,7 +1583,7 @@ exports.tecerProfeciaIA = async (req, res) => {
 
 exports.confirmarTecelagemMesa = async (req, res) => {
     const { cronicaId } = req.params;
-    const { evento, gatilhos, anexar_sessao_ativa } = req.body;
+    const { evento, gatilhos, anexar_sessao_ativa, nucleo_foco_id } = req.body;
     
     if (!evento || !evento.nome) {
         return res.status(400).json({ erro: 'O nome do evento é obrigatório.' });
@@ -1615,12 +1615,17 @@ exports.confirmarTecelagemMesa = async (req, res) => {
         // 2. Associa evento a núcleos dos nós envolvidos
         if (nodeIds.length > 0) {
             const nucleosRes = await client.query(
-                `SELECT DISTINCT nucleo_id FROM world_nodes WHERE cronica_id = $1 AND id = ANY($2::uuid[]) AND nucleo_id IS NOT NULL`,
+                `SELECT DISTINCT COALESCE(nucleo_id, id) AS nucleo_id FROM world_nodes WHERE cronica_id = $1 AND id = ANY($2::uuid[])`,
                 [cronicaId, nodeIds]
             );
             for (let row of nucleosRes.rows) {
-                await client.query('INSERT INTO event_nucleos (event_id, nucleo_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [novoEvento.id, row.nucleo_id]);
+                if (row.nucleo_id) {
+                    await client.query('INSERT INTO event_nucleos (event_id, nucleo_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [novoEvento.id, row.nucleo_id]);
+                }
             }
+        }
+        if (nucleo_foco_id) {
+            await client.query('INSERT INTO event_nucleos (event_id, nucleo_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [novoEvento.id, nucleo_foco_id]);
         }
 
         // 3. Insere os marcos em world_flags e amarra os pesos em event_flag_weights

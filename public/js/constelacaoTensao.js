@@ -264,7 +264,7 @@
             const btnTecer = e.target.closest('.btn-tecer-ia');
             if (btnTecer && window.GeradorEnredo) {
                 fechar();
-                window.GeradorEnredo.abrirModalTecerProfecia({ focoTitulo: titulo, tensoes });
+                window.GeradorEnredo.abrirModalTecerProfecia({ focoTitulo: titulo, tensoes, entidades: window.entidadesAtual || [] });
                 return;
             }
             if (e.target === modal || (e.target.closest && e.target.closest('[data-fechar]'))) fechar();
