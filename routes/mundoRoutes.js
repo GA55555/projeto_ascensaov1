@@ -36,6 +36,9 @@ const apenasNarrador = (req, res, next) => {
 // ==========================================
 router.get('/sessoes', verificarToken, checarAcessoCronica, sessaoController.listarSessoes);
 router.get('/sessao-nucleos', verificarToken, checarAcessoCronica, MundoController.listarNucleosSessao);
+router.post('/sessao-nucleos', verificarToken, checarAcessoCronica, apenasNarrador, validate(criarNucleoSchema), MundoController.criarNucleoSessao);
+router.put('/sessao-nucleos/:nucleoId', verificarToken, checarAcessoCronica, apenasNarrador, validate(renomearNucleoSchema), MundoController.renomearNucleoSessao);
+router.delete('/sessao-nucleos/:nucleoId', verificarToken, checarAcessoCronica, apenasNarrador, MundoController.excluirNucleoSessao);
 router.post('/sessoes', verificarToken, checarAcessoCronica, apenasNarrador, validate(criarSessaoSchema), sessaoController.criarSessao);
 router.put('/sessoes/:id', verificarToken, checarAcessoCronica, apenasNarrador, validate(editarSessaoSchema), sessaoController.editarSessao);
 router.delete('/sessoes/:id', verificarToken, checarAcessoCronica, apenasNarrador, sessaoController.deletarSessao);

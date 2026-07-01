@@ -626,7 +626,36 @@ exports.excluirNucleoEventos = async (req, res) => {
         res.json({ mensagem: 'Núcleo excluído.' });
     } catch (err) { res.status(500).json({ erro: 'Erro ao excluir núcleo.' }); }
 };
+
+exports.criarNucleoSessao = async (req, res) => {
+    const { cronicaId } = req.params;
+    const { nome } = req.body;
+    try {
+        const novo = await pool.query("INSERT INTO entidade_nucleos (cronica_id, nome, tipo) VALUES ($1, $2, 'sessao') RETURNING *", [cronicaId, nome.trim()]);
+        res.status(201).json(novo.rows[0]);
+    } catch (err) { res.status(500).json({ erro: 'Erro ao criar arco de sessão.' }); }
+};
+
+exports.renomearNucleoSessao = async (req, res) => {
+    const { cronicaId, nucleoId } = req.params;
+    const { nome } = req.body;
+    try {
+        const result = await pool.query("UPDATE entidade_nucleos SET nome = $1 WHERE id = $2 AND cronica_id = $3 AND tipo = 'sessao' RETURNING *", [nome.trim(), nucleoId, cronicaId]);
+        if (result.rows.length === 0) return res.status(404).json({ erro: 'Arco não encontrado.' });
+        res.json(result.rows[0]);
+    } catch (err) { res.status(500).json({ erro: 'Erro ao renomear arco.' }); }
+};
+
+exports.excluirNucleoSessao = async (req, res) => {
+    const { cronicaId, nucleoId } = req.params;
+    try {
+        const result = await pool.query("DELETE FROM entidade_nucleos WHERE id = $1 AND cronica_id = $2 AND tipo = 'sessao' RETURNING id", [nucleoId, cronicaId]);
+        if (result.rows.length === 0) return res.status(404).json({ erro: 'Arco não encontrado.' });
+        res.json({ mensagem: 'Arco excluído.' });
+    } catch (err) { res.status(500).json({ erro: 'Erro ao excluir arco.' }); }
+};
 // =======================================================
+
 // NOVAS FUNÇÕES: EVENTOS DA CRÓNICA (AGENDA)
 // =======================================================
 exports.listarEventos = async (req, res) => {

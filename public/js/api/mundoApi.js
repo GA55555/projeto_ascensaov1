@@ -5,14 +5,18 @@
 const MundoApi = {
 
     // ── NÚCLEOS ────────────────────────────────────────────────
-    async getNucleos(cronicaId) {
-        const res = await API.fetch(`/cronicas/${cronicaId}/entidade-nucleos`);
+    async getNucleos(cronicaId, tipo = 'entidade') {
+        const map = { 'entidade': 'entidade-nucleos', 'evento': 'evento-nucleos', 'sessao': 'sessao-nucleos' };
+        const endpoint = map[tipo] || 'entidade-nucleos';
+        const res = await API.fetch(`/cronicas/${cronicaId}/${endpoint}`);
         if (!res.ok) throw new Error('Falha ao carregar núcleos.');
         return res.json();
     },
 
-    async criarNucleo(cronicaId, nome) {
-        const res = await API.fetch(`/cronicas/${cronicaId}/entidade-nucleos`, {
+    async criarNucleo(cronicaId, nome, tipo = 'entidade') {
+        const map = { 'entidade': 'entidade-nucleos', 'evento': 'evento-nucleos', 'sessao': 'sessao-nucleos' };
+        const endpoint = map[tipo] || 'entidade-nucleos';
+        const res = await API.fetch(`/cronicas/${cronicaId}/${endpoint}`, {
             method: 'POST',
             body: JSON.stringify({ nome })
         });
@@ -20,8 +24,10 @@ const MundoApi = {
         return res.json();
     },
 
-    async editarNucleo(cronicaId, id, nome) {
-        const res = await API.fetch(`/cronicas/${cronicaId}/entidade-nucleos/${id}`, {
+    async editarNucleo(cronicaId, id, nome, tipo = 'entidade') {
+        const map = { 'entidade': 'entidade-nucleos', 'evento': 'evento-nucleos', 'sessao': 'sessao-nucleos' };
+        const endpoint = map[tipo] || 'entidade-nucleos';
+        const res = await API.fetch(`/cronicas/${cronicaId}/${endpoint}/${id}`, {
             method: 'PUT',
             body: JSON.stringify({ nome })
         });
@@ -29,8 +35,10 @@ const MundoApi = {
         return res.json();
     },
 
-    async excluirNucleo(cronicaId, id) {
-        const res = await API.fetch(`/cronicas/${cronicaId}/entidade-nucleos/${id}`, {
+    async excluirNucleo(cronicaId, id, tipo = 'entidade') {
+        const map = { 'entidade': 'entidade-nucleos', 'evento': 'evento-nucleos', 'sessao': 'sessao-nucleos' };
+        const endpoint = map[tipo] || 'entidade-nucleos';
+        const res = await API.fetch(`/cronicas/${cronicaId}/${endpoint}/${id}`, {
             method: 'DELETE'
         });
         if (!res.ok) throw new Error('Falha ao excluir núcleo.');
