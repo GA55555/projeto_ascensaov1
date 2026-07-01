@@ -337,12 +337,12 @@ async function carregarNucleos(tipo) {
             lista.forEach(n => select.innerHTML += `<option value="${n.id}">${escapeHTML(n.nome)}</option>`);
         }
         
-        // Select específico do Modal de Sessão
+        // Atualiza pílulas e filtros da Aba Sessão
         if (tipo === 'sessao') {
-            const selectModal = document.getElementById('sessao-nucleo-id');
-            if (selectModal) {
-                selectModal.innerHTML = '<option value="">Nenhum / Geral</option>';
-                lista.forEach(n => selectModal.innerHTML += `<option value="${n.id}">${escapeHTML(n.nome)}</option>`);
+            if (typeof renderizarFiltroArcosSessao === 'function') renderizarFiltroArcosSessao();
+            if (typeof renderizarPílulasArcosModal === 'function') {
+                const idAtivo = document.getElementById('sessao-nucleo-id')?.value || '';
+                renderizarPílulasArcosModal(idAtivo);
             }
         }
     } catch (err) { console.error(err); }
@@ -2452,8 +2452,20 @@ function renderizarSessoes(listaParaRenderizar = sessoesCache) {
     if (window.lucide) lucide.createIcons();
 }
 
+function renderizarPílulasArcosModal(nucleoAtivo = '') {
+    const divArcos = document.getElementById('sessao-arcos-pills');
+    if (!divArcos) return;
+    let arcosHtml = `<button type="button" class="sessao-pill ${nucleoAtivo === '' ? 'sel' : ''}" data-val="" onclick="selecionarArcoModalSessao('')"><i data-lucide="bookmark"></i> Geral / Sem Arco</button>`;
+    (nucleosCache.sessao || []).forEach(n => {
+        arcosHtml += `<button type="button" class="sessao-pill ${nucleoAtivo === n.id ? 'sel' : ''}" data-val="${n.id}" onclick="selecionarArcoModalSessao('${n.id}')"><i data-lucide="tag"></i> ${escapeHTML(n.nome)}</button>`;
+    });
+    arcosHtml += `<button type="button" class="btn btn-outline btn-sm ml-1" onclick="criarArcoSessaoInline()"><i data-lucide="plus"></i> Novo Arco</button>`;
+    divArcos.innerHTML = arcosHtml;
+    if (window.lucide) lucide.createIcons();
+}
+
 window.abrirModalSessao = async function(id = null, preSelectedNucleoId = null) {
-    if (!nucleosCache.sessao || nucleosCache.sessao.length === 0) await carregarNucleos('sessao');
+    await carregarNucleos('sessao');
     if (!nucleosCache.evento || nucleosCache.evento.length === 0) await carregarNucleos('evento');
     if (nodesCache.length === 0) await carregarMundo();
     if (eventosCache.length === 0) await carregarEventos(); 
@@ -2466,16 +2478,8 @@ window.abrirModalSessao = async function(id = null, preSelectedNucleoId = null) 
     const eventosAtuais = s ? (s.eventos || []) : [];
     const automacoesAtuais = s ? (s.automacoes || []) : [];
 
-    // Renderiza Pílulas de Arcos
-    const divArcos = document.getElementById('sessao-arcos-pills');
-    if (divArcos) {
-        let arcosHtml = `<button type="button" class="sessao-pill ${nucleoAtivo === '' ? 'sel' : ''}" data-val="" onclick="selecionarArcoModalSessao('')"><i data-lucide="bookmark"></i> Geral / Sem Arco</button>`;
-        (nucleosCache.sessao || []).forEach(n => {
-            arcosHtml += `<button type="button" class="sessao-pill ${nucleoAtivo === n.id ? 'sel' : ''}" data-val="${n.id}" onclick="selecionarArcoModalSessao('${n.id}')"><i data-lucide="tag"></i> ${escapeHTML(n.nome)}</button>`;
-        });
-        arcosHtml += `<button type="button" class="btn btn-outline btn-sm ml-1" onclick="criarArcoSessaoInline()"><i data-lucide="plus"></i> Novo Arco</button>`;
-        divArcos.innerHTML = arcosHtml;
-    }
+    // Renderiza Pílulas de Arcos via função isolada
+    renderizarPílulasArcosModal(nucleoAtivo);
     document.getElementById('sessao-nucleo-id').value = nucleoAtivo;
 
     // Renderiza Pílulas de Status
