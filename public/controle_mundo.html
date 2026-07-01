@@ -98,12 +98,11 @@
     <div class="secao-toolbar">
         <h3 class="texto-destaque">Sessões</h3>
         
-        <div class="toolbar-acoes">
-            <select id="filtro-nucleo-sessao" onchange="filtrarPorNucleoSessao()">
-                <option value="">Todos os núcleos</option>
-            </select>
-            <button class="btn btn-primary btn-sm" onclick="gerenciarNucleos('sessao')"><i data-lucide="settings"></i> Núcleos</button>
-            <button class="btn btn-primary" onclick="abrirModalSessao()">+ Nova Sessão</button>
+        <div class="toolbar-acoes toolbar-sessoes-acoes">
+            <div id="sessao-filtro-arcos" class="sessao-filtro-arcos"></div>
+            <input type="hidden" id="filtro-nucleo-sessao" value="">
+            <button class="btn btn-outline btn-sm" onclick="criarArcoSessaoInline()" title="Criar novo Arco/Capítulo para organizar as sessões"><i data-lucide="plus"></i> Novo Arco / Capítulo</button>
+            <button class="btn btn-primary" onclick="abrirModalSessao()"><i data-lucide="plus-circle"></i> Nova Sessão Rápida</button>
         </div>
     </div>
     
@@ -327,42 +326,54 @@
 <div id="modal-sessao" class="modal">
     <div class="modal-box modal-box-md">
         <h3 id="modal-sessao-titulo" class="texto-roxo">Nova Sessão</h3>
-        <label>Núcleo (Organização)</label>
-        <select id="sessao-nucleo-id">
-            <option value="">Nenhum / Geral</option>
-        </select>
-        <input type="hidden" id="sessao-id">
+        <label>Arco / Capítulo (Organização)</label>
+        <div id="sessao-arcos-pills" class="sessao-pills-wrap mb-2"></div>
+        <input type="hidden" id="sessao-nucleo-id" value="">
+        <input type="hidden" id="sessao-id" value="">
         <label>Título</label>
-        <input type="text" id="sessao-titulo" placeholder="Ex: Sessão 27/05 ou Ato 2">
+        <input type="text" id="sessao-titulo" class="input-full mb-2" placeholder="Ex: Sessão 5 - O Baile de Prata ou Ato 2">
         <label>Data</label>
-        <input type="date" id="sessao-data">
-        <label>Resumo</label>
-        <textarea id="sessao-resumo" rows="3" wrap="soft"></textarea>
+        <div class="input-inline-flex mb-2">
+            <input type="date" id="sessao-data" class="input-full">
+            <button type="button" class="btn btn-outline btn-sm btn-hoje" onclick="setSessaoDataHoje()"><i data-lucide="calendar"></i> Hoje</button>
+        </div>
         <label>Status</label>
-        <select id="sessao-status">
-            <option value="planejada">Planejada</option>
-            <option value="em_andamento">Em andamento</option>
-            <option value="concluida">Concluída</option>
-        </select>
+        <div id="sessao-status-pills" class="sessao-pills-wrap mb-2"></div>
+        <input type="hidden" id="sessao-status" value="planejada">
+        <label>Resumo / Acontecimentos</label>
+        <textarea id="sessao-resumo" rows="3" wrap="soft" class="input-full mb-3" placeholder="Descreva os acontecimentos gerais, NPCs encontrados e reviravoltas..."></textarea>
 
-        <!-- Seção de Vínculos (agora FORA do select) -->
-        <details class="modal-detalhes">
-            <summary><i data-lucide="link"></i> Vínculos Narrativos</summary>
+        <!-- Seção de Vínculos 1-Clique -->
+        <div class="modal-secao-vinculos">
+            <div class="vinculos-tabs">
+                <button type="button" class="btn-vtab active" onclick="trocarAbaVinculoSessao('entidades')"><i data-lucide="users"></i> Personagens & Facções</button>
+                <button type="button" class="btn-vtab" onclick="trocarAbaVinculoSessao('eventos')"><i data-lucide="zap"></i> Eventos em Jogo</button>
+                <button type="button" class="btn-vtab" onclick="trocarAbaVinculoSessao('automacoes')"><i data-lucide="cpu"></i> Automações</button>
+                <button type="button" class="btn-vtab" onclick="trocarAbaVinculoSessao('desfechos')"><i data-lucide="scroll"></i> Crônica do Desfecho</button>
+            </div>
+            
+            <div id="vinculo-painel-entidades" class="vinculo-painel active">
+                <input type="text" id="filtro-vinculo-entidades" class="input-sm input-full mb-2" placeholder="🔍 Filtrar personagem ou facção..." oninput="filtrarVinculosSessao('entidades')">
+                <div id="sessao-entidades" class="sessao-pills-grid"></div>
+            </div>
 
-            <label>Entidades</label>
-            <div id="sessao-entidades" class="modal-vinculo-lista"></div>
+            <div id="vinculo-painel-eventos" class="vinculo-painel" style="display: none;">
+                <input type="text" id="filtro-vinculo-eventos" class="input-sm input-full mb-2" placeholder="🔍 Filtrar evento..." oninput="filtrarVinculosSessao('eventos')">
+                <div id="sessao-eventos" class="sessao-pills-grid"></div>
+            </div>
 
-            <label>Eventos</label>
-            <div id="sessao-eventos" class="modal-vinculo-lista"></div>
+            <div id="vinculo-painel-automacoes" class="vinculo-painel" style="display: none;">
+                <input type="text" id="filtro-vinculo-automacoes" class="input-sm input-full mb-2" placeholder="🔍 Filtrar automação..." oninput="filtrarVinculosSessao('automacoes')">
+                <div id="sessao-automacoes" class="sessao-pills-grid"></div>
+            </div>
 
-            <label>Automações</label>
-            <div id="sessao-automacoes" class="modal-vinculo-lista"></div>
+            <div id="vinculo-painel-desfechos" class="vinculo-painel" style="display: none;">
+                <p class="texto-mutado mb-1"><small>Registre 1 desfecho ou consequência por linha para alimentar o Oráculo e a Tecelagem:</small></p>
+                <textarea id="sessao-desfechos" rows="3" class="input-full" placeholder="Ex: General Valerius foi humilhado e perdeu suas terras..."></textarea>
+            </div>
+        </div>
 
-            <label>Desfechos (um por linha)</label>
-            <textarea id="sessao-desfechos" rows="3" placeholder="Digite um desfecho por linha..."></textarea>
-        </details>
-
-        <div class="modal-acoes">
+        <div class="modal-acoes mt-3">
             <button class="btn btn-outline" onclick="fecharModal('modal-sessao')">Cancelar</button>
             <button class="btn btn-primary" onclick="salvarSessao()">Salvar</button>
         </div>

@@ -2266,133 +2266,267 @@ function formatarData(data) {
 }
 
 // ========================================================
-// 1. O Cartão da Sessão (Agora com a Badge do Núcleo)
+// 1. Linha do Tempo de Arcos e Cartões da Sessão (UX 1-Clique)
 // ========================================================
+function renderizarFiltroArcosSessao() {
+    const cont = document.getElementById('sessao-filtro-arcos');
+    if (!cont) return;
+    const ativo = document.getElementById('filtro-nucleo-sessao')?.value || '';
+    let arcos = nucleosCache.sessao || [];
+    let html = `<button type="button" class="sessao-pill ${ativo === '' ? 'sel' : ''}" onclick="selecionarFiltroArcoSessao('')"><i data-lucide="layers"></i> Todos os Arcos</button>`;
+    html += `<button type="button" class="sessao-pill ${ativo === '__none__' ? 'sel' : ''}" onclick="selecionarFiltroArcoSessao('__none__')"><i data-lucide="bookmark"></i> Geral / Avulsas</button>`;
+    arcos.forEach(a => {
+        html += `<button type="button" class="sessao-pill ${ativo === a.id ? 'sel' : ''}" onclick="selecionarFiltroArcoSessao('${a.id}')"><i data-lucide="tag"></i> ${escapeHTML(a.nome)}</button>`;
+    });
+    cont.innerHTML = html;
+    if (window.lucide) lucide.createIcons();
+}
+
+window.selecionarFiltroArcoSessao = function(val) {
+    const el = document.getElementById('filtro-nucleo-sessao');
+    if (el) el.value = val;
+    renderizarFiltroArcosSessao();
+    if (window.aplicarFiltrosSessoes) aplicarFiltrosSessoes();
+};
+
+window.criarArcoSessaoInline = async function() {
+    const nome = prompt("Digite o nome do novo Arco ou Capítulo (Ex: Arco 3: A Guerra Civil):");
+    if (!nome || !nome.trim()) return;
+    try {
+        await MundoApi.criarNucleo(cronicaId, nome.trim(), 'sessao');
+        await carregarNucleos('sessao');
+        renderizarFiltroArcosSessao();
+        if (document.getElementById('modal-sessao')?.classList.contains('show') || document.getElementById('modal-sessao')?.style.display === 'block') {
+            const novoArco = (nucleosCache.sessao || []).find(n => n.nome.toLowerCase() === nome.trim().toLowerCase());
+            const novoId = novoArco ? novoArco.id : '';
+            if (novoId) {
+                document.getElementById('sessao-nucleo-id').value = novoId;
+                selecionarArcoModalSessao(novoId);
+            }
+        } else {
+            renderizarSessoes();
+        }
+        mostrarToast(`Arco "${nome.trim()}" criado com sucesso!`, 'sucesso');
+    } catch (err) {
+        mostrarToast("Erro ao criar arco.", 'erro');
+    }
+};
+
+window.setSessaoDataHoje = function() {
+    const el = document.getElementById('sessao-data');
+    if (el) {
+        const hoje = new Date().toISOString().split('T')[0];
+        el.value = hoje;
+    }
+};
+
+window.trocarAbaVinculoSessao = function(aba) {
+    document.querySelectorAll('.btn-vtab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.vinculo-painel').forEach(p => p.style.display = 'none');
+    const btn = document.querySelector(`.btn-vtab[onclick*="'${aba}'"]`);
+    if (btn) btn.classList.add('active');
+    const painel = document.getElementById(`vinculo-painel-${aba}`);
+    if (painel) painel.style.display = 'block';
+};
+
+window.filtrarVinculosSessao = function(tipo) {
+    const q = document.getElementById(`filtro-vinculo-${tipo}`)?.value.trim().toLowerCase() || '';
+    const painel = document.getElementById(`sessao-${tipo}`);
+    if (!painel) return;
+    painel.querySelectorAll('.vinculo-pill').forEach(pill => {
+        const texto = pill.textContent.toLowerCase();
+        pill.style.display = (q === '' || texto.includes(q)) ? 'inline-flex' : 'none';
+    });
+};
+
+window.toggleSessaoPill = function(btn) {
+    if (!btn) return;
+    btn.classList.toggle('sel');
+};
+
+window.selecionarStatusSessao = function(val) {
+    document.getElementById('sessao-status').value = val;
+    document.querySelectorAll('#sessao-status-pills .sessao-pill').forEach(p => {
+        if (p.dataset.val === val) p.classList.add('sel');
+        else p.classList.remove('sel');
+    });
+};
+
+window.selecionarArcoModalSessao = function(val) {
+    document.getElementById('sessao-nucleo-id').value = val;
+    document.querySelectorAll('#sessao-arcos-pills .sessao-pill').forEach(p => {
+        if (p.dataset.val === val) p.classList.add('sel');
+        else p.classList.remove('sel');
+    });
+};
+
 function renderizarSessoes(listaParaRenderizar = sessoesCache) {
     const grid = document.getElementById('grid-sessoes');
     if (!grid) return;
+
+    renderizarFiltroArcosSessao();
+
+    const arcosConhecidos = (nucleosCache.sessao || []).map(a => ({ id: a.id, nome: a.nome }));
+    const sessoesGerais = listaParaRenderizar.filter(s => !s.nucleo_id);
     
-    if (listaParaRenderizar.length === 0) {
-        grid.innerHTML = '<div class="info-block-vazio col-full">Nenhuma sessão registrada (ou encontrada neste núcleo).</div>';
+    let grupos = [...arcosConhecidos];
+    if (sessoesGerais.length > 0 || arcosConhecidos.length === 0) {
+        grupos.push({ id: '', nome: 'Geral / Avulsas' });
+    }
+
+    const filtroAtivo = document.getElementById('filtro-nucleo-sessao')?.value || '';
+    if (filtroAtivo !== '') {
+        const idAlvo = (filtroAtivo === '__none__') ? '' : filtroAtivo;
+        grupos = grupos.filter(g => g.id === idAlvo);
+    }
+
+    if (grupos.length === 0 && listaParaRenderizar.length === 0) {
+        grid.innerHTML = '<div class="info-block-vazio col-full">Nenhuma sessão registrada. Clique em "Novo Arco / Capítulo" ou em "Nova Sessão Rápida" para começar!</div>';
         return;
     }
-    
-    grid.innerHTML = listaParaRenderizar.map(s => {
-        const dataFormatada = formatarData(s.data_sessao);
-        
-        // Badge alinhada e protegida contra textos longos
-        const nucleoBadge = s.nucleo_nome 
-            ? `<span class="badge sessao-badge truncate">${escapeHTML(s.nucleo_nome)}</span>`
-            : '';
 
-        return `
-        <div class="card card-col card-clicavel" onclick="abrirDetalhesSessao('${s.id}')">
+    let htmlTotal = '';
+    let totalSessoesExibidas = 0;
 
-            <div class="card-topo">
-                <div class="card-topo-info">
-                    ${nucleoBadge}
-                    <strong class="card-titulo truncate" title="${escapeHTML(s.titulo)}">
-                        ${escapeHTML(s.titulo)}
-                    </strong>
+    grupos.forEach(g => {
+        const sessoesDoGrupo = listaParaRenderizar.filter(s => (s.nucleo_id || '') === g.id);
+        totalSessoesExibidas += sessoesDoGrupo.length;
+
+        const cardsHtml = sessoesDoGrupo.length ? sessoesDoGrupo.map(s => {
+            const dataFormatada = formatarData(s.data_sessao);
+            const statusIcon = s.status === 'concluida' ? 'flag' : (s.status === 'em_andamento' ? 'swords' : 'calendar');
+            const numEnts = (s.entidades || []).length;
+            const numEvs = (s.eventos || []).length;
+            
+            let badgesInfo = '';
+            if (numEnts > 0) badgesInfo += `<span class="badge badge-sm" title="${numEnts} personagens/facções vinculados"><i data-lucide="users"></i> ${numEnts}</span> `;
+            if (numEvs > 0) badgesInfo += `<span class="badge badge-sm badge-roxo" title="${numEvs} eventos vinculados"><i data-lucide="zap"></i> ${numEvs}</span>`;
+
+            return `
+            <div class="card card-col card-clicavel" onclick="abrirDetalhesSessao('${s.id}')">
+                <div class="card-topo">
+                    <div class="card-topo-info">
+                        <strong class="card-titulo truncate" title="${escapeHTML(s.titulo)}">
+                            ${escapeHTML(s.titulo)}
+                        </strong>
+                    </div>
+                    <span class="sessao-data">${dataFormatada}</span>
                 </div>
-                <span class="sessao-data">
-                    ${dataFormatada}
-                </span>
-            </div>
+                <div class="sessao-corpo">
+                    <p class="sessao-resumo-preview">
+                        ${escapeHTML(s.resumo || 'Clique para ler os registros, entidades presentes e desfechos deste encontro...')}
+                    </p>
+                </div>
+                <div class="card-rodape card-rodape--flex">
+                    <span class="sessao-status${s.status === 'concluida' ? ' sessao-status--ativa' : ''}">
+                        <i data-lucide="${statusIcon}"></i> ${escapeHTML((s.status || 'planejada').toUpperCase())}
+                    </span>
+                    <div class="card-rodape-icones">
+                        ${badgesInfo}
+                        <button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); excluirSessao('${s.id}')" title="Excluir Sessão">
+                            <i data-lucide="trash-2"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>`;
+        }).join('') : '<p class="texto-mutado col-full py-2">Nenhuma sessão registrada neste arco.</p>';
 
-            <div class="sessao-corpo">
-                <p class="sessao-resumo-preview">
-                    ${escapeHTML(s.resumo || 'Clique para ler os registros, entidades presentes e desfechos deste encontro...')}
-                </p>
+        htmlTotal += `
+        <div class="sessao-arco-bloco">
+            <div class="sessao-arco-head">
+                <span class="sessao-arco-titulo"><i data-lucide="bookmark"></i> ${escapeHTML(g.nome)}</span>
+                <button type="button" class="btn btn-outline btn-sm" onclick="abrirModalSessao(null, '${g.id}')"><i data-lucide="plus"></i> Adicionar Sessão neste Arco</button>
             </div>
-
-            <div class="card-rodape card-rodape--flex">
-                <span class="sessao-status${s.status === 'jogada' ? ' sessao-status--ativa' : ''}">
-                    Status: ${escapeHTML(s.status || 'planejada')}
-                </span>
-                <button class="btn btn-danger btn-sm"
-                        onclick="event.stopPropagation(); excluirSessao('${s.id}')" title="Excluir Sessão">
-                    <i data-lucide="trash-2"></i>
-                </button>
+            <div class="sessao-arco-grid">
+                ${cardsHtml}
             </div>
         </div>`;
-    }).join('');
-    lucide.createIcons();
+    });
+
+    if (totalSessoesExibidas === 0 && listaParaRenderizar.length === 0 && arcosConhecidos.length === 0) {
+        grid.innerHTML = '<div class="info-block-vazio col-full">Nenhuma sessão registrada. Clique em "Novo Arco / Capítulo" para organizar sua campanha!</div>';
+        return;
+    }
+
+    grid.innerHTML = htmlTotal;
+    if (window.lucide) lucide.createIcons();
 }
 
-window.abrirModalSessao = async function(id = null) {
-    // Assegura que todas as memórias cache estão prontas antes de abrir
+window.abrirModalSessao = async function(id = null, preSelectedNucleoId = null) {
     if (!nucleosCache.sessao || nucleosCache.sessao.length === 0) await carregarNucleos('sessao');
     if (!nucleosCache.evento || nucleosCache.evento.length === 0) await carregarNucleos('evento');
     if (nodesCache.length === 0) await carregarMundo();
     if (eventosCache.length === 0) await carregarEventos(); 
     if (automacoesCache.length === 0) await carregarAutomacoes();
 
-    // 🌟 A MÁGICA: Juntar Núcleos de Sessão e de Evento no mesmo Dropdown!
-    const selectModal = document.getElementById('sessao-nucleo-id');
-    if (selectModal) {
-        let html = '<option value="">Nenhum / Geral</option>';
-        
-        if (nucleosCache.sessao && nucleosCache.sessao.length > 0) {
-            html += '<optgroup label="Núcleos de Sessão">';
-            nucleosCache.sessao.forEach(n => html += `<option value="${n.id}">${n.nome}</option>`);
-            html += '</optgroup>';
-        }
-        
-        if (nucleosCache.evento && nucleosCache.evento.length > 0) {
-            html += '<optgroup label="Arcos de Eventos">';
-            nucleosCache.evento.forEach(n => html += `<option value="${n.id}">${n.nome}</option>`);
-            html += '</optgroup>';
-        }
-        selectModal.innerHTML = html;
-    }
+    const s = id ? sessoesCache.find(x => x.id === id) : null;
+    const nucleoAtivo = s ? (s.nucleo_id || '') : (preSelectedNucleoId || '');
+    const statusAtivo = s ? (s.status || 'planejada') : 'planejada';
+    const entidadesAtuais = s ? (s.entidades || []) : [];
+    const eventosAtuais = s ? (s.eventos || []) : [];
+    const automacoesAtuais = s ? (s.automacoes || []) : [];
 
-    // Preenche as checkboxes
+    // Renderiza Pílulas de Arcos
+    const divArcos = document.getElementById('sessao-arcos-pills');
+    if (divArcos) {
+        let arcosHtml = `<button type="button" class="sessao-pill ${nucleoAtivo === '' ? 'sel' : ''}" data-val="" onclick="selecionarArcoModalSessao('')"><i data-lucide="bookmark"></i> Geral / Sem Arco</button>`;
+        (nucleosCache.sessao || []).forEach(n => {
+            arcosHtml += `<button type="button" class="sessao-pill ${nucleoAtivo === n.id ? 'sel' : ''}" data-val="${n.id}" onclick="selecionarArcoModalSessao('${n.id}')"><i data-lucide="tag"></i> ${escapeHTML(n.nome)}</button>`;
+        });
+        arcosHtml += `<button type="button" class="btn btn-outline btn-sm ml-1" onclick="criarArcoSessaoInline()"><i data-lucide="plus"></i> Novo Arco</button>`;
+        divArcos.innerHTML = arcosHtml;
+    }
+    document.getElementById('sessao-nucleo-id').value = nucleoAtivo;
+
+    // Renderiza Pílulas de Status
+    const divStatus = document.getElementById('sessao-status-pills');
+    if (divStatus) {
+        const opts = [
+            { val: 'planejada', lbl: '📋 Planejada' },
+            { val: 'em_andamento', lbl: '⚔️ Em Andamento' },
+            { val: 'concluida', lbl: '🏁 Concluída' }
+        ];
+        divStatus.innerHTML = opts.map(o => `<button type="button" class="sessao-pill ${statusAtivo === o.val ? 'sel' : ''}" data-val="${o.val}" onclick="selecionarStatusSessao('${o.val}')">${o.lbl}</button>`).join('');
+    }
+    document.getElementById('sessao-status').value = statusAtivo;
+
+    // Renderiza Vínculos 1-Clique (Entidades, Eventos, Automações)
     const divEnt = document.getElementById('sessao-entidades');
     const divEv = document.getElementById('sessao-eventos');
     const divAuto = document.getElementById('sessao-automacoes');
 
-    if(divEnt) divEnt.innerHTML = nodesCache.map(n => `<label class="checkbox-label"><input type="checkbox" value="${n.id}" class="check-entidade"> ${escapeHTML(n.nome)} (${escapeHTML(n.tipo)})</label>`).join('');
-    if(divEv) divEv.innerHTML = eventosCache.map(e => `<label class="checkbox-label"><input type="checkbox" value="${e.id}" class="check-evento"> ${escapeHTML(e.nome)}</label>`).join('');
-    if(divAuto) divAuto.innerHTML = (automacoesCache || []).map(a => `<label class="checkbox-label"><input type="checkbox" value="${a.id}" class="check-automacao"> ${escapeHTML(a.tipo_nome)} (${escapeHTML(a.evento_nome)})</label>`).join('');
+    if (divEnt) divEnt.innerHTML = nodesCache.map(n => `<button type="button" class="sessao-pill vinculo-pill ${entidadesAtuais.includes(n.id) ? 'sel' : ''}" data-id="${n.id}" onclick="toggleSessaoPill(this)"><i data-lucide="user"></i> ${escapeHTML(n.nome)} <small class="texto-mutado">(${escapeHTML(n.tipo)})</small></button>`).join('');
+    if (divEv) divEv.innerHTML = eventosCache.map(e => `<button type="button" class="sessao-pill vinculo-pill ${eventosAtuais.includes(e.id) ? 'sel' : ''}" data-id="${e.id}" onclick="toggleSessaoPill(this)"><i data-lucide="zap"></i> ${escapeHTML(e.nome)}</button>`).join('');
+    if (divAuto) divAuto.innerHTML = (automacoesCache || []).map(a => `<button type="button" class="sessao-pill vinculo-pill ${automacoesAtuais.includes(a.id) ? 'sel' : ''}" data-id="${a.id}" onclick="toggleSessaoPill(this)"><i data-lucide="cpu"></i> ${escapeHTML(a.tipo_nome)}</button>`).join('');
 
     const txtDesfechos = document.getElementById('sessao-desfechos');
 
-    if (id) {
-        const s = sessoesCache.find(x => x.id === id);
-        if (!s) return;
+    if (s) {
         document.getElementById('sessao-id').value = s.id;
         document.getElementById('sessao-titulo').value = s.titulo;
-        
-        // Garante que a data não quebre no input HTML
         document.getElementById('sessao-data').value = s.data_sessao ? s.data_sessao.split('T')[0] : '';
         document.getElementById('sessao-resumo').value = s.resumo || '';
-        document.getElementById('sessao-status').value = s.status || 'planejada';
-        document.getElementById('sessao-nucleo-id').value = s.nucleo_id || '';
         document.getElementById('modal-sessao-titulo').innerText = 'Editar Sessão';
-
-        const entidadesAtuais = s.entidades || [];
-        const eventosAtuais = s.eventos || [];
-        const automacoesAtuais = s.automacoes || [];
-
-        document.querySelectorAll('#sessao-entidades .check-entidade').forEach(cb => cb.checked = entidadesAtuais.includes(cb.value));
-        document.querySelectorAll('#sessao-eventos .check-evento').forEach(cb => cb.checked = eventosAtuais.includes(cb.value));
-        document.querySelectorAll('#sessao-automacoes .check-automacao').forEach(cb => cb.checked = automacoesAtuais.includes(cb.value));
-        
-        if(txtDesfechos) txtDesfechos.value = (s.desfechos || []).join('\n');
+        if (txtDesfechos) txtDesfechos.value = (s.desfechos || []).join('\n');
     } else {
         document.getElementById('sessao-id').value = '';
         document.getElementById('sessao-titulo').value = '';
         document.getElementById('sessao-data').value = '';
         document.getElementById('sessao-resumo').value = '';
-        document.getElementById('sessao-status').value = 'planejada';
-        document.getElementById('sessao-nucleo-id').value = '';
         document.getElementById('modal-sessao-titulo').innerText = 'Nova Sessão';
-        
-        document.querySelectorAll('.check-entidade, .check-evento, .check-automacao').forEach(cb => cb.checked = false);
-        if(txtDesfechos) txtDesfechos.value = '';       
+        if (txtDesfechos) txtDesfechos.value = '';       
     }
+
+    trocarAbaVinculoSessao('entidades');
+    if (document.getElementById('filtro-vinculo-entidades')) document.getElementById('filtro-vinculo-entidades').value = '';
+    if (document.getElementById('filtro-vinculo-eventos')) document.getElementById('filtro-vinculo-eventos').value = '';
+    if (document.getElementById('filtro-vinculo-automacoes')) document.getElementById('filtro-vinculo-automacoes').value = '';
+    filtrarVinculosSessao('entidades');
+    filtrarVinculosSessao('eventos');
+    filtrarVinculosSessao('automacoes');
+
     abrirModal('modal-sessao');
+    if (window.lucide) lucide.createIcons();
 }
 
 // ========================================================
@@ -2408,9 +2542,9 @@ window.salvarSessao = async function() {
 
     if (!titulo) return mostrarToast('Título obrigatório.', 'aviso');
 
-    const entidades = Array.from(document.querySelectorAll('#sessao-entidades .check-entidade:checked')).map(cb => cb.value);
-    const eventos = Array.from(document.querySelectorAll('#sessao-eventos .check-evento:checked')).map(cb => cb.value);
-    const automacoes = Array.from(document.querySelectorAll('#sessao-automacoes .check-automacao:checked')).map(cb => cb.value);
+    const entidades = Array.from(document.querySelectorAll('#sessao-entidades .vinculo-pill.sel')).map(p => p.dataset.id);
+    const eventos = Array.from(document.querySelectorAll('#sessao-eventos .vinculo-pill.sel')).map(p => p.dataset.id);
+    const automacoes = Array.from(document.querySelectorAll('#sessao-automacoes .vinculo-pill.sel')).map(p => p.dataset.id);
     const desfechos = document.getElementById('sessao-desfechos')?.value.split('\n').filter(l => l.trim() !== '') || [];
 
     // Mutaçāo Ouro: Encontra o nome do núcleo, independentemente de ser de Sessão ou de Evento
