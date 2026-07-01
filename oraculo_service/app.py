@@ -2,8 +2,9 @@ import os
 import json
 import re
 from dotenv import load_dotenv
+from typing import Any
 from fastapi import FastAPI, HTTPException, Header, Depends
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 import chromadb
 from chromadb.config import Settings
 from openai import OpenAI
@@ -124,29 +125,73 @@ class ConsultaRequest(BaseModel):
     historico: list[MensagemHistorico] = []   # memória multi-turn: trocas anteriores (front guarda ~4)
 
 class PilulasRequest(BaseModel):
-    model_config = {"protected_namespaces": ()}
+    model_config = {"protected_namespaces": (), "populate_by_name": True}
     cronica_id: str
     entidade_id: str
-    nome: str
-    tipo: str
+    nome: str = ""
+    tipo: str = ""
+    nome_entidade: str = ""
+    tipo_entidade: str = ""
     reputacao: int = 0
     tarot: str = ""
     biografia: str = ""
+    notas_reputacao: str = ""
     marcos_atuais: list[str] = []
     api_key_llm: str
     base_url_llm: str = "https://api.deepseek.com"
     model_llm: str = "deepseek-chat"
 
+    @model_validator(mode="before")
+    @classmethod
+    def normalizar_campos(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            if not data.get("nome") and data.get("nome_entidade"):
+                data["nome"] = data["nome_entidade"]
+            elif not data.get("nome_entidade") and data.get("nome"):
+                data["nome_entidade"] = data["nome"]
+            if not data.get("tipo") and data.get("tipo_entidade"):
+                data["tipo"] = data["tipo_entidade"]
+            elif not data.get("tipo_entidade") and data.get("tipo"):
+                data["tipo_entidade"] = data["tipo"]
+            if not data.get("biografia") and data.get("notas_reputacao"):
+                data["biografia"] = data["notas_reputacao"]
+            if not data.get("nome"):
+                data["nome"] = "Entidade"
+            if not data.get("tipo"):
+                data["tipo"] = "NPC"
+        return data
+
 class ProfeciaRequest(BaseModel):
-    model_config = {"protected_namespaces": ()}
+    model_config = {"protected_namespaces": (), "populate_by_name": True}
     cronica_id: str
     subgrafo: list[dict] = []
+    entidades_foco: list[Any] = []
     motivo_tensao: str = ""
+    instrucao_narrador: str = ""
     escopo_alvo: str = ""
+    escopo: str = ""
+    arquetipo: str = ""
     sessoes_recentes: list[dict] = []
     api_key_llm: str
     base_url_llm: str = "https://api.deepseek.com"
     model_llm: str = "deepseek-chat"
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalizar_campos(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            if not data.get("motivo_tensao") and data.get("instrucao_narrador"):
+                data["motivo_tensao"] = data["instrucao_narrador"]
+            if not data.get("escopo_alvo") and data.get("escopo"):
+                data["escopo_alvo"] = data["escopo"]
+            if not data.get("subgrafo") and data.get("entidades_foco"):
+                ef = data["entidades_foco"]
+                if isinstance(ef, list) and len(ef) > 0:
+                    if isinstance(ef[0], dict):
+                        data["subgrafo"] = ef
+                    else:
+                        data["subgrafo"] = [{"id": str(x), "nome": f"Entidade {x}"} for x in ef]
+        return data
 
 # ==========================================
 # 5. Rotas (Endpoints) REAIS

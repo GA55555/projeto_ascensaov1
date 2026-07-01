@@ -1457,13 +1457,37 @@ exports.sugerirMarcosIA = async (req, res) => {
         } catch (e) {
             return res.status(500).json({ erro: 'A sua chave de IA está corrompida. Regrave-a no perfil.' });
         }
+        let biografia = notas_reputacao || '';
+        let tarot = '';
+        let reputacao = 0;
+        let nome = nome_entidade || 'Entidade Desconhecida';
+        let tipo = tipo_entidade || 'NPC';
+        if (entidade_id) {
+            const nodeRes = await pool.query('SELECT nome, tipo, subtipo, dados FROM world_nodes WHERE id = $1 AND cronica_id = $2', [entidade_id, cronicaId]);
+            if (nodeRes.rows.length > 0) {
+                const nodeData = nodeRes.rows[0];
+                const d = nodeData.dados || {};
+                nome = nome_entidade || nodeData.nome || nome;
+                tipo = tipo_entidade || nodeData.tipo || tipo;
+                biografia = d.biografia || d.descricao || d.notas || biografia;
+                if (d.tarot && typeof d.tarot.carta_num === 'number') {
+                    tarot = `Arcano ${d.tarot.carta_num} (${d.tarot.orientacao === 1 ? 'Em pé' : 'Invertida'})`;
+                }
+                reputacao = parseInt(d.reputacao || 0, 10);
+            }
+        }
         const resposta = await oraculoClient.sugerirMarcosIA({
             cronica_id: cronicaId,
             entidade_id,
-            nome_entidade,
-            tipo_entidade,
+            nome,
+            nome_entidade: nome,
+            tipo,
+            tipo_entidade: tipo,
+            reputacao,
+            tarot,
+            biografia,
+            notas_reputacao: biografia,
             marcos_atuais: marcos_atuais || [],
-            notas_reputacao: notas_reputacao || '',
             api_key_llm: chave,
             base_url_llm: conf.oraculo_gen_url || 'https://api.deepseek.com',
             model_llm: conf.oraculo_gen_model || 'deepseek-chat',
@@ -1522,11 +1546,28 @@ exports.tecerProfeciaIA = async (req, res) => {
             sessoes_recentes = fallbackRes.rows;
         }
 
+        let subgrafo = [];
+        if (Array.isArray(entidades_foco) && entidades_foco.length > 0) {
+            const subRes = await pool.query(
+                'SELECT id, nome, tipo, dados FROM world_nodes WHERE cronica_id = $1 AND id = ANY($2::uuid[])',
+                [cronicaId, entidades_foco]
+            );
+            subgrafo = subRes.rows.map(r => ({
+                id: r.id,
+                nome: r.nome,
+                tipo: r.tipo,
+                tarot: r.dados?.tarot ? `Arcano ${r.dados.tarot.carta_num}` : 'Nenhum',
+                marcos: r.dados?.marcos || []
+            }));
+        }
         const resposta = await oraculoClient.tecerProfeciaIA({
             cronica_id: cronicaId,
-            entidades_foco: entidades_foco || [],
+            subgrafo,
+            entidades_foco: subgrafo.length > 0 ? subgrafo : (entidades_foco || []),
             arquetipo: arquetipo || 'conflito',
             escopo: escopo || 'local',
+            escopo_alvo: escopo || 'local',
+            motivo_tensao: instrucao_narrador || 'Tensão sistêmica na constelação',
             instrucao_narrador: instrucao_narrador || '',
             sessoes_recentes,
             api_key_llm: chave,
