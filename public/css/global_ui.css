@@ -3971,9 +3971,40 @@ input[type="radio"] {
 .constelacao-mundo { position: absolute; inset: 0; transform-origin: 0 0; will-change: transform; }
 .constelacao-linhas { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
 .constelacao-linha { stroke: var(--texto-mutado); transition: stroke 0.3s ease; }
-.constelacao-linha--aliado  { stroke: var(--link-aliado); }
-.constelacao-linha--inimigo { stroke: var(--link-inimigo); }
-.constelacao-linha--neutro  { stroke: var(--borda); }
+@keyframes fluxo-energia {
+    from { stroke-dashoffset: 20; }
+    to { stroke-dashoffset: 0; }
+}
+@keyframes aura-aliado {
+    0% { filter: drop-shadow(0 0 4px var(--link-aliado)); opacity: 0.6; }
+    50% { filter: drop-shadow(0 0 10px var(--link-aliado)); opacity: 1; }
+    100% { filter: drop-shadow(0 0 4px var(--link-aliado)); opacity: 0.6; }
+}
+@keyframes aura-inimigo {
+    0% { filter: drop-shadow(0 0 5px var(--link-inimigo)); opacity: 0.8; }
+    50% { filter: drop-shadow(0 0 15px var(--link-inimigo)); opacity: 1; }
+    100% { filter: drop-shadow(0 0 5px var(--link-inimigo)); opacity: 0.8; }
+}
+@keyframes aura-neutro {
+    0% { filter: drop-shadow(0 0 2px var(--borda)); opacity: 0.4; }
+    50% { filter: drop-shadow(0 0 5px var(--texto-mutado)); opacity: 0.7; }
+    100% { filter: drop-shadow(0 0 2px var(--borda)); opacity: 0.4; }
+}
+.constelacao-linha--aliado  {
+    stroke: var(--link-aliado);
+    stroke-dasharray: 8 6;
+    animation: fluxo-energia 1s linear infinite, aura-aliado 2s ease-in-out infinite;
+}
+.constelacao-linha--inimigo {
+    stroke: var(--link-inimigo);
+    stroke-dasharray: 4 8;
+    animation: fluxo-energia 0.5s linear infinite reverse, aura-inimigo 1.2s ease-in-out infinite;
+}
+.constelacao-linha--neutro  {
+    stroke: var(--borda);
+    stroke-dasharray: 2 4;
+    animation: fluxo-energia 3s linear infinite, aura-neutro 3s ease-in-out infinite;
+}
 .constelacao-orbes { position: absolute; inset: 0; }
 /* ORBE ARCANO (núcleo): esfera de energia que GIRA + PULSA, brilho na cor do token. O nome
    aparece sob demanda (hover). A forma redonda é esculpida por clip-path: circle() no .orbe-esfera
