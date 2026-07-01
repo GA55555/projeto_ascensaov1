@@ -255,7 +255,7 @@
             if (btnDisparar) {
                 btnDisparar.addEventListener('click', async () => {
                     const chks = Array.from(modal.querySelectorAll('input[name="ent-foco"]:checked'));
-                    const entidadesFoco = chks.map(c => parseInt(c.value, 10)).filter(Boolean);
+                    const entidadesFoco = chks.map(c => c.value).filter(Boolean);
                     const arquetipo = document.getElementById('tecer-arquetipo')?.value || 'conflito';
                     const escopo = document.getElementById('tecer-escopo')?.value || 'regional';
                     const instrucao = document.getElementById('tecer-instrucao')?.value?.trim() || '';

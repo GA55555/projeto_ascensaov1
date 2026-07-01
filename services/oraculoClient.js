@@ -68,6 +68,14 @@ async function enviarParaOraculoAsync(acao, dados, timeoutMs = 8000) {
     }
 }
 
+function formatarDetalheErro(j) {
+    if (!j) return '';
+    if (typeof j.detail === 'string') return j.detail;
+    if (Array.isArray(j.detail)) return j.detail.map(e => `${e.loc ? e.loc.join('.') : 'campo'}: ${e.msg}`).join(' | ');
+    if (j.detail) return typeof j.detail === 'object' ? JSON.stringify(j.detail) : String(j.detail);
+    return typeof j === 'object' ? JSON.stringify(j) : String(j);
+}
+
 /**
  * Consulta RAG (F4): ESPERA a resposta do Python (o Narrador aguarda — a geração pode demorar,
  * por isso o timeout é generoso e a UI mostra "lendo as estrelas"). Devolve o JSON do Oráculo
@@ -80,7 +88,7 @@ async function consultarOraculo(dados, timeoutMs = 30000) {
     const resp = await _postar('consultar', dados, timeoutMs);
     if (!resp.ok) {
         let detalhe = '';
-        try { const j = await resp.json(); detalhe = j.detail || JSON.stringify(j); } catch { /* corpo não-JSON */ }
+        try { const j = await resp.json(); detalhe = formatarDetalheErro(j); } catch { /* corpo não-JSON */ }
         throw new Error(`Oráculo respondeu ${resp.status}: ${detalhe}`);
     }
     return resp.json();
@@ -94,7 +102,7 @@ async function sugerirMarcosIA(dados, timeoutMs = 25000) {
     const resp = await _postar('gerador/pilulas', dados, timeoutMs);
     if (!resp.ok) {
         let detalhe = '';
-        try { const j = await resp.json(); detalhe = j.detail || JSON.stringify(j); } catch { }
+        try { const j = await resp.json(); detalhe = formatarDetalheErro(j); } catch { }
         throw new Error(`Oráculo respondeu ${resp.status}: ${detalhe}`);
     }
     return resp.json();
@@ -108,7 +116,7 @@ async function tecerProfeciaIA(dados, timeoutMs = 30000) {
     const resp = await _postar('gerador/profecia', dados, timeoutMs);
     if (!resp.ok) {
         let detalhe = '';
-        try { const j = await resp.json(); detalhe = j.detail || JSON.stringify(j); } catch { }
+        try { const j = await resp.json(); detalhe = formatarDetalheErro(j); } catch { }
         throw new Error(`Oráculo respondeu ${resp.status}: ${detalhe}`);
     }
     return resp.json();
