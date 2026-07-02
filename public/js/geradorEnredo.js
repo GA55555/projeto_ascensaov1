@@ -77,22 +77,27 @@
 
                 cont.innerHTML = `
                     <div class="sugestoes-lista" style="display:flex; flex-direction:column; gap:12px; max-height:380px; overflow-y:auto; padding-right:4px;">
-                        ${sugestoes.map((s, idx) => `
+                        ${sugestoes.map((s, idx) => {
+                            const nomeMarco = s.label || s.marco || s.key || 'Marco Sugerido';
+                            const pesoMarco = s.peso_estimado || s.peso || 2;
+                            const motivoMarco = s.motivo || s.descricao || `Sugerido pelo Oráculo para ${esc(nomeEntidade)}`;
+                            const iconeMarco = s.icone || 'flag';
+                            return `
                             <div class="sugestao-card">
                                 <div class="sugestao-info" style="flex:1;">
                                     <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
                                         <span class="sessao-pill" style="background:color-mix(in srgb, var(--dourado) 15%, var(--bg-card)); border-color:var(--dourado); color:var(--texto-claro); pointer-events:none;">
-                                            <i data-lucide="flag" style="color:var(--dourado)"></i> ${esc(s.marco)}
+                                            <i data-lucide="${esc(iconeMarco)}" style="color:var(--dourado)"></i> ${esc(nomeMarco)}
                                         </span>
-                                        <span style="font-size:0.72rem; color:var(--texto-mutado); background:var(--bg-input); padding:2px 6px; border-radius:4px;">Peso ${s.peso_estimado || 2}</span>
+                                        <span style="font-size:0.72rem; color:var(--texto-mutado); background:var(--bg-input); padding:2px 6px; border-radius:4px;">Peso ${pesoMarco}</span>
                                     </div>
-                                    <p style="font-size:0.8rem; color:var(--texto-mutado); margin:0; line-height:1.4;">${esc(s.motivo)}</p>
+                                    <p style="font-size:0.8rem; color:var(--texto-mutado); margin:0; line-height:1.4;">${esc(motivoMarco)}</p>
                                 </div>
-                                <button type="button" class="btn btn-sm btn-outline btn-adicionar-pilula" data-idx="${idx}" data-marco="${esc(s.marco)}" style="flex-shrink:0; display:flex; align-items:center; gap:4px;">
+                                <button type="button" class="btn btn-sm btn-outline btn-adicionar-pilula" data-idx="${idx}" data-marco="${esc(nomeMarco)}" style="flex-shrink:0; display:flex; align-items:center; gap:4px;">
                                     <i data-lucide="plus"></i> Inserir
                                 </button>
                             </div>
-                        `).join('')}
+                        `;}).join('')}
                     </div>
                     <div style="margin-top:16px; display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--borda); padding-top:12px;">
                         <button type="button" class="btn btn-outline btn-sm btn-adicionar-todos"><i data-lucide="layers"></i> Inserir Todos (${sugestoes.length})</button>
