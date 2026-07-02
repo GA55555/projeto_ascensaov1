@@ -43,6 +43,7 @@ router.delete('/sessao-nucleos/:nucleoId', verificarToken, checarAcessoCronica, 
 router.post('/sessoes', verificarToken, checarAcessoCronica, apenasNarrador, validate(criarSessaoSchema), sessaoController.criarSessao);
 router.put('/sessoes/:id', verificarToken, checarAcessoCronica, apenasNarrador, validate(editarSessaoSchema), sessaoController.editarSessao);
 router.delete('/sessoes/:id', verificarToken, checarAcessoCronica, apenasNarrador, sessaoController.deletarSessao);
+router.post('/sessoes/estruturar', verificarToken, checarAcessoCronica, apenasNarrador, sessaoController.estruturarResumo);
 
 // ==========================================
 // AUTOMAÇÕES

@@ -2561,6 +2561,15 @@ window.abrirModalSessao = async function(id = null, preSelectedNucleoId = null) 
     filtrarVinculosSessao('eventos');
     filtrarVinculosSessao('automacoes');
 
+    const wrapEtq = document.getElementById('sessao-etiquetas-geradas-wrap');
+    const gridEtq = document.getElementById('sessao-etiquetas-geradas-grid');
+    const wrapNov = document.getElementById('sessao-entidades-novas-wrap');
+    const gridNov = document.getElementById('sessao-entidades-novas-grid');
+    if (wrapEtq) { wrapEtq.classList.add('hidden'); wrapEtq.style.display = 'none'; }
+    if (gridEtq) gridEtq.innerHTML = '';
+    if (wrapNov) { wrapNov.classList.add('hidden'); wrapNov.style.display = 'none'; }
+    if (gridNov) gridNov.innerHTML = '';
+
     abrirModal('modal-sessao');
     if (window.lucide) lucide.createIcons();
 }
@@ -2636,6 +2645,183 @@ window.excluirSessao = async function(id) {
 window.toggleGatilhoSessao = async function(nodeId, flagKey, checked, sessaoId) {
     await toggleFlag(nodeId, flagKey, checked);
     if (sessaoId) abrirDetalhesSessao(sessaoId);
+};
+
+window.estruturarResumoComOraculo = async function() {
+    const txtArea = document.getElementById('sessao-resumo');
+    const btn = document.getElementById('btn-estruturar-oraculo');
+    if (!txtArea || !btn) return;
+
+    const textoCru = txtArea.value.trim();
+    if (!textoCru) {
+        return mostrarToast('Escreva algumas anotações ou tópicos antes de chamar o Oráculo.', 'aviso');
+    }
+
+    const textoOriginalBtn = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<i data-lucide="loader" class="rotacionar"></i> Escutando os ecos do destino...`;
+    if (window.lucide) lucide.createIcons();
+
+    try {
+        const resp = await API.fetch(`/cronicas/${cronicaId}/sessoes/estruturar`, {
+            method: 'POST',
+            body: JSON.stringify({ texto_cru: textoCru })
+        });
+
+        if (!resp.ok) {
+            let detalhe = '';
+            try { const j = await resp.json(); detalhe = j.erro || j.detalhe || ''; } catch {}
+            throw new Error(detalhe || `Erro ${resp.status} do Oráculo.`);
+        }
+
+        const dados = await resp.json();
+        
+        if (dados.texto_formatado) {
+            txtArea.value = dados.texto_formatado;
+        }
+
+        if (Array.isArray(dados.ids_detectados) && dados.ids_detectados.length > 0) {
+            const entContainer = document.getElementById('sessao-entidades');
+            if (entContainer) {
+                dados.ids_detectados.forEach(id => {
+                    const pill = entContainer.querySelector(`.vinculo-pill[data-id="${id}"]`);
+                    if (pill && !pill.classList.contains('sel')) {
+                        pill.classList.add('sel');
+                    }
+                });
+            }
+        }
+
+        const wrapEtq = document.getElementById('sessao-etiquetas-geradas-wrap');
+        const gridEtq = document.getElementById('sessao-etiquetas-geradas-grid');
+        if (wrapEtq && gridEtq) {
+            if (Array.isArray(dados.etiquetas_sugeridas) && dados.etiquetas_sugeridas.length > 0) {
+                gridEtq.innerHTML = dados.etiquetas_sugeridas.map(etq => {
+                    const idEnt = etq.entidade_id || '';
+                    const label = etq.label || etq.key || 'Etiqueta';
+                    const nomeEnt = etq.nome_entidade || 'Entidade';
+                    const icone = etq.icone || 'tag';
+                    const pol = parseInt(etq.polaridade || 0, 10);
+                    const classPol = pol > 0 ? 'polaridade-positiva' : (pol === 0 ? 'polaridade-neutra' : '');
+                    const etqEncoded = encodeURIComponent(JSON.stringify(etq));
+                    return `<button type="button" class="pill-etiqueta-sugerida ${classPol}" onclick="aplicarEtiquetaSessao(this, '${idEnt}', '${etqEncoded}')" title="${escapeHTML(etq.motivo || '')}">
+                        <i data-lucide="${escapeHTML(icone)}"></i> [${escapeHTML(label)}] em ${escapeHTML(nomeEnt)}
+                    </button>`;
+                }).join('');
+                wrapEtq.classList.remove('hidden');
+                wrapEtq.style.display = 'block';
+            } else {
+                wrapEtq.classList.add('hidden');
+                wrapEtq.style.display = 'none';
+            }
+        }
+
+        const wrapNov = document.getElementById('sessao-entidades-novas-wrap');
+        const gridNov = document.getElementById('sessao-entidades-novas-grid');
+        if (wrapNov && gridNov) {
+            if (Array.isArray(dados.entidades_novas) && dados.entidades_novas.length > 0) {
+                gridNov.innerHTML = dados.entidades_novas.map(nome => {
+                    const nEsc = escapeHTML(String(nome));
+                    const nJs = String(nome).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+                    return `<button type="button" class="pill-entidade-nova" onclick="forjarEntidadeSessao(this, '${nJs}')">
+                        <i data-lucide="plus"></i> Forjar [${nEsc}]
+                    </button>`;
+                }).join('');
+                wrapNov.classList.remove('hidden');
+                wrapNov.style.display = 'block';
+            } else {
+                wrapNov.classList.add('hidden');
+                wrapNov.style.display = 'none';
+            }
+        }
+
+        if (window.lucide) lucide.createIcons();
+        mostrarToast('Sessão estruturada e etiquetas detectadas com sucesso!', 'sucesso');
+
+    } catch (err) {
+        console.error('Erro ao estruturar com Oráculo:', err);
+        mostrarToast(`Falha no Oráculo: ${err.message}`, 'erro');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = textoOriginalBtn;
+        if (window.lucide) lucide.createIcons();
+    }
+};
+
+window.aplicarEtiquetaSessao = async function(btn, entidadeId, etqStr) {
+    let etq;
+    try { etq = JSON.parse(decodeURIComponent(etqStr)); } catch (e) { return; }
+    
+    if (!entidadeId || !etq || !etq.key) return;
+
+    btn.disabled = true;
+    btn.innerHTML = `<i data-lucide="loader" class="rotacionar"></i> Aplicando...`;
+    if (window.lucide) lucide.createIcons();
+
+    try {
+        const keyNorm = etq.key.trim().toLowerCase().replace(/\s+/g, '_');
+        await API.fetch(`/cronicas/${cronicaId}/nodes/${entidadeId}/flags`, {
+            method: 'POST',
+            body: JSON.stringify({
+                flag_key: keyNorm,
+                label: etq.label || etq.key,
+                categoria: etq.categoria || 'Pacto',
+                polaridade: etq.polaridade || 0,
+                magnitude: etq.magnitude || 2,
+                icone: etq.icone || 'tag',
+                motivo: etq.motivo || ''
+            })
+        });
+        await API.fetch(`/cronicas/${cronicaId}/nodes/${entidadeId}/flags`, {
+            method: 'PUT',
+            body: JSON.stringify({ flag_key: keyNorm, flag_value: true })
+        });
+
+        btn.classList.add('aplicada');
+        btn.innerHTML = `<i data-lucide="check"></i> [${escapeHTML(etq.label || etq.key)}] em ${escapeHTML(etq.nome_entidade || 'Entidade')}`;
+        if (window.lucide) lucide.createIcons();
+        mostrarToast(`Etiqueta "${etq.label || etq.key}" aplicada a ${etq.nome_entidade}!`, 'sucesso');
+
+        if (document.getElementById('tab-mundo')?.classList.contains('ativa')) {
+            carregarMundo();
+        }
+    } catch (e) {
+        console.error("Falha ao aplicar etiqueta sugerida:", e);
+        mostrarToast("Falha ao aplicar etiqueta.", 'erro');
+        btn.disabled = false;
+        btn.innerHTML = `<i data-lucide="tag"></i> Aplicar [${escapeHTML(etq.label || etq.key)}]`;
+        if (window.lucide) lucide.createIcons();
+    }
+};
+
+window.forjarEntidadeSessao = async function(btn, nomeEntidade) {
+    if (!nomeEntidade) return;
+    const nucleoId = document.getElementById('sessao-nucleo-id')?.value || null;
+    btn.disabled = true;
+    btn.innerHTML = `<i data-lucide="loader" class="rotacionar"></i> Forjando...`;
+    if (window.lucide) lucide.createIcons();
+    try {
+        const res = await API.fetch(`/cronicas/${cronicaId}/nodes`, {
+            method: 'POST',
+            body: JSON.stringify({ nome: nomeEntidade, tipo: 'NPC', nucleo_id: nucleoId })
+        });
+        if (res.ok) {
+            btn.classList.add('aplicada');
+            btn.innerHTML = `<i data-lucide="check"></i> [${escapeHTML(nomeEntidade)}] Forjado!`;
+            if (window.lucide) lucide.createIcons();
+            mostrarToast(`Entidade "${nomeEntidade}" forjada no núcleo ativo!`, 'sucesso');
+            await carregarMundo();
+            filtrarVinculosSessao('entidades');
+        } else {
+            throw new Error("Falha ao forjar");
+        }
+    } catch (e) {
+        console.error("Erro ao forjar entidade inédita:", e);
+        mostrarToast("Erro ao forjar entidade.", 'erro');
+        btn.disabled = false;
+        btn.innerHTML = `<i data-lucide="plus"></i> Forjar [${escapeHTML(nomeEntidade)}]`;
+        if (window.lucide) lucide.createIcons();
+    }
 };
 
 window.abrirDetalhesSessao = async function(id) {

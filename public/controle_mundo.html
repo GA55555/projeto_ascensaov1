@@ -340,8 +340,25 @@
         <label>Status</label>
         <div id="sessao-status-pills" class="sessao-pills-wrap mb-2"></div>
         <input type="hidden" id="sessao-status" value="planejada">
-        <label>Resumo / Acontecimentos</label>
-        <textarea id="sessao-resumo" rows="3" wrap="soft" class="input-full mb-3" placeholder="Descreva os acontecimentos gerais, NPCs encontrados e reviravoltas..."></textarea>
+        <div class="sessao-resumo-head">
+            <label>Resumo / Acontecimentos</label>
+            <button type="button" id="btn-estruturar-oraculo" class="btn btn-sm btn-outline btn-oraculo-dourado" onclick="estruturarResumoComOraculo()"><i data-lucide="sparkles"></i> ✨ Estruturar com o Oráculo</button>
+        </div>
+        <textarea id="sessao-resumo" rows="4" wrap="soft" class="input-full mb-3" placeholder="Descreva os acontecimentos gerais, NPCs encontrados e reviravoltas..."></textarea>
+
+        <!-- Painel de Consequências e Sugestões do Motor de Etiquetas (Invisível até o Oráculo responder) -->
+        <div id="sessao-etiquetas-geradas-wrap" class="oraculo-sugestoes-wrap hidden">
+            <div class="oraculo-sugestoes-head">
+                <i data-lucide="tag"></i> 🏷️ Etiquetas de Contexto Geradas na Sessão (1-Clique na Mesa):
+            </div>
+            <div id="sessao-etiquetas-geradas-grid" class="oraculo-sugestoes-grid"></div>
+        </div>
+        <div id="sessao-entidades-novas-wrap" class="oraculo-sugestoes-wrap hidden">
+            <div class="oraculo-sugestoes-head">
+                <i data-lucide="plus-circle"></i> ✨ Entidades Inéditas Mencionadas (1-Clique para Forjar):
+            </div>
+            <div id="sessao-entidades-novas-grid" class="oraculo-sugestoes-grid"></div>
+        </div>
 
         <!-- Seção de Vínculos 1-Clique -->
         <div class="modal-secao-vinculos">

@@ -191,8 +191,16 @@ class ProfeciaRequest(BaseModel):
                     if isinstance(ef[0], dict):
                         data["subgrafo"] = ef
                     else:
-                        data["subgrafo"] = [{"id": str(x), "nome": f"Entidade {x}"} for x in ef]
         return data
+
+class EstruturarSessaoRequest(BaseModel):
+    model_config = {"protected_namespaces": (), "populate_by_name": True}
+    cronica_id: str
+    texto_cru: str
+    entidades_conhecidas: list[dict] = []
+    api_key_llm: str
+    base_url_llm: str = "https://api.deepseek.com"
+    model_llm: str = "deepseek-chat"
 
 # ==========================================
 # 5. Rotas (Endpoints) REAIS
@@ -562,6 +570,67 @@ def gerar_profecia_evento(req: ProfeciaRequest):
         raise
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Falha ao tecer profecia por IA: {str(e)}")
+
+@app.post("/gerador/estruturar_sessao", dependencies=[Depends(verificar_segredo)])
+def estruturar_sessao_marcos(req: EstruturarSessaoRequest):
+    """Estrutura notas brutas em prosa de diário, detecta entidades citadas e extrai Etiquetas de Contexto geradas."""
+    try:
+        if not req.texto_cru.strip():
+            raise ValueError("Texto cru da sessão está vazio.")
+
+        entidades_str = "\n".join([f"  - ID: {e.get('id')}, Nome: '{e.get('nome')}', Tipo: {e.get('tipo')}" for e in req.entidades_conhecidas]) if req.entidades_conhecidas else "  - Nenhuma entidade cadastrada."
+
+        system_prompt = (
+            "Você é o Oráculo, atuando como o Escrivão da Crônica em um sistema de RPG Dark Fantasy com Motor Narrativo Baseado em Etiquetas (Tag-Based Engine).\n"
+            "Sua missão tem 3 objetivos ao analisar as anotações brutas de sessão do Narrador:\n"
+            "1. REDAÇÃO DO DIÁRIO: Reescreva as notas brutas em um texto de resumo coeso, fluido e no tom 'Atmosférico/Literário porém Fiel e Conciso'. Divida em parágrafos limpos com Markdown (pode usar **negrito** para nomes próprios ou reviravoltas). NÃO invente acontecimentos que não estejam implícitos ou explícitos nas notas brutas.\n"
+            "2. DETECÇÃO DE ENTIDADES CONHECIDAS E NOVAS:\n"
+            "   - Compare os nomes citados no texto com a lista de ENTIDADES CADASTRADAS abaixo. Retorne no array 'ids_detectados' apenas os IDs das entidades que participaram ou foram citadas de forma relevante na sessão.\n"
+            "   - Se o Narrador mencionou personagens, facções ou locais importantes que NÃO estão na lista de entidades cadastradas, retorne seus nomes em 'entidades_novas' para criação posterior.\n"
+            "3. ANÁLISE DE CONSEQUÊNCIAS E GERAÇÃO DE ETIQUETAS (TAGS/FLAGS):\n"
+            "   - Identifique quais cicatrizes dramáticas, pactos, títulos, conquistas, segredos ou maldições NASCERAM OU MUDARAM nesta sessão para as entidades envolvidas.\n"
+            "   - Para cada consequência relevante, sugira uma Etiqueta de Contexto Persistente associando-a ao 'entidade_id' e 'nome_entidade' de uma entidade cadastrada detectada.\n\n"
+            f"### ENTIDADES CADASTRADAS NA CRÔNICA: ###\n{entidades_str}\n\n"
+            "DIRETRIZ DE TAXONOMIA DE ETIQUETAS (JSONB Taxonomy):\n"
+            "- categoria: Escolha exatamente entre ['Segredo', 'Pacto', 'Condição', 'Título', 'Vantagem', 'Fraqueza']\n"
+            "- polaridade: Inteiro entre -1 (negativo/atrito/maldição), 0 (neutro/título), ou 1 (positivo/aliança/vantagem)\n"
+            "- magnitude: Inteiro entre 1 e 6 (Tier de impacto dramático, sendo 1 menor e 6 catastrófico/lendário)\n"
+            "- motivo: Breve justificativa (1 frase) baseada no que aconteceu com essa entidade na sessão.\n"
+            "- icone: Ícone oficial da biblioteca Lucide (ex: skull, crown, eye, flame, shield, sword, heart-crack, feather, ghost, zap, lock, key, bookmark, star, moon, sun, anchor, book-open).\n\n"
+            "RETORNE APENAS UM OBJETO JSON VÁLIDO E ESTRITO no seguinte formato exato (sem blocos markdown, sem comentários):\n"
+            "{\n"
+            '  "texto_formatado": "Prosa atmosférica redigida do resumo da sessão em parágrafos...",\n'
+            '  "ids_detectados": ["id-1", "id-2"],\n'
+            '  "entidades_novas": ["Nome Inédito 1", "Nome Inédito 2"],\n'
+            '  "etiquetas_sugeridas": [\n'
+            '    { "entidade_id": "id-1", "nome_entidade": "Nome 1", "key": "traicao_noturna", "label": "Traição Noturna", "icone": "skull", "categoria": "Pacto", "polaridade": -1, "magnitude": 4, "motivo": "Traiu os aliados durante a emboscada na floresta." }\n'
+            '  ]\n'
+            "}"
+        )
+        cliente = OpenAI(api_key=req.api_key_llm, base_url=req.base_url_llm)
+        completion = cliente.chat.completions.create(
+            model=req.model_llm,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"Anotações brutas da sessão:\n\n{req.texto_cru}\n\nEstruture agora o resumo, detecte as entidades e extraia as etiquetas de consequência em JSON estrito."}
+            ],
+            max_tokens=1500,
+            temperature=0.7
+        )
+        texto = completion.choices[0].message.content
+        dados = limpar_json_llm(texto)
+        if not isinstance(dados, dict) or "texto_formatado" not in dados:
+            raise ValueError(f"O formato retornado não é um JSON válido de sessão. Recebido: {str(dados)[:150]}")
+
+        for k in ("ids_detectados", "entidades_novas", "etiquetas_sugeridas"):
+            if k not in dados or not isinstance(dados[k], list):
+                dados[k] = []
+
+        return {"status": "sucesso", "resultado": dados}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=f"Falha ao estruturar sessão por IA: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn

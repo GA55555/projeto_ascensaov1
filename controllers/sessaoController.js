@@ -1,5 +1,7 @@
 const pool = require('../db');
 const oraculoSync = require('../services/oraculoSync'); // Oráculo: indexa o resumo da sessão (chunking, §4.4/5)
+const oraculoClient = require('../services/oraculoClient');
+const oraculoCripto = require('../utils/oraculoCripto');
 
 // =======================================================
 // SESSÕES (DIÁRIOS DE CAMPANHA)
@@ -99,5 +101,68 @@ exports.deletarSessao = async (req, res) => {
     } catch (err) {
         console.error('❌ Erro ao deletar sessão:', err);
         res.status(500).json({ erro: 'Erro ao deletar sessão.' });
+    }
+};
+
+exports.estruturarResumo = async (req, res) => {
+    const { cronicaId } = req.params;
+    const { texto_cru } = req.body;
+
+    if (!texto_cru || !texto_cru.trim()) {
+        return res.status(400).json({ erro: 'O texto das anotações não pode estar vazio.' });
+    }
+
+    if (!oraculoClient.oraculoConfigurado()) {
+        return res.status(503).json({ erro: 'O serviço do Oráculo IA não está configurado neste servidor.' });
+    }
+
+    try {
+        const cron = await pool.query('SELECT oraculo_ativo FROM cronicas WHERE id = $1', [cronicaId]);
+        if (cron.rows.length === 0) return res.status(404).json({ erro: 'Crônica não encontrada.' });
+        if (!cron.rows[0].oraculo_ativo) {
+            return res.status(409).json({ erro: 'O Oráculo está desligado nesta crônica. Ative-o antes de estruturar.' });
+        }
+
+        const u = await pool.query(
+            'SELECT oraculo_gen_key, oraculo_gen_url, oraculo_gen_model FROM usuarios WHERE id = $1',
+            [req.usuario.id]
+        );
+        const conf = u.rows[0] || {};
+        if (!conf.oraculo_gen_key) {
+            return res.status(400).json({ erro: 'Configure a sua chave de IA (BYOK) no perfil antes de consultar.' });
+        }
+        let chave;
+        try {
+            chave = oraculoCripto.decifrar(conf.oraculo_gen_key);
+        } catch (e) {
+            return res.status(500).json({ erro: 'A sua chave de IA está corrompida. Regrave-a no perfil.' });
+        }
+
+        const nodesQuery = await pool.query(
+            `SELECT id, nome, tipo FROM world_nodes 
+             WHERE cronica_id = $1 AND (deleted_at IS NULL OR deleted_at = 0)`,
+            [cronicaId]
+        );
+        const nucleosQuery = await pool.query(
+            `SELECT id, nome, 'nucleo' AS tipo FROM entidade_nucleos WHERE cronica_id = $1`,
+            [cronicaId]
+        );
+
+        const entidadesConhecidas = [...nodesQuery.rows, ...nucleosQuery.rows];
+
+        const payload = {
+            cronica_id: cronicaId,
+            texto_cru: texto_cru.trim(),
+            entidades_conhecidas: entidadesConhecidas,
+            api_key_llm: chave,
+            base_url_llm: conf.oraculo_gen_url || 'https://api.deepseek.com',
+            model_llm: conf.oraculo_gen_model || 'deepseek-chat'
+        };
+
+        const respIA = await oraculoClient.estruturarSessaoIA(payload);
+        res.json(respIA.resultado || respIA);
+    } catch (err) {
+        console.error('❌ Erro ao estruturar resumo com Oráculo:', err);
+        res.status(500).json({ erro: err.message || 'Erro ao estruturar sessão por IA.' });
     }
 };

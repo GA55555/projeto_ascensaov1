@@ -122,4 +122,18 @@ async function tecerProfeciaIA(dados, timeoutMs = 30000) {
     return resp.json();
 }
 
-module.exports = { enviarParaOraculo, enviarParaOraculoAsync, consultarOraculo, sugerirMarcosIA, tecerProfeciaIA, oraculoConfigurado };
+/**
+ * Consulta o Oráculo Secretário para estruturar notas de sessão e extrair etiquetas emergentes (Motor de Etiquetas).
+ */
+async function estruturarSessaoIA(dados, timeoutMs = 35000) {
+    if (!oraculoConfigurado()) throw new Error('Oráculo não configurado.');
+    const resp = await _postar('gerador/estruturar_sessao', dados, timeoutMs);
+    if (!resp.ok) {
+        let detalhe = '';
+        try { const j = await resp.json(); detalhe = formatarDetalheErro(j); } catch { }
+        throw new Error(`Oráculo respondeu ${resp.status}: ${detalhe}`);
+    }
+    return resp.json();
+}
+
+module.exports = { enviarParaOraculo, enviarParaOraculoAsync, consultarOraculo, sugerirMarcosIA, tecerProfeciaIA, estruturarSessaoIA, oraculoConfigurado };

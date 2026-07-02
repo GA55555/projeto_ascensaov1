@@ -4745,3 +4745,114 @@ input[type="radio"] {
     background: color-mix(in srgb, var(--bg-card) 80%, transparent);
 }
 
+/* ── ORÁCULO SECRETÁRIO (MOTOR NARRATIVO DE ETIQUETAS) ── */
+.btn-oraculo-dourado {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--dourado);
+    border-color: var(--dourado);
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+.btn-oraculo-dourado:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--dourado) 15%, transparent);
+    color: var(--dourado);
+    border-color: var(--dourado);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--dourado) 25%, transparent);
+}
+.btn-oraculo-dourado:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.oraculo-sugestoes-wrap {
+    background: color-mix(in srgb, var(--bg-card) 70%, transparent);
+    border: 1px dashed var(--borda);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 14px;
+}
+
+.pill-etiqueta-sugerida {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    background: color-mix(in srgb, var(--vermelho-dano) 15%, transparent);
+    border: 1px solid var(--vermelho-dano);
+    color: var(--texto-claro);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.pill-etiqueta-sugerida.polaridade-positiva {
+    background: color-mix(in srgb, var(--verde-sucesso) 15%, transparent);
+    border-color: var(--verde-sucesso);
+}
+.pill-etiqueta-sugerida.polaridade-neutra {
+    background: color-mix(in srgb, var(--dourado) 15%, transparent);
+    border-color: var(--dourado);
+}
+.pill-etiqueta-sugerida:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+    filter: brightness(1.15);
+}
+.pill-etiqueta-sugerida.aplicada {
+    background: color-mix(in srgb, var(--verde-sucesso) 25%, transparent);
+    border-color: var(--verde-sucesso);
+    color: var(--verde-sucesso);
+    cursor: default;
+    pointer-events: none;
+    transform: none;
+    box-shadow: none;
+}
+
+.pill-entidade-nova {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    background: color-mix(in srgb, var(--dourado) 20%, transparent);
+    border: 1px solid var(--dourado);
+    color: var(--dourado);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.pill-entidade-nova:hover {
+    background: var(--dourado);
+    color: #000;
+    transform: translateY(-1px);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--dourado) 40%, transparent);
+}
+
+.sessao-resumo-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+.sessao-resumo-head label {
+    margin: 0;
+}
+.oraculo-sugestoes-head {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--dourado);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.oraculo-sugestoes-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
