@@ -16,6 +16,32 @@ Para garantir zero dívida técnica e respeito ao ecossistema atual, toda a impl
 
 ---
 
+## 🧬 Fundamentos do Motor Narrativo Baseado em Etiquetas (Tag-Based Narrative Engine)
+
+A transição de uma arquitetura de "Gatilhos Rígidos" (Hardcoded Triggers) para um **Motor Narrativo Baseado em Etiquetas (Tag-Based Narrative Engine)** representa o estado da arte no design de sistemas emergentes no **Projeto Ascensão V1**. Ao desacoplar o *estado* (Etiquetas) da *resolução* (Eventos), o ecossistema abandona fluxogramas burocráticos em favor de uma computação sistêmica viva.
+
+### 1. Síntese dos Paradigmas de TTRPGs Modernos
+*   **FATE Core (Economia da Narrativa - Aspectos e Compulsões):** As etiquetas são "verdades absolutas" do cenário. Uma etiqueta passiva só se torna um gancho ativo através de uma *Compulsão (Compel)*, gerando moeda narrativa ou alimentando medidores de tensão (pools) quando acionada contra as entidades.
+*   **City of Mist (Matemática do Estado - Etiquetas vs. Status):** Separação estrita entre *Tags* (propriedades imutáveis, ex: `Herdeiro Bastardo`) e *Statuses* (condições voláteis com magnitude, ex: `vigiado-3` ou `queimando-4`). A sobreposição de status empilha de forma não linear no banco PostgreSQL (`JSONB`), onde os Tiers (tamanhos) ditam a gravidade matemática da crise gerada na Constelação.
+*   **Blades in the Dark (Fricção Temporal - Relógios de Progresso):** Adoção de "Clocks" (Relógios) que transformam ameaças estáticas em tensão palpável. Os Eventos Emergentes funcionam como Relógios de Progresso; as etiquetas não disparam crises instantâneas, mas preenchem "ticks" (segmentos) em background, garantindo tempo de reação aos jogadores.
+
+### 2. Mecânicas de Colisão e Combustão Narrativa
+*   **Arquitetura de "Storylets" (Qualidade e Pré-condições):** O jogo opera como um baralho de cartas dinâmico. Um Evento só "brota" como sugestão para o Mestre se o subgrafo alvo cumprir pré-condições específicas de etiquetas (ex: `[👑 Ambição Real] AND [💀 Cofres Vazios]`).
+*   **Dispatcher de Incidentes (Modelo RimWorld / IA Storyteller):** Algoritmo invisível no Node.js que monitora a entropia da mesa e a soma dos pesos das etiquetas. Se a calmaria exceder o limiar de tensão, o Storyteller cruza as variáveis e injeta uma crise emergente.
+*   **Memória Relacional (Modelo Nemesis System):** Máquina de estados baseada em grafos onde interações passadas geram cicatrizes permanentes. A colisão narrativa ocorre ao alterar a natureza do vínculo na tabela `world_links` (ex: aliado para inimigo jurado), gerando tramas orgânicas de vingança e rivalidade.
+
+### 3. Integração GraphRAG e Oráculos IA (LLM)
+*   **Isolamento do "Ego-Subgraph":** Para evitar alucinações de contexto, o backend extrai apenas o Ego-Subgraph da entidade alvo (o nó, seus vizinhos de 1 ou 2 saltos via `world_links`, suas etiquetas e os resumos das sessões recentes) antes de enviar à API da IA.
+*   **Raciocínio Multi-Salto (Multi-Hop Reasoning):** A IA atua como um motor de dedução causal estrito sobre o subgrafo, identificando conexões ocultas e sugerindo relógios de tensão coerentes.
+*   **Preservação de Cânone:** O LLM é arquitetonicamente proibido de inventar novos `world_nodes`; sua interface restringe-se a sugerir mutações de vínculos existentes e injeções de novas etiquetas.
+
+### 4. UX e Taxonomia no Escudo do Narrador (Divulgação Progressiva)
+*   **Taxonomia JSONB:** As etiquetas na tabela `world_flags` seguem um schema estruturado contendo: `id` (uuid), `nome`, `categoria` (Segredo, Pacto, Condição, Título, Vantagem, Fraqueza), `polaridade` (-1, 0, +1), `magnitude` (Tier 1 a 6) e `clock_id` opcional.
+*   **Design de Pílulas & Color-Coding:** Chips visuais sob o NPC coloridos via variáveis CSS oficiais (`--erro` para atrito/negativo, `--sucesso` para aliança/positivo, `--neutro` para títulos), permitindo processamento cognitivo instantâneo pelo Mestre.
+*   **Hover/Tooltips Dinâmicas (Regra 7.2):** O hover sobre uma etiqueta invoca a renderização leve do seu Ego-Subgraph, revelando quais outras entidades compartilham aquele pacto sem poluir o tabuleiro principal.
+
+---
+
 ## 📊 Fatia 1: Análise do Estado Atual do Banco de Dados & Estrutura de Domínio
 
 O modelo relacional atual do nosso backend PostgreSQL/SQLite (observado nos controllers `mundoController.js` e `automacaoController.js`) possui uma estrutura nativamente preparada para relações sistêmicas N:M:
@@ -53,11 +79,11 @@ erDiagram
     }
 ```
 
-### Análise do Mecanismo Atual:
-*   **`world_flags` (Marcos):** Representam os títulos, feitos, trajes, segredos ou estados de uma entidade (`node_id`). São booleanos (`value: true/false`).
-*   **`world_events` (Eventos):** Representam contagens regressivas ou pools de tensão (`pool_atual` / `pool_maxima`).
-*   **`event_flag_weights` (A Teia de Wiring):** É a tabela associativa que liga um Marco de uma Entidade a um Evento, atribuindo um `peso`. Quando o Marco é ativado (`value = true`), o peso é somado à `pool_atual` do Evento.
-*   **Conclusão da Análise:** Não precisamos criar nenhuma nova tabela para suportar a "Tecelagem por IA"! O que nos falta é uma **camada inteligente de orquestração (Payload/Prompt)** que popule simultaneamente `world_flags`, `world_events` e `event_flag_weights` em uma única transação lógica ou sequência de chamadas de API.
+### Análise do Mecanismo Atual vs. O Novo Paradigma de Etiquetas:
+*   **`world_flags` (Etiquetas de Contexto):** Evoluem de simples booleanos estáticos para registros de contexto (armazenados e expandidos via JSONB em `dados` ou propriedades) contendo `categoria`, `polaridade` (-1, 0, +1) e `magnitude` (Tier 1 a 6). Representam cicatrizes históricas, pactos, títulos e estados contínuos de uma entidade (`node_id`).
+*   **`world_events` (Relógios de Progresso - Clocks):** Representam contagens regressivas e relógios de facção (`pool_atual` operando como `ticks_atuais` e `pool_maxima` como `ticks_maximos`), acumulando tensão sistêmica sem explodir de imediato.
+*   **`event_flag_weights` (Teia de Wiring & Magnitude):** Tabela associativa que liga uma Etiqueta de Contexto a um Relógio de Evento com um determinado `peso`. Quando a etiqueta está ativa (`value = true`), sua magnitude e polaridade alimentam a progressão do relógio em background.
+*   **Conclusão da Análise:** A estrutura física do nosso banco PostgreSQL já suporta essa flexibilidade relacional N:M e colunas JSONB sem necessidade de alterações DDL (zero migrations)! O que implementamos na camada de serviços (`oraculo_service` e `mundoController.js`) é a **orquestração de Storylets e GraphRAG**, que lê o Ego-Subgraph da entidade e calcula a combustão de eventos orgânicos.
 
 ---
 
@@ -248,8 +274,8 @@ Quando o Narrador confirmar a criação do Evento profetizado na mesa, o JavaScr
 ## 🚀 Resumo do Roteiro de Implementação Futura
 
 Quando formos iniciar a codificação desta ferramenta, seguiremos este checklist em fatias ordenadas:
-- [ ] **Fatia A:** Atualizar o serviço do Oráculo (`oraculo_service`) com os prompts de *Role-Binding*, *Escopo Narrativo*, *Grounding nas Sessões* e endpoints de geração JSON (`/gerador/pílulas` e `/gerador/profecia`).
-- [ ] **Fatia B:** Criar o módulo frontend `public/js/geradorEnredo.js` com as funções de chamada à API, injeção das sessões recentes no payload e renderização dos chips e Cards de Profecia.
-- [ ] **Fatia C:** Integrar o botão `✨ Sugerir Marcos (IA)` na aba Marcos de `feixeMarcos()` em `constelacao.js`.
-- [ ] **Fatia D:** Integrar o botão `🔮 Tecer Evento (IA)` na modal de tensões de `abrirModalTensoes()` em `constelacaoTensao.js`.
-- [ ] **Fatia E:** Implementar a rotina transacional que salva o Evento, cria os Marcos, vincula os Pesos em `event_flag_weights` e anexa o evento à Sessão Planejada em um único clique.
+- [ ] **Fatia A (Oráculo & GraphRAG):** Atualizar o serviço do Oráculo (`oraculo_service`) para extrair o Ego-Subgraph, aplicando os prompts de *Role-Binding*, *Escopo Narrativo*, *Grounding nas Sessões* e taxonomia de Etiquetas (`categoria`, `polaridade`, `magnitude`).
+- [ ] **Fatia B (UI & Divulgação Progressiva):** Criar o módulo frontend `public/js/geradorEnredo.js` com a renderização de pílulas coloridas por polaridade (`--erro`, `--sucesso`, `--neutro`), cards de Profecia como Relógios de Progresso e tooltips de subgrafo ao vivo.
+- [ ] **Fatia C (1-Click Tags):** Integrar o botão `✨ Sugerir Marcos (IA)` na aba Marcos de `feixeMarcos()` em `constelacao.js`, aplicando a nova estrutura de etiquetas instantaneamente.
+- [ ] **Fatia D (Combustão de Eventos):** Integrar o botão `🔮 Tecer Evento (IA)` na modal de tensões de `constelacaoTensao.js`, calculando atritos e gerando relógios de facção/crise.
+- [ ] **Fatia E (Transação & Amarração):** Implementar a rotina transacional de 1 clique no Node.js que salva o Relógio de Evento, injeta as Etiquetas no JSONB, vincula os Pesos em `event_flag_weights` e anexa o evento à Sessão Planejada do dia.
