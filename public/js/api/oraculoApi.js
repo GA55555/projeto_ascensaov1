@@ -1,6 +1,27 @@
 // public/js/api/oraculoApi.js
 // Camada de rede exclusiva do Oráculo (RAG) — Regra 2.4. Sem lógica de DOM. Depende do objeto global API (api.js).
 
+async function tratarResposta(res, fallbackMsg) {
+    let dados = {};
+    let textoRaw = '';
+    try {
+        textoRaw = await res.text();
+        dados = JSON.parse(textoRaw);
+    } catch {
+        dados = { erro: textoRaw || `Erro HTTP ${res.status}` };
+    }
+    if (!res.ok) {
+        let msg = fallbackMsg;
+        if (typeof dados.erro === 'string' && dados.erro.trim()) msg = dados.erro;
+        else if (Array.isArray(dados.erro)) msg = dados.erro.map(e => e.message || e.msg || JSON.stringify(e)).join(' | ');
+        else if (dados.erro && typeof dados.erro === 'object') msg = JSON.stringify(dados.erro);
+        else if (dados.detail) msg = typeof dados.detail === 'string' ? dados.detail : (Array.isArray(dados.detail) ? dados.detail.map(e => `${e.loc ? e.loc.join('.') : 'campo'}: ${e.msg}`).join(' | ') : JSON.stringify(dados.detail));
+        else if (textoRaw && textoRaw.trim() && !textoRaw.trim().startsWith('<')) msg = `${fallbackMsg} (${textoRaw.trim().slice(0, 150)})`;
+        throw new Error(msg);
+    }
+    return dados;
+}
+
 const OraculoApi = {
     // Consulta RAG (F4): o Narrador pergunta; o backend decifra a chave BYOK e fala com o Python.
     // historico: memória multi-turn (trocas anteriores) — o backend valida/limita (Zod, teto 8).
@@ -9,9 +30,7 @@ const OraculoApi = {
             method: 'POST',
             body: JSON.stringify({ pergunta, historico })
         });
-        const dados = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(dados.erro || 'O Oráculo não respondeu.');
-        return dados; // { status, resposta_oraculo, trechos_usados? }
+        return tratarResposta(res, 'O Oráculo não respondeu.');
     },
 
     // Liga/desliga o Oráculo nesta crônica (F5a — toggle opt-in).
@@ -20,9 +39,7 @@ const OraculoApi = {
             method: 'PUT',
             body: JSON.stringify({ ativo })
         });
-        const dados = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(dados.erro || 'Falha ao alternar o Oráculo.');
-        return dados;
+        return tratarResposta(res, 'Falha ao alternar o Oráculo.');
     },
 
     // Grava a chave BYOK do Narrador (write-only). gen_key é opcional (permite trocar só URL/modelo).
@@ -31,9 +48,7 @@ const OraculoApi = {
             method: 'PUT',
             body: JSON.stringify({ gen_key, gen_url, gen_model })
         });
-        const dados = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(dados.erro || 'Falha ao salvar a configuração do Oráculo.');
-        return dados;
+        return tratarResposta(res, 'Falha ao salvar a configuração do Oráculo.');
     },
 
     // Gerador de Enredo: Sugerir Marcos / Pílulas (Fatia B/C)
@@ -42,9 +57,7 @@ const OraculoApi = {
             method: 'POST',
             body: JSON.stringify(payload)
         });
-        const dados = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(dados.erro || 'Falha ao gerar sugestões de marcos.');
-        return dados;
+        return tratarResposta(res, 'Falha ao gerar sugestões de marcos.');
     },
 
     // Gerador de Enredo: Tecer Profecia IA (Fatia B/C)
@@ -53,9 +66,7 @@ const OraculoApi = {
             method: 'POST',
             body: JSON.stringify(payload)
         });
-        const dados = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(dados.erro || 'Falha ao tecer profecia com a IA.');
-        return dados;
+        return tratarResposta(res, 'Falha ao tecer profecia com a IA.');
     },
 
     // Gerador de Enredo: Confirmar Tecelagem na Mesa (Fatia B/E)
@@ -64,9 +75,7 @@ const OraculoApi = {
             method: 'POST',
             body: JSON.stringify(payload)
         });
-        const dados = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(dados.erro || 'Falha ao confirmar tecelagem de destinos na mesa.');
-        return dados;
+        return tratarResposta(res, 'Falha ao confirmar tecelagem de destinos na mesa.');
     }
 };
 

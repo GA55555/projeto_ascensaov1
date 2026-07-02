@@ -390,22 +390,36 @@ def consultar_oraculo(req: ConsultaRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 def limpar_json_llm(texto: str) -> dict | list:
-    texto = (texto or "").strip()
-    if texto.startswith("```"):
-        texto = re.sub(r"^```[a-zA-Z]*\n?", "", texto)
-        texto = re.sub(r"\n?```$", "", texto)
-    texto = texto.strip()
+    texto_orig = (texto or "").strip()
+    texto = texto_orig
+    if "```" in texto:
+        matches = re.findall(r"```(?:json)?\s*([\s\S]*?)\s*```", texto, re.IGNORECASE)
+        if matches:
+            texto = matches[0].strip()
     idx_obj = texto.find("{")
     idx_arr = texto.find("[")
     if idx_obj != -1 and (idx_arr == -1 or idx_obj < idx_arr):
         end_idx = texto.rfind("}")
         if end_idx != -1:
-            texto = texto[idx_obj:end_idx+1]
-    elif idx_arr != -1:
+            try:
+                return json.loads(texto[idx_obj:end_idx+1])
+            except:
+                pass
+    if idx_arr != -1:
         end_idx = texto.rfind("]")
         if end_idx != -1:
-            texto = texto[idx_arr:end_idx+1]
-    return json.loads(texto)
+            try:
+                return json.loads(texto[idx_arr:end_idx+1])
+            except:
+                pass
+    if idx_obj != -1:
+        end_idx = texto.rfind("}")
+        if end_idx != -1:
+            try:
+                return json.loads(texto[idx_obj:end_idx+1])
+            except:
+                pass
+    return json.loads(texto_orig)
 
 @app.post("/gerador/pilulas", dependencies=[Depends(verificar_segredo)])
 def gerar_pilulas_marcos(req: PilulasRequest):
@@ -430,14 +444,27 @@ def gerar_pilulas_marcos(req: PilulasRequest):
         cliente = OpenAI(api_key=req.api_key_llm, base_url=req.base_url_llm)
         completion = cliente.chat.completions.create(
             model=req.model_llm,
-            messages=[{"role": "system", "content": system_prompt}],
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"Gere agora as 3 sugestões de marcos em array JSON para a entidade {req.nome}."}
+            ],
             max_tokens=600,
             temperature=0.8
         )
         texto = completion.choices[0].message.content
         dados = limpar_json_llm(texto)
+        if isinstance(dados, dict):
+            for k in ("sugestoes", "marcos", "pilulas", "flags", "items", "data", "sugestoes_marcos"):
+                if k in dados and isinstance(dados[k], list):
+                    dados = dados[k]
+                    break
+            else:
+                for val in dados.values():
+                    if isinstance(val, list):
+                        dados = val
+                        break
         if not isinstance(dados, list) or len(dados) == 0:
-            raise ValueError("O formato retornado não é uma lista válida.")
+            raise ValueError(f"O formato retornado não é uma lista válida. Recebido: {str(dados)[:150]}")
         return {"status": "sucesso", "sugestoes": dados[:3]}
     except HTTPException:
         raise
@@ -503,7 +530,10 @@ def gerar_profecia_evento(req: ProfeciaRequest):
         cliente = OpenAI(api_key=req.api_key_llm, base_url=req.base_url_llm)
         completion = cliente.chat.completions.create(
             model=req.model_llm,
-            messages=[{"role": "system", "content": system_prompt}],
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": "Gere agora a profecia de evento e os marcos/gatilhos em formato JSON estrito."}
+            ],
             max_tokens=1000,
             temperature=0.7
         )
