@@ -357,10 +357,32 @@ exports.criarFlag = async (req, res) => {
 
     if (!(await nodePertenceACronica(nodeId, cronicaId))) return res.status(404).json({ erro: 'Entidade não encontrada.' });
     try {
+        const keyNorm = flag_key.trim().toLowerCase().replace(/\s+/g, '_');
         await pool.query(
             "INSERT INTO world_flags (node_id, flag_key, flag_value) VALUES ($1, $2, FALSE)",
-            [nodeId, flag_key.trim().toLowerCase().replace(/\s+/g, '_')]
+            [nodeId, keyNorm]
         );
+        const meta = req.body.meta || req.body;
+        if (meta && (meta.label || meta.categoria || meta.icone || meta.polaridade !== undefined || meta.magnitude !== undefined)) {
+            const metaObj = {
+                label: (meta.label || flag_key).trim(),
+                categoria: meta.categoria || 'Segredo',
+                polaridade: parseInt(meta.polaridade, 10) || 0,
+                magnitude: Math.max(1, Math.min(6, parseInt(meta.magnitude, 10) || 2)),
+                icone: meta.icone || 'flag',
+                motivo: meta.motivo || ''
+            };
+            await pool.query(
+                `UPDATE world_nodes 
+                 SET dados = jsonb_set(
+                     COALESCE(dados, '{}'::jsonb), 
+                     Array['flags_meta', $2], 
+                     $3::jsonb, 
+                     true
+                 ) WHERE id = $1`,
+                [nodeId, keyNorm, JSON.stringify(metaObj)]
+            );
+        }
         oraculoSync.reindexarNode(cronicaId, nodeId); // Regra 4.2: a flag mudou o estado do node
         res.status(201).json({ mensagem: 'Nova flag forjada.' });
     } catch (err) {
@@ -1011,6 +1033,60 @@ exports.listarLinks = async (req, res) => {
     }
 };
 
+async function buscarConexoesEgoSubgraph(entidadeId, cronicaId) {
+    if (!entidadeId) return [];
+    let conexoes = [];
+    try {
+        const linksRes = await pool.query(
+            `SELECT l.tipo_vinculo, 
+                    CASE WHEN l.origem_node_id = $1 THEN nd.nome ELSE no.nome END AS outro_nome
+             FROM world_links l
+             LEFT JOIN world_nodes no ON l.origem_node_id = no.id
+             LEFT JOIN world_nodes nd ON l.destino_node_id = nd.id
+             WHERE l.cronica_id = $2 AND (l.origem_node_id = $1 OR l.destino_node_id = $1)
+             LIMIT 15`,
+            [entidadeId, cronicaId]
+        );
+        linksRes.rows.forEach(r => {
+            conexoes.push(`Conexão explícita '${r.tipo_vinculo || 'vinculado'}' com ${r.outro_nome || 'Desconhecido'}`);
+        });
+
+        const impRes = await pool.query(
+            `SELECT DISTINCT n2.nome AS outro_nome, 
+                    COALESCE(jsonb_extract_path_text(n1.dados, 'flags_meta', f1.flag_key, 'categoria'), 'Etiqueta') AS cat,
+                    COALESCE(jsonb_extract_path_text(n1.dados, 'flags_meta', f1.flag_key, 'polaridade'), '0') AS pol
+             FROM world_flags f1
+             JOIN world_flags f2 ON f1.flag_key = f2.flag_key AND f1.node_id != f2.node_id AND f1.flag_value = TRUE AND f2.flag_value = TRUE
+             JOIN world_nodes n1 ON f1.node_id = n1.id
+             JOIN world_nodes n2 ON f2.node_id = n2.id
+             WHERE f1.node_id = $1 AND n1.cronica_id = $2 AND n2.cronica_id = $2
+             LIMIT 10`,
+            [entidadeId, cronicaId]
+        );
+        impRes.rows.forEach(r => {
+            const polStr = r.pol === '-1' ? 'Sombrio/Atrito' : (r.pol === '1' ? 'Luminoso/Aliança' : 'Neutro');
+            conexoes.push(`Afinidade Implícita [${r.cat} - ${polStr}] com ${r.outro_nome || 'Desconhecido'}`);
+        });
+    } catch (e) {
+        console.warn("Aviso ao buscar Ego-Subgraph:", e.message);
+    }
+    return conexoes;
+}
+
+exports.getEgoSubgraph = async (req, res) => {
+    const { cronicaId, nodeId } = req.params;
+    try {
+        if (!(await nodePertenceACronica(nodeId, cronicaId))) {
+            return res.status(404).json({ erro: 'Entidade não encontrada.' });
+        }
+        const conexoes = await buscarConexoesEgoSubgraph(nodeId, cronicaId);
+        res.json({ node_id: nodeId, ego_subgraph: conexoes });
+    } catch (err) {
+        console.error('Erro no Ego-Subgraph:', err);
+        res.status(500).json({ erro: 'Erro ao buscar Ego-Subgraph.' });
+    }
+};
+
 exports.criarLink = async (req, res) => {
     const { cronicaId, nodeId } = req.params;          // nodeId = origem
     const { destino_node_id, tipo_vinculo, dados } = req.body;
@@ -1476,6 +1552,7 @@ exports.sugerirMarcosIA = async (req, res) => {
                 reputacao = parseInt(d.reputacao || 0, 10);
             }
         }
+        let subgrafo_conexoes = await buscarConexoesEgoSubgraph(entidade_id, cronicaId);
         const resposta = await oraculoClient.sugerirMarcosIA({
             cronica_id: cronicaId,
             entidade_id,
@@ -1488,6 +1565,7 @@ exports.sugerirMarcosIA = async (req, res) => {
             biografia,
             notas_reputacao: biografia,
             marcos_atuais: marcos_atuais || [],
+            subgrafo_conexoes,
             api_key_llm: chave,
             base_url_llm: conf.oraculo_gen_url || 'https://api.deepseek.com',
             model_llm: conf.oraculo_gen_model || 'deepseek-chat',
@@ -1552,13 +1630,32 @@ exports.tecerProfeciaIA = async (req, res) => {
                 'SELECT id, nome, tipo, dados FROM world_nodes WHERE cronica_id = $1 AND id = ANY($2::uuid[])',
                 [cronicaId, entidades_foco]
             );
-            subgrafo = subRes.rows.map(r => ({
-                id: r.id,
-                nome: r.nome,
-                tipo: r.tipo,
-                tarot: r.dados?.tarot ? `Arcano ${r.dados.tarot.carta_num}` : 'Nenhum',
-                marcos: r.dados?.marcos || []
-            }));
+            const allLinksRes = await pool.query(
+                `SELECT l.origem_node_id, l.destino_node_id, l.tipo_vinculo, 
+                        no.nome AS nome_origem, nd.nome AS nome_destino
+                 FROM world_links l
+                 LEFT JOIN world_nodes no ON l.origem_node_id = no.id
+                 LEFT JOIN world_nodes nd ON l.destino_node_id = nd.id
+                 WHERE l.cronica_id = $1 AND (l.origem_node_id = ANY($2::uuid[]) OR l.destino_node_id = ANY($2::uuid[]))`,
+                [cronicaId, entidades_foco]
+            ).catch(() => ({ rows: [] }));
+
+            subgrafo = subRes.rows.map(r => {
+                const conexoes = allLinksRes.rows
+                    .filter(lk => lk.origem_node_id === r.id || lk.destino_node_id === r.id)
+                    .map(lk => {
+                        const outro = lk.origem_node_id === r.id ? lk.nome_destino : lk.nome_origem;
+                        return `${lk.tipo_vinculo || 'relacionado'} a ${outro || 'Desconhecido'}`;
+                    }).slice(0, 6);
+                return {
+                    id: r.id,
+                    nome: r.nome,
+                    tipo: r.tipo,
+                    tarot: r.dados?.tarot ? `Arcano ${r.dados.tarot.carta_num}` : 'Nenhum',
+                    marcos: r.dados?.marcos || [],
+                    conexoes
+                };
+            });
         }
         const resposta = await oraculoClient.tecerProfeciaIA({
             cronica_id: cronicaId,
@@ -1647,6 +1744,25 @@ exports.confirmarTecelagemMesa = async (req, res) => {
                  VALUES ($1, $2, FALSE)
                  ON CONFLICT (node_id, flag_key) DO NOTHING`,
                 [g.node_id, flagKey]
+            );
+            const meta = typeof g.marco === 'object' ? g.marco : (typeof g.marco_sugerido === 'object' ? g.marco_sugerido : {});
+            const metaObj = {
+                label: labelStr,
+                categoria: meta.categoria || 'Segredo',
+                polaridade: parseInt(meta.polaridade, 10) || 0,
+                magnitude: Math.max(1, Math.min(6, parseInt(meta.magnitude, 10) || parseInt(g.peso_na_pool, 10) || 2)),
+                icone: meta.icone || 'flag',
+                motivo: meta.motivo || ''
+            };
+            await client.query(
+                `UPDATE world_nodes 
+                 SET dados = jsonb_set(
+                     COALESCE(dados, '{}'::jsonb), 
+                     Array['flags_meta', $2], 
+                     $3::jsonb, 
+                     true
+                 ) WHERE id = $1`,
+                [g.node_id, flagKey, JSON.stringify(metaObj)]
             );
             marcosCriados.push({ node_id: g.node_id, flag_key: flagKey, label: labelStr });
 

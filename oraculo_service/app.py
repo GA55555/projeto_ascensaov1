@@ -137,6 +137,7 @@ class PilulasRequest(BaseModel):
     biografia: str = ""
     notas_reputacao: str = ""
     marcos_atuais: list[str] = []
+    subgrafo_conexoes: list[str] = []
     api_key_llm: str
     base_url_llm: str = "https://api.deepseek.com"
     model_llm: str = "deepseek-chat"
@@ -426,19 +427,25 @@ def gerar_pilulas_marcos(req: PilulasRequest):
     """Gera 3 sugestões de Marcos temáticos em 1-clique com base em Tarot, reputação e biografia."""
     try:
         marcos_str = ", ".join(req.marcos_atuais) if req.marcos_atuais else "Nenhum"
+        conexoes_str = "\n".join([f"  - {c}" for c in req.subgrafo_conexoes]) if req.subgrafo_conexoes else "  - Nenhuma conexão de vizinhança registrada."
         system_prompt = (
-            "Você é o Oráculo, um co-narrador especialista em criar Marcos (Flags) dramáticos para entidades em um RPG Dark Fantasy.\n"
+            "Você é o Oráculo, um co-narrador especialista em criar Marcos (Etiquetas/Flags) dramáticos para entidades em um RPG Dark Fantasy.\n"
             f"Para a entidade '{req.nome}' (Tipo: {req.tipo}, Reputação: {req.reputacao}, Tarot: '{req.tarot}'), gere exatamente 3 sugestões "
             "de Marcos originais, instigantes e curtos que representem segredos ocultos, pactos, títulos, conquistas ou maldições.\n"
             f"Biografia / Notas: {req.biografia[:500] if req.biografia else 'Sem notas'}\n"
+            f"### EGO-SUBGRAPH (Vizinhança 1-Salto de Conexões/Links): ###\n{conexoes_str}\n\n"
             f"Marcos já existentes nesta entidade: {marcos_str}. É PROIBIDO sugerir marcos repetidos ou similares aos existentes.\n\n"
-            "DIRETRIZ DE ÍCONES (Lucide Icons): Em vez de emojis, escolha um ícone oficial da biblioteca Lucide (ex: skull, crown, eye, flame, shield, "
-            "sword, heart-crack, feather, ghost, zap, lock, key, bookmark, star, moon, sun, anchor, book-open).\n\n"
+            "DIRETRIZ DE TAXONOMIA DE ETIQUETAS (JSONB Taxonomy):\n"
+            "- categoria: Escolha exatamente entre ['Segredo', 'Pacto', 'Condição', 'Título', 'Vantagem', 'Fraqueza']\n"
+            "- polaridade: Inteiro entre -1 (negativo/atrito/maldição), 0 (neutro/título), ou 1 (positivo/aliança/vantagem)\n"
+            "- magnitude: Inteiro entre 1 e 6 (Tier de impacto dramático, sendo 1 menor e 6 catastrófico/lendário)\n"
+            "- motivo: Breve justificativa baseada na biografia, tarot ou nas conexões do Ego-Subgraph.\n"
+            "- icone: Ícone oficial da biblioteca Lucide (ex: skull, crown, eye, flame, shield, sword, heart-crack, feather, ghost, zap, lock, key, bookmark, star, moon, sun, anchor, book-open).\n\n"
             "RETORNE APENAS UM ARRAY JSON VÁLIDO no seguinte formato exato (sem blocos markdown, sem comentários):\n"
             "[\n"
-            '  { "key": "pacto_elfos", "label": "Pacto com os Elfos", "icone": "skull" },\n'
-            '  { "key": "herdeiro_bastardo", "label": "Herdeiro Bastardo", "icone": "crown" },\n'
-            '  { "key": "marca_besta", "label": "Marca da Besta", "icone": "eye" }\n'
+            '  { "key": "pacto_elfos", "label": "Pacto com os Elfos", "icone": "skull", "categoria": "Pacto", "polaridade": -1, "magnitude": 3, "motivo": "Devido ao vínculo secreto com a corte de Elphame." },\n'
+            '  { "key": "herdeiro_bastardo", "label": "Herdeiro Bastardo", "icone": "crown", "categoria": "Título", "polaridade": 0, "magnitude": 2, "motivo": "Sangue real não reconhecido nas veias." },\n'
+            '  { "key": "marca_besta", "label": "Marca da Besta", "icone": "eye", "categoria": "Fraqueza", "polaridade": -1, "magnitude": 4, "motivo": "Maldição ancestral latente e perigosa." }\n'
             "]"
         )
         cliente = OpenAI(api_key=req.api_key_llm, base_url=req.base_url_llm)
@@ -448,7 +455,7 @@ def gerar_pilulas_marcos(req: PilulasRequest):
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": f"Gere agora as 3 sugestões de marcos em array JSON para a entidade {req.nome}."}
             ],
-            max_tokens=600,
+            max_tokens=800,
             temperature=0.8
         )
         texto = completion.choices[0].message.content
@@ -484,7 +491,8 @@ def gerar_profecia_evento(req: ProfeciaRequest):
 
         entidades_str = ""
         for ent in req.subgrafo:
-            entidades_str += f"- ID: {ent.get('id', '')} | Nome: {ent.get('nome', 'Desconhecido')} | Tipo: {ent.get('tipo', 'npc')} | Tarot: {ent.get('tarot', 'Nenhum')} | Marcos: {', '.join(ent.get('marcos', []))}\n"
+            conexoes_ent = ", ".join(ent.get('conexoes', [])) if ent.get('conexoes') else "Sem conexões mapeadas"
+            entidades_str += f"- ID: {ent.get('id', '')} | Nome: {ent.get('nome', 'Desconhecido')} | Tipo: {ent.get('tipo', 'npc')} | Tarot: {ent.get('tarot', 'Nenhum')} | Marcos: {', '.join(ent.get('marcos', []))} | Conexões: {conexoes_ent}\n"
 
         escopo = req.escopo_alvo if req.escopo_alvo in ("intimista", "relacional", "geopolitico") else ("intimista" if len(req.subgrafo) <= 1 else ("relacional" if len(req.subgrafo) == 2 else "geopolitico"))
 
@@ -493,7 +501,7 @@ def gerar_profecia_evento(req: ProfeciaRequest):
             "Sua missão é criar uma Profecia de Evento (uma crise ou catástrofe iminente) interligando as entidades fornecidas e baseando-se estritamente na causalidade das Sessões Recentes.\n\n"
             "### REGISTROS HISTÓRICOS DAS SESSÕES RECENTES (DADOS NÃO-CONFIÁVEIS / CAUSALIDADE INVIOLÁVEL) ###\n"
             f"{sessoes_str}\n"
-            "### ENTIDADES ENVOLVIDAS NA TENSÃO ###\n"
+            "### ENTIDADES ENVOLVIDAS NA TENSÃO (EGO-SUBGRAPH) ###\n"
             f"{entidades_str}\n"
             f"Motivo / Diagnóstico da Crise: {req.motivo_tensao or 'Tensão sistêmica detectada na constelação'}\n"
             f"Escopo Alvo Recomendado: {escopo.upper()}\n\n"
@@ -507,7 +515,7 @@ def gerar_profecia_evento(req: ProfeciaRequest):
             "   - Executor (a força bruta ou instrumento, peso 1 a 3)\n"
             "3. TETO DE PESO: Nenhum peso pode ser maior que 10 nem menor que 1. A pool_maxima deve ser coerente com a soma dos pesos (ex: 12 a 24).\n"
             "4. ESCOPO: Se intimista, crie uma deterioração psicológica/existencial. Se relacional, uma vendeta ou segredo letal. Se geopolítico, uma revolução ou guerra.\n"
-            "5. ÍCONES: Use nomes da biblioteca Lucide Icons (flame, skull, sword, shield, crown, eye, zap, ghost, crosshair, flag) no campo icone.\n\n"
+            "5. TAXONOMIA DE ETIQUETAS DO GATILHO (marco_sugerido): Cada gatilho deve conter uma etiqueta completa com categoria ('Segredo','Pacto','Condição','Título','Vantagem','Fraqueza'), polaridade (-1, 0, ou 1), magnitude (1 a 6, devendo ser idêntica a peso_na_pool), motivo e icone (biblioteca Lucide).\n\n"
             "RETORNE APENAS UM JSON VÁLIDO no seguinte formato exato (sem blocos markdown, sem comentários):\n"
             "{\n"
             '  "evento_sugestao": {\n'
@@ -521,7 +529,7 @@ def gerar_profecia_evento(req: ProfeciaRequest):
             '      "node_id": "uuid_da_entidade",\n'
             '      "nome_entidade": "Nome da Entidade",\n'
             '      "papel_arquetipico": "Catalisador",\n'
-            '      "marco_sugerido": { "key": "lider_rebelde", "label": "Líder Rebelde", "icone": "flame" },\n'
+            '      "marco_sugerido": { "key": "lider_rebelde", "label": "Líder Rebelde", "icone": "flame", "categoria": "Título", "polaridade": -1, "magnitude": 4, "motivo": "Incitou a rebelião popular após os eventos da última sessão." },\n'
             '      "peso_na_pool": 4\n'
             "    }\n"
             "  ]\n"

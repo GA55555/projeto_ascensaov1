@@ -700,7 +700,17 @@
         const selos = fs.map((f, k) => {
             const a = -Math.PI / 2 + (k / T) * 2 * Math.PI;
             const x = Math.round(cx + Math.cos(a) * R), y = Math.round(cy + Math.sin(a) * R);
-            return `<span class="astro-marco-seal${f.value ? ' aceso' : ''}" data-flag-key="${escapeHTML(f.key)}" data-on="${f.value ? 1 : 0}" style="left:${x}px;top:${y}px"></span>`;
+            const meta = f.meta || {};
+            const pol = typeof meta.polaridade === 'number' ? meta.polaridade : (parseInt(meta.polaridade, 10) || 0);
+            const cat = meta.categoria || '';
+            const mag = meta.magnitude || meta.peso_estimado || 2;
+            let corSelo = '';
+            if (pol < 0 || cat === 'Fraqueza' || cat === 'Condição') corSelo = 'background:var(--vermelho-dano, #ef4444); border-color:#ef4444; box-shadow: 0 0 6px #ef4444;';
+            else if (pol > 0 || cat === 'Vantagem' || cat === 'Aliança') corSelo = 'background:var(--azul-vida, #3b82f6); border-color:#3b82f6; box-shadow: 0 0 6px #3b82f6;';
+            else if (cat === 'Pacto') corSelo = 'background:var(--roxo-neon, #a855f7); border-color:#a855f7; box-shadow: 0 0 6px #a855f7;';
+            else if (f.value) corSelo = 'background:var(--dourado); border-color:var(--dourado); box-shadow: 0 0 6px var(--dourado);';
+            const titleStr = `${escapeHTML(humanizarFlag(f.key))}${cat ? ` [${cat} - Tier ${mag}]` : ''}`;
+            return `<span class="astro-marco-seal${f.value ? ' aceso' : ''}" data-flag-key="${escapeHTML(f.key)}" data-on="${f.value ? 1 : 0}" title="${titleStr}" style="left:${x}px;top:${y}px;${corSelo}"></span>`;
         }).join('');
         return `<span class="astro-marcos">${selos}</span>`;
     }
@@ -1313,9 +1323,19 @@
     // As flags já vêm no snapshot (cache `entidadesAtual`) → render direto, SEM fetch (Regra 2.3).
     // Reusa a camada única de mutação; um único listener delegado no box (Regra 2.9). ──────────────────
     function marcoLinhaHTML(f) {
+        const meta = f.meta || {};
+        const cat = meta.categoria || '';
+        const mag = meta.magnitude || meta.peso_estimado || '';
+        const pol = typeof meta.polaridade === 'number' ? meta.polaridade : (parseInt(meta.polaridade, 10) || 0);
+        let badgeStyle = '';
+        if (pol < 0 || cat === 'Fraqueza' || cat === 'Condição') badgeStyle = 'background:color-mix(in srgb, #ef4444 15%, transparent); color:#ef4444; border:1px solid #ef4444;';
+        else if (pol > 0 || cat === 'Vantagem' || cat === 'Aliança') badgeStyle = 'background:color-mix(in srgb, #3b82f6 15%, transparent); color:#3b82f6; border:1px solid #3b82f6;';
+        else if (cat === 'Pacto') badgeStyle = 'background:color-mix(in srgb, #a855f7 15%, transparent); color:#a855f7; border:1px solid #a855f7;';
+        else if (cat) badgeStyle = 'background:color-mix(in srgb, var(--dourado) 15%, transparent); color:var(--dourado); border:1px solid var(--dourado);';
+        const badgeHTML = cat ? `<span style="font-size:0.65rem; padding:1px 5px; border-radius:8px; margin-left:6px; vertical-align:middle; ${badgeStyle}" title="Categoria: ${escapeHTML(cat)} | Magnitude: Tier ${mag || 2}">${escapeHTML(cat)}${mag ? ` T${mag}` : ''}</span>` : '';
         return `<div class="fx-marco" data-key="${escapeHTML(f.key)}">
             <button type="button" class="fx-marco-toggle${f.value ? ' aceso' : ''}" data-mc="toggle" title="${f.value ? 'Ligado — clique p/ desligar' : 'Desligado — clique p/ ligar'}"><i data-lucide="${f.value ? 'check-circle-2' : 'circle'}"></i></button>
-            <span class="fx-marco-nome">${escapeHTML(humanizarFlag(f.key))}</span>
+            <span class="fx-marco-nome">${escapeHTML(humanizarFlag(f.key))}${badgeHTML}</span>
             <button type="button" class="btn-ghost fx-marco-edit" data-mc="renomear" title="Renomear"><i data-lucide="pencil"></i></button>
             <button type="button" class="btn-ghost fx-marco-del" data-mc="apagar" title="Apagar"><i data-lucide="x"></i></button>
         </div>`;

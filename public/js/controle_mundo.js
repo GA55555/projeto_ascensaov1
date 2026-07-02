@@ -506,10 +506,20 @@ function marcoItemHTML(nodeId, f) {
     const hover = temEventos
         ? ` onmouseenter="mostrarTooltipMarco(event, '${nodeId}', '${k}')" onmouseleave="agendarFechoTooltip()"`
         : '';
+    const meta = f.meta || {};
+    const cat = meta.categoria || '';
+    const mag = meta.magnitude || meta.peso_estimado || '';
+    const pol = typeof meta.polaridade === 'number' ? meta.polaridade : (parseInt(meta.polaridade, 10) || 0);
+    let badgeStyle = '';
+    if (pol < 0 || cat === 'Fraqueza' || cat === 'Condição') badgeStyle = 'background:color-mix(in srgb, #ef4444 15%, transparent); color:#ef4444; border:1px solid #ef4444;';
+    else if (pol > 0 || cat === 'Vantagem' || cat === 'Aliança') badgeStyle = 'background:color-mix(in srgb, #3b82f6 15%, transparent); color:#3b82f6; border:1px solid #3b82f6;';
+    else if (cat === 'Pacto') badgeStyle = 'background:color-mix(in srgb, #a855f7 15%, transparent); color:#a855f7; border:1px solid #a855f7;';
+    else if (cat) badgeStyle = 'background:color-mix(in srgb, var(--dourado) 15%, transparent); color:var(--dourado); border:1px solid var(--dourado);';
+    const badgeHTML = cat ? `<span style="font-size:0.65rem; padding:1px 5px; border-radius:8px; margin-left:6px; vertical-align:middle; ${badgeStyle}" title="Categoria: ${escapeHTML(cat)} | Magnitude: Tier ${mag || 2}">${escapeHTML(cat)}${mag ? ` T${mag}` : ''}</span>` : '';
     return `
         <div class="marco-item" data-flag-key="${k}">
             <input type="checkbox" class="marco-item__check" ${f.value ? 'checked' : ''} data-node-id="${nodeId}" data-flag-key="${k}" onchange="toggleFlag(this.dataset.nodeId, this.dataset.flagKey, this.checked)">
-            <span class="marco-item__nome${classeEventos}"${hover} ondblclick="iniciarEdicaoMarco(event, '${nodeId}', '${k}')">${escapeHTML(humanizarMarco(f.key))}</span>
+            <span class="marco-item__nome${classeEventos}"${hover} ondblclick="iniciarEdicaoMarco(event, '${nodeId}', '${k}')">${escapeHTML(humanizarMarco(f.key))}${badgeHTML}</span>
             <i data-lucide="x" class="btn-del-marco" title="Apagar marco" onclick="confirmarDeletarMarco(this, '${nodeId}', '${k}')"></i>
         </div>`;
 }
@@ -2623,6 +2633,11 @@ window.excluirSessao = async function(id) {
     } catch (e) { console.error("Falha silenciosa ao deletar sessão:", e); }
 }
 
+window.toggleGatilhoSessao = async function(nodeId, flagKey, checked, sessaoId) {
+    await toggleFlag(nodeId, flagKey, checked);
+    if (sessaoId) abrirDetalhesSessao(sessaoId);
+};
+
 window.abrirDetalhesSessao = async function(id) {
     const s = sessoesCache.find(x => x.id === id);
     if (!s) return;
@@ -2663,10 +2678,51 @@ window.abrirDetalhesSessao = async function(id) {
     const eventosIds = s.eventos || [];
     let eventosHtml = eventosIds.map(evId => {
         const ev = eventosCache.find(e => e.id === evId);
-        return `<li class="detalhe-item">
-            <span><i data-lucide="calendar"></i> <strong class="texto-destaque">${ev ? escapeHTML(ev.nome) : 'Evento Desconhecido'}</strong></span>
-            <button class="btn btn-danger btn-sm btn-mini"
-                    onclick="removerVinculoSessao('evento', '${evId}')"><i data-lucide="x"></i></button>
+        if (!ev) {
+            return `<li class="detalhe-item">
+                <span><i data-lucide="calendar"></i> <strong class="texto-destaque">Evento Desconhecido</strong></span>
+                <button class="btn btn-danger btn-sm btn-mini" onclick="removerVinculoSessao('evento', '${evId}')"><i data-lucide="x"></i></button>
+            </li>`;
+        }
+        const gatilhos = ev.gatilhos || [];
+        const temPool = (ev.pool_maxima > 0) || (gatilhos.length > 0);
+        let poolHtml = '';
+        if (temPool) {
+            const perc = ev.pool_maxima > 0 ? Math.min(100, Math.round((ev.pool_atual / ev.pool_maxima) * 100)) : 0;
+            const corBarra = perc >= 100 ? 'var(--vermelho-dano, #ef4444)' : (perc >= 75 ? 'var(--dourado, #f59e0b)' : 'var(--azul-vida, #3b82f6)');
+            let gatilhosHtml = gatilhos.map(g => {
+                const node = nodesCache.find(n => n.id === g.node_id);
+                const flagObj = node && node.flags && node.flags.find(f => f.key === g.flag_key);
+                const isChecked = flagObj ? flagObj.value : false;
+                const meta = flagObj && flagObj.meta ? flagObj.meta : {};
+                const cat = meta.categoria || '';
+                const mag = meta.magnitude || g.peso || '';
+                const badgeHtml = cat ? `<span style="font-size:0.65rem; padding:1px 5px; border-radius:8px; margin-left:4px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15);">${escapeHTML(cat)} T${mag}</span>` : '';
+                return `<div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:6px; font-size:0.85rem; padding:6px 10px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.05); border-radius:6px;">
+                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin:0; width:100%;">
+                        <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleGatilhoSessao('${g.node_id}', '${escapeHTML(g.flag_key)}', this.checked, '${s.id}')">
+                        <span><strong>${escapeHTML(g.node_nome)}</strong>: ${escapeHTML(humanizarMarco(g.flag_key))}${badgeHtml}</span>
+                    </label>
+                    <span style="font-weight:bold; color:var(--dourado); font-size:0.8rem; white-space:nowrap;">+${g.peso} pt${g.peso > 1 ? 's' : ''}</span>
+                </div>`;
+            }).join('');
+            poolHtml = `<div style="margin-top:10px; padding:10px; background:rgba(0,0,0,0.25); border-radius:8px; border:1px solid rgba(255,255,255,0.08); width:100%;">
+                <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.85rem; margin-bottom:6px;">
+                    <span>Pool de Conflito: <strong style="color:${corBarra};">${ev.pool_atual || 0} / ${ev.pool_maxima}</strong></span>
+                    <span style="font-size:0.75rem; padding:2px 6px; border-radius:4px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);">${ev.status ? ev.status.toUpperCase() : 'MONITORANDO'}</span>
+                </div>
+                <div style="width:100%; background:rgba(255,255,255,0.1); height:8px; border-radius:4px; overflow:hidden;">
+                    <div style="width:${perc}%; background:${corBarra}; height:100%; transition:width 0.3s ease;"></div>
+                </div>
+                ${gatilhosHtml ? `<div style="margin-top:8px;">${gatilhosHtml}</div>` : ''}
+            </div>`;
+        }
+        return `<li class="detalhe-item" style="display:flex; flex-direction:column; align-items:stretch; padding:12px; gap:4px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span><i data-lucide="calendar"></i> <strong class="texto-destaque">${escapeHTML(ev.nome)}</strong></span>
+                <button class="btn btn-danger btn-sm btn-mini" onclick="removerVinculoSessao('evento', '${evId}')"><i data-lucide="x"></i></button>
+            </div>
+            ${poolHtml}
         </li>`;
     }).join('');
     

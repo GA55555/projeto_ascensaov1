@@ -126,6 +126,29 @@ async function textoDoNode(cronicaId, nodeId) {
         }
     }
 
+    // Conexões implícitas do Ego-Subgraph: entidades que compartilham Etiquetas da mesma categoria ou polaridade
+    try {
+        const impQ = await pool.query(
+            `SELECT DISTINCT n2.nome AS outro_nome, n2.tipo AS outro_tipo,
+                    COALESCE(jsonb_extract_path_text(n1.dados, 'flags_meta', f1.flag_key, 'categoria'), 'Etiqueta') AS cat,
+                    COALESCE(jsonb_extract_path_text(n1.dados, 'flags_meta', f1.flag_key, 'polaridade'), '0') AS pol
+             FROM world_flags f1
+             JOIN world_flags f2 ON f1.flag_key = f2.flag_key AND f1.node_id != f2.node_id AND f1.flag_value = TRUE AND f2.flag_value = TRUE
+             JOIN world_nodes n1 ON f1.node_id = n1.id
+             JOIN world_nodes n2 ON f2.node_id = n2.id
+             WHERE f1.node_id = $1 AND n1.cronica_id = $2 AND n2.cronica_id = $2
+             LIMIT 10`,
+            [nodeId, cronicaId]
+        );
+        if (impQ.rows.length) {
+            linhas.push('Afinidades Implícitas (Ego-Subgraph por Etiquetas):');
+            for (const r of impQ.rows) {
+                const polStr = r.pol === '-1' ? 'Atrito/Sombrio' : (r.pol === '1' ? 'Aliança/Luminoso' : 'Neutro');
+                linhas.push(`- Compartilha etiqueta [${r.cat} - ${polStr}] com ${r.outro_nome} (${r.outro_tipo})`);
+            }
+        }
+    } catch (e) { /* falha silenciosa no subgrafo implícito para não quebrar a indexação */ }
+
     return linhas.join('\n');
 }
 

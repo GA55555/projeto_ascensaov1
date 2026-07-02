@@ -655,10 +655,20 @@ window.aplicarFiltrosMundoEscudo = function() {
 function marcoEscudoItemHTML(nodeId, f) {
     const id = escapeHTML(String(nodeId));
     const k = escapeHTML(f.key);
+    const meta = f.meta || {};
+    const cat = meta.categoria || '';
+    const mag = meta.magnitude || meta.peso_estimado || '';
+    const pol = typeof meta.polaridade === 'number' ? meta.polaridade : (parseInt(meta.polaridade, 10) || 0);
+    let badgeStyle = '';
+    if (pol < 0 || cat === 'Fraqueza' || cat === 'Condição') badgeStyle = 'background:color-mix(in srgb, #ef4444 15%, transparent); color:#ef4444; border:1px solid #ef4444;';
+    else if (pol > 0 || cat === 'Vantagem' || cat === 'Aliança') badgeStyle = 'background:color-mix(in srgb, #3b82f6 15%, transparent); color:#3b82f6; border:1px solid #3b82f6;';
+    else if (cat === 'Pacto') badgeStyle = 'background:color-mix(in srgb, #a855f7 15%, transparent); color:#a855f7; border:1px solid #a855f7;';
+    else if (cat) badgeStyle = 'background:color-mix(in srgb, var(--dourado) 15%, transparent); color:var(--dourado); border:1px solid var(--dourado);';
+    const badgeHTML = cat ? `<span style="font-size:0.65rem; padding:1px 5px; border-radius:8px; margin-left:6px; vertical-align:middle; ${badgeStyle}" title="Categoria: ${escapeHTML(cat)} | Magnitude: Tier ${mag || 2}">${escapeHTML(cat)}${mag ? ` T${mag}` : ''}</span>` : '';
     return `
         <div class="marco-item" data-flag-key="${k}">
             <input type="checkbox" class="marco-item__check" ${f.value ? 'checked' : ''} data-action="toggle-flag" data-id="${id}" data-extra="${k}">
-            <span class="marco-item__nome">${escapeHTML(humanizarMarco(f.key))}</span>
+            <span class="marco-item__nome">${escapeHTML(humanizarMarco(f.key))}${badgeHTML}</span>
             <i data-lucide="pen-line" class="btn-edit-marco" title="Renomear marco" data-action="editar-flag" data-id="${id}" data-extra="${k}"></i>
             <i data-lucide="x" class="btn-del-marco" title="Apagar marco" data-action="deletar-flag" data-id="${id}" data-extra="${k}"></i>
         </div>`;

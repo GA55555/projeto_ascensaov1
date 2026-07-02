@@ -78,6 +78,7 @@ router.get('/constelacao', verificarToken, checarAcessoCronica, MundoController.
 // Salvar layout da Constelação (posições de repouso dos núcleos) — manual, F3.4a (Regra 2.7).
 router.put('/constelacao/posicoes', verificarToken, checarAcessoCronica, apenasNarrador, validate(salvarPosicoesSchema), MundoController.salvarPosicoesConstelacao);
 router.get('/nodes/:nodeId/links', verificarToken, checarAcessoCronica, validate(listarLinksSchema), MundoController.listarLinks);
+router.get('/nodes/:nodeId/ego-subgraph', verificarToken, checarAcessoCronica, MundoController.getEgoSubgraph);
 router.post('/nodes/:nodeId/links', verificarToken, checarAcessoCronica, apenasNarrador, validate(criarLinkSchema), MundoController.criarLink);
 router.delete('/nodes/:nodeId/links/:linkId', verificarToken, checarAcessoCronica, apenasNarrador, validate(deletarLinkSchema), MundoController.deletarLink);
 router.put('/nodes/:nodeId/links/:linkId', verificarToken, checarAcessoCronica, apenasNarrador, validate(atualizarLinkSchema), MundoController.atualizarLink);

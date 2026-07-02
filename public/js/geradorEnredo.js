@@ -11,6 +11,31 @@
 
     const getCronicaId = () => window.cronicaAtual || window.cronicaId || new URLSearchParams(window.location.search).get('id');
 
+    const getEstiloPillTag = (cat, pol) => {
+        let cor = 'var(--dourado)';
+        let bg = 'color-mix(in srgb, var(--dourado) 15%, var(--bg-card))';
+        if (pol < 0 || cat === 'Fraqueza' || cat === 'Condição' || cat === 'Maldição') {
+            cor = 'var(--vermelho-dano, #ef4444)';
+            bg = 'color-mix(in srgb, var(--vermelho-dano, #ef4444) 15%, var(--bg-card))';
+        } else if (pol > 0 || cat === 'Vantagem' || cat === 'Aliança' || cat === 'Poder') {
+            cor = 'var(--azul-vida, #3b82f6)';
+            bg = 'color-mix(in srgb, var(--azul-vida, #3b82f6) 18%, var(--bg-card))';
+        } else if (cat === 'Pacto' || cat === 'Mistério') {
+            cor = 'var(--roxo-neon, #a855f7)';
+            bg = 'color-mix(in srgb, var(--roxo-neon, #a855f7) 18%, var(--bg-card))';
+        }
+        return { cor, bg };
+    };
+
+    const getCorPapelArquetipico = (papel = '') => {
+        const p = String(papel).toLowerCase();
+        if (p.includes('catalisador') || p.includes('estopim')) return { cor: 'var(--laranja-alerta, #f97316)', bg: 'color-mix(in srgb, #f97316 18%, var(--bg-card))', icone: 'flame' };
+        if (p.includes('alvo') || p.includes('vítima')) return { cor: 'var(--vermelho-dano, #ef4444)', bg: 'color-mix(in srgb, #ef4444 18%, var(--bg-card))', icone: 'target' };
+        if (p.includes('fiel') || p.includes('balança')) return { cor: 'var(--dourado, #eab308)', bg: 'color-mix(in srgb, #eab308 18%, var(--bg-card))', icone: 'scale' };
+        if (p.includes('oportunista')) return { cor: 'var(--roxo-neon, #a855f7)', bg: 'color-mix(in srgb, #a855f7 18%, var(--bg-card))', icone: 'eye' };
+        return { cor: 'var(--ciano-magia, #06b6d4)', bg: 'color-mix(in srgb, #06b6d4 18%, var(--bg-card))', icone: 'sword' };
+    };
+
     const GeradorEnredo = {
         // ── Pílulas de Enredo (1-Click Flags) ──────────────────────────────────────────
         async abrirModalSugerirMarcos(nodeId, nomeEntidade, tipoEntidade, marcosAtuais = [], notasReputacao = '', callbackAdicionar) {
@@ -79,25 +104,31 @@
                     <div class="sugestoes-lista" style="display:flex; flex-direction:column; gap:12px; max-height:380px; overflow-y:auto; padding-right:4px;">
                         ${sugestoes.map((s, idx) => {
                             const nomeMarco = s.label || s.marco || s.key || 'Marco Sugerido';
-                            const pesoMarco = s.peso_estimado || s.peso || 2;
-                            const motivoMarco = s.motivo || s.descricao || `Sugerido pelo Oráculo para ${esc(nomeEntidade)}`;
+                            const pesoMarco = s.magnitude || s.peso_estimado || s.peso || 2;
+                            const catMarco = s.categoria || 'Segredo';
+                            const polMarco = typeof s.polaridade === 'number' ? s.polaridade : (parseInt(s.polaridade, 10) || 0);
+                            const motivoMarco = s.motivo || s.descricao || \`Sugerido pelo Oráculo para \${esc(nomeEntidade)}\`;
                             const iconeMarco = s.icone || 'flag';
-                            return `
-                            <div class="sugestao-card">
+                            const estilo = getEstiloPillTag(catMarco, polMarco);
+                            const polTexto = polMarco < 0 ? 'Negativa (-)' : (polMarco > 0 ? 'Positiva (+)' : 'Neutra (0)');
+                            return \`
+                            <div class="sugestao-card" style="border: 1px solid color-mix(in srgb, \${estilo.cor} 30%, var(--borda)); background: color-mix(in srgb, \${estilo.cor} 5%, var(--bg-card)); padding: 12px; border-radius: 8px; display:flex; align-items:flex-start; gap:12px;">
                                 <div class="sugestao-info" style="flex:1;">
-                                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
-                                        <span class="sessao-pill" style="background:color-mix(in srgb, var(--dourado) 15%, var(--bg-card)); border-color:var(--dourado); color:var(--texto-claro); pointer-events:none;">
-                                            <i data-lucide="${esc(iconeMarco)}" style="color:var(--dourado)"></i> ${esc(nomeMarco)}
+                                    <div style="display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:6px;">
+                                        <span class="sessao-pill pill-tag-visual" style="background:\${estilo.bg}; border: 1px solid \${estilo.cor}; color:\${estilo.cor}; font-weight:600; cursor:help; display:inline-flex; align-items:center; gap:5px; padding: 3px 8px; border-radius: 12px; font-size:0.78rem;" title="Categoria: \${esc(catMarco)} | Polaridade: \${polTexto} | Magnitude: Tier \${pesoMarco}">
+                                            <i data-lucide="\${esc(iconeMarco)}" style="width:14px; height:14px; color:\${estilo.cor}"></i> \${esc(nomeMarco)}
                                         </span>
-                                        <span style="font-size:0.72rem; color:var(--texto-mutado); background:var(--bg-input); padding:2px 6px; border-radius:4px;">Peso ${pesoMarco}</span>
+                                        <span style="font-size:0.7rem; color:var(--texto-mutado); background:var(--bg-input); padding:2px 6px; border-radius:4px; border:1px solid var(--borda);">
+                                            Tier \${pesoMarco} (\${esc(catMarco)})
+                                        </span>
                                     </div>
-                                    <p style="font-size:0.8rem; color:var(--texto-mutado); margin:0; line-height:1.4;">${esc(motivoMarco)}</p>
+                                    <p style="font-size:0.8rem; color:var(--texto-mutado); margin:0; line-height:1.4;">\${esc(motivoMarco)}</p>
                                 </div>
-                                <button type="button" class="btn btn-sm btn-outline btn-adicionar-pilula" data-idx="${idx}" data-marco="${esc(nomeMarco)}" style="flex-shrink:0; display:flex; align-items:center; gap:4px;">
+                                <button type="button" class="btn btn-sm btn-outline btn-adicionar-pilula" data-idx="\${idx}" style="flex-shrink:0; display:flex; align-items:center; gap:4px; border-color:\${estilo.cor}; color:\${estilo.cor};">
                                     <i data-lucide="plus"></i> Inserir
                                 </button>
                             </div>
-                        `;}).join('')}
+                        \`;}).join('')}
                     </div>
                     <div style="margin-top:16px; display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--borda); padding-top:12px;">
                         <button type="button" class="btn btn-outline btn-sm btn-adicionar-todos"><i data-lucide="layers"></i> Inserir Todos (${sugestoes.length})</button>
@@ -113,13 +144,14 @@
 
                 const inserirMarcoUI = async (btn) => {
                     if (btn.disabled) return;
-                    const marco = btn.dataset.marco;
+                    const idx = parseInt(btn.dataset.idx, 10);
+                    const marcoObj = sugestoes[idx] || btn.dataset.marco;
                     btn.disabled = true;
                     btn.innerHTML = `<i data-lucide="loader" class="spin"></i>`;
                     if (window.lucide) lucide.createIcons();
 
                     try {
-                        if (callbackAdicionar) await callbackAdicionar(marco);
+                        if (callbackAdicionar) await callbackAdicionar(marcoObj);
                         btn.innerHTML = `<i data-lucide="check"></i> Inserido`;
                         btn.style.background = 'color-mix(in srgb, var(--azul-vida) 20%, transparent)';
                         btn.style.borderColor = 'var(--azul-vida)';
@@ -288,6 +320,7 @@
                             node_id: g.node_id || g.entidade_id || '',
                             nome_entidade: g.nome_entidade || g.nome || '',
                             papel: g.papel_arquetipico || g.papel || '',
+                            marco_obj: typeof g.marco_sugerido === 'object' ? g.marco_sugerido : null,
                             marco: typeof g.marco_sugerido === 'object' ? (g.marco_sugerido.label || g.marco_sugerido.key || '') : (g.marco_sugerido || g.marco || ''),
                             peso_na_pool: g.peso_na_pool || g.peso || 2
                         }));
@@ -324,17 +357,28 @@
                                     ` : ''}
 
                                     <div style="margin-bottom:14px;">
-                                        <label style="font-size:0.8rem; color:var(--texto-claro); font-weight:600; display:block; margin-bottom:6px;">Marcos / Gatilhos Atrelados (${gatilhos.length})</label>
-                                        <div id="prof-gatilhos-lista" style="max-height:160px; overflow-y:auto; padding-right:4px;">
-                                            ${gatilhos.map((g, idx) => `
-                                                <div class="gatilho-row" data-idx="${idx}">
-                                                    <span style="font-size:0.78rem; color:var(--dourado); width:120px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${esc(g.nome_entidade || 'Entidade')}">${esc(g.nome_entidade || 'Entidade #'+g.node_id)}</span>
-                                                    <input type="text" class="gat-marco input-sm" value="${esc(g.marco)}" style="flex:1;" placeholder="Nome do marco">
-                                                    <label style="font-size:0.75rem; color:var(--texto-mutado);">Peso:</label>
-                                                    <input type="number" class="gat-peso input-sm" value="${parseInt(g.peso_na_pool, 10) || 2}" min="1" max="20" style="width:60px;">
-                                                    <button type="button" class="btn-ghost btn-del-gatilho" data-idx="${idx}" title="Remover gatilho" style="color:var(--vermelho-dano);"><i data-lucide="trash-2"></i></button>
+                                        <label style="font-size:0.8rem; color:var(--texto-claro); font-weight:600; display:block; margin-bottom:6px;">Marcos & Papéis Arquetípicos (${gatilhos.length})</label>
+                                        <div id="prof-gatilhos-lista" style="max-height:180px; overflow-y:auto; padding-right:4px;">
+                                            ${gatilhos.map((g, idx) => {
+                                                const papelEstilo = getCorPapelArquetipico(g.papel);
+                                                const marcoNome = typeof g.marco === 'object' ? (g.marco.label || g.marco.key || '') : (g.marco || '');
+                                                return `
+                                                <div class="gatilho-row" data-idx="${idx}" style="display:flex; align-items:center; gap:8px; padding:6px 8px; background:var(--bg-input); border:1px solid var(--borda); border-radius:6px; margin-bottom:6px;">
+                                                    <div style="display:flex; flex-direction:column; width:135px; flex-shrink:0;">
+                                                        <span style="font-size:0.78rem; color:var(--texto-claro); font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${esc(g.nome_entidade || 'Entidade')}">${esc(g.nome_entidade || 'Entidade #'+g.node_id)}</span>
+                                                        ${g.papel ? `<span style="font-size:0.68rem; background:${papelEstilo.bg}; color:${papelEstilo.cor}; border:1px solid ${papelEstilo.cor}; padding:1px 5px; border-radius:8px; width:fit-content; display:inline-flex; align-items:center; gap:3px; margin-top:2px;"><i data-lucide="${papelEstilo.icone}" style="width:10px;height:10px;"></i> ${esc(g.papel)}</span>` : ''}
+                                                    </div>
+                                                    <div style="flex:1; display:flex; align-items:center; gap:6px;">
+                                                        <span style="font-size:0.75rem; color:var(--texto-mutado);">Marco:</span>
+                                                        <input type="text" class="gat-marco input-sm" value="${esc(marcoNome)}" style="flex:1;" placeholder="Nome do marco">
+                                                    </div>
+                                                    <div style="display:flex; align-items:center; gap:4px; flex-shrink:0;">
+                                                        <label style="font-size:0.75rem; color:var(--texto-mutado);">Peso:</label>
+                                                        <input type="number" class="gat-peso input-sm" value="${parseInt(g.peso_na_pool, 10) || 2}" min="1" max="20" style="width:55px; text-align:center;">
+                                                    </div>
+                                                    <button type="button" class="btn-ghost btn-del-gatilho" data-idx="${idx}" title="Remover gatilho" style="color:var(--vermelho-dano); padding:4px;"><i data-lucide="trash-2" style="width:16px;height:16px;"></i></button>
                                                 </div>
-                                            `).join('') || '<p style="font-size:0.8rem; color:var(--texto-mutado);">Nenhum gatilho atrelado.</p>'}
+                                            `;}).join('') || '<p style="font-size:0.8rem; color:var(--texto-mutado);">Nenhum gatilho atrelado.</p>'}
                                         </div>
                                     </div>
 
@@ -386,10 +430,13 @@
                                     const gatilhosEditados = rows.map(r => {
                                         const idx = parseInt(r.dataset.idx, 10);
                                         const gOrig = gatilhos[idx] || {};
+                                        const nMarco = r.querySelector('.gat-marco')?.value?.trim() || gOrig.marco;
+                                        const marcoFinal = gOrig.marco_obj ? Object.assign({}, gOrig.marco_obj, { label: nMarco, key: nMarco.toLowerCase().replace(/\s+/g, '_') }) : nMarco;
                                         return {
                                             node_id: gOrig.node_id,
                                             nome_entidade: gOrig.nome_entidade,
-                                            marco: r.querySelector('.gat-marco')?.value?.trim() || gOrig.marco,
+                                            papel: gOrig.papel,
+                                            marco: marcoFinal,
                                             peso_na_pool: parseInt(r.querySelector('.gat-peso')?.value, 10) || 2
                                         };
                                     }).filter(g => g.node_id && g.marco);

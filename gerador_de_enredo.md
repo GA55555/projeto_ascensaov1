@@ -274,8 +274,8 @@ Quando o Narrador confirmar a criação do Evento profetizado na mesa, o JavaScr
 ## 🚀 Resumo do Roteiro de Implementação Futura
 
 Quando formos iniciar a codificação desta ferramenta, seguiremos este checklist em fatias ordenadas:
-- [ ] **Fatia A (Oráculo & GraphRAG):** Atualizar o serviço do Oráculo (`oraculo_service`) para extrair o Ego-Subgraph, aplicando os prompts de *Role-Binding*, *Escopo Narrativo*, *Grounding nas Sessões* e taxonomia de Etiquetas (`categoria`, `polaridade`, `magnitude`).
-- [ ] **Fatia B (UI & Divulgação Progressiva):** Criar o módulo frontend `public/js/geradorEnredo.js` com a renderização de pílulas coloridas por polaridade (`--erro`, `--sucesso`, `--neutro`), cards de Profecia como Relógios de Progresso e tooltips de subgrafo ao vivo.
-- [ ] **Fatia C (1-Click Tags):** Integrar o botão `✨ Sugerir Marcos (IA)` na aba Marcos de `feixeMarcos()` em `constelacao.js`, aplicando a nova estrutura de etiquetas instantaneamente.
-- [ ] **Fatia D (Combustão de Eventos):** Integrar o botão `🔮 Tecer Evento (IA)` na modal de tensões de `constelacaoTensao.js`, calculando atritos e gerando relógios de facção/crise.
-- [ ] **Fatia E (Transação & Amarração):** Implementar a rotina transacional de 1 clique no Node.js que salva o Relógio de Evento, injeta as Etiquetas no JSONB, vincula os Pesos em `event_flag_weights` e anexa o evento à Sessão Planejada do dia.
+- [x] **Fatia A (Oráculo & GraphRAG):** Atualizar o serviço do Oráculo (`oraculo_service`) para extrair o Ego-Subgraph, aplicando os prompts de *Role-Binding*, *Escopo Narrativo*, *Grounding nas Sessões* e taxonomia de Etiquetas (`categoria`, `polaridade`, `magnitude`).
+- [x] **Fatia B (UI & Divulgação Progressiva):** Criar o módulo frontend `public/js/geradorEnredo.js` com a renderização de pílulas coloridas por polaridade (`--erro`, `--sucesso`, `--neutro`), cards de Profecia como Relógios de Progresso e tooltips de subgrafo ao vivo.
+- [x] **Fatia C (1-Click Tags):** Integrar o botão `✨ Sugerir Marcos (IA)` na aba Marcos de `feixeMarcos()` em `constelacao.js`, aplicando a nova estrutura de etiquetas instantaneamente.
+- [x] **Fatia D (Combustão de Eventos):** Integrar o botão `🔮 Tecer Evento (IA)` na modal de tensões de `constelacaoTensao.js`, calculando atritos e gerando relógios de facção/crise.
+- [x] **Fatia E (Transação & Amarração):** Implementar a rotina transacional de 1 clique no Node.js que salva o Relógio de Evento, injeta as Etiquetas no JSONB, vincula os Pesos em `event_flag_weights` e anexa o evento à Sessão Planejada do dia.
