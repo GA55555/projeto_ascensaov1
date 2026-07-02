@@ -275,8 +275,17 @@
                         const contRes = document.getElementById('tecer-etapa-resultado');
                         contRes.style.display = 'block';
 
-                        const ev = resp.evento_gerado || {};
-                        let gatilhos = Array.isArray(ev.gatilhos) ? ev.gatilhos : [];
+                        const prof = resp.profecia || resp.evento_gerado || resp || {};
+                        const ev = prof.evento_sugestao || prof.evento || prof || {};
+                        let gatilhosBrutos = prof.gatilhos_por_entidade || prof.gatilhos || ev.gatilhos || [];
+                        if (!Array.isArray(gatilhosBrutos)) gatilhosBrutos = [];
+                        let gatilhos = gatilhosBrutos.map(g => ({
+                            node_id: g.node_id || g.entidade_id || '',
+                            nome_entidade: g.nome_entidade || g.nome || '',
+                            papel: g.papel_arquetipico || g.papel || '',
+                            marco: typeof g.marco_sugerido === 'object' ? (g.marco_sugerido.label || g.marco_sugerido.key || '') : (g.marco_sugerido || g.marco || ''),
+                            peso_na_pool: g.peso_na_pool || g.peso || 2
+                        }));
                         const trechos = resp.trechos_usados || '';
 
                         const renderCard = () => {
@@ -396,11 +405,14 @@
                                         if (window.mostrarToast) mostrarToast(resConf.mensagem || 'Tecelagem confirmada com sucesso!', 'sucesso');
                                         modal.remove();
 
+                                        if (window.recarregarEventos) window.recarregarEventos();
+                                        if (window.Constelacao && window.Constelacao.recarregarEventos) window.Constelacao.recarregarEventos();
+                                        if (typeof carregarEventos === 'function') carregarEventos();
+
                                         if (opcoes.callbackConfirmado) {
                                             opcoes.callbackConfirmado(resConf);
                                         } else {
-                                            if (window.recarregarEventos) window.recarregarEventos();
-                                            if (window.Constelacao && window.Constelacao.entrar) window.Constelacao.entrar(cronicaId);
+                                            if (window.Constelacao && window.Constelacao.entrar && !window.focoAtualId) window.Constelacao.entrar(cronicaId);
                                         }
                                     } catch (errConf) {
                                         btnConf.disabled = false;

@@ -219,7 +219,7 @@
     }
 
     // 3. Exibe o painel flutuante de tensões (Modal Glassmorphism)
-    function abrirModalTensoes(titulo, tensoes) {
+    function abrirModalTensoes(titulo, tensoes, focoId = '') {
         const existente = document.getElementById('modal-tensoes-oraculo');
         if (existente) existente.remove();
 
@@ -264,7 +264,18 @@
             const btnTecer = e.target.closest('.btn-tecer-ia');
             if (btnTecer && window.GeradorEnredo) {
                 fechar();
-                window.GeradorEnredo.abrirModalTecerProfecia({ focoTitulo: titulo, tensoes, entidades: window.entidadesAtual || [] });
+                const fid = focoId || window.focoAtualId || '';
+                window.GeradorEnredo.abrirModalTecerProfecia({ 
+                    focoId: fid, 
+                    focoTitulo: titulo, 
+                    tensoes, 
+                    entidades: window.entidadesAtual || [],
+                    callbackConfirmado: () => {
+                        if (window.recarregarEventos) window.recarregarEventos();
+                        if (window.Constelacao && window.Constelacao.recarregarEventos) window.Constelacao.recarregarEventos();
+                        if (typeof carregarEventos === 'function') carregarEventos();
+                    }
+                });
                 return;
             }
             if (e.target === modal || (e.target.closest && e.target.closest('[data-fechar]'))) fechar();

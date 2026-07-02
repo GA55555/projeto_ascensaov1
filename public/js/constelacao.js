@@ -760,7 +760,7 @@
                 e.stopPropagation();
                 if (window.ConstelacaoTensao) {
                     const t = window.ConstelacaoTensao.detectarTensoesNucleo(focoId, orbes, entidadesAtual, linksAtual, diplomaciaAtual);
-                    window.ConstelacaoTensao.abrirModalTensoes(`Tensões em ${sol.nome}`, t);
+                    window.ConstelacaoTensao.abrirModalTensoes(`Tensões em ${sol.nome}`, t, focoId);
                 }
             }
         });
@@ -950,6 +950,11 @@
             });
         });
         aplicarRealceMarcos();
+        if (feixeEl && feixeEl.dataset && feixeEl.dataset.entId) {
+            const satEv = feixeEl.querySelector('.holo-satelite[data-fx="eventos"].ativo');
+            const contEl = feixeEl.querySelector('.holo-conteudo');
+            if (satEv && contEl) feixeEventos(contEl, feixeEl.dataset.entId);
+        }
     }
     async function carregarMapaMarcoEventos() {
         if (mapaMarcoFoco === focoId) return;  // já carregado p/ este foco
@@ -1170,6 +1175,7 @@
             </div>`;
         c.appendChild(wrap);
         feixeEl = wrap;
+        if (wrap.dataset) wrap.dataset.entId = String(id);
 
         const conteudo = wrap.querySelector('.holo-conteudo'), tituloEl = wrap.querySelector('.holo-conteudo-titulo');
         let fxAtivo = null, pinned = false, hoverT = null, closeT = null;
@@ -1214,7 +1220,7 @@
                 if (fx === 'sinapses' && window.abrirModalSinapses) window.abrirModalSinapses(id);
                 else if (fx === 'tensoes' && window.ConstelacaoTensao) {
                     const t = window.ConstelacaoTensao.detectarTensoesEntidade(id, orbes, entidadesAtual, linksAtual, diplomaciaAtual);
-                    window.ConstelacaoTensao.abrirModalTensoes(`Tensões de ${ent.nome}`, t);
+                    window.ConstelacaoTensao.abrirModalTensoes(`Tensões de ${ent.nome}`, t, id);
                 }
                 return;
             }
@@ -1456,7 +1462,7 @@
             const btnTecer = e.target.closest('.btn-tecer-evento-ia');
             if (btnTecer && window.GeradorEnredo) {
                 const ent = entidadesAtual.find((x) => String(x.id) === String(id));
-                window.GeradorEnredo.abrirModalTecerProfecia({ focoId: id, focoTitulo: ent ? ent.nome : 'Entidade', callbackConfirmado: () => { recarregarEventos(focoId); } });
+                window.GeradorEnredo.abrirModalTecerProfecia({ focoId: id, focoTitulo: ent ? ent.nome : 'Entidade', callbackConfirmado: () => { recarregarEventos(); } });
                 return;
             }
             const head = e.target.closest('[data-head]');
@@ -1626,7 +1632,7 @@
             const ac = e.target.closest('[data-acao]')?.dataset.acao;
             if (ac === 'tensoes' && window.ConstelacaoTensao) {
                 const t = window.ConstelacaoTensao.detectarTensoesNucleo(o.id, orbes, entidadesAtual, linksAtual, diplomaciaAtual);
-                window.ConstelacaoTensao.abrirModalTensoes(`Tensões em ${o.nome}`, t);
+                window.ConstelacaoTensao.abrirModalTensoes(`Tensões em ${o.nome}`, t, o.id);
             }
             else if (ac === 'config') abrirConfigNucleo(focoId);
             else if (ac === 'criar') abrirCriarEntidade(focoId, o.nome);
@@ -1740,5 +1746,6 @@
         if (window.lucide) lucide.createIcons();
     }
 
-    window.Constelacao = { entrar, sair };
+    window.recarregarEventos = recarregarEventos;
+    window.Constelacao = { entrar, sair, recarregarEventos };
 })();

@@ -1625,7 +1625,12 @@ exports.confirmarTecelagemMesa = async (req, res) => {
             }
         }
         if (nucleo_foco_id) {
-            await client.query('INSERT INTO event_nucleos (event_id, nucleo_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [novoEvento.id, nucleo_foco_id]);
+            const nucFocoRes = await client.query(
+                `SELECT DISTINCT COALESCE(nucleo_id, id) AS nuc_id FROM world_nodes WHERE cronica_id = $1 AND id = $2::uuid`,
+                [cronicaId, nucleo_foco_id]
+            ).catch(() => ({ rows: [] }));
+            const idParaInserir = (nucFocoRes.rows[0] && nucFocoRes.rows[0].nuc_id) ? nucFocoRes.rows[0].nuc_id : nucleo_foco_id;
+            await client.query('INSERT INTO event_nucleos (event_id, nucleo_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [novoEvento.id, idParaInserir]);
         }
 
         // 3. Insere os marcos em world_flags e amarra os pesos em event_flag_weights
