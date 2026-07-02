@@ -1417,7 +1417,7 @@ exports.consultarOraculo = async (req, res) => {
             });
         } catch (e) {
             console.error('Oráculo (consultar) falhou:', e.message);
-            return res.status(502).json({ erro: 'O Oráculo não conseguiu responder agora. Verifique a sua chave de IA e tente de novo.' });
+            return res.status(422).json({ erro: e.message || 'O Oráculo não conseguiu responder agora. Verifique a sua chave de IA e tente de novo.' });
         }
 
         res.json(resposta); // { status, resposta_oraculo, trechos_usados } | { status:'sem_contexto', resposta_oraculo }
@@ -1495,7 +1495,7 @@ exports.sugerirMarcosIA = async (req, res) => {
         res.json(resposta);
     } catch (err) {
         console.error('Oráculo (sugerirMarcosIA) falhou:', err.message);
-        res.status(502).json({ erro: err.message || 'Falha ao sugerir marcos com a IA.' });
+        res.status(422).json({ erro: err.message || 'Falha ao sugerir marcos com a IA.' });
     }
 };
 
@@ -1577,7 +1577,7 @@ exports.tecerProfeciaIA = async (req, res) => {
         res.json(resposta);
     } catch (err) {
         console.error('Oráculo (tecerProfeciaIA) falhou:', err.message);
-        res.status(502).json({ erro: err.message || 'Falha ao tecer profecia com a IA.' });
+        res.status(422).json({ erro: err.message || 'Falha ao tecer profecia com a IA.' });
     }
 };
 

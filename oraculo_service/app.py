@@ -469,7 +469,7 @@ def gerar_pilulas_marcos(req: PilulasRequest):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Falha ao gerar pílulas por IA: {str(e)}")
+        raise HTTPException(status_code=422, detail=f"Falha ao gerar pílulas por IA: {str(e)}")
 
 @app.post("/gerador/profecia", dependencies=[Depends(verificar_segredo)])
 def gerar_profecia_evento(req: ProfeciaRequest):
@@ -553,7 +553,7 @@ def gerar_profecia_evento(req: ProfeciaRequest):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Falha ao tecer profecia por IA: {str(e)}")
+        raise HTTPException(status_code=422, detail=f"Falha ao tecer profecia por IA: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn
