@@ -139,8 +139,7 @@ exports.estruturarResumo = async (req, res) => {
         }
 
         const nodesQuery = await pool.query(
-            `SELECT id, nome, tipo FROM world_nodes 
-             WHERE cronica_id = $1 AND (deleted_at IS NULL OR deleted_at = 0)`,
+            `SELECT id, nome, tipo FROM world_nodes WHERE cronica_id = $1`,
             [cronicaId]
         );
         const nucleosQuery = await pool.query(

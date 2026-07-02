@@ -2704,7 +2704,7 @@ window.estruturarResumoComOraculo = async function() {
                     const pol = parseInt(etq.polaridade || 0, 10);
                     const classPol = pol > 0 ? 'polaridade-positiva' : (pol === 0 ? 'polaridade-neutra' : '');
                     const etqEncoded = encodeURIComponent(JSON.stringify(etq));
-                    return `<button type="button" class="pill-etiqueta-sugerida ${classPol}" onclick="aplicarEtiquetaSessao(this, '${idEnt}', '${etqEncoded}')" title="${escapeHTML(etq.motivo || '')}">
+                    return `<button type="button" class="pill-etiqueta-sugerida ${classPol}" data-ent="${escapeHTML(idEnt)}" data-etq="${etqEncoded}" onclick="aplicarEtiquetaSessao(this, this.getAttribute('data-ent'), this.getAttribute('data-etq'))" title="${escapeHTML(etq.motivo || '')}">
                         <i data-lucide="${escapeHTML(icone)}"></i> [${escapeHTML(label)}] em ${escapeHTML(nomeEnt)}
                     </button>`;
                 }).join('');
@@ -2722,8 +2722,7 @@ window.estruturarResumoComOraculo = async function() {
             if (Array.isArray(dados.entidades_novas) && dados.entidades_novas.length > 0) {
                 gridNov.innerHTML = dados.entidades_novas.map(nome => {
                     const nEsc = escapeHTML(String(nome));
-                    const nJs = String(nome).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
-                    return `<button type="button" class="pill-entidade-nova" onclick="forjarEntidadeSessao(this, '${nJs}')">
+                    return `<button type="button" class="pill-entidade-nova" data-nome="${nEsc}" onclick="forjarEntidadeSessao(this, this.getAttribute('data-nome'))">
                         <i data-lucide="plus"></i> Forjar [${nEsc}]
                     </button>`;
                 }).join('');
@@ -2886,7 +2885,7 @@ window.abrirDetalhesSessao = async function(id) {
                 const badgeHtml = cat ? `<span style="font-size:0.65rem; padding:1px 5px; border-radius:8px; margin-left:4px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15);">${escapeHTML(cat)} T${mag}</span>` : '';
                 return `<div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:6px; font-size:0.85rem; padding:6px 10px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.05); border-radius:6px;">
                     <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin:0; width:100%;">
-                        <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleGatilhoSessao('${g.node_id}', '${escapeHTML(g.flag_key)}', this.checked, '${s.id}')">
+                        <input type="checkbox" ${isChecked ? 'checked' : ''} data-node="${g.node_id}" data-flag="${escapeHTML(g.flag_key)}" data-sess="${s.id}" onchange="toggleGatilhoSessao(this.getAttribute('data-node'), this.getAttribute('data-flag'), this.checked, this.getAttribute('data-sess'))">
                         <span><strong>${escapeHTML(g.node_nome)}</strong>: ${escapeHTML(humanizarMarco(g.flag_key))}${badgeHtml}</span>
                     </label>
                     <span style="font-weight:bold; color:var(--dourado); font-size:0.8rem; white-space:nowrap;">+${g.peso} pt${g.peso > 1 ? 's' : ''}</span>
