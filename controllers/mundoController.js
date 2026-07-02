@@ -1463,12 +1463,12 @@ exports.sugerirMarcosIA = async (req, res) => {
         let nome = nome_entidade || 'Entidade Desconhecida';
         let tipo = tipo_entidade || 'NPC';
         if (entidade_id) {
-            const nodeRes = await pool.query('SELECT nome, tipo, subtipo, dados FROM world_nodes WHERE id = $1 AND cronica_id = $2', [entidade_id, cronicaId]);
+            const nodeRes = await pool.query('SELECT nome, tipo, dados FROM world_nodes WHERE id = $1 AND cronica_id = $2', [entidade_id, cronicaId]);
             if (nodeRes.rows.length > 0) {
                 const nodeData = nodeRes.rows[0];
                 const d = nodeData.dados || {};
                 nome = nome_entidade || nodeData.nome || nome;
-                tipo = tipo_entidade || nodeData.tipo || tipo;
+                tipo = tipo_entidade || d.subtipo || nodeData.tipo || tipo;
                 biografia = d.biografia || d.descricao || d.notas || biografia;
                 if (d.tarot && typeof d.tarot.carta_num === 'number') {
                     tarot = `Arcano ${d.tarot.carta_num} (${d.tarot.orientacao === 1 ? 'Em pé' : 'Invertida'})`;
